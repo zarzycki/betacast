@@ -70,9 +70,7 @@ inputdatatype=3
 numlevels=30
 
 #forecast length (in days)
-numdays=4
-
-date
+numdays=3
 
 if [ $islive -ne 0 ]    # Find most recent GFS forecast
 then
@@ -496,12 +494,6 @@ then
 
 #  echo "Exiting because Colin doesn't want to run the full forecast sim"
 #  exit 0
-
-  ## Run NCL filter
-  #cd $filter_path
-  #echo "Running filter"
-  #filtfile_name=$gridname.cam.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
-  #ncl digifilter.ncl machineid=$machineid 'filtfile_name = "'$filtfile_name'"' 'gridname = "'$gridname'"'
 
   ## Run NCL filter
   cd $filter_path
