@@ -167,7 +167,7 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
 end if
 if (datasource .eq. "ERAI") then
   print("Using hybrid to hybrid interpolation")
-  eraVertFile = addfile("/glade/scratch/zarzycki/getECMWFdata/ERA-Interim_coordvars.nc","r")
+  eraVertFile = addfile("/glade/p/work/zarzycki/getECMWFdata/ERA-Interim_coordvars.nc","r")
   hya_era = eraVertFile->a_model_ave
   hyb_era = eraVertFile->b_model_ave
   hya_era = hya_era/p0

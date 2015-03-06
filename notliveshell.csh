@@ -19,15 +19,12 @@ debug=0     # 0 = no debug, 1 = debug
 echo "debug set to $debug"
 
 # Set whether we are running forecast in realtime
-# 0 no, we are using historical data
-# 1 yes, we are running live
+# 0 no, we are using historical data --- 1 yes, we are running live
 islive=0
 echo "islive set to $islive"
 
 # Set whether we want to send plots to external server
-# 0 no
-# 1 yes
-sendplots=0
+sendplots=0         # 0 no, 1 yes
 echo "sendplots set to $sendplots"
 
 ## 1 = Yellowstone, 2 = Flux, 3 = Agri
@@ -63,10 +60,9 @@ echo "The formal SE run will start at +$numHoursSEStart hours from actual init t
 # 1 = GFS forecast ICs
 # 2 = ERA-interim reanalysis
 # 3 = CFSR
-inputdatatype=3
+inputdatatype=2
 
-# 30 -> CAM5 physics
-# 26 -> CAM4 physics
+# 30 -> CAM5 physics, 26 -> CAM4 physics
 numlevels=30
 
 #forecast length (in days)
@@ -204,7 +200,6 @@ else
   sstcyclestr=$cyclestr
 fi
 
-
 echo "The current time is $currtime"
 echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds) for GFS data"
 echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST data"
@@ -216,10 +211,11 @@ then
   sewxscriptsdir=/glade/u/home/$LOGNAME/sewx/
   backupdir=/glade/u/home/$LOGNAME/sewx/scriptbackups
   gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS
-  era_files_path=/glade/scratch/$LOGNAME/getECMWFdata/
+  era_files_path=/glade/p/work/$LOGNAME/getECMWFdata/
   sst_files_path=/glade/p/work/$LOGNAME/sewx/SST
   gfs_to_cam_path=/glade/u/home/$LOGNAME/sewx/gfs_to_cam
-  era_to_cam_path=/glade/p/work/$LOGNAME/sewx/interim_to_cam
+  era_to_cam_path=/glade/u/home/$LOGNAME/sewx/interim_to_cam
+  atm_to_cam_path=/glade/u/home/$LOGNAME/sewx/atm_to_cam
   filter_path=/glade/u/home/$LOGNAME/sewx/filter
   path_to_se_build=/glade/u/home/$LOGNAME
   path_to_rundir=/glade/scratch/$LOGNAME/$gridname/run
@@ -325,9 +321,6 @@ then
         fi
       done
       mv $sstFTPFile 'gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-      
-      echo "Cding to GFS interpolation directory"
-      cd $gfs_to_cam_path 
   elif [ $inputdatatype -eq 2 ]
   then  
       echo "Using ERA-Interim forecast ICs"
@@ -337,8 +330,6 @@ then
       ncks -A ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc
       mv -v ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc
       rm -f ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-      echo "CD ing to ERA-interim interpolation directory"
-      cd $era_to_cam_path
   elif [ $inputdatatype -eq 3 ]
   then  
       echo "Using CFSR ICs"
@@ -370,19 +361,20 @@ then
       tar -xvf $CFSRFILENAME
       mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 'cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
       rm pgbhnl.gdas.*
-      echo "CD ing to interpolation directory"
-      cd $gfs_to_cam_path 
   else
       echo "Incorrect model IC entered"
       exit 1
   fi
 
-### We can probably clean this up by merging the above sed commands into command line arguments
-### then put this if/else statement up inside the whole get data structure above
+  set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
+  ### We can probably clean this up by merging the above sed commands into command line arguments
+  ### then put this if/else statement up inside the whole get data structure above
   if [ $inputdatatype -eq 1 ] # GFS
   then
+    echo "Cding to GFS interpolation directory"
+    cd $atm_to_cam_path 
     echo "Doing NCL"    
-    ncl -n gfs.ncl 'datasource="GFS"'     \
+    ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
         numlevels=$numlevels \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'gridname = "'$gridname'"' \
@@ -393,21 +385,34 @@ then
     ncl sst_interp.ncl initdate=${yearstr}${monthstr}${daystr}${cyclestr} 'sst_file_full = "'$gfs_files_path'/gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2"'
   elif [ $inputdatatype -eq 2 ] # ERA
   then
-    #ncl se_interp.ncl machineid=$machineid 'gridname = "'$gridname'"' 'ERA_dir="'${era_files_path}'"'
-    
-    ncl -n se_interp.ncl machineid=$machineid \
-      numlevels=$numlevels \
-      YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-      'gridname = "'$gridname'"' \
-      'ERA_dir="'${era_files_path}'"'
+    echo "CD ing to ERA-interim interpolation directory"
+    cd $atm_to_cam_path
 
-    ncl sst_interp.ncl 'YYYYMMDDHH="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
-      'dataSource="ERAI"' \
-      'sstDataFile = "'${era_files_path}'/ERA-Int_sfc_'$yearstr$monthstr$daystr$cyclestr'.nc"' \
-      'iceDataFile = "'${era_files_path}'/ERA-Int_sfc_'$yearstr$monthstr$daystr$cyclestr'.nc"'  
+    ncl -n atm_to_cam.ncl 'datasource="ERAI"'     \
+        numlevels=$numlevels \
+        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+       'gridname = "'$gridname'"' \
+       'data_filename = "/glade/p/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
+       'wgt_filename="/glade/p/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
+       'se_inic = "'${sePreFilterIC}'"'
+
+#    ncl -n se_interp.ncl machineid=$machineid \
+#      numlevels=$numlevels \
+#      YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+#      'gridname = "'$gridname'"' \
+#      'ERA_dir="'${era_files_path}'"'
+
+#    ncl sst_interp.ncl 'YYYYMMDDHH="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
+#      'dataSource="ERAI"' \
+#      'sstDataFile = "'${era_files_path}'/ERA-Int_sfc_'$yearstr$monthstr$daystr$cyclestr'.nc"' \
+#      'iceDataFile = "'${era_files_path}'/ERA-Int_sfc_'$yearstr$monthstr$daystr$cyclestr'.nc"'  
+
   elif [ $inputdatatype -eq 3 ] # CFSR
-  then      
-    ncl -n gfs.ncl 'datasource="CFSR"'     \
+  then
+      echo "CD ing to interpolation directory"
+      cd $atm_to_cam_path 
+    
+     ncl -n atm_to_cam.ncl 'datasource="CFSR"'     \
         numlevels=$numlevels \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'gridname = "'$gridname'"' \
@@ -418,6 +423,17 @@ then
       echo "Incorrect model IC entered"
       exit 1
   fi
+  # Since NCL doesn't return non-zero codes, I have NCL returning a non-zero code
+  # if successful! However, this means we have to check if code is successful with
+  # something other than zero. Generally, if NCL fails expect a 0 return, but lets
+  # be safe and call everything non-9.
+  if [[ $? -ne 9 ]]
+  then
+    echo "NCL exited with non-9 error code"
+    exit 240
+  fi
+  echo "NCL completed successfully"
+  set -e # Turn error checking back on
   
 fi #End debug if statement
 
@@ -425,7 +441,11 @@ fi #End debug if statement
 #cp tcforecast_60_x4_INIC_filter.nc tcforecast_60_x4_INIC.nc
 cd $path_to_se_build/$gridname
 
-echo "Change date in FV namelist"
+echo "Turning off archiving and restart file output in env_run.xml"
+./xmlchange -v -file env_run.xml -id DOUT_S -val FALSE
+./xmlchange -v -file env_run.xml -id REST_OPTION -val nyears
+./xmlchange -v -file env_run.xml -id REST_N -val 9999
+echo "Update env_run.xml with runtime parameters"
 ./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $yearstr-$monthstr-$daystr
 ./xmlchange -v -file env_run.xml -id START_TOD -val $cyclestrsec
 ./xmlchange -v -file env_run.xml -id STOP_OPTION -val nhours
