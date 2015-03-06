@@ -1,0 +1,203 @@
+00000
+Using GFS forecast ICs
+Cding to GFS interpolation directory
+Sedding commands in NCL interpolation scripts
+Change date in FV namelist
+1
+Begin call to filter-run
+Job <373148> is submitted to queue <regular>.
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+ls: cannot access /glade/scratch/zarzycki/archive/atlsquad_30_x8/atm/logs/*.gz: No such file or directory
+Run over done sleeping will sleep for 60 more sec to make sure files moved
+ Copyright (C) 1995-2013 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.1.2
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+
+
+Variable: h_k
+Type: double
+Total Size: 392 bytes
+            49 values
+Number of Dimensions: 1
+Dimensions and sizes:	[49]
+Coordinates: 
+Number Of Attributes: 1
+  _FillValue :	9.969209968386869e+36
+(0)	1.517556380068599e-09
+(1)	0.0001688088335661113
+(2)	0.000541546414327682
+(3)	0.001150043361561526
+(4)	0.002021228119584901
+(5)	0.003175625010309721
+(6)	0.004625999744926031
+(7)	0.006376243776047181
+(8)	0.008420558517632593
+(9)	0.01074294990675778
+(10)	0.01331712364153679
+(11)	0.01610675648031333
+(12)	0.01906617614909621
+(13)	0.02214142118511718
+(14)	0.02527166249810549
+(15)	0.02839092449411769
+(16)	0.03143006880947932
+(17)	0.03431896206396697
+(18)	0.03698871654780492
+(19)	0.03937396799597519
+(20)	0.0414150677992234
+(21)	0.04306011633685908
+(22)	0.04426675372835967
+(23)	0.04500359073147251
+(24)	0.0452513726726046
+(25)	0.04500359073147251
+(26)	0.04426675372835967
+(27)	0.04306011633685908
+(28)	0.0414150677992234
+(29)	0.03937396799597519
+(30)	0.03698871654780492
+(31)	0.03431896206396697
+(32)	0.03143006880947932
+(33)	0.02839092449411769
+(34)	0.02527166249810549
+(35)	0.02214142118511718
+(36)	0.01906617614909621
+(37)	0.01610675648031333
+(38)	0.01331712364153679
+(39)	0.01074294990675778
+(40)	0.008420558517632593
+(41)	0.006376243776047181
+(42)	0.004625999744926031
+(43)	0.003175625010309721
+(44)	0.002021228119584901
+(45)	0.001150043361561526
+(46)	0.000541546414327682
+(47)	0.0001688088335661113
+(48)	1.517556380068599e-09
+(0)	Writing file...
+(0)	done
+Removing filter files
+mv: target `/glade/scratch/zarzycki/archive/atlsquad_30_x8/atm/hist/filtered' is not a directory
+Make changes in CESM-SE namelist
+Job <373498> is submitted to queue <regular>.

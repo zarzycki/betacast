@@ -1,0 +1,122 @@
+00000
+Using GFS forecast ICs
+Cding to GFS interpolation directory
+Sedding commands in NCL interpolation scripts
+ Copyright (C) 1995-2013 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.1.2
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+(0)	Using this file: gfsanl_4_20120823_0000_000.grb2
+(0)	Using this remap: map_gfs0.50_TO_atlsquad_30_x8_blin.nc
+warning: Entry (3) not found in code table file /glade/apps/opt/ncl/6.1.2/gnu/4.4.6/lib/ncarg/grib2_codetables/ncep/4/4.2.2.4.table
+(0)	Interpolating GRIB to uniform vertical levels
+(0)	Calculating q from RH
+(0)	Loading 30 level data
+(0)	Interpolating to CAM hybrid coordinates
+(0)	Sorting bad values
+(0)	Interpolating horizontal to CAM
+
+Variable: ps_fv
+Type: float
+Total Size: 1332296 bytes
+            333074 values
+Number of Dimensions: 1
+Dimensions and sizes:	[333074]
+Coordinates: 
+Number Of Attributes: 15
+  center :	US National Weather Service - NCEP (WMC)
+  production_status :	Operational products
+  long_name :	Pressure
+  units :	Pa
+  _FillValue :	1e+20
+  grid_type :	Latitude/longitude
+  parameter_discipline_and_category :	Meteorological products, Mass
+  parameter_template_discipline_category_number :	( 0, 0, 3, 0 )
+  level_type :	Ground or water surface
+  level :	 0
+  forecast_time :	0
+  forecast_time_units :	hours
+  initial_time :	08/23/2012 (00:00)
+  remap :	remapped via ESMF_regrid_with_weights: Bilinear remapping
+  missing_value :	1e+20
+(0)	Converting floats to doubles
+(0)	Correcting time records
+(0)	here1
+(0)	here1
+(0)	here1
+(0)	here1
+(0)	here1
+(0)	here2
+(0)	Seperate cloud ice and water
+
+Variable: ps_fv_dbl_time
+Type: double
+Total Size: 2664592 bytes
+            333074 values
+Number of Dimensions: 2
+Dimensions and sizes:	[time | 1] x [ncol | 333074]
+Coordinates: 
+Number Of Attributes: 16
+  center :	US National Weather Service - NCEP (WMC)
+  production_status :	Operational products
+  long_name :	Pressure
+  units :	Pa
+  _FillValue_original :	1e+20
+  grid_type :	Latitude/longitude
+  parameter_discipline_and_category :	Meteorological products, Mass
+  parameter_template_discipline_category_number :	( 0, 0, 3, 0 )
+  level_type :	Ground or water surface
+  level :	 0
+  forecast_time :	0
+  forecast_time_units :	hours
+  initial_time :	08/23/2012 (00:00)
+  remap :	remapped via ESMF_regrid_with_weights: Bilinear remapping
+  missing_value_original :	1e+20
+  _FillValue :	9.969209968386869e+36
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:["Execute.c":8128]:Execute: Error occurred at or near line 338 in file se_interp.ncl
+
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:["Execute.c":8128]:Execute: Error occurred at or near line 339 in file se_interp.ncl
+
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:["Execute.c":8128]:Execute: Error occurred at or near line 340 in file se_interp.ncl
+
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:["Execute.c":8128]:Execute: Error occurred at or near line 341 in file se_interp.ncl
+
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:["Execute.c":8128]:Execute: Error occurred at or near line 342 in file se_interp.ncl
+
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:["Execute.c":8128]:Execute: Error occurred at or near line 343 in file se_interp.ncl
+
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:Right hand side has no coordinate variable can not delete coordinate variable of a file, use (/ .. /) to avoid this message
+warning:["Execute.c":8128]:Execute: Error occurred at or near line 344 in file se_interp.ncl
+
+(0)	done
+Change date in FV namelist
+ls: cannot access /glade/scratch/zarzycki/archive/atlsquad_30_x8/atm/logs/*.gz: No such file or directory
+0
+Begin call to filter-run
+Job <373109> is submitted to queue <regular>.
+ls: cannot access /glade/scratch/zarzycki/archive/atlsquad_30_x8/atm/logs/*.gz: No such file or directory
+Sleeping
+ls: cannot access /glade/scratch/zarzycki/archive/atlsquad_30_x8/atm/logs/*.gz: No such file or directory
+Sleeping
+ls: cannot access /glade/scratch/zarzycki/archive/atlsquad_30_x8/atm/logs/*.gz: No such file or directory
+Sleeping
+ls: cannot access /glade/scratch/zarzycki/archive/atlsquad_30_x8/atm/logs/*.gz: No such file or directory
+Sleeping
+ls: cannot access /glade/scratch/zarzycki/archive/atlsquad_30_x8/atm/logs/*.gz: No such file or directory
+Sleeping
+ls: cannot access /glade/scratch/zarzycki/archive/atlsquad_30_x8/atm/logs/*.gz: No such file or directory
+Sleeping
+ls: cannot access /glade/scratch/zarzycki/archive/atlsquad_30_x8/atm/logs/*.gz: No such file or directory
