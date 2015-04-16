@@ -15,33 +15,34 @@
 set -e
 #set -v
 
-debug=0     # 0 = no debug, 1 = debug
-echo "debug set to $debug"
+debug=0 ; echo "debug set to $debug"    # 0 = no debug, 1 = debug
+islive=0 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, running live
+sendplots=0 ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
+machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 = Agri
 
-# Set whether we are running forecast in realtime
-# 0 no, we are using historical data --- 1 yes, we are running live
-islive=0
-echo "islive set to $islive"
-
-# Set whether we want to send plots to external server
-sendplots=0         # 0 no, 1 yes
-echo "sendplots set to $sendplots"
-
-## 1 = Yellowstone, 2 = Flux, 3 = Agri
-machineid=1
-
+#Filtering options
+doFilter=false ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
 numHoursSEStart=3
 filterHourLength=6
 
-#gridname=uniform_240
-#gfs2seWeights=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/maps/map_gfs0.50_TO_uniform240_patc.141127.nc
-#sePreFilterIC=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/inic/inic_uniform_240_INIC.nc
-#sePostFilterIC=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/inic/inic_uniform_240_INIC.nc
+land_spinup=true
+use_defaults=false
+###################################################################################
 
 gridname=uniform_60
 gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_uniform_60_patc.nc
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC.nc
 sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC_filter.nc
+
+###################################################################################
+
+
+
+
+#gridname=uniform_240
+#gfs2seWeights=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/maps/map_gfs0.50_TO_uniform240_patc.141127.nc
+#sePreFilterIC=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/inic/inic_uniform_240_INIC.nc
+#sePostFilterIC=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/inic/inic_uniform_240_INIC.nc
 
 #gridname=newgulf_30_x4
 #gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_newgulf_30_x4_patc.nc
@@ -60,13 +61,13 @@ echo "The formal SE run will start at +$numHoursSEStart hours from actual init t
 # 1 = GFS forecast ICs
 # 2 = ERA-interim reanalysis
 # 3 = CFSR
-inputdatatype=2
+inputdatatype=3
 
 # 30 -> CAM5 physics, 26 -> CAM4 physics
 numlevels=30
 
 #forecast length (in days)
-numdays=3
+numdays=1
 
 if [ $islive -ne 0 ]    # Find most recent GFS forecast
 then
@@ -366,6 +367,11 @@ then
       exit 1
   fi
 
+  ## If we are not filtering, we need to make sure CAM writes INIC to correct file
+  if [ "$doFilter" = false ] ; then
+    sePreFilterIC=${sePostFilterIC}
+  fi
+
   set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
   ### We can probably clean this up by merging the above sed commands into command line arguments
   ### then put this if/else statement up inside the whole get data structure above
@@ -437,36 +443,60 @@ then
   
 fi #End debug if statement
 
+
+
 #cd /home/zarzycki/sewx/INIC
 #cp tcforecast_60_x4_INIC_filter.nc tcforecast_60_x4_INIC.nc
 cd $path_to_se_build/$gridname
-
 echo "Turning off archiving and restart file output in env_run.xml"
 ./xmlchange -v -file env_run.xml -id DOUT_S -val FALSE
 ./xmlchange -v -file env_run.xml -id REST_OPTION -val nyears
 ./xmlchange -v -file env_run.xml -id REST_N -val 9999
+####### 
+if [ "$land_spinup" = true ] ; then
+  ./xmlchange -v -file env_run.xml -id REST_OPTION -val ndays
+  ./xmlchange -v -file env_run.xml -id REST_N -val 1
+fi
+#######
 echo "Update env_run.xml with runtime parameters"
 ./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $yearstr-$monthstr-$daystr
 ./xmlchange -v -file env_run.xml -id START_TOD -val $cyclestrsec
-./xmlchange -v -file env_run.xml -id STOP_OPTION -val nhours
-./xmlchange -v -file env_run.xml -id STOP_N -val ${filterHourLength}
-cp -v user_nl_cam_filter user_nl_cam
+# We are by default setting these to forecast settings. If filtering, will overwrite
+./xmlchange -v -file env_run.xml -id STOP_OPTION -val ndays
+./xmlchange -v -file env_run.xml -id STOP_N -val $numdays
+cp -v user_nl_cam_run user_nl_cam
 
 echo "Setting input land dataset"
 # Copy dummy lnd namelist over with commented "!finidat" line
 # If input land DOES exist, we'll sed in the file and remove ! comment
 # If it does not exist, we'll do nothing and let CESM use arbitrary ICs
 
-#cp -v user_nl_clm_dummy user_nl_clm
-if [ -f /home/zarzycki/${gridname}/run/clmstart/${gridname}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc ]
-then
-    echo "Land file exists, sedding that into CLM namelist"
-    sed -i 's?!finidat.*?finidat='"'"/home/zarzycki/"${gridname}"/run/clmstart/"${gridname}".clm2.r."${se_yearstr}"-"${se_monthstr}"-"${se_daystr}"-"${se_cyclestrsec}".nc"'"'?' user_nl_clm
+if $doFilter ; then
+  landFileName=$path_to_nc_files/clmstart/${gridname}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+  otherLandFileName=$path_to_nc_files/clmstart/${gridname}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
 else
+  landFileName=$path_to_nc_files/clmstart/${gridname}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+  otherLandFileName=$path_to_nc_files/clmstart/${gridname}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+fi
+
+echo ${landFileName}
+echo ${otherLandFileName}
+
+#uniform_60.clm2.r.2005-08-25-00000.nc
+#cp -v user_nl_clm_dummy user_nl_clm
+if [ -f ${landFileName} ] ; then
+  echo "Land file exists, sedding that into CLM namelist"
+  sed -i 's?!finidat.*?finidat='"'${landFileName}'"'?' user_nl_clm
+else
+  if [ -f ${otherLandFileName} ] ; then
+      echo "OTHER land file exists, sedding that into CLM namelist"
+      sed -i 's?!finidat.*?finidat='"'${otherLandFileName}'"'?' user_nl_clm
+  else
     echo "Land file DOES NOT EXIST, will use arbitrary CESM spinup"
     #echo "OK, Colin is cheating and using a different land file"
     #echo "He really should specify 3-4 files by month as dummies instead of CESM cold starts"
     #sed -i 's?!finidat.*?finidat='"'"/home/zarzycki/"${gridname}"/run/clmstart/"${gridname}".clm2.r.2012-08-24-10800.nc"'"'?' user_nl_clm
+  fi    
 fi
 
 echo "Running again!" > ${path_to_rundir}/testrunning.gz
@@ -474,7 +504,7 @@ echo "Running again!" > ${path_to_rundir}/testrunning.gz
 ## Get number of log files archived
 numlogfiles=`ls ${path_to_rundir}/*.gz | wc -l`
 
-echo $numlogfiles
+echo "numlogfiles: $numlogfiles"
 
 #cp -v ${sst_files_path}/sst_1x1.nc ${path_to_rundir}/INIC
 ## IF GFS
@@ -483,71 +513,77 @@ echo $numlogfiles
 #./xmlchange -v -file env_run.xml -id SSTICE_DATA_FILENAME -val "$DIN_LOC_ROOT/atm/cam/sst/sst_HadOIBl_bc_1x1_1850_2009_c101029.nc"
 #./xmlchange -v -file env_run.xml -id SSTICE_DATA_FILENAME -val "${path_to_rundir}/INIC/sst_1x1.nc"
 
-if [ $debug -ne 1 ]
-then
-  echo "Begin call to filter-run"
-  if [ $machineid -eq 1 ]
-  then
-    bsub < $gridname.run
-    echo "Skip me"
-  elif [ $machineid -eq 2 ]
-  then
-    echo "Using UMich Flux"
-    exit 1
-  elif [ $machineid -eq 3 ]
-  then
-    sbatch $gridname.run
-    echo "Skip me"
-  else
-    echo "Unsupported start time"
+if $doFilter ; then
+  # If filtering, need to change these options
+  cd $path_to_se_build/$gridname
+  ./xmlchange -v -file env_run.xml -id STOP_OPTION -val nhours
+  ./xmlchange -v -file env_run.xml -id STOP_N -val ${filterHourLength}
+  cp -v user_nl_cam_filter user_nl_cam
+
+  if [ $debug -ne 1 ] ; then
+    echo "Begin call to filter-run"
+    if [ $machineid -eq 1 ]
+    then
+      bsub < $gridname.run
+      echo "Skip me"
+    elif [ $machineid -eq 2 ]
+    then
+      echo "Using UMich Flux"
+      exit 1
+    elif [ $machineid -eq 3 ]
+    then
+      sbatch $gridname.run
+      echo "Skip me"
+    else
+      echo "Unsupported start time"
+    fi
+    ## Hold script while log files from filter run haven't been archived yet
+
+    while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
+    do
+      sleep 20
+      echo "Sleeping"
+    done
+    echo "Run over done sleeping will hold for 60 more sec to make sure files moved" 
+    sleep 40
+
+
+  #  echo "Exiting because Colin doesn't want to run the full forecast sim"
+  #  exit 0
+
+    ## Run NCL filter
+    cd $filter_path
+    echo "Running filter"
+    filtfile_name=$gridname.cam.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
+    ncl lowmemfilter.ncl \
+     endhour=${filterHourLength} tcut=6 \
+    'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
+    'writefile_name = "'${sePostFilterIC}'"'
   fi
-  ## Hold script while log files from filter run haven't been archived yet
 
-  while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
-  do
-    sleep 20
-    echo "Sleeping"
-  done
-  echo "Run over done sleeping will hold for 60 more sec to make sure files moved" 
-  sleep 40
+  echo "done with filter, removing filter files"
+  mkdir -p $path_to_nc_files/filtered
+  mv -v $path_to_nc_files/*.nc $path_to_nc_files/filtered
+  ## Delete filter files that aren't h0 since those are the only ones we care about.
+  find $path_to_nc_files/filtered/ -type f -not -name '*.cam.h0.*.nc' | xargs rm
+  ## For now, I'm going to go back and delete all the h0 files in filtered
+  rm -v $path_to_nc_files/filtered/*.cam.h0.*.nc
 
-
-#  echo "Exiting because Colin doesn't want to run the full forecast sim"
-#  exit 0
-
-  ## Run NCL filter
-  cd $filter_path
-  echo "Running filter"
-  filtfile_name=$gridname.cam.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
-  ncl lowmemfilter.ncl \
-   endhour=${filterHourLength} tcut=6 \
-  'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
-  'writefile_name = "'${sePostFilterIC}'"'
+  echo "Make changes in CESM-SE namelist"
+  cd $path_to_se_build/$gridname
+  ./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $se_yearstr-$se_monthstr-$se_daystr
+  ./xmlchange -v -file env_run.xml -id START_TOD -val $se_cyclestrsec
+  ./xmlchange -v -file env_run.xml -id STOP_OPTION -val ndays
+  ./xmlchange -v -file env_run.xml -id STOP_N -val $numdays
+  cp -v user_nl_cam_run user_nl_cam
 fi
-
-exit
-
-echo "done with filter, removing filter files"
-mkdir -p $path_to_nc_files/filtered
-mv -v $path_to_nc_files/*.nc $path_to_nc_files/filtered
-## Delete filter files that aren't h0 since those are the only ones we care about.
-find $path_to_nc_files/filtered/ -type f -not -name '*.cam.h0.*.nc' | xargs rm
-## For now, I'm going to go back and delete all the h0 files in filtered
-rm -v $path_to_nc_files/filtered/*.cam.h0.*.nc
-
-echo "Make changes in CESM-SE namelist"
-cd $path_to_se_build/$gridname
-./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $se_yearstr-$se_monthstr-$se_daystr
-./xmlchange -v -file env_run.xml -id START_TOD -val $se_cyclestrsec
-./xmlchange -v -file env_run.xml -id STOP_OPTION -val ndays
-./xmlchange -v -file env_run.xml -id STOP_N -val $numdays
-cp -v user_nl_cam_run user_nl_cam
 
 if [ $debug -ne 1 ]
 then
   echo "Begin call to forecast run"
   if [ $machineid -eq 1 ]
   then
+    echo "Using Yellowstone"
     bsub < $gridname.run
   elif [ $machineid -eq 2 ]
   then
@@ -555,6 +591,7 @@ then
     exit 1
   elif [ $machineid -eq 3 ]
   then
+    echo "Using UCDavis Agri"
     sbatch $gridname.run
   else
     echo "Unsupported start time"
@@ -574,7 +611,7 @@ then
   ## Get number of log files archived
   numlogfiles=`ls ${path_to_rundir}/*.gz | wc -l`
 
-  echo $numlogfiles
+  echo "numlogfiles: $numlogfiles"
 
   ## Hold script while log files from filter run haven't been archived yet
   while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
