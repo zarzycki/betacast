@@ -28,16 +28,36 @@ filterHourLength=6
 land_spinup=true
 use_defaults=false
 ###################################################################################
+gridname=ecsnow_30_x4
+runname=ecsnow_30_x4_forecast
+gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_ecsnow_30_x4_patc.nc
+sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc
+sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc
 
-gridname=uniform_60
-gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_uniform_60_patc.nc
-sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC.nc
-sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC_filter.nc
+sewxscriptsdir=/glade/u/home/$LOGNAME/sewx-cam-forecast/
+path_to_se_build=/glade/p/work/$LOGNAME/${runname}
 
+backupdir=${sewxscriptsdir}/scriptbackups
+
+gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS
+era_files_path=/glade/p/work/$LOGNAME/getECMWFdata/
+sst_files_path=/glade/p/work/$LOGNAME/sewx/SST
+
+path_to_rundir=/glade/scratch/$LOGNAME/${runname}/run
+path_to_nc_files=/glade/scratch/$LOGNAME/${runname}/run
+outputdir=/glade/scratch/$LOGNAME/${runname}/run
 ###################################################################################
 
+gfs_to_cam_path=${sewxscriptsdir}/gfs_to_cam
+era_to_cam_path=${sewxscriptsdir}/interim_to_cam
+atm_to_cam_path=${sewxscriptsdir}/atm_to_cam
+filter_path=${sewxscriptsdir}/filter
 
-
+# gridname=uniform_60
+# runname=uniform_60
+# gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_uniform_60_patc.nc
+# sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC.nc
+# sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC_filter.nc
 
 #gridname=uniform_240
 #gfs2seWeights=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/maps/map_gfs0.50_TO_uniform240_patc.141127.nc
@@ -54,7 +74,7 @@ sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC_filter.nc
 #sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC.nc
 #sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC_filter.nc
 
-echo "We are using $gridname for the grid"
+echo "We are using $runname for the case"
 echo "The formal SE run will start at +$numHoursSEStart hours from actual init time"
 
 # Set input data type
@@ -209,19 +229,19 @@ echo "SE initialization will occur at $se_yearstr $se_monthstr $se_daystr $se_cy
 if [ $machineid -eq 1 ]
 then
   echo "Using Yellowstone"
-  sewxscriptsdir=/glade/u/home/$LOGNAME/sewx/
-  backupdir=/glade/u/home/$LOGNAME/sewx/scriptbackups
-  gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS
-  era_files_path=/glade/p/work/$LOGNAME/getECMWFdata/
-  sst_files_path=/glade/p/work/$LOGNAME/sewx/SST
-  gfs_to_cam_path=/glade/u/home/$LOGNAME/sewx/gfs_to_cam
-  era_to_cam_path=/glade/u/home/$LOGNAME/sewx/interim_to_cam
-  atm_to_cam_path=/glade/u/home/$LOGNAME/sewx/atm_to_cam
-  filter_path=/glade/u/home/$LOGNAME/sewx/filter
-  path_to_se_build=/glade/u/home/$LOGNAME
-  path_to_rundir=/glade/scratch/$LOGNAME/$gridname/run
-  path_to_nc_files=/glade/scratch/$LOGNAME/$gridname/run
-  outputdir=/glade/scratch/$LOGNAME/${gridname}/run
+#   sewxscriptsdir=/glade/u/home/$LOGNAME/sewx/
+#   backupdir=/glade/u/home/$LOGNAME/sewx/scriptbackups
+#   gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS
+#   era_files_path=/glade/p/work/$LOGNAME/getECMWFdata/
+#   sst_files_path=/glade/p/work/$LOGNAME/sewx/SST
+#   gfs_to_cam_path=/glade/u/home/$LOGNAME/sewx/gfs_to_cam
+#   era_to_cam_path=/glade/u/home/$LOGNAME/sewx/interim_to_cam
+#   atm_to_cam_path=/glade/u/home/$LOGNAME/sewx/atm_to_cam
+#   filter_path=/glade/u/home/$LOGNAME/sewx/filter
+#   path_to_se_build=/glade/u/home/$LOGNAME/${runname}
+#   path_to_rundir=/glade/scratch/$LOGNAME/${runname}/run
+#   path_to_nc_files=/glade/scratch/$LOGNAME/${runname}/run
+#   outputdir=/glade/scratch/$LOGNAME/${runname}/run
 elif [ $machineid -eq 2 ]
 then
   echo "Using UMich Flux"
@@ -255,6 +275,7 @@ then
   then
       echo "Using GFS forecast ICs"
       echo "Getting GFS conditions"
+      mkdir -p $gfs_files_path
       cd $gfs_files_path
       
       ## Pull atmospheric conditions
@@ -326,6 +347,7 @@ then
   then  
       echo "Using ERA-Interim forecast ICs"
       echo "Cding to ERA-Interim interpolation directory"
+      mkdir -p $era_files_path
       cd $era_files_path
       python getInterim.py ${yearstr}${monthstr}${daystr} ${cyclestr}
       ncks -A ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc
@@ -357,6 +379,8 @@ then
       ## NEED TO IMPLEMENT LEAP YEAR FIX
       CFSRFILENAME=pgbhnl.gdas.${yearstr}${monthstr}${FILEDAY}-${yearstr}${monthstr}${ENCUTARR[$index]}.tar
       echo "Getting file: ${CFSRFILENAME}"
+      #Register with RDA, then do following command to get wget cookies
+      #wget --save-cookies ~/.thecookies --post-data="email=your_email_address&passwd=your_password&action=login" https://rda.ucar.edu/cgi-bin/login
       wget -q --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
       
       tar -xvf $CFSRFILENAME
@@ -383,7 +407,7 @@ then
     ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
         numlevels=$numlevels \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-       'gridname = "'$gridname'"' \
+       'gridname = "'${runname}'"' \
        'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
        'se_inic = "'${sePreFilterIC}'"'
@@ -397,7 +421,7 @@ then
     ncl -n atm_to_cam.ncl 'datasource="ERAI"'     \
         numlevels=$numlevels \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-       'gridname = "'$gridname'"' \
+       'gridname = "'${runname}'"' \
        'data_filename = "/glade/p/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
        'wgt_filename="/glade/p/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
        'se_inic = "'${sePreFilterIC}'"'
@@ -421,7 +445,6 @@ then
      ncl -n atm_to_cam.ncl 'datasource="CFSR"'     \
         numlevels=$numlevels \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-       'gridname = "'$gridname'"' \
        'data_filename = "'$gfs_files_path'/cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
        'se_inic = "'${sePreFilterIC}'"'
@@ -447,7 +470,7 @@ fi #End debug if statement
 
 #cd /home/zarzycki/sewx/INIC
 #cp tcforecast_60_x4_INIC_filter.nc tcforecast_60_x4_INIC.nc
-cd $path_to_se_build/$gridname
+cd $path_to_se_build
 echo "Turning off archiving and restart file output in env_run.xml"
 ./xmlchange -v -file env_run.xml -id DOUT_S -val FALSE
 ./xmlchange -v -file env_run.xml -id REST_OPTION -val nyears
@@ -472,11 +495,11 @@ echo "Setting input land dataset"
 # If it does not exist, we'll do nothing and let CESM use arbitrary ICs
 
 if $doFilter ; then
-  landFileName=$path_to_nc_files/clmstart/${gridname}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
-  otherLandFileName=$path_to_nc_files/clmstart/${gridname}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+  landFileName=$path_to_nc_files/clmstart/${runname}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+  otherLandFileName=$path_to_nc_files/clmstart/${runname}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
 else
-  landFileName=$path_to_nc_files/clmstart/${gridname}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
-  otherLandFileName=$path_to_nc_files/clmstart/${gridname}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+  landFileName=$path_to_nc_files/clmstart/${runname}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+  otherLandFileName=$path_to_nc_files/clmstart/${runname}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
 fi
 
 echo ${landFileName}
@@ -486,13 +509,14 @@ echo ${otherLandFileName}
 #cp -v user_nl_clm_dummy user_nl_clm
 if [ -f ${landFileName} ] ; then
   echo "Land file exists, sedding that into CLM namelist"
-  sed -i 's?!finidat.*?finidat='"'${landFileName}'"'?' user_nl_clm
+  sed -i 's?.*finidat.*?finidat='"'${landFileName}'"'?' user_nl_clm
 else
   if [ -f ${otherLandFileName} ] ; then
       echo "OTHER land file exists, sedding that into CLM namelist"
-      sed -i 's?!finidat.*?finidat='"'${otherLandFileName}'"'?' user_nl_clm
+      sed -i 's?.*finidat.*?finidat='"'${otherLandFileName}'"'?' user_nl_clm
   else
     echo "Land file DOES NOT EXIST, will use arbitrary CESM spinup"
+    sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
     #echo "OK, Colin is cheating and using a different land file"
     #echo "He really should specify 3-4 files by month as dummies instead of CESM cold starts"
     #sed -i 's?!finidat.*?finidat='"'"/home/zarzycki/"${gridname}"/run/clmstart/"${gridname}".clm2.r.2012-08-24-10800.nc"'"'?' user_nl_clm
@@ -515,7 +539,7 @@ echo "numlogfiles: $numlogfiles"
 
 if $doFilter ; then
   # If filtering, need to change these options
-  cd $path_to_se_build/$gridname
+  cd $path_to_se_build
   ./xmlchange -v -file env_run.xml -id STOP_OPTION -val nhours
   ./xmlchange -v -file env_run.xml -id STOP_N -val ${filterHourLength}
   cp -v user_nl_cam_filter user_nl_cam
@@ -524,7 +548,7 @@ if $doFilter ; then
     echo "Begin call to filter-run"
     if [ $machineid -eq 1 ]
     then
-      bsub < $gridname.run
+      bsub < ${runname}.run
       echo "Skip me"
     elif [ $machineid -eq 2 ]
     then
@@ -532,7 +556,7 @@ if $doFilter ; then
       exit 1
     elif [ $machineid -eq 3 ]
     then
-      sbatch $gridname.run
+      sbatch ${runname}.run
       echo "Skip me"
     else
       echo "Unsupported start time"
@@ -554,7 +578,7 @@ if $doFilter ; then
     ## Run NCL filter
     cd $filter_path
     echo "Running filter"
-    filtfile_name=$gridname.cam.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
+    filtfile_name=${runname}.cam.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
     ncl lowmemfilter.ncl \
      endhour=${filterHourLength} tcut=6 \
     'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
@@ -570,7 +594,7 @@ if $doFilter ; then
   rm -v $path_to_nc_files/filtered/*.cam.h0.*.nc
 
   echo "Make changes in CESM-SE namelist"
-  cd $path_to_se_build/$gridname
+  cd $path_to_se_build
   ./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $se_yearstr-$se_monthstr-$se_daystr
   ./xmlchange -v -file env_run.xml -id START_TOD -val $se_cyclestrsec
   ./xmlchange -v -file env_run.xml -id STOP_OPTION -val ndays
@@ -583,16 +607,13 @@ then
   echo "Begin call to forecast run"
   if [ $machineid -eq 1 ]
   then
-    echo "Using Yellowstone"
-    bsub < $gridname.run
+    echo "Using Yellowstone" ; bsub < ${runname}.run
   elif [ $machineid -eq 2 ]
   then
-    echo "Using UMich Flux"
-    exit 1
+    echo "Using UMich Flux" ; exit 1
   elif [ $machineid -eq 3 ]
   then
-    echo "Using UCDavis Agri"
-    sbatch $gridname.run
+    echo "Using UCDavis Agri" ; sbatch ${runname}.run
   else
     echo "Unsupported start time"
   fi
@@ -616,11 +637,9 @@ then
   ## Hold script while log files from filter run haven't been archived yet
   while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
   do
-    sleep 20
-    echo "Sleeping"
+    sleep 20 ; echo "Sleeping"
   done
   echo "Run over done sleeping will hold for 30 more sec to make sure files moved"
-  
   sleep 30
 fi
 
@@ -666,8 +685,7 @@ date
 
 cd $sewxscriptsdir
 
-if [ $islive -ne 0 ]
-then
+if [ $islive -ne 0 ] ; then
   ### Still need to figure out how to convert machzone properly
   if [ $machzone -eq -0000 ]
   then
