@@ -1,0 +1,37 @@
+! Users should add all user specific namelist changes below in the form of
+! namelist_var = new_namelist_value
+&cam_inparm
+ bnd_topo='/glade/scratch/zarzycki/unigridFiles/ecsnow_30_x4/topo/topo_ecsnow_30_x4_smooth.nc'
+ ncdata='/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc'
+ nhtfrq=1
+ mfilt=200
+ interpolate_analysis=.false.
+ fincl1='U:I','V:I','T:I','PS:I','Q:I','CLDICE:I','CLDLIQ:I','NUMICE:I','NUMLIQ:I','ICEFRAC:I'
+ empty_htapes=.TRUE.
+ inithist='ENDOFRUN'
+/
+&ctl_nl
+ dtime=450
+ se_nsplit=2
+ rsplit=3
+ hypervis_subcycle=4
+ se_ne=0
+ se_ftype=0
+ nu=8e-8
+ nu_div=20e-8
+ nu_p =8e-8
+ hypervis_scaling=3.2
+ nu_q=8e-8
+ nu_top=2.0e5
+ tstep_type=5
+ hypervis_power=0
+! nu=1.0000e13
+! nu_div=2.5000e13
+! nu_p = 1.00e13
+! nu_q = 1.00e13
+! nu_top = 2.0e5
+! fine_ne=120
+! hypervis_power=3.322
+! max_hypervis_courant=1.9
+ mesh_file = "/glade/p/work/zarzycki/grids/exodus/ecsnow_30_x4.g"
+/ 

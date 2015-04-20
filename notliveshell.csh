@@ -240,30 +240,6 @@ echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds)
 echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST data"
 echo "SE initialization will occur at $se_yearstr $se_monthstr $se_daystr $se_cyclestr Z ($se_cyclestrsec seconds)"
 
-if [ $machineid -eq 1 ]
-then
-  echo "Using Yellowstone"
-elif [ $machineid -eq 2 ]
-then
-  echo "Using UMich Flux"
-  exit 1
-elif [ $machineid -eq 3 ]
-then
-  echo "Using UCDavis Agri"
-  sewxscriptsdir=/home/$LOGNAME/sewx/
-  gfs_files_path=/home/$LOGNAME/sewx/GFS
-  era_files_path=/home/$LOGNAME/getECMWFdata
-  gfs_to_cam_path=/home/$LOGNAME/sewx/gfs_to_cam
-  era_to_cam_path=/home/$LOGNAME/sewx/interim_to_cam
-  filter_path=/home/$LOGNAME/sewx/filter
-  path_to_case=/home/$LOGNAME
-  path_to_nc_files=$path_to_case/$gridname/run
-  outputdir=/home/$LOGNAME/${gridname}/run
-else
-  echo "Machine not supported"
-  exit 1
-fi
-
 if [ $debug -ne 1 ]
 then
 
