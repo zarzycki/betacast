@@ -8,7 +8,7 @@
 #BSUB -e out.%J                  # error filename
 #BSUB -q geyser                 # queue
 #BSUB -J sewx_driver
-#BSUB -W 23:59                    # wall clock limit
+#BSUB -W 10:00                    # wall clock limit
 #BSUB -P P54048000               # account number
 ##=======================================================================
 
@@ -23,7 +23,11 @@ islive=0 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, r
 sendplots=0 ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
 machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 = Agri
 
-atmDataType=1            # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
+### islive=0 (historical)
+### GFS analysis available from 8/2004 onward
+### CFSR analysis available from 1979 to Mar 2011
+atmDataType=1              # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
+### Use NOAAOI unless running real-time
 sstDataType=3              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
 numLevels=30               # 30 -> CAM5 physics, 26 -> CAM4 physics
 
@@ -227,6 +231,10 @@ else
   sstcyclestr=$cyclestr
 fi
 
+yestmonthstr=`date --date="yesterday" -u +%m`
+yestdaystr=`date --date="yesterday" -u +%d`
+yestyearstr=`date --date="yesterday" -u +%Y`
+
 echo "The current time is $currtime"
 echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds) for GFS data"
 echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST data"
@@ -276,7 +284,8 @@ then
         then
           rm -f gfs.t*pgrb2f00*
           gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr$cyclestr/
-          gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
+         #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
+          gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p50.anl'
           echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
         else
           rm -f gfs.t*pgrb2f00*
@@ -349,8 +358,36 @@ then
 ############################### GET SST / NCL ############################### 
 
   if [ ${sstDataType} -eq 1 ] ; then
+      SSTTYPE=GDAS
       ## Pull sea surface temps, need to rename and delete (if necess)
-      echo "Live GFS SST hasn't been updated in a while..." ; exit
+      #echo "Live GFS SST hasn't been updated in a while..." ; exit
+      echo "Getting SST data"
+      cd ${sst_files_path}
+      if [ $islive -ne 0 ] ; then
+        # Here is where we get the "live" GDAS SST file
+        rm -f gdas1*sstgrb*
+        sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/sst.${yestyearstr}${yestmonthstr}${yestdaystr}/
+        sstFTPFile='rtgssthr_grb_0.5.grib2'
+        echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
+      else
+        echo "NCEP broke support for historical GDAS, use NOAAOI instead."
+        exit
+      fi
+      ## Scrape for files
+      error=1
+      while [ $error != 0 ]
+      do
+        wget -nv $sstFTPPath$sstFTPFile
+        error=`echo $?`
+        if [ $error -ne 0 ]
+        then
+          echo "Cannot get file, will wait 2 min and scrape again"
+          sleep 120
+        fi
+      done
+      sstFile='gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
+      mv ${sstFTPFile} ${sstFile}
+      
 #       echo "Getting SST data"
 #       cd ${sst_files_path}
 #       if [ $islive -ne 0 ] ; then
@@ -383,7 +420,8 @@ then
 #       mv $sstFTPFile 'gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
   elif [ ${sstDataType} -eq 2 ] ; then  
     echo "ERA SST not quite supported yet..." ; exit 1
-  elif [ ${sstDataType} -eq 3 ] ; then  
+  elif [ ${sstDataType} -eq 3 ] ; then
+    SSTTYPE=NOAAOI
     echo "Using NOAAOI SSTs"
     cd ${sst_files_path}
     sstFile=sst.day.mean.${yearstr}.v2.nc
@@ -419,10 +457,15 @@ then
       done        
     fi
 
+
+  else
+      echo "Incorrect SST data type entered" ; exit 1
+  fi
+
     set +e
     cd ${sst_to_cam_path}
     ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
-      'datasource="NOAAOI"' \
+      'datasource="'${SSTTYPE}'"' \
       'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
       'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
       'SST_write_file = "'${sstFileIC}'"'
@@ -433,9 +476,6 @@ then
     fi
     echo "SST NCL completed successfully"
     set -e # Turn error checking back on
-  else
-      echo "Incorrect SST data type entered" ; exit 1
-  fi
 
 ############################### ATM NCL ############################### 
 
@@ -500,8 +540,6 @@ then
   set -e # Turn error checking back on
   
 fi #End debug if statement
-
-exit
 
 ############################### #### ############################### 
 

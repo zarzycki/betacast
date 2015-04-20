@@ -74,7 +74,7 @@ print("Loading variables")
 if (datasource .eq. "GFS") then
   ps = grb_file->PRES_P0_L1_GLL0(:,:)
   p0   = 100000.
-  pblh = grb_file->HPBL_P0_L1_GLL0(:,:)
+  ;pblh = grb_file->HPBL_P0_L1_GLL0(:,:)
   t_gfs = grb_file->TMP_P0_L100_GLL0(:,:,:)
   u_gfs = grb_file->UGRD_P0_L100_GLL0(:,:,:)
   v_gfs = grb_file->VGRD_P0_L100_GLL0(:,:,:)
@@ -102,7 +102,7 @@ end if
 if (datasource .eq. "CFSR") then
   ps = grb_file->PRES_P0_L1_GLL0(:,:)
   p0   = 100000.
-  pblh = grb_file->PRES_P0_L1_GLL0(:,:)
+  ;pblh = grb_file->PRES_P0_L1_GLL0(:,:)
   t_gfs = grb_file->TMP_P0_L100_GLL0(:,:,:)
   u_gfs = grb_file->UGRD_P0_L100_GLL0(:,:,:)
   v_gfs = grb_file->VGRD_P0_L100_GLL0(:,:,:)
@@ -130,7 +130,7 @@ if (datasource .eq. "ERAI") then
   ; We need to use short2flt because ERA-Interim data is stored
   ; in short format and requires scale/offset
   ps = short2flt(grb_file->sp(0,:,:))
-  pblh       = short2flt(grb_file->sp(0,:,:))
+  ;pblh       = short2flt(grb_file->sp(0,:,:))
   t_gfs      = short2flt(grb_file->t(0,:,:,:))
   u_gfs      = short2flt(grb_file->u(0,:,:,:))
   v_gfs      = short2flt(grb_file->v(0,:,:,:))
@@ -147,7 +147,7 @@ print("Max Q: "+max(q_gfs)+"   min Q: "+min(q_gfs))
 print("Max PS: "+max(ps)+"   min PS: "+min(ps))
 print("Max CLDICE: "+max(cldice_gfs)+"   min CLDICE: "+min(cldice_gfs))
 print("Max CLDLIQ: "+max(cldliq_gfs)+"   min CLDLIQ: "+min(cldliq_gfs))
-print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
+;print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
 print("=================================================================")
 
 
@@ -197,8 +197,8 @@ t_cam!1    = "lat"
 t_cam!2    = "lon"
 ps!0 = "lat"
 ps!1 = "lon"
-pblh!0 = "lat"
-pblh!1 = "lon"
+;pblh!0 = "lat"
+;pblh!1 = "lon"
 
 copy_VarCoords(t_cam,q_cam)
 copy_VarCoords(t_cam,cldice_cam)
@@ -220,7 +220,7 @@ latCell     = dfile->lat
 Opt         = True
 Opt@CopyVarCoords = False
 ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
-pblh_fv  = ESMF_regrid_with_weights(pblh,wgt_filename,Opt)
+;pblh_fv  = ESMF_regrid_with_weights(pblh,wgt_filename,Opt)
 t_fv  = ESMF_regrid_with_weights(t_cam,wgt_filename,Opt)
 u_fv  = ESMF_regrid_with_weights(u_cam,wgt_filename,Opt)
 v_fv  = ESMF_regrid_with_weights(v_cam,wgt_filename,Opt)
@@ -235,7 +235,7 @@ ncol=dim_sePS(1)
  print("Converting floats to doubles")
  ; Convert floats to doubles
  ps_fv_dbl = todouble(ps_fv)
- pblh_fv_dbl = todouble(pblh_fv)
+ ;pblh_fv_dbl = todouble(pblh_fv)
  t_fv_dbl = todouble(t_fv)
  u_fv_dbl = todouble(u_fv)
  v_fv_dbl = todouble(v_fv)
@@ -244,7 +244,7 @@ ncol=dim_sePS(1)
  cldliq_fv_dbl = todouble(cldliq_fv)
  
  copy_VarMeta(ps_fv,ps_fv_dbl)
- copy_VarMeta(pblh_fv,pblh_fv_dbl)
+ ;copy_VarMeta(pblh_fv,pblh_fv_dbl)
  copy_VarMeta(t_fv,t_fv_dbl)
  copy_VarMeta(u_fv,u_fv_dbl)
  copy_VarMeta(v_fv,v_fv_dbl)
@@ -254,7 +254,7 @@ ncol=dim_sePS(1)
 ; 
 ; ; clean up some stuff
  delete(ps_fv)
- delete(pblh_fv)
+ ;delete(pblh_fv)
  delete(t_fv)
  delete(u_fv)
  delete(v_fv)
@@ -267,8 +267,8 @@ ncol=dim_sePS(1)
  ps_fv_dbl_time = new((/1,ncol/),double)
  ps_fv_dbl_time(0,:) = ps_fv_dbl
  
- pblh_fv_dbl_time = new((/1,ncol/),double)
- pblh_fv_dbl_time(0,:) = pblh_fv_dbl
+ ;pblh_fv_dbl_time = new((/1,ncol/),double)
+ ;pblh_fv_dbl_time(0,:) = pblh_fv_dbl
 
  u_fv_dbl_time = new((/1,numlevels,ncol/),double)
  u_fv_dbl_time(0,:,:) = u_fv_dbl

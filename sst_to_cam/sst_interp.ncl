@@ -9,6 +9,7 @@ begin
 ;datasource = "GDAS"
 
 print(initdate)
+KtoC=273.15
 
 if (datasource .eq. "GDAS") then
   do_ice = False
@@ -39,10 +40,11 @@ end if
 end if
 
 if (datasource .eq. "GDAS") then
-  sst_file = addfile(sst_file_full,"r")
+  sst_file = addfile(sstDataFile,"r")
   sstlat = sst_file->lat_0
   sstlon = sst_file->lon_0
   sst_gfs = sst_file->TMP_P0_L1_GLL0(:,:)
+  sst_gfs = sst_gfs - KtoC
 else if (datasource .eq. "NOAAOI") then
   sst_file = addfile(sstDataFile,"r")
   ice_file = addfile(iceDataFile,"r")
