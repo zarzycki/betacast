@@ -15,47 +15,62 @@
 set -e
 #set -v
 
+###################################################################################
+############### OPTIONS ############################################
+
 debug=0 ; echo "debug set to $debug"    # 0 = no debug, 1 = debug
 islive=0 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, running live
 sendplots=0 ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
 machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 = Agri
 
-inputdatatype=3            # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
-numlevels=30               # 30 -> CAM5 physics, 26 -> CAM4 physics
+atmDataType=3            # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
+sstDataType=3              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
+numLevels=30               # 30 -> CAM5 physics, 26 -> CAM4 physics
 
-numdays=1                   #forecast length (in days)
+numdays=3                   #forecast length (in days)
 
-#Filtering options
-doFilter=false ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
+# Filter options (generally, only set doFilter unless you have a good reason to change defaults)
+doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
 numHoursSEStart=3
 filterHourLength=6
+filtTcut=6
 
-land_spinup=true
+land_spinup=false   #daily land spinup
 use_defaults=false
 
 ###################################################################################
+############### NEED TO BE SET BY USER ############################################
 casename=ecsnow_30_x4_forecast
 gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_ecsnow_30_x4_patc.nc
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc
 sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc
+sstFileIC=/glade/p/work/zarzycki/sewx/SST/sst_1x1.nc
 
 sewxscriptsdir=/glade/u/home/$LOGNAME/sewx-cam-forecast/
 path_to_case=/glade/p/work/$LOGNAME/${casename}
 
-gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS
+gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS          # Temp path for GFS/CFSR DL/proc
 era_files_path=/glade/p/work/$LOGNAME/getECMWFdata/
-sst_files_path=/glade/p/work/$LOGNAME/sewx/SST
+sst_files_path=/glade/p/work/$LOGNAME/sewx/SST          # Temp path for SST
 
 path_to_rundir=/glade/scratch/$LOGNAME/${casename}/run
-path_to_nc_files=/glade/scratch/$LOGNAME/${casename}/run
-outputdir=/glade/scratch/$LOGNAME/${casename}/run
 ###################################################################################
-
-### THESE COME WITH THE REPO, DO NOT CHANGE
+############### OPTIONAL TO BE SET BY USER ########################################
+path_to_nc_files=${path_to_rundir}              # Path where .nc files are
+outputdir=${path_to_rundir}                     # Path where .nc files are being written
+archivedir=${path_to_rundir}/proc               # Path to temporarily stage final data
+landdir=${path_to_rundir}/clmstart              # Path to store CLM restart files
+###################################################################################
+### THESE COME WITH THE REPO, DO NOT CHANGE #######################################
 gfs_to_cam_path=${sewxscriptsdir}/gfs_to_cam
 era_to_cam_path=${sewxscriptsdir}/interim_to_cam
 atm_to_cam_path=${sewxscriptsdir}/atm_to_cam
+sst_to_cam_path=${sewxscriptsdir}/sst_to_cam
 filter_path=${sewxscriptsdir}/filter
+###################################################################################
+
+# Set timestamp for backing up files, etc.
+timestamp=`date +%Y%m%d.%H%M`
 
 # casename=uniform_60
 # gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_uniform_60_patc.nc
@@ -241,13 +256,12 @@ else
   exit 1
 fi
 
-# Set timestamp for backing up files, etc.
-timestamp=`date +%Y%m%d.%H%M`
-
 if [ $debug -ne 1 ]
 then
-  if [ $inputdatatype -eq 1 ]
-  then
+
+############################### GET ATM DATA ############################### 
+
+  if [ $atmDataType -eq 1 ] ; then
       echo "Using GFS forecast ICs"
       echo "Getting GFS conditions"
       mkdir -p $gfs_files_path
@@ -286,40 +300,7 @@ then
         fi
       done
       mv $gfsFTPFile 'gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-      
-      ## Pull sea surface temps, need to rename and delete (if necess)
-      echo "Getting SST data"
-      if [ $islive -ne 0 ]
-      then
-        # Here is where we get the "live" GDAS SST file
-        rm -f gdas1*sstgrb*
-        sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gdas.$sstyearstr$sstmonthstr$sstdaystr/
-        sstFTPFile='gdas1.t'$sstcyclestr'z.sstgrb.grib2'
-        echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
-      else
-        # Here is where we get the archived historical SST file
-        rm -f gdas1*sstgrb*
-        sstFTPPath=http://nomads.ncdc.noaa.gov/data/gdas/${yearstr}${monthstr}/${yearstr}${monthstr}${daystr}/
-        #sstFTPFile='gdas1.t'$sstcyclestr'z.sstgrb.grib2'
-        sstFTPFile='gdas-sstgrb_3_'${yearstr}${monthstr}${daystr}'_'$sstcyclestr'00_000.grb2'
-        #sstFTPFile='gdas-sstgrb_3_'${yearstr}${monthstr}${daystr}'_0600_000.grb2'
-        echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
-      fi
-      ## Scrape for files
-      error=1
-      while [ $error != 0 ]
-      do
-        wget -nv $sstFTPPath$sstFTPFile
-        error=`echo $?`
-        if [ $error -ne 0 ]
-        then
-          echo "Cannot get file, will wait 2 min and scrape again"
-          sleep 120
-        fi
-      done
-      mv $sstFTPFile 'gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-  elif [ $inputdatatype -eq 2 ]
-  then  
+  elif [ $atmDataType -eq 2 ] ; then  
       echo "Using ERA-Interim forecast ICs"
       echo "Cding to ERA-Interim interpolation directory"
       mkdir -p $era_files_path
@@ -328,8 +309,7 @@ then
       ncks -A ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc
       mv -v ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc
       rm -f ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-  elif [ $inputdatatype -eq 3 ]
-  then  
+  elif [ $atmDataType -eq 3 ] ; then  
       echo "Using CFSR ICs"
       echo "Cding to GFS interpolation directory since they are practically the same thing"
       cd $gfs_files_path
@@ -366,6 +346,100 @@ then
       exit 1
   fi
 
+
+############################### GET SST / NCL ############################### 
+
+  if [ ${sstDataType} -eq 1 ] ; then
+      ## Pull sea surface temps, need to rename and delete (if necess)
+      echo "Live GFS SST hasn't been updated in a while..." ; exit
+#       echo "Getting SST data"
+#       cd ${sst_files_path}
+#       if [ $islive -ne 0 ] ; then
+#         # Here is where we get the "live" GDAS SST file
+#         rm -f gdas1*sstgrb*
+#         sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gdas.$sstyearstr$sstmonthstr$sstdaystr/
+#         sstFTPFile='gdas1.t'$sstcyclestr'z.sstgrb.grib2'
+#         echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
+#       else
+#         # Here is where we get the archived historical SST file
+#         rm -f gdas1*sstgrb*
+#         sstFTPPath=http://nomads.ncdc.noaa.gov/data/gdas/${yearstr}${monthstr}/${yearstr}${monthstr}${daystr}/
+#         #sstFTPFile='gdas1.t'$sstcyclestr'z.sstgrb.grib2'
+#         sstFTPFile='gdas-sstgrb_3_'${yearstr}${monthstr}${daystr}'_'$sstcyclestr'00_000.grb2'
+#         #sstFTPFile='gdas-sstgrb_3_'${yearstr}${monthstr}${daystr}'_0600_000.grb2'
+#         echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
+#       fi
+#       ## Scrape for files
+#       error=1
+#       while [ $error != 0 ]
+#       do
+#         wget -nv $sstFTPPath$sstFTPFile
+#         error=`echo $?`
+#         if [ $error -ne 0 ]
+#         then
+#           echo "Cannot get file, will wait 2 min and scrape again"
+#           sleep 120
+#         fi
+#       done
+#       mv $sstFTPFile 'gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
+  elif [ ${sstDataType} -eq 2 ] ; then  
+    echo "ERA SST not quite supported yet..." ; exit 1
+  elif [ ${sstDataType} -eq 3 ] ; then  
+    echo "Using NOAAOI SSTs"
+    cd ${sst_files_path}
+    sstFile=sst.day.mean.${yearstr}.v2.nc
+    if [ ! -f ${sst_files_path}/${sstFile} ] ; then
+      echo "NOAAOI file doesn't exist, need to download"
+      sstFTPPath=ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/
+      error=1
+      while [ $error != 0 ]
+      do
+        wget -nv ${sstFTPPath}/${sstFile}
+        error=`echo $?`
+        if [ $error -ne 0 ]
+        then
+          echo "Cannot get file, will wait 2 min and scrape again"
+          sleep 120
+        fi
+      done        
+    fi
+    iceFile=icec.day.mean.${yearstr}.v2.nc
+    if [ ! -f ${sst_files_path}/${iceFile} ] ; then
+      echo "NOAAOI file doesn't exist, need to download"
+      sstFTPPath=ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/
+      error=1
+      while [ $error != 0 ]
+      do
+        wget -nv ${sstFTPPath}/${iceFile}
+        error=`echo $?`
+        if [ $error -ne 0 ]
+        then
+          echo "Cannot get file, will wait 2 min and scrape again"
+          sleep 120
+        fi
+      done        
+    fi
+
+    set +e
+    cd ${sst_to_cam_path}
+    ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
+      'datasource="NOAAOI"' \
+      'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
+      'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
+      'SST_write_file = "'${sstFileIC}'"'
+    if [[ $? -ne 9 ]]
+    then
+      echo "NCL exited with non-9 error code"
+      exit 240
+    fi
+    echo "SST NCL completed successfully"
+    set -e # Turn error checking back on
+  else
+      echo "Incorrect SST data type entered" ; exit 1
+  fi
+
+############################### ATM NCL ############################### 
+
   ## If we are not filtering, we need to make sure CAM writes INIC to correct file
   if [ "$doFilter" = false ] ; then
     sePreFilterIC=${sePostFilterIC}
@@ -374,49 +448,38 @@ then
   set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
   ### We can probably clean this up by merging the above sed commands into command line arguments
   ### then put this if/else statement up inside the whole get data structure above
-  if [ $inputdatatype -eq 1 ] # GFS
+  if [ $atmDataType -eq 1 ] # GFS
   then
     echo "Cding to GFS interpolation directory"
     cd $atm_to_cam_path 
     echo "Doing NCL"    
     ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
-        numlevels=$numlevels \
+        numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
        'se_inic = "'${sePreFilterIC}'"'
        
-    ncl sst_interp.ncl initdate=${yearstr}${monthstr}${daystr}${cyclestr} 'sst_file_full = "'$gfs_files_path'/gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2"'
-  elif [ $inputdatatype -eq 2 ] # ERA
+    #ncl sst_interp.ncl initdate=${yearstr}${monthstr}${daystr}${cyclestr} 'sst_file_full = "'$gfs_files_path'/gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2"'
+  elif [ $atmDataType -eq 2 ] # ERA
   then
     echo "CD ing to ERA-interim interpolation directory"
     cd $atm_to_cam_path
 
     ncl -n atm_to_cam.ncl 'datasource="ERAI"'     \
-        numlevels=$numlevels \
+        numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'data_filename = "/glade/p/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
        'wgt_filename="/glade/p/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
        'se_inic = "'${sePreFilterIC}'"'
 
-#    ncl -n se_interp.ncl machineid=$machineid \
-#      numlevels=$numlevels \
-#      YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-#      'gridname = "'$gridname'"' \
-#      'ERA_dir="'${era_files_path}'"'
-
-#    ncl sst_interp.ncl 'YYYYMMDDHH="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
-#      'dataSource="ERAI"' \
-#      'sstDataFile = "'${era_files_path}'/ERA-Int_sfc_'$yearstr$monthstr$daystr$cyclestr'.nc"' \
-#      'iceDataFile = "'${era_files_path}'/ERA-Int_sfc_'$yearstr$monthstr$daystr$cyclestr'.nc"'  
-
-  elif [ $inputdatatype -eq 3 ] # CFSR
+  elif [ $atmDataType -eq 3 ] # CFSR
   then
       echo "CD ing to interpolation directory"
       cd $atm_to_cam_path 
     
      ncl -n atm_to_cam.ncl 'datasource="CFSR"'     \
-        numlevels=$numlevels \
+        numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'data_filename = "'$gfs_files_path'/cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
@@ -434,7 +497,7 @@ then
     echo "NCL exited with non-9 error code"
     exit 240
   fi
-  echo "NCL completed successfully"
+  echo "ATM NCL completed successfully"
   set -e # Turn error checking back on
   
 fi #End debug if statement
@@ -444,6 +507,8 @@ echo "Turning off archiving and restart file output in env_run.xml"
 ./xmlchange -v -file env_run.xml -id DOUT_S -val FALSE
 ./xmlchange -v -file env_run.xml -id REST_OPTION -val nyears
 ./xmlchange -v -file env_run.xml -id REST_N -val 9999
+echo "Setting SST from default to our SST"
+./xmlchange -v -file env_run.xml -id SSTICE_DATA_FILENAME -val "${sstFileIC}"
 ####### 
 if [ "$land_spinup" = true ] ; then
   ./xmlchange -v -file env_run.xml -id REST_OPTION -val ndays
@@ -451,6 +516,7 @@ if [ "$land_spinup" = true ] ; then
 fi
 #######
 echo "Update env_run.xml with runtime parameters"
+
 ./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $yearstr-$monthstr-$daystr
 ./xmlchange -v -file env_run.xml -id START_TOD -val $cyclestrsec
 # We are by default setting these to forecast settings. If filtering, will overwrite
@@ -464,25 +530,22 @@ echo "Setting input land dataset"
 # If it does not exist, we'll do nothing and let CESM use arbitrary ICs
 
 if $doFilter ; then
-  landFileName=$path_to_nc_files/clmstart/${casename}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
-  otherLandFileName=$path_to_nc_files/clmstart/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+  landFileName=${landdir}/${casename}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+  otherLandFileName=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
 else
-  landFileName=$path_to_nc_files/clmstart/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
-  otherLandFileName=$path_to_nc_files/clmstart/${casename}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+  landFileName=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+  otherLandFileName=${landdir}/${casename}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
 fi
 
-echo ${landFileName}
-echo ${otherLandFileName}
-
 if [ -f ${landFileName} ] ; then
-  echo "Land file exists, sedding that into CLM namelist"
+  echo "Land file exists: ${landFileName}     sedding that into CLM namelist"
   sed -i 's?.*finidat.*?finidat='"'${landFileName}'"'?' user_nl_clm
 else
   if [ -f ${otherLandFileName} ] ; then
-      echo "OTHER land file exists, sedding that into CLM namelist"
+      echo "Alternative land file exists: ${landFileName}     sedding that into CLM namelist"
       sed -i 's?.*finidat.*?finidat='"'${otherLandFileName}'"'?' user_nl_clm
   else
-    echo "Land file DOES NOT EXIST, will use arbitrary CESM spinup"
+    echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
     sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
     #echo "OK, Colin is cheating and using a different land file"
     #echo "He really should specify 3-4 files by month as dummies instead of CESM cold starts"
@@ -516,17 +579,14 @@ if $doFilter ; then
     if [ $machineid -eq 1 ]
     then
       bsub < ${casename}.run
-      echo "Skip me"
     elif [ $machineid -eq 2 ]
     then
-      echo "Using UMich Flux"
-      exit 1
+      echo "Using UMich Flux, not supported" ; exit 1
     elif [ $machineid -eq 3 ]
     then
       sbatch ${casename}.run
-      echo "Skip me"
     else
-      echo "Unsupported start time"
+      echo "Unsupported machine" ; exit 1
     fi
     ## Hold script while log files from filter run haven't been archived yet
 
@@ -543,7 +603,7 @@ if $doFilter ; then
     echo "Running filter"
     filtfile_name=${casename}.cam.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
     ncl lowmemfilter.ncl \
-     endhour=${filterHourLength} tcut=6 \
+     endhour=${filterHourLength} tcut=${filtTcut} \
     'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
     'writefile_name = "'${sePostFilterIC}'"'
   fi
@@ -581,13 +641,11 @@ then
     echo "Unsupported start time"
   fi
   
-  procdir=$outputdir/proc
-  
-  mkdir -p $procdir
-  mkdir -p $procdir/images
-  mkdir -p $procdir/text
-  mkdir -p $procdir/nl_files
-  mkdir -p $procdir/logs
+  mkdir -p $archivedir
+  mkdir -p $archivedir/images
+  mkdir -p $archivedir/text
+  mkdir -p $archivedir/nl_files
+  mkdir -p $archivedir/logs
   cd $outputdir
   
   echo "Running again!" > ${path_to_rundir}/testrunning.gz
@@ -609,15 +667,14 @@ fi
 set +e
 
 ## Move other cam files to dir
-mv *.cam.h*.nc $procdir
-cp *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $procdir/nl_files
-mv *.txt $procdir/text
-mv *.log.* $procdir/logs
-mv timing/ $procdir/
+mv *.cam.h*.nc $archivedir
+cp *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $archivedir/nl_files
+mv *.txt $archivedir/text
+mv *.log.* $archivedir/logs
+mv timing/ $archivedir/
 
 ## Move land files to new restart location
 cd $path_to_nc_files
-landdir=$path_to_nc_files/clmstart
 mkdir $landdir
 echo "Removing 06Z and 18Z land restart files"
 rm -v *.clm2.r.*32400.nc
@@ -639,7 +696,7 @@ rm -v *.cam.rh3.*.nc
 rm -v *.cice.r.*.nc
 rm -v rpointer.*
 
-mv -v $procdir $outputdir/${yearstr}${monthstr}${daystr}${cyclestr}
+mv -v $archivedir $outputdir/${yearstr}${monthstr}${daystr}${cyclestr}
 
 date
 

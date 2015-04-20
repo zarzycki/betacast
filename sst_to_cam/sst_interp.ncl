@@ -5,8 +5,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 begin
 
 ;initdate=2012082400
-SST_write_dir = "/glade/p/work/zarzycki/sewx/SST/"
-datasource = "GDAS"
+;SST_write_dir = "/glade/p/work/zarzycki/sewx/SST/"
+;datasource = "GDAS"
 
 print(initdate)
 
@@ -30,7 +30,7 @@ hh=toint(tst_dtime(3))
 do filenum = 0,0 ;Begin multiple file loop
 if (filenum .eq. 0) then
     print("Writing 1x1 SSTs")
-    in = addfile(SST_write_dir+"sst_1x1.nc","w")
+    in = addfile(SST_write_file,"w")
 else if (filenum .eq. 1) then
     print("Writing 0.23x0.31 SSTs")
     in = addfile(SST_write_dir+"sst_0.23x0.31.nc","w")
@@ -44,12 +44,12 @@ if (datasource .eq. "GDAS") then
   sstlon = sst_file->lon_0
   sst_gfs = sst_file->TMP_P0_L1_GLL0(:,:)
 else if (datasource .eq. "NOAAOI") then
-  sst_file = addfile("/home/zarzycki/sst.day.mean."+yyyy+".v2.nc","r")
-  ice_file = addfile("/home/zarzycki/icec.day.mean."+yyyy+".v2.nc","r")
+  sst_file = addfile(sstDataFile,"r")
+  ice_file = addfile(iceDataFile,"r")
   time = sst_file->time
   date = cd_inv_calendar(yyyy,mm,dd,0,0,0,time@units,0)
-  sst_gfs = sst_file->sst({date},:,:)*.01
-  ice_gfs = ice_file->icec({date},:,:)*.01
+  sst_gfs = sst_file->sst({date},:,:)
+  ice_gfs = ice_file->icec({date},:,:)
   sstlat = sst_file->lat
   sstlon = sst_file->lon
 else
@@ -182,5 +182,7 @@ delete(numfvlat)
 delete(numfvlon)
 
 end do ; End multiple file loop
+
+status_exit(9)
 
 end
