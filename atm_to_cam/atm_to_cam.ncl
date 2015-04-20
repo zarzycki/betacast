@@ -38,11 +38,20 @@ grb_file = addfile(data_filename,"r")
 print("---------------------------------------------------------")
 print("Loading lat/lon/lev")
 if (datasource .eq. "GFS") then
+  dNames=getfilevardims(grb_file,"CLWMR_P0_L100_GLL0")
+  cldlevName=dNames(0)
+  delete(dNames)
+  print("cldlev varname: "+cldlevName)
+  dNames=getfilevardims(grb_file,"RH_P0_L100_GLL0")
+  rhlevName=dNames(0)
+  delete(dNames)
+  print("rhlev varname: "+cldlevName)
+
   grblat = grb_file->lat_0
   grblon = grb_file->lon_0
   grblev = grb_file->lv_ISBL0
-  rhlev = grb_file->lv_ISBL6
-  cldlev = grb_file->lv_ISBL8
+  rhlev  = grb_file->$rhlevName$
+  cldlev = grb_file->$cldlevName$
 end if
 if (datasource .eq. "CFSR") then
   grblat = grb_file->lat_0

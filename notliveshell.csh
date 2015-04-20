@@ -23,7 +23,7 @@ islive=0 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, r
 sendplots=0 ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
 machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 = Agri
 
-atmDataType=3            # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
+atmDataType=1            # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
 sstDataType=3              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
 numLevels=30               # 30 -> CAM5 physics, 26 -> CAM4 physics
 
@@ -266,40 +266,39 @@ then
       echo "Getting GFS conditions"
       mkdir -p $gfs_files_path
       cd $gfs_files_path
-      
-      ## Pull atmospheric conditions
-      ## Need to write an if call depending on how far back the GFS files are located
-      ## The NCEP server only holds them for a few days -- otherwise go to nomads at NCDC
-      # gfsFtpPath=http://nomads.ncdc.noaa.gov/data/gfsanl/$yearstr$monstr/$yearstr$monstr$daystr/
-      # gfs.t12z.pgrb2f00.grb2
-      echo "Getting Atmo file"
-      if [ $islive -ne 0 ]
-      then
-        rm -f gfs.t*pgrb2f00*
-        gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr$cyclestr/
-        gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
-        echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
-      else
-        rm -f gfs.t*pgrb2f00*
-        gfsFTPPath=ftp://nomads.ncdc.noaa.gov/GFS/analysis_only/${yearstr}${monthstr}/${yearstr}${monthstr}${daystr}/
-        gfsFTPFile='gfsanl_4_'${yearstr}${monthstr}${daystr}'_'${cyclestr}'00_000.grb2'
-        ##gfsFTPPath=ftp://nomads.ncdc.noaa.gov/GFS/Grid4/${yearstr}${monthstr}/${yearstr}${monthstr}${daystr}/
-        ##gfsFTPFile='gfs_4_'${yearstr}${monthstr}${daystr}'_'${cyclestr}'00_000.grb2'
-        echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
-      fi
-      ## Scrape for files
-      error=1
-      while [ $error != 0 ]
-      do
-        wget -nv $gfsFTPPath$gfsFTPFile
-        error=`echo $?`
-        if [ $error -ne 0 ]
+        ## Pull atmospheric conditions
+        ## Need to write an if call depending on how far back the GFS files are located
+        ## The NCEP server only holds them for a few days -- otherwise go to nomads at NCDC
+        # gfsFtpPath=http://nomads.ncdc.noaa.gov/data/gfsanl/$yearstr$monstr/$yearstr$monstr$daystr/
+        # gfs.t12z.pgrb2f00.grb2
+        echo "Getting Atmo file"
+        if [ $islive -ne 0 ]
         then
-          echo "Cannot get file, will wait 2 min and scrape again"
-          sleep 120
+          rm -f gfs.t*pgrb2f00*
+          gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr$cyclestr/
+          gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
+          echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
+        else
+          rm -f gfs.t*pgrb2f00*
+          gfsFTPPath=ftp://nomads.ncdc.noaa.gov/GFS/analysis_only/${yearstr}${monthstr}/${yearstr}${monthstr}${daystr}/
+          gfsFTPFile='gfsanl_4_'${yearstr}${monthstr}${daystr}'_'${cyclestr}'00_000.grb2'
+          ##gfsFTPPath=ftp://nomads.ncdc.noaa.gov/GFS/Grid4/${yearstr}${monthstr}/${yearstr}${monthstr}${daystr}/
+          ##gfsFTPFile='gfs_4_'${yearstr}${monthstr}${daystr}'_'${cyclestr}'00_000.grb2'
+          echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
         fi
-      done
-      mv $gfsFTPFile 'gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
+        ## Scrape for files
+        error=1
+        while [ $error != 0 ]
+        do
+          wget -nv $gfsFTPPath$gfsFTPFile
+          error=`echo $?`
+          if [ $error -ne 0 ]
+          then
+            echo "Cannot get file, will wait 2 min and scrape again"
+            sleep 120
+          fi
+        done
+        mv $gfsFTPFile 'gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
   elif [ $atmDataType -eq 2 ] ; then  
       echo "Using ERA-Interim forecast ICs"
       echo "Cding to ERA-Interim interpolation directory"
@@ -501,6 +500,10 @@ then
   set -e # Turn error checking back on
   
 fi #End debug if statement
+
+exit
+
+############################### #### ############################### 
 
 cd $path_to_case
 echo "Turning off archiving and restart file output in env_run.xml"
