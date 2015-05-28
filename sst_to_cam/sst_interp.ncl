@@ -4,11 +4,18 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+; EXAMPLE
+;ncl sst_interp.ncl 'initdate="2015033000"' \
+;      'datasource="NOAAOI"' \
+;      'sstDataFile = "/glade/u/home/zarzycki/work/NOAAOI/sst.day.mean.2015.v2.nc"' \
+;      'iceDataFile = "/glade/u/home/zarzycki/work/NOAAOI/icec.day.mean.2015.v2.nc"' \
+;      'SST_write_file = "/glade/u/home/zarzycki/scratch/maysak-fv/OCN_INIC/SST.NOAAOI.2015033000.nc"'
+
 ;initdate=2012082400
 ;SST_write_dir = "/glade/p/work/zarzycki/sewx/SST/"
 ;datasource = "GDAS"
 
-print(initdate)
+print("running date "+initdate)
 KtoC=273.15
 
 if (datasource .eq. "GDAS") then
