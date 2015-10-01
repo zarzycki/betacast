@@ -1,3 +1,5 @@
+core.*
+*.png
 out.*
 *.grb
 *.grb2
