@@ -15,23 +15,27 @@
 set -e
 #set -v
 
+#source /glade/apps/opt/lmod/lmod/init/bash
+module load ncl
+
 ###################################################################################
 ############### OPTIONS ############################################
 
 debug=0 ; echo "debug set to $debug"    # 0 = no debug, 1 = debug
-islive=0 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, running live
+islive=1 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, running live
+isliveresub=0 ; echo "isliveresub set to $isliveresub" # 0 no, 1 yes -- do we want to resubmit when running live?
 sendplots=0 ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
 machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 = Agri
 
 ### islive=0 (historical)
 ### GFS analysis available from 8/2004 onward
 ### CFSR analysis available from 1979 to Mar 2011
-atmDataType=1              # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
+atmDataType=1             # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
 ### Use NOAAOI unless running real-time
-sstDataType=3              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
+sstDataType=1              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
 numLevels=30               # 30 -> CAM5 physics, 26 -> CAM4 physics
 
-numdays=3                   #forecast length (in days)
+numdays=6                   #forecast length (in days)
 
 # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
 doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
@@ -45,9 +49,9 @@ use_defaults=false
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
 casename=ecsnow_30_x4_forecast
-gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_ecsnow_30_x4_patc.nc
+gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ecsnow_30_x4_patc.nc
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc
-sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc
+sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc 
 sstFileIC=/glade/p/work/zarzycki/sewx/SST/sst_1x1.nc
 
 sewxscriptsdir=/glade/u/home/$LOGNAME/sewx-cam-forecast/
@@ -58,6 +62,8 @@ era_files_path=/glade/p/work/$LOGNAME/getECMWFdata/
 sst_files_path=/glade/p/work/$LOGNAME/sewx/SST          # Temp path for SST
 
 path_to_rundir=/glade/scratch/$LOGNAME/${casename}/run
+
+upload_ncl_script=${sewxscriptsdir}/upload_ncl.sh
 ###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
 path_to_nc_files=${path_to_rundir}              # Path where .nc files are
@@ -178,7 +184,8 @@ then
   se_monthstr=$monthstr
   se_daystr=$daystr
   se_yearstr=$yearstr
-  let se_cyclestrsec=$se_cyclestr*3600
+  let se_cyclestrsec=$((10#$se_cyclestr))*3600
+  echo $se_cyclestrsec
   while [ ${#se_cyclestrsec} -lt 5 ];
   do
     se_cyclestrsec="0"$se_cyclestrsec
@@ -260,8 +267,9 @@ then
         then
           rm -f gfs.t*pgrb2f00*
           gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr$cyclestr/
-         #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
-          gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p50.anl'
+          #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
+          gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p25.anl'
+          #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p50.anl'
           echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
         else
           rm -f gfs.t*pgrb2f00*
@@ -715,6 +723,14 @@ rm -v rpointer.*
 
 mv -v $archivedir $outputdir/${yearstr}${monthstr}${daystr}${cyclestr}
 
+### Begin output calls
+sed -i 's?.*yearstr=.*?yearstr='${yearstr}'?' ${upload_ncl_script}
+sed -i 's?.*monthstr=.*?monthstr='${monthstr}'?' ${upload_ncl_script}
+sed -i 's?.*daystr=.*?daystr='${daystr}'?' ${upload_ncl_script}
+sed -i 's?.*cyclestrsec=.*?cyclestrsec='${cyclestrsec}'?' ${upload_ncl_script}
+sed -i 's?.*cyclestr=.*?cyclestr='${cyclestr}'?' ${upload_ncl_script}
+bsub < ${upload_ncl_script}
+
 date
 
 cd $sewxscriptsdir
@@ -780,6 +796,8 @@ if [ $islive -ne 0 ] ; then
   #sed -i 's?^#SBATCH --begin.*?#SBATCH --begin='$resubhour':30?' testshell.csh
 fi
 
-bsub < notliveshell.csh
+if [ $isliveresub -ne 0 ] ; then
+  bsub < notliveshell.csh
+fi
 
 exit 0
