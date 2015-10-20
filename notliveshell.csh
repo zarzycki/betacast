@@ -22,23 +22,25 @@ module load ncl
 ############### OPTIONS ############################################
 
 debug=0 ; echo "debug set to $debug"    # 0 = no debug, 1 = debug
-islive=1 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, running live
+islive=0 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, running live
 isliveresub=0 ; echo "isliveresub set to $isliveresub" # 0 no, 1 yes -- do we want to resubmit when running live?
-sendplots=0 ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
 machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 = Agri
+
+sendplots=false ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
 
 ### islive=0 (historical)
 ### GFS analysis available from 8/2004 onward
 ### CFSR analysis available from 1979 to Mar 2011
 atmDataType=1             # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
 ### Use NOAAOI unless running real-time
-sstDataType=1              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
+sstDataType=3              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
 numLevels=30               # 30 -> CAM5 physics, 26 -> CAM4 physics
 
 numdays=6                   #forecast length (in days)
 
 # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
 doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
+filterOnly=true ; echo "filterOnly set to $filterOnly" #if true, exits after filter (generates init data)
 numHoursSEStart=3
 filterHourLength=6
 filtTcut=6
@@ -49,7 +51,7 @@ use_defaults=false
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
 casename=ecsnow_30_x4_forecast
-gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ecsnow_30_x4_patc.nc
+gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_ecsnow_30_x4_patc.nc
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc
 sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc 
 sstFileIC=/glade/p/work/zarzycki/sewx/SST/sst_1x1.nc
@@ -526,6 +528,15 @@ then
 fi #End debug if statement
 
 ############################### #### ############################### 
+##### ADD PERTURBATIONS
+
+
+
+
+
+
+
+############################### #### ############################### 
 
 cd $path_to_case
 echo "Turning off archiving and restart file output in env_run.xml"
@@ -638,8 +649,22 @@ if $doFilter ; then
   mv -v $path_to_nc_files/*.nc $path_to_nc_files/filtered
   ## Delete filter files that aren't h0 since those are the only ones we care about.
   find $path_to_nc_files/filtered/ -type f -not -name '*.cam.h0.*.nc' | xargs rm
+
   ## For now, I'm going to go back and delete all the h0 files in filtered
   rm -v $path_to_nc_files/filtered/*.cam.h0.*.nc
+
+  ### Output filter files only, can be used for ensemble or other initialization after the fact
+  if ${filterOnly} ; then
+    FILTONLYDIR=${path_to_nc_files}/FILT_INIC/${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}
+    mkdir -p ${FILTONLYDIR}
+    cp ${sePostFilterIC} ${FILTONLYDIR}/${casename}_FILTERED_${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+    cp ${sstFileIC} ${FILTONLYDIR}/${casename}_SST_1x1_${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+    mkdir ${FILTONLYDIR}/config_files
+    mv ${path_to_nc_files}/*.gz ${FILTONLYDIR}/config_files
+    mv ${path_to_nc_files}/*.nml ${FILTONLYDIR}/config_files
+    mv ${path_to_nc_files}/*_in ${FILTONLYDIR}/config_files
+    exit
+  fi
 
   echo "Make changes in CESM-SE namelist"
   cd $path_to_case
@@ -723,13 +748,15 @@ rm -v rpointer.*
 
 mv -v $archivedir $outputdir/${yearstr}${monthstr}${daystr}${cyclestr}
 
-### Begin output calls
-sed -i 's?.*yearstr=.*?yearstr='${yearstr}'?' ${upload_ncl_script}
-sed -i 's?.*monthstr=.*?monthstr='${monthstr}'?' ${upload_ncl_script}
-sed -i 's?.*daystr=.*?daystr='${daystr}'?' ${upload_ncl_script}
-sed -i 's?.*cyclestrsec=.*?cyclestrsec='${cyclestrsec}'?' ${upload_ncl_script}
-sed -i 's?.*cyclestr=.*?cyclestr='${cyclestr}'?' ${upload_ncl_script}
-bsub < ${upload_ncl_script}
+if $sendplots ; then
+  ### Begin output calls
+  sed -i 's?.*yearstr=.*?yearstr='${yearstr}'?' ${upload_ncl_script}
+  sed -i 's?.*monthstr=.*?monthstr='${monthstr}'?' ${upload_ncl_script}
+  sed -i 's?.*daystr=.*?daystr='${daystr}'?' ${upload_ncl_script}
+  sed -i 's?.*cyclestrsec=.*?cyclestrsec='${cyclestrsec}'?' ${upload_ncl_script}
+  sed -i 's?.*cyclestr=.*?cyclestr='${cyclestr}'?' ${upload_ncl_script}
+  bsub < ${upload_ncl_script}
+fi
 
 date
 

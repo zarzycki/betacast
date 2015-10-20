@@ -1,25 +1,7 @@
- Copyright (C) 1995-2015 - All Rights Reserved
- University Corporation for Atmospheric Research
- NCAR Command Language Version 6.3.0
- The use of this software is governed by a License Agreement.
- See http://www.ncl.ucar.edu/ for more details.
-
-
-Variable: forecastHourStr
-Type: string
-Total Size: 8 bytes
-            1 values
-Number of Dimensions: 1
-Dimensions and sizes:	[1]
-Coordinates: 
-(0)	144
-(0)	Forecast for: 12Z 10 07 2015
-(0)	Initialized at: 12Z 10 01 2015
-(0)	1036.756
-(0)	945.7039
-(0)	Begin interp
-(0)	1036.581
-(0)	946.167
-(0)	end interp
-(0)	Plotting: natl
-(0)	Plotting: epac
+ GKS ERROR NUMBER -502 ISSUED FROM SUBROUTINE GCLRWK:
+ -- cairo driver error: error opening output file
+ GKS ERROR NUMBER -502 ISSUED FROM SUBROUTINE GCLRWK:
+ -- cairo driver error: error opening output file
+ GKS ERROR NUMBER -502 ISSUED FROM SUBROUTINE GCLRWK:
+ -- cairo driver error: error opening output file
+ GKS ERROR NUMBER -502 ISSUED FROM SUBROUTINE GCLRWK:

@@ -13,6 +13,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
+;ncl weatherplot.ncl inisec=00000 iniday=02 inimon=10 iniyear=2015 'filename="/glade/scratch/zarzycki/ecsnow_30_x4_forecast/run/2015100200/_ecsnow_30_x4_forecast.cam.h1.2015-10-04-00000.nc"'
+
 wgt_file = "/glade/p/work/zarzycki/maps/forecast_plot_maps/ecsnow_30_x4_to_0.25x0.25_patch.nc"
 
 iniyearstr = sprinti("%04d",iniyear)
@@ -76,6 +78,8 @@ u850_se = datafile->U850
 v850_se = datafile->V850
 mslp_se = datafile->PSL/100
 
+
+
 print(max(mslp_se))
 print(min(mslp_se))
 
@@ -125,7 +129,11 @@ print("end interp")
 ;lon&lon = lon
 ;lev  = datafile->lev
 
-RAINDBZ = rainratetodbz(prect,1)
+;RAINDBZ = rainratetodbz(prect,1)
+
+prect_mmday = prect
+prect_mmday = prect_mmday*3600000
+prect_mmday@units="mm/hr"
 
 ;vort250 = uv2vrF_Wrap(u250,v250)
 ;vort250 = vort250/1e-5
@@ -240,17 +248,33 @@ res_z500@gsnCenterString  = ""
 out_type = "png"
 wks = gsn_open_wks(out_type,"prect_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 
-; Rain
+
+
+;;;; RAIN, SIMULATED RADAR
+; res_rain                      = res
+; gsn_define_colormap(wks,"rainsnowradar")          ; choose colormap
+; res_rain@gsnRightString = "Simulated Reflectivity (dBZ)"
+; res_rain@gsnSpreadColors      = False              ; use full colormap
+; res_rain@cnFillColors = (/-1,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32/)
+; res_rain@cnLevelSelectionMode = "ExplicitLevels"    			; set explicit contour levels
+; res_rain@cnLevels    = (/0,5,10,15,20,25,30,35,40,45,50,55,60,65,70/)	; set levels
+; res_rain@lbLabelStride = 2
+; res_rain@lbOrientation = "vertical"
+; plotrain = gsn_csm_contour_map(wks,RAINDBZ(0,:,:),res_rain)
+; draw(plotrain)
+; frame(wks)
+; delete(wks)
+
+;;;; RAIN, MM/DAY
 res_rain                      = res
-gsn_define_colormap(wks,"rainsnowradar")          ; choose colormap
-res_rain@gsnRightString = "Simulated Reflectivity (dBZ)"
-res_rain@gsnSpreadColors      = False              ; use full colormap
-res_rain@cnFillColors = (/-1,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32/)
+gsn_define_colormap(wks,"WhViBlGrYeOrReWh")          ; choose colormap
+;res_rain@gsnRightString = "Rainfall"
+res_rain@gsnSpreadColors      = True              ; use full colormap
 res_rain@cnLevelSelectionMode = "ExplicitLevels"    			; set explicit contour levels
-res_rain@cnLevels    = (/0,5,10,15,20,25,30,35,40,45,50,55,60,65,70/)	; set levels
-res_rain@lbLabelStride = 2
+res_rain@cnLevels    = (/0.25,0.3,0.4,0.5,0.75,1.0,2.0,3.0,4.0,5.0,7.5,10.0,15.0,20.0,25.0,35.0/)	; set levels
+;res_rain@lbLabelStride = 2
 res_rain@lbOrientation = "vertical"
-plotrain = gsn_csm_contour_map(wks,RAINDBZ(0,:,:),res_rain)
+plotrain = gsn_csm_contour_map(wks,prect_mmday(0,:,:),res_rain)
 draw(plotrain)
 frame(wks)
 delete(wks)
@@ -348,11 +372,26 @@ wks = gsn_open_wks(out_type,"flut_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 
 res_flut = res
 
-res_flut@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
-res_flut@cnLevelSpacingF      =  15.0              ;
-res_flut@cnMinLevelValF       =  90.0           ;
-res_flut@cnMaxLevelValF       =  360.0 ; Use 80.0 -> 60 for this
+;res_flut@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
+;res_flut@cnLevelSpacingF      =  15.0              ;
+;res_flut@cnMinLevelValF       =  90.0           ;
+;res_flut@cnMaxLevelValF       =  360.0 ; Use 80.0 -> 60 for this
 
+gsn_define_colormap(wks,"irsat")        ; choose color map
+res_flut@cnLevelSelectionMode = "ManualLevels"
+res_flut@cnLevelSpacingF      =  2.5
+res_flut@cnMinLevelValF       =  100.0
+res_flut@cnMaxLevelValF       =  245.0
+
+res_flut@cnFillMode="AreaFill"
+
+res_flut@mpFillOn = True
+res_flut@mpOceanFillColor       = "black"
+res_flut@mpLandFillColor        = "darkgreen"
+res_flut@mpInlandWaterFillColor = "black"
+res_flut@gsnSpreadColors     = True
+
+flut = where(flut.ge.245,flut@_FillValue,flut)
 plotflut = gsn_csm_contour_map(wks,flut(0,:,:),res_flut)
 draw(plotflut)
 frame(wks)

@@ -15,9 +15,9 @@ module load ncl
 ###############################################################################
 yearstr=2015
 monthstr=10
-daystr=01
-cyclestr=12
-cyclestrsec=43200
+daystr=05
+cyclestr=06
+cyclestrsec=21600
 ###############################################################################
 runDir=/glade/u/home/zarzycki/scratch/ecsnow_30_x4_forecast/run/${yearstr}${monthstr}${daystr}${cyclestr}/
 path_to_ncl=/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/
