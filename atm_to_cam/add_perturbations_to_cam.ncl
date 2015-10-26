@@ -5,326 +5,146 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-; Inputs needed
-; machineid (integer)
-; numlevels (integer)
-; YYYYMMDDHH (string)
-; gridname (string)
-; ERA_dir (string)
-; 
+;BEFOREPERTFILE=/glade/scratch/zarzycki/apply-haiyan-perturb/haiyan_48_x8_INIC_filter.nc
+;AFTERPERTFILE=/glade/scratch/zarzycki/apply-haiyan-perturb/haiyan_48_x8_INIC_filter.nc_NOTREAL.nc
 
-wcStrt = systemfunc("date")
+;system("cp /glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc /glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_TMP.nc")
+;fileName="/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_TMP.nc"
+system("cp "+BEFOREPERTFILE+" "+AFTERPERTFILE)
+fileName=AFTERPERTFILE
+camFile=addfile(fileName,"w")
 
-; ===== Getting date from YYYYMMDDHH
-dtime_map = (/4,2,2,2/)
-splitDate = str_split_by_length(tostring(YYYYMMDDHH),dtime_map)
-yearstr=splitDate(0)
-monthstr=splitDate(1)
-daystr=splitDate(2)
-cyclestr=splitDate(3)
-print("Regridding analysis from: "+yearstr+" "+monthstr+" "+daystr+" "+cyclestr+"Z")
+deltaFileU=addfile("/glade/scratch/zarzycki/apply-haiyan-perturb/delta_ua_cam5.1_ACE_v2.0_2013.nc","r")
+deltaFileV=addfile("/glade/scratch/zarzycki/apply-haiyan-perturb/delta_va_cam5.1_ACE_v2.0_2013.nc","r")
+deltaFilePS=addfile("/glade/scratch/zarzycki/apply-haiyan-perturb/delta_ps_cam5.1_ACE_v2.0_2013.nc","r")
+deltaFileT=addfile("/glade/scratch/zarzycki/apply-haiyan-perturb/delta_ta_cam5.1_ACE_v2.0_2013.nc","r")
+deltaFileQ=addfile("/glade/scratch/zarzycki/apply-haiyan-perturb/delta_hus_cam5.1_ACE_v2.0_2013.nc","r")
 
-;eraVertFile = addfile(ERA_dir+"/ERA-Interim_coordvars.nc","r")
+deltaU = deltaFileU->delta_ua(10,::-1,:,:)
+deltaV = deltaFileV->delta_va(10,::-1,:,:)
+deltaPS = deltaFilePS->delta_ps(10,::-1,:,:)
+deltaT = deltaFileT->delta_ta(10,::-1,:,:)
+deltaQ = deltaFileQ->delta_hus(10,::-1,:,:)
 
-print("---------------------------------------------------------")
-print("Using this file: "+data_filename)
-print("Using this remap: "+wgt_filename)
+hyam=camFile->hyam
+hybm=camFile->hybm
+P0=camFile->P0
+PS=camFile->PS
+U=camFile->U
+V=camFile->V
+T=camFile->T
+Q=camFile->Q
+lat=camFile->lat
+lon=camFile->lon
 
-in = addfile(se_inic,"w")
+printVarSummary(PS)
+print(deltaU&plev)
+print(P0)
 
-; ====== load datafile
-grb_file = addfile(data_filename,"r")
+print("Beginning PS to lat-lon interp...")
+PS_deltaGrid=dsgrid2(lat,lon,PS(0,:),deltaU&lat,deltaU&lon)
 
-print("---------------------------------------------------------")
-print("Loading lat/lon/lev")
-if (datasource .eq. "GFS") then
-  dNames=getfilevardims(grb_file,"CLWMR_P0_L100_GLL0")
-  cldlevName=dNames(0)
-  delete(dNames)
-  print("cldlev varname: "+cldlevName)
-  dNames=getfilevardims(grb_file,"RH_P0_L100_GLL0")
-  rhlevName=dNames(0)
-  delete(dNames)
-  print("rhlev varname: "+cldlevName)
+printVarSummary(deltaU&plev)
+printVarSummary(PS_deltaGrid)
+printVarSummary(deltaU)
 
-  grblat = grb_file->lat_0
-  grblon = grb_file->lon_0
-  grblev = grb_file->lv_ISBL0
-  rhlev  = grb_file->$rhlevName$
-  cldlev = grb_file->$cldlevName$
+deltaU=where(ismissing(deltaU),0,deltaU)
+deltaV=where(ismissing(deltaV),0,deltaV)
+deltaT=where(ismissing(deltaT),0,deltaT)
+deltaQ=where(ismissing(deltaQ),0,deltaQ)
+deltaPS=where(ismissing(deltaPS),0,deltaPS)
+;deltaU = linmsg_n(deltaU,(/-1,2/),1)
+;deltaU = linmsg_n(deltaU,(/-1,2/),2)
+
+print("Beginning vertical interp interp")
+deltaUCAM=pres2hybrid_Wrap(deltaU&plev,PS_deltaGrid,P0,deltaU,hyam,hybm,1)
+deltaVCAM=pres2hybrid_Wrap(deltaV&plev,PS_deltaGrid,P0,deltaV,hyam,hybm,1)
+deltaTCAM=pres2hybrid_Wrap(deltaT&plev,PS_deltaGrid,P0,deltaT,hyam,hybm,1)
+deltaQCAM=pres2hybrid_Wrap(deltaQ&plev,PS_deltaGrid,P0,deltaQ,hyam,hybm,1)
+deltaPSCAM=deltaPS ; no need to vert interp PS
+
+print("Beginning lat-lon to SE interp")
+deltaUCAM_interp=linint2_points_Wrap(deltaUCAM&lon,deltaUCAM&lat,deltaUCAM,True,lon,lat,0)
+deltaVCAM_interp=linint2_points_Wrap(deltaVCAM&lon,deltaVCAM&lat,deltaVCAM,True,lon,lat,0)
+deltaTCAM_interp=linint2_points_Wrap(deltaTCAM&lon,deltaTCAM&lat,deltaTCAM,True,lon,lat,0)
+deltaQCAM_interp=linint2_points_Wrap(deltaQCAM&lon,deltaQCAM&lat,deltaQCAM,True,lon,lat,0)
+deltaPSCAM_interp=linint2_points_Wrap(deltaPSCAM&lon,deltaPSCAM&lat,deltaPSCAM,True,lon,lat,0)
+
+deltaUCAM_interp=where(ismissing(deltaUCAM_interp),0,deltaUCAM_interp)
+deltaVCAM_interp=where(ismissing(deltaVCAM_interp),0,deltaVCAM_interp)
+deltaTCAM_interp=where(ismissing(deltaTCAM_interp),0,deltaTCAM_interp)
+deltaQCAM_interp=where(ismissing(deltaQCAM_interp),0,deltaQCAM_interp)
+deltaPSCAM_interp=where(ismissing(deltaPSCAM_interp),0,deltaPSCAM_interp)
+
+printVarSummary(PS)
+printVarSummary(deltaPSCAM_interp)
+PS(0,:) = PS(0,:) + deltaPSCAM_interp(0,:)
+T(0,:,:) = T(0,:,:) + deltaTCAM_interp(:,:)
+V(0,:,:) = V(0,:,:) + deltaVCAM_interp(:,:)
+U(0,:,:) = U(0,:,:) + deltaUCAM_interp(:,:)
+Q(0,:,:) = Q(0,:,:) + deltaQCAM_interp(:,:)
+
+; where moisture is negative due to deltas, reset
+Q=where(Q.le.0,1.0e-9,Q)
+
+  if(any(ismissing(Q))) then
+    print("Q data contains some missing values. Beware.")
+    print(num(ismissing(Q)))
+  end if
+
+  if(any(ismissing(T))) then
+    print("T data contains some missing values. Beware.")
+    print(num(ismissing(T)))
+  end if
+
+  if(any(ismissing(PS))) then
+    print("PS data contains some missing values. Beware.")
+    print(num(ismissing(PS)))
+  end if
+
+camFile->U = U
+camFile->V = V
+camFile->T = T
+camFile->Q = Q
+camFile->PS = PS
+
+if (0 .eq. 1) then
+
+  ; ===== OUTPUT
+  system("/bin/rm -f simple.nc")   ; remove any pre-existing file
+  ncdf = addfile("simple.nc" ,"c")  ; open output netCDF file
+
+  ;===================================================================
+  ; create global attributes of the file (optional)
+  ;===================================================================
+  fAtt               = True            ; assign file attributes
+  fAtt@title         = "NCL Simple Approach to netCDF Creation"
+  fAtt@source_file   =  "original-file.nc"
+  fAtt@Conventions   = "None"
+  fAtt@creation_date = systemfunc ("date")
+  fileattdef( ncdf, fAtt )            ; copy file attributes
+
+  ;===================================================================
+  ; make time an UNLIMITED dimension; recommended  for most applications
+  ;===================================================================
+  filedimdef(ncdf,"time",-1,True) 
+
+  ;===================================================================
+  ; output variables directly; NCL will call appropriate functions
+  ; to write the meta data associated with each variable
+  ;===================================================================
+  ;ncdf->deltaU=deltaU
+  ncdf->PS_deltaGrid=PS_deltaGrid
+  ncdf->deltaUCAM=deltaUCAM
+  ncdf->deltaVCAM=deltaVCAM
+  ncdf->deltaTCAM=deltaTCAM
+  ncdf->deltaQCAM=deltaQCAM
+  ncdf->deltaPSCAM=deltaPSCAM
+
 end if
-if (datasource .eq. "CFSR") then
-  grblat = grb_file->lat_0
-  grblon = grb_file->lon_0
-  grblev = grb_file->lv_ISBL0
-  cldlev = grb_file->lv_ISBL4
-end if
-if (datasource .eq. "ERAI") then
-  grblat = grb_file->latitude
-  grblon = grb_file->longitude
-  grblev = grb_file->level
-end if
-
-nlat = dimsizes(grblat)
-nlon = dimsizes(grblon)
-
-
-print("---------------------------------------------------------")
-print("Loading variables")
-if (datasource .eq. "GFS") then
-  ps = grb_file->PRES_P0_L1_GLL0(:,:)
-  p0   = 100000.
-  ;pblh = grb_file->HPBL_P0_L1_GLL0(:,:)
-  t_gfs = grb_file->TMP_P0_L100_GLL0(:,:,:)
-  u_gfs = grb_file->UGRD_P0_L100_GLL0(:,:,:)
-  v_gfs = grb_file->VGRD_P0_L100_GLL0(:,:,:)
-  rh_gfs_native = grb_file->RH_P0_L100_GLL0(:,:,:)
-  cldmix_gfs_native = grb_file->CLWMR_P0_L100_GLL0(:,:,:)
-  print("Interpolating GRIB to uniform vertical levels")
-  rh_gfs = int2p_n(rhlev,rh_gfs_native,grblev,2,0)
-  cldmix_gfs = int2p_n(cldlev,cldmix_gfs_native,grblev,2,0)
-  delete(rh_gfs_native)
-  delete(cldmix_gfs_native)
-  print("Calculating q from RH")
-  q_gfs = mixhum_ptrh(conform(t_gfs,grblev,0)*0.01, t_gfs , rh_gfs, 2 ) ; specific humidity (g/kg)  
-  print("Sorting bad values")
-  cldmix_gfs = where(ismissing(cldmix_gfs),0,cldmix_gfs) 
-  cldmix_gfs = where(cldmix_gfs.gt.0.01,0,cldmix_gfs)    
-  print("seperating cloud ice and water")
-   ; If T > 0 C, water, if less than < 0, ice
-  cldice_gfs = cldmix_gfs
-  cldliq_gfs = cldmix_gfs
-  cldice_gfs = where(t_gfs.gt.273.15,0,cldice_gfs) 
-  cldliq_gfs = where(t_gfs.gt.273.15,cldliq_gfs,0)    
-  delete(cldmix_gfs)
-  delete(rh_gfs)
-end if
-if (datasource .eq. "CFSR") then
-  ps = grb_file->PRES_P0_L1_GLL0(:,:)
-  p0   = 100000.
-  ;pblh = grb_file->PRES_P0_L1_GLL0(:,:)
-  t_gfs = grb_file->TMP_P0_L100_GLL0(:,:,:)
-  u_gfs = grb_file->UGRD_P0_L100_GLL0(:,:,:)
-  v_gfs = grb_file->VGRD_P0_L100_GLL0(:,:,:)
-  rh_gfs = grb_file->RH_P0_L100_GLL0(:,:,:)
-  cldmix_gfs_native = grb_file->CLWMR_P0_L100_GLL0(:,:,:)
-  print("Interpolating GRIB to uniform vertical levels")
-  cldmix_gfs = int2p_n(cldlev,cldmix_gfs_native,grblev,2,0)
-  delete(cldmix_gfs_native)
-  print("Calculating q from RH")
-  q_gfs = mixhum_ptrh(conform(t_gfs,grblev,0)*0.01, t_gfs , rh_gfs, 2 ) ; specific humidity (g/kg)  
-  print("Sorting bad values")
-  cldmix_gfs = where(ismissing(cldmix_gfs),0,cldmix_gfs) 
-  cldmix_gfs = where(cldmix_gfs.gt.0.01,0,cldmix_gfs)    
-  print("seperating cloud ice and water")
-   ; If T > 0 C, water, if less than < 0, ice
-  cldice_gfs = cldmix_gfs
-  cldliq_gfs = cldmix_gfs
-  cldice_gfs = where(t_gfs.gt.273.15,0,cldice_gfs) 
-  cldliq_gfs = where(t_gfs.gt.273.15,cldliq_gfs,0)    
-  delete(cldmix_gfs)
-  delete(rh_gfs)
-end if
-if (datasource .eq. "ERAI") then
-  p0   = 100000.
-  ; We need to use short2flt because ERA-Interim data is stored
-  ; in short format and requires scale/offset
-  ps = short2flt(grb_file->sp(0,:,:))
-  ;pblh       = short2flt(grb_file->sp(0,:,:))
-  t_gfs      = short2flt(grb_file->t(0,:,:,:))
-  u_gfs      = short2flt(grb_file->u(0,:,:,:))
-  v_gfs      = short2flt(grb_file->v(0,:,:,:))
-  q_gfs      = short2flt(grb_file->q(0,:,:,:))
-  cldice_gfs = short2flt(grb_file->ciwc(0,:,:,:))
-  cldliq_gfs = short2flt(grb_file->clwc(0,:,:,:))
-end if
-
-print("=================================================================")
-print("Max T: "+max(t_gfs)+"   min T: "+min(t_gfs))
-print("Max U: "+max(u_gfs)+"   min U: "+min(u_gfs))
-print("Max V: "+max(v_gfs)+"   min V: "+min(v_gfs))
-print("Max Q: "+max(q_gfs)+"   min Q: "+min(q_gfs))
-print("Max PS: "+max(ps)+"   min PS: "+min(ps))
-print("Max CLDICE: "+max(cldice_gfs)+"   min CLDICE: "+min(cldice_gfs))
-print("Max CLDLIQ: "+max(cldliq_gfs)+"   min CLDLIQ: "+min(cldliq_gfs))
-;print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
-print("=================================================================")
-
-
-print("---------------------------------------------------------")
-print("Loading CAM levels")
-if (numlevels .eq. 30)
-print("Loading 30 level data")
-fC   = addfile ("./L30template.nc", "r")
-else
-print("Loading 26 level data")
-fC   = addfile ("./L26template.nc", "r")
-end if
-hya  = fC->hyam
-hyb  = fC->hybm
-
-
-print("Interpolating to CAM hybrid coordinates")
-if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
-  print("Using pressure to hybrid interpolation")
-  t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,4)
-  u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,4)
-  v_cam = pres2hybrid_Wrap(grblev,ps,p0,v_gfs,hya,hyb,4)
-  q_cam = pres2hybrid_Wrap(grblev,ps,p0,q_gfs,hya,hyb,4)
-  cldice_cam = pres2hybrid_Wrap(grblev,ps,p0,cldice_gfs,hya,hyb,4)
-  cldliq_cam = pres2hybrid_Wrap(grblev,ps,p0,cldliq_gfs,hya,hyb,4)
-end if
-if (datasource .eq. "ERAI") then
-  print("Using hybrid to hybrid interpolation")
-  eraVertFile = addfile("./ERA-Interim_coordvars.nc","r")
-  hya_era = eraVertFile->a_model_ave
-  hyb_era = eraVertFile->b_model_ave
-  hya_era = hya_era/p0
-  t_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,t_gfs,hya,hyb,1)
-  u_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,u_gfs,hya,hyb,1)
-  v_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,v_gfs,hya,hyb,1)
-  q_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,q_gfs,hya,hyb,1)
-  cldice_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,cldice_gfs,hya,hyb,1)
-  cldliq_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,cldliq_gfs,hya,hyb,1)
-end if
-
-copy_VarCoords(t_cam,q_cam)
-copy_VarCoords(t_cam,cldice_cam)
-copy_VarCoords(t_cam,cldliq_cam)
-
-t_cam!0    = "lev"
-t_cam!1    = "lat"
-t_cam!2    = "lon"
-ps!0 = "lat"
-ps!1 = "lon"
-;pblh!0 = "lat"
-;pblh!1 = "lon"
-
-copy_VarCoords(t_cam,q_cam)
-copy_VarCoords(t_cam,cldice_cam)
-copy_VarCoords(t_cam,cldliq_cam)
-copy_VarCoords(t_cam,u_cam)
-copy_VarCoords(t_cam,v_cam)
-
-print("Interpolating horizontal to CAM")
-;fV   = addfile ("./L26template.nc", "r")
-;fvlat  = fV->lat
-;fvlon  = fV->lon
-;fvslat = fV->slat
-;fvslon = fV->slon
-
-dstFileName = se_inic
-dfile       = addfile(dstFileName,"r")
-lonCell     = dfile->lon
-latCell     = dfile->lat
-Opt         = True
-Opt@CopyVarCoords = False
-ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
-;pblh_fv  = ESMF_regrid_with_weights(pblh,wgt_filename,Opt)
-t_fv  = ESMF_regrid_with_weights(t_cam,wgt_filename,Opt)
-u_fv  = ESMF_regrid_with_weights(u_cam,wgt_filename,Opt)
-v_fv  = ESMF_regrid_with_weights(v_cam,wgt_filename,Opt)
-q_fv  = ESMF_regrid_with_weights(q_cam,wgt_filename,Opt)
-cldice_fv  = ESMF_regrid_with_weights(cldice_cam,wgt_filename,Opt)
-cldliq_fv  = ESMF_regrid_with_weights(cldliq_cam,wgt_filename,Opt)
-
-sePS = in->PS
-dim_sePS=dimsizes(sePS)
-ncol=dim_sePS(1)
-
- print("Converting floats to doubles")
- ; Convert floats to doubles
- ps_fv_dbl = todouble(ps_fv)
- ;pblh_fv_dbl = todouble(pblh_fv)
- t_fv_dbl = todouble(t_fv)
- u_fv_dbl = todouble(u_fv)
- v_fv_dbl = todouble(v_fv)
- q_fv_dbl = todouble(q_fv)
- cldice_fv_dbl = todouble(cldice_fv)
- cldliq_fv_dbl = todouble(cldliq_fv)
- 
- copy_VarMeta(ps_fv,ps_fv_dbl)
- ;copy_VarMeta(pblh_fv,pblh_fv_dbl)
- copy_VarMeta(t_fv,t_fv_dbl)
- copy_VarMeta(u_fv,u_fv_dbl)
- copy_VarMeta(v_fv,v_fv_dbl)
- copy_VarMeta(q_fv,q_fv_dbl)
- copy_VarMeta(cldliq_fv,cldliq_fv_dbl)
- copy_VarMeta(cldice_fv,cldice_fv_dbl)
-; 
-; ; clean up some stuff
- delete(ps_fv)
- ;delete(pblh_fv)
- delete(t_fv)
- delete(u_fv)
- delete(v_fv)
- delete(q_fv)
- delete(cldliq_fv)
- delete(cldice_fv)
-; 
- print("Correcting time records")
-; ; Add time record
- ps_fv_dbl_time = new((/1,ncol/),double)
- ps_fv_dbl_time(0,:) = ps_fv_dbl
- 
- ;pblh_fv_dbl_time = new((/1,ncol/),double)
- ;pblh_fv_dbl_time(0,:) = pblh_fv_dbl
-
- u_fv_dbl_time = new((/1,numlevels,ncol/),double)
- u_fv_dbl_time(0,:,:) = u_fv_dbl
- 
- v_fv_dbl_time = new((/1,numlevels,ncol/),double)
- v_fv_dbl_time(0,:,:) = v_fv_dbl
-
-t_fv_dbl_time = new((/1,numlevels,ncol/),double)
-t_fv_dbl_time(0,:,:) = t_fv_dbl
-
-q_fv_dbl_time = new((/1,numlevels,ncol/),double)
-q_fv_dbl_time(0,:,:) = q_fv_dbl
-
-cldliq_fv_dbl_time = new((/1,numlevels,ncol/),double)
-cldliq_fv_dbl_time(0,:,:) = cldliq_fv_dbl
-
-cldice_fv_dbl_time = new((/1,numlevels,ncol/),double)
-cldice_fv_dbl_time(0,:,:) = cldice_fv_dbl
-
-ps_fv_dbl_time!0 = "time"
-ps_fv_dbl_time!1 = "ncol"
-u_fv_dbl_time!0 = "time"
-u_fv_dbl_time!1 = "lev"
-u_fv_dbl_time!2 = "ncol"
-v_fv_dbl_time!0 = "time"
-v_fv_dbl_time!1 = "lev"
-v_fv_dbl_time!2 = "ncol"
-t_fv_dbl_time!0 = "time"
-t_fv_dbl_time!1 = "lev"
-t_fv_dbl_time!2 = "ncol"
-q_fv_dbl_time!0 = "time"
-q_fv_dbl_time!1 = "lev"
-q_fv_dbl_time!2 = "ncol"
-cldliq_fv_dbl_time!0 = "time"
-cldliq_fv_dbl_time!1 = "lev"
-cldliq_fv_dbl_time!2 = "ncol"
-cldice_fv_dbl_time!0 = "time"
-cldice_fv_dbl_time!1 = "lev"
-cldice_fv_dbl_time!2 = "ncol"
-
-print("Writing output file")
-in->PS=(/ps_fv_dbl_time/)
-in->U=(/u_fv_dbl_time/)
-in->V=(/v_fv_dbl_time/)
-in->T=(/t_fv_dbl_time/)
-in->Q=(/q_fv_dbl_time/)
-in->CLDLIQ=(/cldliq_fv_dbl_time/)
-in->CLDICE=(/cldice_fv_dbl_time/)
-;  in->PBLH=(/pblh_fv_dbl_time/)
-
-
-wallClockElapseTime(wcStrt, "Total runtime", 0)
-print("done")
 
 status_exit(9)
-  
+
 end
 
 

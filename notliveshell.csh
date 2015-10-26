@@ -45,19 +45,22 @@ numHoursSEStart=3
 filterHourLength=6
 filtTcut=6
 
+add_perturbs=false
+
 land_spinup=false   #daily land spinup
 use_defaults=false
 
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
 casename=ecsnow_30_x4_forecast
+path_to_case=/glade/p/work/$LOGNAME/${casename}
 gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_ecsnow_30_x4_patc.nc
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc
 sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc 
+
 sstFileIC=/glade/p/work/zarzycki/sewx/SST/sst_1x1.nc
 
 sewxscriptsdir=/glade/u/home/$LOGNAME/sewx-cam-forecast/
-path_to_case=/glade/p/work/$LOGNAME/${casename}
 
 gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS          # Temp path for GFS/CFSR DL/proc
 era_files_path=/glade/p/work/$LOGNAME/getECMWFdata/
@@ -83,6 +86,18 @@ filter_path=${sewxscriptsdir}/filter
 
 # Set timestamp for backing up files, etc.
 timestamp=`date +%Y%m%d.%H%M`
+
+#casename=haiyan_48_x8
+#path_to_case=/glade/u/home/$LOGNAME/${casename}
+#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_haiyan_48_x8_patc.nc
+#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC.nc
+#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC_filter.nc
+
+#casename=ecsnow_30_x4_forecast
+#path_to_case=/glade/p/work/$LOGNAME/${casename}
+#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ecsnow_30_x4_patc.nc
+#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc
+#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc 
 
 # casename=uniform_60
 # gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_uniform_60_patc.nc
@@ -530,11 +545,27 @@ fi #End debug if statement
 ############################### #### ############################### 
 ##### ADD PERTURBATIONS
 
+if [ "${add_perturbs}" = true ] ; then
+  echo "Adding perturbations from Michael Wehner"
 
+  cd $atm_to_cam_path
 
+  sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
 
+  set +e
+  ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
+    'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"'
+  if [[ $? -ne 9 ]]
+  then
+    echo "NCL exited with non-9 error code"
+    exit 240
+  fi
+  echo "ATM NCL completed successfully"
+  set -e # Turn error checking back on
 
+  mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
 
+fi
 
 ############################### #### ############################### 
 
