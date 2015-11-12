@@ -22,7 +22,7 @@ module load ncl
 ############### OPTIONS ############################################
 
 debug=0 ; echo "debug set to $debug"    # 0 = no debug, 1 = debug
-islive=0 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, running live
+islive=1 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, running live
 isliveresub=0 ; echo "isliveresub set to $isliveresub" # 0 no, 1 yes -- do we want to resubmit when running live?
 machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 = Agri
 
@@ -33,30 +33,31 @@ sendplots=false ; echo "sendplots set to $sendplots" # 0 send plots to external 
 ### CFSR analysis available from 1979 to Mar 2011
 atmDataType=1             # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
 ### Use NOAAOI unless running real-time
-sstDataType=3              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
+sstDataType=1              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
 numLevels=30               # 30 -> CAM5 physics, 26 -> CAM4 physics
 
 numdays=6                   #forecast length (in days)
 
 # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
 doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
-filterOnly=true ; echo "filterOnly set to $filterOnly" #if true, exits after filter (generates init data)
+filterOnly=false ; echo "filterOnly set to $filterOnly" #if true, exits after filter (generates init data)
 numHoursSEStart=3
 filterHourLength=6
 filtTcut=6
 
-add_perturbs=false
+add_perturbs=false   # Add perturbations from climate forcing run -- right now only works with M. Wehner data
 
+preSavedCLMuserNL=false   # is there a user_nl_clm_presave file?
 land_spinup=false   #daily land spinup
-use_defaults=false
 
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
 casename=ecsnow_30_x4_forecast
 path_to_case=/glade/p/work/$LOGNAME/${casename}
-gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_ecsnow_30_x4_patc.nc
+gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ecsnow_30_x4_patc.nc
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc
 sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc 
+usingCIME=true
 
 sstFileIC=/glade/p/work/zarzycki/sewx/SST/sst_1x1.nc
 
@@ -548,6 +549,8 @@ fi #End debug if statement
 if [ "${add_perturbs}" = true ] ; then
   echo "Adding perturbations from Michael Wehner"
 
+  cp /glade/scratch/zarzycki/apply-haiyan-perturb/sst_1x1_Nat-Hist-CMIP5-est1-v1-0.nc ${sstFileIC}
+
   cd $atm_to_cam_path
 
   sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
@@ -571,25 +574,26 @@ fi
 
 cd $path_to_case
 echo "Turning off archiving and restart file output in env_run.xml"
-./xmlchange -v -file env_run.xml -id DOUT_S -val FALSE
-./xmlchange -v -file env_run.xml -id REST_OPTION -val nyears
-./xmlchange -v -file env_run.xml -id REST_N -val 9999
+./xmlchange DOUT_S=FALSE,REST_OPTION=nyears,REST_N=9999
 echo "Setting SST from default to our SST"
-./xmlchange -v -file env_run.xml -id SSTICE_DATA_FILENAME -val "${sstFileIC}"
+#./xmlchange -v -file env_run.xml -id SSTICE_DATA_FILENAME -val "${sstFileIC}"
+./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
 ####### 
 if [ "$land_spinup" = true ] ; then
-  ./xmlchange -v -file env_run.xml -id REST_OPTION -val ndays
-  ./xmlchange -v -file env_run.xml -id REST_N -val 1
+  ./xmlchange REST_OPTION=ndays,REST_N=1
 fi
 #######
 echo "Update env_run.xml with runtime parameters"
 
-./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $yearstr-$monthstr-$daystr
-./xmlchange -v -file env_run.xml -id START_TOD -val $cyclestrsec
-# We are by default setting these to forecast settings. If filtering, will overwrite
-./xmlchange -v -file env_run.xml -id STOP_OPTION -val ndays
-./xmlchange -v -file env_run.xml -id STOP_N -val $numdays
+#./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $yearstr-$monthstr-$daystr
+#./xmlchange -v -file env_run.xml -id START_TOD -val $cyclestrsec
+## We are by default setting these to forecast settings. If filtering, will overwrite
+#./xmlchange -v -file env_run.xml -id STOP_OPTION -val ndays
+#./xmlchange -v -file env_run.xml -id STOP_N -val $numdays
+./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
+
 cp -v user_nl_cam_run user_nl_cam
+./xmlchange ATM_NCPL=48,ICE_NCPL=48,LND_NCPL=48,OCN_NCPL=48,WAV_NCPL=48
 
 echo "Setting input land dataset"
 # Copy dummy lnd namelist over with commented "!finidat" line
@@ -612,11 +616,16 @@ else
       echo "Alternative land file exists: ${landFileName}     sedding that into CLM namelist"
       sed -i 's?.*finidat.*?finidat='"'${otherLandFileName}'"'?' user_nl_clm
   else
-    echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
-    sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
-    #echo "OK, Colin is cheating and using a different land file"
-    #echo "He really should specify 3-4 files by month as dummies instead of CESM cold starts"
-    #sed -i 's?!finidat.*?finidat='"'"/home/zarzycki/"${gridname}"/run/clmstart/"${gridname}".clm2.r.2012-08-24-10800.nc"'"'?' user_nl_clm
+    if ${preSavedCLMuserNL} ; then
+      echo "Using pre-written user_nl_clm file"
+      cp user_nl_clm_presave user_nl_clm
+      #echo "OK, Colin is cheating and using a different land file"
+      #echo "He really should specify 3-4 files by month as dummies instead of CESM cold starts"
+      #sed -i 's?!finidat.*?finidat='"'"/home/zarzycki/"${gridname}"/run/clmstart/"${gridname}".clm2.r.2012-08-24-10800.nc"'"'?' user_nl_clm
+    else
+      echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
+      sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
+    fi
   fi    
 fi
 
@@ -637,15 +646,21 @@ echo "numlogfiles: $numlogfiles"
 if $doFilter ; then
   # If filtering, need to change these options
   cd $path_to_case
-  ./xmlchange -v -file env_run.xml -id STOP_OPTION -val nhours
-  ./xmlchange -v -file env_run.xml -id STOP_N -val ${filterHourLength}
+  #./xmlchange -v -file env_run.xml -id STOP_OPTION -val nhours
+  #./xmlchange -v -file env_run.xml -id STOP_N -val ${filterHourLength}
+  ./xmlchange STOP_OPTION=nhours,STOP_N=${filterHourLength}
   cp -v user_nl_cam_filter user_nl_cam
+  ./xmlchange ATM_NCPL=192,ICE_NCPL=192,LND_NCPL=192,OCN_NCPL=48,WAV_NCPL=48
 
   if [ $debug -ne 1 ] ; then
     echo "Begin call to filter-run"
     if [ $machineid -eq 1 ]
     then
-      bsub < ${casename}.run
+      if $usingCIME ; then
+        bsub < case.run
+      else
+        bsub < ${casename}.run
+      fi
     elif [ $machineid -eq 2 ]
     then
       echo "Using UMich Flux, not supported" ; exit 1
@@ -699,11 +714,13 @@ if $doFilter ; then
 
   echo "Make changes in CESM-SE namelist"
   cd $path_to_case
-  ./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $se_yearstr-$se_monthstr-$se_daystr
-  ./xmlchange -v -file env_run.xml -id START_TOD -val $se_cyclestrsec
-  ./xmlchange -v -file env_run.xml -id STOP_OPTION -val ndays
-  ./xmlchange -v -file env_run.xml -id STOP_N -val $numdays
+  #./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $se_yearstr-$se_monthstr-$se_daystr
+  #./xmlchange -v -file env_run.xml -id START_TOD -val $se_cyclestrsec
+  #./xmlchange -v -file env_run.xml -id STOP_OPTION -val ndays
+  #./xmlchange -v -file env_run.xml -id STOP_N -val $numdays
+  ./xmlchange RUN_STARTDATE=$se_yearstr-$se_monthstr-$se_daystr,START_TOD=$se_cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
   cp -v user_nl_cam_run user_nl_cam
+  ./xmlchange ATM_NCPL=48,ICE_NCPL=48,LND_NCPL=48,OCN_NCPL=48,WAV_NCPL=48
 fi
 
 if [ $debug -ne 1 ]
@@ -711,7 +728,12 @@ then
   echo "Begin call to forecast run"
   if [ $machineid -eq 1 ]
   then
-    echo "Using Yellowstone" ; bsub < ${casename}.run
+    echo "Using Yellowstone"
+    if $usingCIME ; then
+      bsub < case.run
+    else
+      bsub < ${casename}.run
+    fi
   elif [ $machineid -eq 2 ]
   then
     echo "Using UMich Flux" ; exit 1
