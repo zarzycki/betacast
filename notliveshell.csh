@@ -34,9 +34,9 @@ sendplots=false ; echo "sendplots set to $sendplots" # 0 send plots to external 
 atmDataType=1             # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
 ### Use NOAAOI unless running real-time
 sstDataType=1              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
-numLevels=30               # 30 -> CAM5 physics, 26 -> CAM4 physics
+numLevels=32               # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
 
-numdays=6                   #forecast length (in days)
+numdays=3                   #forecast length (in days)
 
 # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
 doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
@@ -683,6 +683,7 @@ if $doFilter ; then
     ## Run NCL filter
     cd $filter_path
     echo "Running filter"
+    cp ${sePreFilterIC} ${sePostFilterIC}
     filtfile_name=${casename}.cam.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
     ncl lowmemfilter.ncl \
      endhour=${filterHourLength} tcut=${filtTcut} \

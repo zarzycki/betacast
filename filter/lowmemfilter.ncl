@@ -20,9 +20,9 @@ vars = (/"PS","T","U","V","Q","CLDLIQ","CLDICE"/)
 pi = 3.14159
 eps = 10^-16
 
-dimPS = dimsizes(filtfile->PS)
-ncol = dimPS(1)
-nlev = 30
+dimT = dimsizes(filtfile->T)
+nlev = dimT(1)
+ncol = dimT(2)
 time = filtfile->time
 numtime = dimsizes(time)
 

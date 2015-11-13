@@ -30,7 +30,7 @@ print("---------------------------------------------------------")
 print("Using this file: "+data_filename)
 print("Using this remap: "+wgt_filename)
 
-in = addfile(se_inic,"w")
+;in = addfile(se_inic,"w")
 
 ; ====== load datafile
 grb_file = addfile(data_filename,"r")
@@ -154,14 +154,26 @@ print("=================================================================")
 print("---------------------------------------------------------")
 print("Loading CAM levels")
 if (numlevels .eq. 30)
-print("Loading 30 level data")
-fC   = addfile ("./L30template.nc", "r")
+  print("Loading 30 level data")
+  fC   = addfile ("./L30template.nc", "r")
+else if (numlevels .eq. 32)
+  print("Loading 23 level data")
+  fC   = addfile ("./L32template.nc", "r")
+else if (numlevels .eq. 26)
+  print("Loading 26 level data")
+  fC   = addfile ("./L26template.nc", "r")
 else
-print("Loading 26 level data")
-fC   = addfile ("./L26template.nc", "r")
+  print("Bad numlevs, exiting...")
+  exit
+end if
+end if
 end if
 hya  = fC->hyam
 hyb  = fC->hybm
+hyai  = fC->hyai
+hybi  = fC->hybi
+lev = fC->lev
+ilev = fC->ilev
 
 
 print("Interpolating to CAM hybrid coordinates")
@@ -213,10 +225,10 @@ print("Interpolating horizontal to CAM")
 ;fvslat = fV->slat
 ;fvslon = fV->slon
 
-dstFileName = se_inic
-dfile       = addfile(dstFileName,"r")
-lonCell     = dfile->lon
-latCell     = dfile->lat
+;dstFileName = se_inic
+;dfile       = addfile(dstFileName,"r")
+;lonCell     = dfile->lon
+;latCell     = dfile->lat
 Opt         = True
 Opt@CopyVarCoords = False
 ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
@@ -228,9 +240,10 @@ q_fv  = ESMF_regrid_with_weights(q_cam,wgt_filename,Opt)
 cldice_fv  = ESMF_regrid_with_weights(cldice_cam,wgt_filename,Opt)
 cldliq_fv  = ESMF_regrid_with_weights(cldliq_cam,wgt_filename,Opt)
 
-sePS = in->PS
+sePS = ps_fv
 dim_sePS=dimsizes(sePS)
-ncol=dim_sePS(1)
+printVarSummary(dim_sePS)
+ncol=dim_sePS(0)
 
  print("Converting floats to doubles")
  ; Convert floats to doubles
@@ -310,14 +323,61 @@ cldice_fv_dbl_time!1 = "lev"
 cldice_fv_dbl_time!2 = "ncol"
 
 print("Writing output file")
-in->PS=(/ps_fv_dbl_time/)
-in->U=(/u_fv_dbl_time/)
-in->V=(/v_fv_dbl_time/)
-in->T=(/t_fv_dbl_time/)
-in->Q=(/q_fv_dbl_time/)
-in->CLDLIQ=(/cldliq_fv_dbl_time/)
-in->CLDICE=(/cldice_fv_dbl_time/)
+;in->PS=(/ps_fv_dbl_time/)
+;in->U=(/u_fv_dbl_time/)
+;in->V=(/v_fv_dbl_time/)
+;in->T=(/t_fv_dbl_time/)
+;in->Q=(/q_fv_dbl_time/)
+;in->CLDLIQ=(/cldliq_fv_dbl_time/)
+;in->CLDICE=(/cldice_fv_dbl_time/)
+
 ;  in->PBLH=(/pblh_fv_dbl_time/)
+
+
+system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
+in2 = addfile(se_inic,"c")  ; open output netCDF file
+
+;===================================================================
+; create global attributes of the file (optional)
+;===================================================================
+fAtt               = True            ; assign file attributes
+fAtt@title         = "NCL Simple Approach to netCDF Creation"
+fAtt@source_file   =  "original-file.nc"
+fAtt@Conventions   = "None"
+fAtt@creation_date = systemfunc ("date")
+fileattdef( in2, fAtt )            ; copy file attributes
+
+;===================================================================
+; make time an UNLIMITED dimension; recommended  for most applications
+;===================================================================
+filedimdef(in2,"time",-1,True) 
+
+;===================================================================
+; output variables directly; NCL will call appropriate functions
+; to write the meta data associated with each variable
+;===================================================================
+in2->PS=ps_fv_dbl_time
+in2->U=u_fv_dbl_time
+in2->V=v_fv_dbl_time
+in2->T=t_fv_dbl_time
+in2->Q=q_fv_dbl_time
+in2->CLDLIQ=cldliq_fv_dbl_time
+in2->CLDICE=cldice_fv_dbl_time
+in2->hyam  = hya
+in2->hybm  = hyb
+in2->hyai  = hyai
+in2->hybi  = hybi
+in2->lev = lev
+in2->ilev = ilev
+
+NUMLIQ=cldliq_fv_dbl_time
+NUMLIQ=0
+NUMICE=cldice_fv_dbl_time
+NUMICE=0
+
+;in2->NUMICE=NUMICE
+;in2->NUMLIQ=NUMLIQ
+
 
 
 wallClockElapseTime(wcStrt, "Total runtime", 0)
