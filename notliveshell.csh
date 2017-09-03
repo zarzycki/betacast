@@ -622,11 +622,6 @@ fi
 #######
 echo "Update env_run.xml with runtime parameters"
 
-#./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $yearstr-$monthstr-$daystr
-#./xmlchange -v -file env_run.xml -id START_TOD -val $cyclestrsec
-## We are by default setting these to forecast settings. If filtering, will overwrite
-#./xmlchange -v -file env_run.xml -id STOP_OPTION -val ndays
-#./xmlchange -v -file env_run.xml -id STOP_N -val $numdays
 ./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
 
 cp -v user_nl_cam_run user_nl_cam
