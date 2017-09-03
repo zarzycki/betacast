@@ -77,7 +77,13 @@ flut_se = datafile->FLUT
 u850_se = datafile->U850
 v850_se = datafile->V850
 mslp_se = datafile->PSL/100
+preclav_se=datafile->PRECLav
+preccav_se=datafile->PRECCav
 
+prectav_se=preclav_se
+prectav_se=preclav_se+preccav_se
+delete(preclav_se)
+delete(preccav_se)
 
 
 print(max(mslp_se))
@@ -95,6 +101,7 @@ flut  = ESMF_regrid_with_weights(flut_se,wgt_file,Opt)
 u850  = ESMF_regrid_with_weights(u850_se,wgt_file,Opt)
 v850  = ESMF_regrid_with_weights(v850_se,wgt_file,Opt)
 mslp  = ESMF_regrid_with_weights(mslp_se,wgt_file,Opt)
+prectav= ESMF_regrid_with_weights(prectav_se,wgt_file,Opt)
 
 print("Begin interp")
 guess     = 1                ; use zonal means
@@ -115,6 +122,7 @@ poisson_grid_fill( flut, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( u850, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( v850, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( mslp, is_cyclic, guess, nscan, eps, relc, opt)
+poisson_grid_fill( prectav, is_cyclic, guess, nscan, eps, relc, opt)
 
 print(max(mslp))
 print(min(mslp))
@@ -134,6 +142,14 @@ print("end interp")
 prect_mmday = prect
 prect_mmday = prect_mmday*3600000
 prect_mmday@units="mm/hr"
+
+prectav_in = prectav
+prectav_in = prectav_in*10800 ; seconds in 3 hours, now gives us meters per timestep
+prectav_in = prectav_in*39.3701  ; now inches per timestep
+;prectcum_in = dim_cumsum_n_Wrap(prectav_in,0)
+;printVarSummary(prectcum_in)
+prectav_in@units="inches"
+prectav_in=where(prectav_in.lt.0.1,prectav_in@_FillValue,prectav_in)
 
 ;vort250 = uv2vrF_Wrap(u250,v250)
 ;vort250 = vort250/1e-5
@@ -162,12 +178,18 @@ if (plotindex .eq. 0)
   minlat = 5.
   maxlon = 355. 
   minlon = 260.
-else if (plotindex .eq. 1)
+;else if (plotindex .eq. 1)    ; ORIG EPAC
+;  plotname = "epac"
+;  maxlat = 40.             
+;  minlat = 5.
+;  maxlon = 270. 
+;  minlon = 195.
+else if (plotindex .eq. 1)     ; Modif EPAC for CONUS
   plotname = "epac"
-  maxlat = 40.           ; choose subregion           
-  minlat = 5.
-  maxlon = 270. 
-  minlon = 195.
+  maxlat = 53.              
+  minlat = 25.
+  maxlon = 300. 
+  minlon = 230.
 else
   plotname = "glob"
   maxlat = 90.           ; choose subregion           
@@ -206,12 +228,16 @@ res@mpCenterLonF = (res@mpMinLonF+res@mpMaxLonF)/2.
 
 res@gsnSpreadColors      = True
 
+res@mpOutlineBoundarySets     = "geophysicalandusstates"; turn on states
+res@mpDataBaseVersion         = "mediumres"             ; select database
+res@mpDataSetName             = "Earth..2"
+
 res@tiMainString = "+"+forecastHourStr
 res@gsnLeftString = hourstr+"Z "+monstr+" "+daystr+" "+yearstr
 
 out_type = "png"
-out_type@wkWidth = 800 
-out_type@wkHeight = 800 
+out_type@wkWidth = 900
+out_type@wkHeight = 900
 
 res_mslp = True
   res_mslp@gsnDraw          = False           ; don't draw
@@ -248,8 +274,6 @@ res_z500@gsnCenterString  = ""
 out_type = "png"
 wks = gsn_open_wks(out_type,"prect_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 
-
-
 ;;;; RAIN, SIMULATED RADAR
 ; res_rain                      = res
 ; gsn_define_colormap(wks,"rainsnowradar")          ; choose colormap
@@ -276,6 +300,20 @@ res_rain@cnLevels    = (/0.25,0.3,0.4,0.5,0.75,1.0,2.0,3.0,4.0,5.0,7.5,10.0,15.0
 res_rain@lbOrientation = "vertical"
 plotrain = gsn_csm_contour_map(wks,prect_mmday(0,:,:),res_rain)
 draw(plotrain)
+frame(wks)
+delete(wks)
+
+out_type = "png"
+wks = gsn_open_wks(out_type,"sumprect_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
+res_sumprecip                    = res
+gsn_define_colormap(wks,"MPL_Paired")          ; choose colormap
+res_sumprecip@gsnSpreadColors      = True              ; use full colormap
+res_sumprecip@cnLevelSelectionMode = "ExplicitLevels"    			; set explicit contour levels
+res_sumprecip@cnLevels    = (/0.1,0.15,0.2,0.3,0.4,0.5,0.75,1,1.25,1.5,1.75,2,2.5,3,3.5,4,4.5,5,5.5,6/)	; set levels
+res_sumprecip@lbLabelStride=1
+res_sumprecip@lbLabelAngleF=50                 ; angle labels
+plotprecipsum = gsn_csm_contour_map(wks,prectav_in(0,:,:),res_sumprecip)
+draw(plotprecipsum)
 frame(wks)
 delete(wks)
 

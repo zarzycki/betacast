@@ -34,12 +34,12 @@ sendplots=false ; echo "sendplots set to $sendplots" # 0 send plots to external 
 atmDataType=1             # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
 ### Use NOAAOI unless running real-time
 sstDataType=1              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
-numLevels=32               # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
+numLevels=30               # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
 
-numdays=3                   #forecast length (in days)
+numdays=7                  #forecast length (in days)
 
 # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
-doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
+doFilter=false ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
 filterOnly=false ; echo "filterOnly set to $filterOnly" #if true, exits after filter (generates init data)
 numHoursSEStart=3
 filterHourLength=6
@@ -52,11 +52,12 @@ land_spinup=false   #daily land spinup
 
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
-casename=ecsnow_30_x4_forecast
+casename=forecast_natlantic_30_x4_CAM5
 path_to_case=/glade/p/work/$LOGNAME/${casename}
-gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ecsnow_30_x4_patc.nc
-sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc
-sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc 
+gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_natlantic_30_x4_patc.nc
+sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC.nc
+sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC_filter.nc
+
 usingCIME=true
 
 sstFileIC=/glade/p/work/zarzycki/sewx/SST/sst_1x1.nc
@@ -87,6 +88,18 @@ filter_path=${sewxscriptsdir}/filter
 
 # Set timestamp for backing up files, etc.
 timestamp=`date +%Y%m%d.%H%M`
+
+#casename=colorado_30_x16_forecast
+#path_to_case=/glade/p/work/$LOGNAME/${casename}
+#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_colorado_30_x16_patc.nc
+#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/colorado_30_x16_INIC.nc
+#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/colorado_30_x16_INIC_filter.nc 
+
+#casename=ecsnow_30_x0_forecast
+#path_to_case=/glade/p/work/$LOGNAME/${casename}
+#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_ecsnow_30_x0_patc.nc
+#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x0_INIC.nc
+#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x0_INIC_filter.nc 
 
 #casename=haiyan_48_x8
 #path_to_case=/glade/u/home/$LOGNAME/${casename}
@@ -119,6 +132,17 @@ timestamp=`date +%Y%m%d.%H%M`
 #gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_haiyan_48_x8_patc.nc
 #sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC.nc
 #sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC_filter.nc
+
+#casename=native_uniform_30_forecast
+#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_native_ne30_patc.nc
+#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/native_ne30_INIC.nc
+#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/native_ne30_INIC_filter.nc
+
+#casename=forecast_natlantic_30_x4_CAM5
+#path_to_case=/glade/p/work/$LOGNAME/${casename}
+#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_natlantic_30_x4_patc.nc
+#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC.nc
+#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC_filter.nc
 
 echo "We are using ${casename} for the case"
 echo "The formal SE run will start at +$numHoursSEStart hours from actual init time"
@@ -301,7 +325,7 @@ then
         error=1
         while [ $error != 0 ]
         do
-          wget -nv $gfsFTPPath$gfsFTPFile
+          wget $gfsFTPPath$gfsFTPFile
           error=`echo $?`
           if [ $error -ne 0 ]
           then
@@ -346,7 +370,7 @@ then
       echo "Getting file: ${CFSRFILENAME}"
       #Register with RDA, then do following command to get wget cookies
       #wget --save-cookies ~/.thecookies --post-data="email=your_email_address&passwd=your_password&action=login" https://rda.ucar.edu/cgi-bin/login
-      wget -q --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
+      wget --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
       
       tar -xvf $CFSRFILENAME
       mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 'cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
@@ -355,6 +379,8 @@ then
       echo "Incorrect model IC entered"
       exit 1
   fi
+
+
 
 
 ############################### GET SST / NCL ############################### 
@@ -493,13 +519,24 @@ then
   then
     echo "Cding to GFS interpolation directory"
     cd $atm_to_cam_path 
-    echo "Doing NCL"    
+    echo "Doing NCL"
+
+    echo     ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
+        numlevels=${numLevels} \
+        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+       'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
+       'wgt_filename="'${gfs2seWeights}'"' \
+       'se_inic = "'${sePreFilterIC}'"'
+
+
     ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
         numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
        'se_inic = "'${sePreFilterIC}'"'
+
+
        
     #ncl sst_interp.ncl initdate=${yearstr}${monthstr}${daystr}${cyclestr} 'sst_file_full = "'$gfs_files_path'/gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2"'
   elif [ $atmDataType -eq 2 ] # ERA
@@ -593,41 +630,41 @@ echo "Update env_run.xml with runtime parameters"
 ./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
 
 cp -v user_nl_cam_run user_nl_cam
-./xmlchange ATM_NCPL=48,ICE_NCPL=48,LND_NCPL=48,OCN_NCPL=48,WAV_NCPL=48
+./xmlchange ATM_NCPL=192
 
-echo "Setting input land dataset"
-# Copy dummy lnd namelist over with commented "!finidat" line
-# If input land DOES exist, we'll sed in the file and remove ! comment
-# If it does not exist, we'll do nothing and let CESM use arbitrary ICs
-
-if $doFilter ; then
-  landFileName=${landdir}/${casename}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
-  otherLandFileName=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
-else
-  landFileName=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
-  otherLandFileName=${landdir}/${casename}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
-fi
-
-if [ -f ${landFileName} ] ; then
-  echo "Land file exists: ${landFileName}     sedding that into CLM namelist"
-  sed -i 's?.*finidat.*?finidat='"'${landFileName}'"'?' user_nl_clm
-else
-  if [ -f ${otherLandFileName} ] ; then
-      echo "Alternative land file exists: ${landFileName}     sedding that into CLM namelist"
-      sed -i 's?.*finidat.*?finidat='"'${otherLandFileName}'"'?' user_nl_clm
-  else
-    if ${preSavedCLMuserNL} ; then
-      echo "Using pre-written user_nl_clm file"
-      cp user_nl_clm_presave user_nl_clm
-      #echo "OK, Colin is cheating and using a different land file"
-      #echo "He really should specify 3-4 files by month as dummies instead of CESM cold starts"
-      #sed -i 's?!finidat.*?finidat='"'"/home/zarzycki/"${gridname}"/run/clmstart/"${gridname}".clm2.r.2012-08-24-10800.nc"'"'?' user_nl_clm
-    else
-      echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
-      sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
-    fi
-  fi    
-fi
+# echo "Setting input land dataset"
+# # Copy dummy lnd namelist over with commented "!finidat" line
+# # If input land DOES exist, we'll sed in the file and remove ! comment
+# # If it does not exist, we'll do nothing and let CESM use arbitrary ICs
+# 
+# if $doFilter ; then
+#   landFileName=${landdir}/${casename}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+#   otherLandFileName=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+# else
+#   landFileName=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+#   otherLandFileName=${landdir}/${casename}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+# fi
+# 
+# if [ -f ${landFileName} ] ; then
+#   echo "Land file exists: ${landFileName}     sedding that into CLM namelist"
+#   sed -i 's?.*finidat.*?finidat='"'${landFileName}'"'?' user_nl_clm
+# else
+#   if [ -f ${otherLandFileName} ] ; then
+#       echo "Alternative land file exists: ${landFileName}     sedding that into CLM namelist"
+#       sed -i 's?.*finidat.*?finidat='"'${otherLandFileName}'"'?' user_nl_clm
+#   else
+#     if ${preSavedCLMuserNL} ; then
+#       echo "Using pre-written user_nl_clm file"
+#       cp user_nl_clm_presave user_nl_clm
+#       #echo "OK, Colin is cheating and using a different land file"
+#       #echo "He really should specify 3-4 files by month as dummies instead of CESM cold starts"
+#       #sed -i 's?!finidat.*?finidat='"'"/home/zarzycki/"${gridname}"/run/clmstart/"${gridname}".clm2.r.2012-08-24-10800.nc"'"'?' user_nl_clm
+#     else
+#       echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
+#       sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
+#     fi
+#   fi    
+# fi
 
 echo "Running again!" > ${path_to_rundir}/testrunning.gz
 
@@ -650,14 +687,15 @@ if $doFilter ; then
   #./xmlchange -v -file env_run.xml -id STOP_N -val ${filterHourLength}
   ./xmlchange STOP_OPTION=nhours,STOP_N=${filterHourLength}
   cp -v user_nl_cam_filter user_nl_cam
-  ./xmlchange ATM_NCPL=192,ICE_NCPL=192,LND_NCPL=192,OCN_NCPL=48,WAV_NCPL=48
+  ./xmlchange ATM_NCPL=192
 
   if [ $debug -ne 1 ] ; then
     echo "Begin call to filter-run"
     if [ $machineid -eq 1 ]
     then
       if $usingCIME ; then
-        bsub < case.run
+        #bsub < case.run
+        ./case.submit
       else
         bsub < ${casename}.run
       fi
@@ -721,7 +759,9 @@ if $doFilter ; then
   #./xmlchange -v -file env_run.xml -id STOP_N -val $numdays
   ./xmlchange RUN_STARTDATE=$se_yearstr-$se_monthstr-$se_daystr,START_TOD=$se_cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
   cp -v user_nl_cam_run user_nl_cam
-  ./xmlchange ATM_NCPL=48,ICE_NCPL=48,LND_NCPL=48,OCN_NCPL=48,WAV_NCPL=48
+  #./xmlchange ATM_NCPL=48,ICE_NCPL=48,LND_NCPL=48,OCN_NCPL=48,WAV_NCPL=48
+  ./xmlchange ATM_NCPL=192
+
 fi
 
 if [ $debug -ne 1 ]
@@ -731,7 +771,8 @@ then
   then
     echo "Using Yellowstone"
     if $usingCIME ; then
-      bsub < case.run
+      #bsub < case.run
+      ./case.submit
     else
       bsub < ${casename}.run
     fi

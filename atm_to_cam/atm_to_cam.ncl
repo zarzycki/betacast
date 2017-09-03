@@ -13,6 +13,8 @@ begin
 ; ERA_dir (string)
 ; 
 
+dycore="se"   ; fv or se
+
 wcStrt = systemfunc("date")
 
 ; ===== Getting date from YYYYMMDDHH
@@ -140,6 +142,7 @@ if (datasource .eq. "ERAI") then
 end if
 
 print("=================================================================")
+print("************ NATIVE DATA")
 print("Max T: "+max(t_gfs)+"   min T: "+min(t_gfs))
 print("Max U: "+max(u_gfs)+"   min U: "+min(u_gfs))
 print("Max V: "+max(v_gfs)+"   min V: "+min(v_gfs))
@@ -179,12 +182,12 @@ ilev = fC->ilev
 print("Interpolating to CAM hybrid coordinates")
 if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   print("Using pressure to hybrid interpolation")
-  t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,4)
-  u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,4)
-  v_cam = pres2hybrid_Wrap(grblev,ps,p0,v_gfs,hya,hyb,4)
-  q_cam = pres2hybrid_Wrap(grblev,ps,p0,q_gfs,hya,hyb,4)
-  cldice_cam = pres2hybrid_Wrap(grblev,ps,p0,cldice_gfs,hya,hyb,4)
-  cldliq_cam = pres2hybrid_Wrap(grblev,ps,p0,cldliq_gfs,hya,hyb,4)
+  t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,1)
+  u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,1)
+  v_cam = pres2hybrid_Wrap(grblev,ps,p0,v_gfs,hya,hyb,1)
+  q_cam = pres2hybrid_Wrap(grblev,ps,p0,q_gfs,hya,hyb,1)
+  cldice_cam = pres2hybrid_Wrap(grblev,ps,p0,cldice_gfs,hya,hyb,1)
+  cldliq_cam = pres2hybrid_Wrap(grblev,ps,p0,cldliq_gfs,hya,hyb,1)
 end if
 if (datasource .eq. "ERAI") then
   print("Using hybrid to hybrid interpolation")
@@ -199,6 +202,19 @@ if (datasource .eq. "ERAI") then
   cldice_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,cldice_gfs,hya,hyb,1)
   cldliq_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,cldliq_gfs,hya,hyb,1)
 end if
+
+print("=================================================================")
+print("************ AFTER VERTICAL INTERP")
+print("Max T: "+max(t_cam)+"   min T: "+min(t_cam))
+print("Max U: "+max(u_cam)+"   min U: "+min(u_cam))
+print("Max V: "+max(v_cam)+"   min V: "+min(v_cam))
+print("Max Q: "+max(q_cam)+"   min Q: "+min(q_cam))
+print("Max PS: "+max(ps)+"   min PS: "+min(ps))
+print("Max CLDICE: "+max(cldice_cam)+"   min CLDICE: "+min(cldice_cam))
+print("Max CLDLIQ: "+max(cldliq_cam)+"   min CLDLIQ: "+min(cldliq_cam))
+;print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
+print("=================================================================")
+
 
 copy_VarCoords(t_cam,q_cam)
 copy_VarCoords(t_cam,cldice_cam)
@@ -240,10 +256,22 @@ q_fv  = ESMF_regrid_with_weights(q_cam,wgt_filename,Opt)
 cldice_fv  = ESMF_regrid_with_weights(cldice_cam,wgt_filename,Opt)
 cldliq_fv  = ESMF_regrid_with_weights(cldliq_cam,wgt_filename,Opt)
 
+print("=================================================================")
+print("************ AFTER HORIZONTAL INTERP")
+print("Max T: "+max(t_fv)+"   min T: "+min(t_fv))
+print("Max U: "+max(u_fv)+"   min U: "+min(u_fv))
+print("Max V: "+max(v_fv)+"   min V: "+min(v_fv))
+print("Max Q: "+max(q_fv)+"   min Q: "+min(q_fv))
+print("Max PS: "+max(ps)+"   min PS: "+min(ps))
+print("Max CLDICE: "+max(cldice_fv)+"   min CLDICE: "+min(cldice_fv))
+print("Max CLDLIQ: "+max(cldliq_fv)+"   min CLDLIQ: "+min(cldliq_fv))
+;print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
+print("=================================================================")
+
 sePS = ps_fv
 dim_sePS=dimsizes(sePS)
-printVarSummary(dim_sePS)
-ncol=dim_sePS(0)
+printVarSummary(ps_fv)
+
 
  print("Converting floats to doubles")
  ; Convert floats to doubles
@@ -274,7 +302,12 @@ ncol=dim_sePS(0)
  delete(q_fv)
  delete(cldliq_fv)
  delete(cldice_fv)
-; 
+
+
+if (dycore .eq. "se") then
+
+ncol=dim_sePS(0)
+
  print("Correcting time records")
 ; ; Add time record
  ps_fv_dbl_time = new((/1,ncol/),double)
@@ -322,6 +355,127 @@ cldice_fv_dbl_time!0 = "time"
 cldice_fv_dbl_time!1 = "lev"
 cldice_fv_dbl_time!2 = "ncol"
 
+else if (dycore .eq. "fv") then
+
+nlat=dim_sePS(0)
+nlon=dim_sePS(1)
+
+; NEED TO INTERP SLAT/SLON
+nslat=nlat-1
+nslon=nlon
+slat=new(nslat,"double")
+slon=new(nslon,"double")
+;lat=dim_sePS&lat
+;lon=dim_sePS&lon
+lat=todouble(fspan(-90.,90.,nlat))
+dellon=360./nlon
+lon=todouble(fspan(0,360.-dellon,nlon))
+
+slat(:)=todouble((lat(0:nlat-2)+lat(1:nlat-1))/2.0)
+slon = todouble(lon-(dellon/2.))
+
+w_stag=latRegWgt(slat,"double",0)
+print(w_stag)
+
+ print("interpolating FV staggered")
+u_fv_dbl_slat = linint2(lon,lat,u_fv_dbl,True,lon,slat,0) ;(ntim,mlat,mlon)
+v_fv_dbl_slon = linint2(lon,lat,v_fv_dbl,True,slon,lat,0)
+
+ print("Correcting time records")
+; ; Add time record
+ ps_fv_dbl_time = new((/1,nlat,nlon/),double)
+ ps_fv_dbl_time(0,:,:) = ps_fv_dbl
+ 
+ ;pblh_fv_dbl_time = new((/1,ncol/),double)
+ ;pblh_fv_dbl_time(0,:) = pblh_fv_dbl
+
+ u_fv_dbl_time = new((/1,numlevels,nslat,nlon/),double)
+ u_fv_dbl_time(0,:,:,:) = u_fv_dbl_slat
+ 
+ v_fv_dbl_time = new((/1,numlevels,nlat,nslon/),double)
+ v_fv_dbl_time(0,:,:,:) = v_fv_dbl_slon
+
+t_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
+t_fv_dbl_time(0,:,:,:) = t_fv_dbl
+
+q_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
+q_fv_dbl_time(0,:,:,:) = q_fv_dbl
+
+cldliq_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
+cldliq_fv_dbl_time(0,:,:,:) = cldliq_fv_dbl
+
+cldice_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
+cldice_fv_dbl_time(0,:,:,:) = cldice_fv_dbl
+
+ps_fv_dbl_time!0 = "time"
+ps_fv_dbl_time!1 = "lat"
+ps_fv_dbl_time!2 = "lon"
+
+u_fv_dbl_time!0 = "time"
+u_fv_dbl_time!1 = "lev"
+u_fv_dbl_time!2 = "slat"
+u_fv_dbl_time!3 = "lon"
+
+v_fv_dbl_time!0 = "time"
+v_fv_dbl_time!1 = "lev"
+v_fv_dbl_time!2 = "lat"
+v_fv_dbl_time!3 = "slon"
+
+t_fv_dbl_time!0 = "time"
+t_fv_dbl_time!1 = "lev"
+t_fv_dbl_time!2 = "lat"
+t_fv_dbl_time!3 = "lon"
+
+q_fv_dbl_time!0 = "time"
+q_fv_dbl_time!1 = "lev"
+q_fv_dbl_time!2 = "lat"
+q_fv_dbl_time!3 = "lon"
+
+cldliq_fv_dbl_time!0 = "time"
+cldliq_fv_dbl_time!1 = "lev"
+cldliq_fv_dbl_time!2 = "lat"
+cldliq_fv_dbl_time!3 = "lon"
+
+cldice_fv_dbl_time!0 = "time"
+cldice_fv_dbl_time!1 = "lev"
+cldice_fv_dbl_time!2 = "lat"
+cldice_fv_dbl_time!3 = "lon"
+
+cldice_fv_dbl_time@units="kg/kg"
+cldliq_fv_dbl_time@units="kg/kg"
+q_fv_dbl_time@units="kg/kg"
+
+lat!0="lat"
+lat&lat=lat
+
+lon!0="lon"
+lon&lon=lon
+
+slat!0="slat"
+slat&slat=slat
+
+slon!0="slon"
+slon&slon=slon
+
+else
+  print("unsupported dycore")
+  exit
+end if
+end if
+
+
+; Fix error where Q goes very large (missing values?)
+qthresh=1.0
+q_fv_dbl_time=where(q_fv_dbl_time.gt.qthresh,0.0,q_fv_dbl_time)
+qthresh=1.0e-12
+q_fv_dbl_time=where(q_fv_dbl_time.le.qthresh,0.0,q_fv_dbl_time)
+if(any(ismissing(q_fv_dbl_time))) then
+  print("Q is missing data...")
+end if
+q_fv_dbl_time = where(ismissing(q_fv_dbl_time),0.0,q_fv_dbl_time)
+
+;q_fv_dbl_time=0.0
+
 print("Writing output file")
 ;in->PS=(/ps_fv_dbl_time/)
 ;in->U=(/u_fv_dbl_time/)
@@ -333,7 +487,8 @@ print("Writing output file")
 
 ;  in->PBLH=(/pblh_fv_dbl_time/)
 
-
+other_stuff=True
+if (other_stuff) then
 system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
 in2 = addfile(se_inic,"c")  ; open output netCDF file
 
@@ -357,8 +512,13 @@ filedimdef(in2,"time",-1,True)
 ; to write the meta data associated with each variable
 ;===================================================================
 in2->PS=ps_fv_dbl_time
-in2->U=u_fv_dbl_time
-in2->V=v_fv_dbl_time
+if(dycore .eq. "fv") then
+  in2->US=u_fv_dbl_time
+  in2->VS=v_fv_dbl_time
+else
+  in2->U=u_fv_dbl_time
+  in2->V=v_fv_dbl_time
+end if
 in2->T=t_fv_dbl_time
 in2->Q=q_fv_dbl_time
 in2->CLDLIQ=cldliq_fv_dbl_time
@@ -369,6 +529,13 @@ in2->hyai  = hyai
 in2->hybi  = hybi
 in2->lev = lev
 in2->ilev = ilev
+if(dycore .eq. "fv") then
+  in2->lat=lat
+  in2->lon=lon
+  in2->slat=slat
+  in2->slon=slon
+  in2->w_stag=w_stag
+end if
 
 NUMLIQ=cldliq_fv_dbl_time
 NUMLIQ=0
@@ -378,7 +545,7 @@ NUMICE=0
 ;in2->NUMICE=NUMICE
 ;in2->NUMLIQ=NUMLIQ
 
-
+end if
 
 wallClockElapseTime(wcStrt, "Total runtime", 0)
 print("done")

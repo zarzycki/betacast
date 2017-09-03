@@ -1,7 +1,25 @@
- GKS ERROR NUMBER -502 ISSUED FROM SUBROUTINE GCLRWK:
- -- cairo driver error: error opening output file
- GKS ERROR NUMBER -502 ISSUED FROM SUBROUTINE GCLRWK:
- -- cairo driver error: error opening output file
- GKS ERROR NUMBER -502 ISSUED FROM SUBROUTINE GCLRWK:
- -- cairo driver error: error opening output file
- GKS ERROR NUMBER -502 ISSUED FROM SUBROUTINE GCLRWK:
+ Copyright (C) 1995-2015 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.3.0
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+
+
+Variable: forecastHourStr
+Type: string
+Total Size: 8 bytes
+            1 values
+Number of Dimensions: 1
+Dimensions and sizes:	[1]
+Coordinates: 
+(0)	168
+(0)	Forecast for: 00Z 10 18 2016
+(0)	Initialized at: 00Z 10 11 2016
+(0)	1042.474
+(0)	947.5999
+(0)	Begin interp
+(0)	1042.394
+(0)	947.822
+(0)	end interp
+(0)	Plotting: natl
+(0)	Plotting: epac

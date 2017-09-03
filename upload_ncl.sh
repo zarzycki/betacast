@@ -13,11 +13,11 @@
 ##=======================================================================
 module load ncl
 ###############################################################################
-yearstr=2015
+yearstr=2016
 monthstr=10
-daystr=05
-cyclestr=06
-cyclestrsec=21600
+daystr=11
+cyclestr=00
+cyclestrsec=00000
 ###############################################################################
 runDir=/glade/u/home/zarzycki/scratch/ecsnow_30_x4_forecast/run/${yearstr}${monthstr}${daystr}${cyclestr}/
 path_to_ncl=/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/
@@ -45,6 +45,25 @@ fi
 	filenames=`ls ${runDir}/*h1*.nc`
 	numfiles=`ls ${runDir}/*h1*.nc | wc -l`
 	echo $numfiles
+
+  VARS=PRECLav,PRECCav
+
+  for i in `seq 1 ${numfiles}`;
+  do
+    thisFile=`echo $filenames | cut -d" " -f${i}`
+    if [ "$i" -eq 1 ] ; then
+      ncks -v ${VARS} ${thisFile} ${runDir}/sum${i}.nc
+      ncks -A -v ${VARS} ${runDir}/sum${i}.nc ${thisFile}
+      rm ${runDir}/sum${i}.nc
+    else
+      iminus1=`expr $i - 1`
+      lastFile=`echo $filenames | cut -d" " -f${iminus1}`
+      ncrcat -v ${VARS} ${thisFile} ${lastFile} ${runDir}/tmpfile2.nc
+      ncra -h -O -y ttl ${runDir}/tmpfile2.nc ${runDir}/sum${i}.nc
+      ncks -A -v ${VARS} ${runDir}/sum${i}.nc ${thisFile}
+      rm ${runDir}/sum${i}.nc ${runDir}/tmpfile2.nc
+    fi
+  done 
 		
 		sleep 5
 		echo "Found at least one file"
@@ -74,7 +93,7 @@ fi
 		
 		## Get file list in txt file for FLANIS viewer
 		basins=(natl epac)
-		outflds=(wind tmq flut prect 500vort shear850250)
+		outflds=(wind tmq flut prect sumprect 500vort shear850250)
 
 		# Loop over items in outflds
 		for basin in ${basins[*]}
