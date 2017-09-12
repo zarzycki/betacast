@@ -1,6 +1,6 @@
- Copyright (C) 1995-2015 - All Rights Reserved
+ Copyright (C) 1995-2017 - All Rights Reserved
  University Corporation for Atmospheric Research
- NCAR Command Language Version 6.3.0
+ NCAR Command Language Version 6.4.0
  The use of this software is governed by a License Agreement.
  See http://www.ncl.ucar.edu/ for more details.
 
@@ -12,14 +12,14 @@ Total Size: 8 bytes
 Number of Dimensions: 1
 Dimensions and sizes:	[1]
 Coordinates: 
-(0)	168
-(0)	Forecast for: 00Z 10 18 2016
-(0)	Initialized at: 00Z 10 11 2016
-(0)	1042.474
-(0)	947.5999
+(0)	192
+(0)	Forecast for: 00Z 09 20 2017
+(0)	Initialized at: 00Z 09 12 2017
+(0)	1031.819
+(0)	942.3851
 (0)	Begin interp
-(0)	1042.394
-(0)	947.822
+(0)	1031.805
+(0)	942.4838
 (0)	end interp
 (0)	Plotting: natl
 (0)	Plotting: epac

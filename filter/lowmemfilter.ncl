@@ -155,5 +155,7 @@ delete(thisVar)
 end do
 
 print("done")
+
+exit()
   
 end

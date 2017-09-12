@@ -1,18 +1,17 @@
 #!/bin/bash
 
 ##=======================================================================
-#BSUB -a poe                     # use LSF openmp elim
-#BSUB -N
-#BSUB -n 2                      # yellowstone setting
-#BSUB -o out.%J                  # output filename
-#BSUB -e out.%J                  # error filename
-#BSUB -q geyser                 # queue
-#BSUB -J sewx_driver
-#BSUB -W 10:00                    # wall clock limit
-#BSUB -P P54048000               # account number
+#PBS -N wx-driver
+#PBS -A P54048000 
+#PBS -l walltime=6:00:00
+#PBS -q share
+#PBS -k oe
+#PBS -m a 
+#PBS -M zarzycki@ucar.edu
+#PBS -l select=1:ncpus=8
 ##=======================================================================
 
-set -e
+#set -e
 #set -v
 
 #source /glade/apps/opt/lmod/lmod/init/bash
@@ -26,7 +25,7 @@ islive=1 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, r
 isliveresub=0 ; echo "isliveresub set to $isliveresub" # 0 no, 1 yes -- do we want to resubmit when running live?
 machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 = Agri
 
-sendplots=false ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
+sendplots=true ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
 
 ### islive=0 (historical)
 ### GFS analysis available from 8/2004 onward
@@ -36,10 +35,10 @@ atmDataType=1             # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
 sstDataType=1              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
 numLevels=30               # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
 
-numdays=7                  #forecast length (in days)
+numdays=8                  #forecast length (in days)
 
 # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
-doFilter=false ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
+doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
 filterOnly=false ; echo "filterOnly set to $filterOnly" #if true, exits after filter (generates init data)
 numHoursSEStart=3
 filterHourLength=6
@@ -47,7 +46,7 @@ filtTcut=6
 
 add_perturbs=false   # Add perturbations from climate forcing run -- right now only works with M. Wehner data
 
-preSavedCLMuserNL=false   # is there a user_nl_clm_presave file?
+preSavedCLMuserNL=true   # is there a user_nl_clm_presave file?
 land_spinup=false   #daily land spinup
 
 ###################################################################################
@@ -613,7 +612,6 @@ cd $path_to_case
 echo "Turning off archiving and restart file output in env_run.xml"
 ./xmlchange DOUT_S=FALSE,REST_OPTION=nyears,REST_N=9999
 echo "Setting SST from default to our SST"
-#./xmlchange -v -file env_run.xml -id SSTICE_DATA_FILENAME -val "${sstFileIC}"
 ./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
 ####### 
 if [ "$land_spinup" = true ] ; then
@@ -626,6 +624,39 @@ echo "Update env_run.xml with runtime parameters"
 
 cp -v user_nl_cam_run user_nl_cam
 ./xmlchange ATM_NCPL=192
+
+echo "Setting input land dataset"
+# We want to check ${landdir} for clm restart files. If so, use those.
+landrestartfile=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+echo $landrestartfile
+
+if [ -f ${landrestartfile} ]; then
+   echo "File exists at exact time"
+else
+   echo "File does not exist at exact time"
+   landrestartfile=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-00000.nc
+   if [ -f ${landrestartfile} ]; then
+     echo "File exists at 00Z"
+   else
+     echo "No restart file exists, setting to empty string."
+     landrestartfile=
+   fi
+fi
+echo "landrestartfile: ${landrestartfile}"
+
+## Now modify user_nl_clm
+if [ ${landrestartfile} ] ; then
+  sed -i 's?.*finidat.*?finidat='"'${landrestartfile}'"'?' user_nl_clm
+else
+  if ${preSavedCLMuserNL} ; then
+    echo "Using pre-written user_nl_clm file"
+    cp user_nl_clm_presave user_nl_clm
+  else
+    echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
+    exit
+    #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
+  fi
+fi
 
 # echo "Setting input land dataset"
 # # Copy dummy lnd namelist over with commented "!finidat" line
@@ -668,18 +699,9 @@ numlogfiles=`ls ${path_to_rundir}/*.gz | wc -l`
 
 echo "numlogfiles: $numlogfiles"
 
-#cp -v ${sst_files_path}/sst_1x1.nc ${path_to_rundir}/INIC
-## IF GFS
-#ncap2 -s "SST_cpl=SST_cpl-273.15" ${path_to_rundir}/INIC/sst_1x1.nc ${path_to_rundir}/INIC/sst_1x1.nc.new
-#mv -v ${path_to_rundir}/INIC/sst_1x1.nc.new ${path_to_rundir}/INIC/sst_1x1.nc
-#./xmlchange -v -file env_run.xml -id SSTICE_DATA_FILENAME -val "$DIN_LOC_ROOT/atm/cam/sst/sst_HadOIBl_bc_1x1_1850_2009_c101029.nc"
-#./xmlchange -v -file env_run.xml -id SSTICE_DATA_FILENAME -val "${path_to_rundir}/INIC/sst_1x1.nc"
-
 if $doFilter ; then
   # If filtering, need to change these options
   cd $path_to_case
-  #./xmlchange -v -file env_run.xml -id STOP_OPTION -val nhours
-  #./xmlchange -v -file env_run.xml -id STOP_N -val ${filterHourLength}
   ./xmlchange STOP_OPTION=nhours,STOP_N=${filterHourLength}
   cp -v user_nl_cam_filter user_nl_cam
   ./xmlchange ATM_NCPL=192
@@ -689,17 +711,10 @@ if $doFilter ; then
     if [ $machineid -eq 1 ]
     then
       if $usingCIME ; then
-        #bsub < case.run
         ./case.submit
       else
         bsub < ${casename}.run
       fi
-    elif [ $machineid -eq 2 ]
-    then
-      echo "Using UMich Flux, not supported" ; exit 1
-    elif [ $machineid -eq 3 ]
-    then
-      sbatch ${casename}.run
     else
       echo "Unsupported machine" ; exit 1
     fi
@@ -722,7 +737,7 @@ if $doFilter ; then
      endhour=${filterHourLength} tcut=${filtTcut} \
     'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
     'writefile_name = "'${sePostFilterIC}'"'
-  fi
+  fi  # debug
 
   echo "done with filter, removing filter files"
   mkdir -p $path_to_nc_files/filtered
@@ -748,13 +763,8 @@ if $doFilter ; then
 
   echo "Make changes in CESM-SE namelist"
   cd $path_to_case
-  #./xmlchange -v -file env_run.xml -id RUN_STARTDATE -val $se_yearstr-$se_monthstr-$se_daystr
-  #./xmlchange -v -file env_run.xml -id START_TOD -val $se_cyclestrsec
-  #./xmlchange -v -file env_run.xml -id STOP_OPTION -val ndays
-  #./xmlchange -v -file env_run.xml -id STOP_N -val $numdays
   ./xmlchange RUN_STARTDATE=$se_yearstr-$se_monthstr-$se_daystr,START_TOD=$se_cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
   cp -v user_nl_cam_run user_nl_cam
-  #./xmlchange ATM_NCPL=48,ICE_NCPL=48,LND_NCPL=48,OCN_NCPL=48,WAV_NCPL=48
   ./xmlchange ATM_NCPL=192
 
 fi
@@ -771,14 +781,8 @@ then
     else
       bsub < ${casename}.run
     fi
-  elif [ $machineid -eq 2 ]
-  then
-    echo "Using UMich Flux" ; exit 1
-  elif [ $machineid -eq 3 ]
-  then
-    echo "Using UCDavis Agri" ; sbatch ${casename}.run
   else
-    echo "Unsupported start time"
+    echo "Unsupported machine" ; exit 1
   fi
   
   mkdir -p $archivedir
@@ -840,12 +844,13 @@ mv -v $archivedir $outputdir/${yearstr}${monthstr}${daystr}${cyclestr}
 
 if $sendplots ; then
   ### Begin output calls
+  echo "Sending plots!"
   sed -i 's?.*yearstr=.*?yearstr='${yearstr}'?' ${upload_ncl_script}
   sed -i 's?.*monthstr=.*?monthstr='${monthstr}'?' ${upload_ncl_script}
   sed -i 's?.*daystr=.*?daystr='${daystr}'?' ${upload_ncl_script}
   sed -i 's?.*cyclestrsec=.*?cyclestrsec='${cyclestrsec}'?' ${upload_ncl_script}
   sed -i 's?.*cyclestr=.*?cyclestr='${cyclestr}'?' ${upload_ncl_script}
-  bsub < ${upload_ncl_script}
+  /bin/bash ${upload_ncl_script}
 fi
 
 date

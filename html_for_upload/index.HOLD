@@ -2,441 +2,385 @@
 <html>
 <body>
 
-<h1>CAM-SE forecast simulations</h1>
+<h1>CESM/CAM-SE forecast simulations</h1>
 
-<p>Computing support is currently provided through <a href="https://www2.cisl.ucar.edu/resources/yellowstone">CISL Yellowstone</a> at the National Center for Atmospheric Research</p>
+<p>Computing support is currently provided through <a href="https://www2.cisl.ucar.edu/resources/computational-systems/cheyenne">CISL Cheyenne</a> at the National Center for Atmospheric Research. Web space is provided by the <a href="http://www.cgd.ucar.edu/systems/">Climate and Global Dynamics Information Systems group.</a></p>
 
-<p><b>*** NOTE: This product is EXPERIMENTAL. Please refer to the <a href="http://www.nhc.noaa.gov">NATIONAL HURRICANE CENTER</a> for official forecasts.</b></p>
+<p><b>*** NOTE: This is NON-OPERATIONAL and EXPERIMENTAL. Please refer to the <a href="http://www.nhc.noaa.gov">National Hurricane Center</a> for official forecasts.</b></p>
 
 <p><a href="modeldesc.html">Model Description</a></p>
 
 <p>(<a href="http://dx.doi.org/10.1175/MWR-D-15-0159.1"><b>DOI</b></a>) <b>C. M. Zarzycki</b> and C. Jablonowski (2015), Experimental tropical cyclone forecasts using a variable-resolution global model. <i>Mon. Weat. Rev.</i>, doi:10.1175/MWR-D-15-0159.1</p>
 
+<p><font color="#FF2D00">UPDATE: Added zoom view on southeastern United States starting with the 09 08 2017 00Z model run.</font></p>
+
 <!--FORECASTHEAD-->
-<p><!--2016101100-->
-<b>2016101100</b><br>
-<i><font color="green">COMPLETED AT Tue Oct 11 05:56:58 UTC 2016</font></i><br><!--2016101100-->
-NORTH ATLANTIC<br><!--2016101100-->
-<a href="2016101100/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016101100/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016101100/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016101100/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016101100/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016101100/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016101100/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016101100-->
-<a href="2016101100/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016101100/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016101100/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016101100/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016101100/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016101100/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016101100/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016101100-->
+<p><!--2017091200-->
+<b>2017091200</b><br>
+<i><font color="green">COMPLETED AT Tue Sep 12 05:05:57 UTC 2017</font></i><br><!--2017091200-->
+NORTH ATLANTIC<br><!--2017091200-->
+<a href="2017091200/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091200/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091200/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091200/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017091200/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091200/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091200/tmq_natl_flanis.html">Total precipitable water</a><br>
+SOUTHEAST UNITED STATES<br><!--2017091200-->
+<a href="2017091200/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091200/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091200/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091200/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091200/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017091200/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091200/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017091200-->
 
-<p><!--2016101000-->
-<b>2016101000</b><br>
-<i><font color="green">COMPLETED AT Mon Oct 10 05:57:26 UTC 2016</font></i><br><!--2016101000-->
-NORTH ATLANTIC<br><!--2016101000-->
-<a href="2016101000/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016101000/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016101000/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016101000/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016101000/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016101000/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016101000/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016101000-->
-<a href="2016101000/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016101000/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016101000/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016101000/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016101000/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016101000/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016101000/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016101000-->
+<p><!--2017091118-->
+<b>2017091118</b><br>
+<i><font color="green">COMPLETED AT Mon Sep 11 23:09:59 UTC 2017</font></i><br><!--2017091118-->
+NORTH ATLANTIC<br><!--2017091118-->
+<a href="2017091118/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091118/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091118/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091118/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017091118/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091118/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091118/tmq_natl_flanis.html">Total precipitable water</a><br>
+SOUTHEAST UNITED STATES<br><!--2017091118-->
+<a href="2017091118/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091118/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091118/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091118/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091118/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017091118/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091118/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017091118-->
 
-<p><!--2016100900-->
-<b>2016100900</b><br>
-<i><font color="green">COMPLETED AT Sun Oct  9 05:57:45 UTC 2016</font></i><br><!--2016100900-->
-NORTH ATLANTIC<br><!--2016100900-->
-<a href="2016100900/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100900/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100900/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100900/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100900/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100900/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100900/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100900-->
-<a href="2016100900/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100900/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100900/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100900/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100900/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100900/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100900/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100900-->
+<p><!--2017091112-->
+<b>2017091112</b><br>
+<i><font color="green">COMPLETED AT Mon Sep 11 17:09:19 UTC 2017</font></i><br><!--2017091112-->
+NORTH ATLANTIC<br><!--2017091112-->
+<a href="2017091112/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091112/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091112/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091112/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017091112/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091112/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091112/tmq_natl_flanis.html">Total precipitable water</a><br>
+SOUTHEAST UNITED STATES<br><!--2017091112-->
+<a href="2017091112/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091112/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091112/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091112/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091112/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017091112/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091112/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017091112-->
 
-<p><!--2016100800-->
-<b>2016100800</b><br>
-<i><font color="green">COMPLETED AT Sat Oct  8 05:57:03 UTC 2016</font></i><br><!--2016100800-->
-NORTH ATLANTIC<br><!--2016100800-->
-<a href="2016100800/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100800/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100800/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100800/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100800/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100800/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100800/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100800-->
-<a href="2016100800/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100800/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100800/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100800/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100800/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100800/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100800/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100800-->
+<p><!--2017091100-->
+<b>2017091100</b><br>
+<i><font color="green">COMPLETED AT Mon Sep 11 05:03:42 UTC 2017</font></i><br><!--2017091100-->
+NORTH ATLANTIC<br><!--2017091100-->
+<a href="2017091100/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091100/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091100/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091100/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017091100/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091100/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091100/tmq_natl_flanis.html">Total precipitable water</a><br>
+SOUTHEAST UNITED STATES<br><!--2017091100-->
+<a href="2017091100/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091100/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091100/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091100/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091100/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017091100/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091100/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017091100-->
 
-<p><!--2016100700-->
-<b>2016100700</b><br>
-<i><font color="green">COMPLETED AT Fri Oct  7 05:56:25 UTC 2016</font></i><br><!--2016100700-->
-NORTH ATLANTIC<br><!--2016100700-->
-<a href="2016100700/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100700/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100700/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100700/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100700/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100700/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100700/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100700-->
-<a href="2016100700/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100700/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100700/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100700/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100700/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100700/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100700/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100700-->
+<p><!--2017091012-->
+<b>2017091012</b><br>
+<i><font color="green">COMPLETED AT Sun Sep 10 17:05:21 UTC 2017</font></i><br><!--2017091012-->
+NORTH ATLANTIC<br><!--2017091012-->
+<a href="2017091012/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091012/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091012/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091012/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017091012/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091012/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091012/tmq_natl_flanis.html">Total precipitable water</a><br>
+SOUTHEAST UNITED STATES<br><!--2017091012-->
+<a href="2017091012/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091012/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091012/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091012/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091012/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017091012/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091012/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017091012-->
 
-<p><!--2016100600-->
-<b>2016100600</b><br>
-<i><font color="green">COMPLETED AT Thu Oct  6 05:58:53 UTC 2016</font></i><br><!--2016100600-->
-NORTH ATLANTIC<br><!--2016100600-->
-<a href="2016100600/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100600/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100600/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100600/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100600/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100600/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100600/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100600-->
-<a href="2016100600/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100600/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100600/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100600/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100600/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100600/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100600/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100600-->
+<p><!--2017091000-->
+<b>2017091000</b><br>
+<i><font color="green">COMPLETED AT Sun Sep 10 05:10:16 UTC 2017</font></i><br><!--2017091000-->
+NORTH ATLANTIC<br><!--2017091000-->
+<a href="2017091000/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091000/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091000/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091000/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017091000/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091000/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091000/tmq_natl_flanis.html">Total precipitable water</a><br>
+SOUTHEAST UNITED STATES<br><!--2017091000-->
+<a href="2017091000/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017091000/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017091000/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017091000/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017091000/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017091000/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017091000/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017091000-->
 
-<p><!--2016100500-->
-<b>2016100500</b><br>
-<i><font color="green">COMPLETED AT Wed Oct  5 05:57:03 UTC 2016</font></i><br><!--2016100500-->
-NORTH ATLANTIC<br><!--2016100500-->
-<a href="2016100500/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100500/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100500/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100500/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100500/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100500/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100500/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100500-->
-<a href="2016100500/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100500/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100500/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100500/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100500/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100500/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100500/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100500-->
+<p><!--2017090912-->
+<b>2017090912</b><br>
+<i><font color="green">COMPLETED AT Sat Sep  9 17:08:10 UTC 2017</font></i><br><!--2017090912-->
+NORTH ATLANTIC<br><!--2017090912-->
+<a href="2017090912/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090912/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090912/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090912/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090912/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090912/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090912/tmq_natl_flanis.html">Total precipitable water</a><br>
+SOUTHEAST UNITED STATES<br><!--2017090912-->
+<a href="2017090912/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090912/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090912/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090912/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090912/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090912/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090912/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090912-->
 
-<p><!--2016100412-->
-<b>2016100412</b><br>
-<i><font color="green">COMPLETED AT Tue Oct  4 18:02:08 UTC 2016</font></i><br><!--2016100412-->
-NORTH ATLANTIC<br><!--2016100412-->
-<a href="2016100412/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100412/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100412/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100412/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100412/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100412/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100412/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100412-->
-<a href="2016100412/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100412/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100412/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100412/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100412/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100412/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100412/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100412-->
+<p><!--2017090900-->
+<b>2017090900</b><br>
+<i><font color="green">COMPLETED AT Sat Sep  9 05:17:26 UTC 2017</font></i><br><!--2017090900-->
+NORTH ATLANTIC<br><!--2017090900-->
+<a href="2017090900/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090900/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090900/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090900/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090900/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090900/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090900/tmq_natl_flanis.html">Total precipitable water</a><br>
+SOUTHEAST UNITED STATES<br><!--2017090900-->
+<a href="2017090900/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090900/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090900/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090900/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090900/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090900/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090900/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090900-->
 
-<p><!--2016100400-->
-<b>2016100400</b><br>
-<i><font color="green">COMPLETED AT Tue Oct  4 06:16:49 UTC 2016</font></i><br><!--2016100400-->
-NORTH ATLANTIC<br><!--2016100400-->
-<a href="2016100400/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100400/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100400/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100400/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100400/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100400/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100400/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100400-->
-<a href="2016100400/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100400/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100400/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100400/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100400/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100400/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100400/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100400-->
+<p><!--2017090812-->
+<b>2017090812</b><br>
+<i><font color="green">COMPLETED AT Fri Sep  8 17:09:35 UTC 2017</font></i><br><!--2017090812-->
+NORTH ATLANTIC<br><!--2017090812-->
+<a href="2017090812/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090812/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090812/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090812/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090812/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090812/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090812/tmq_natl_flanis.html">Total precipitable water</a><br>
+SOUTHEAST UNITED STATES<br><!--2017090812-->
+<a href="2017090812/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090812/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090812/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090812/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090812/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090812/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090812/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090812-->
 
-<p><!--2016100312-->
-<b>2016100312</b><br>
-<i><font color="green">COMPLETED AT Mon Oct  3 18:52:52 UTC 2016</font></i><br><!--2016100312-->
-NORTH ATLANTIC<br><!--2016100312-->
-<a href="2016100312/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100312/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100312/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100312/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100312/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100312/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100312/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100312-->
-<a href="2016100312/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100312/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100312/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100312/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100312/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100312/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100312/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100312-->
+<p><!--2017090800-->
+<b>2017090800</b><br>
+<i><font color="green">COMPLETED AT Fri Sep  8 05:07:03 UTC 2017</font></i><br><!--2017090800-->
+NORTH ATLANTIC<br><!--2017090800-->
+<a href="2017090800/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090800/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090800/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090800/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090800/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090800/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090800/tmq_natl_flanis.html">Total precipitable water</a><br>
+SOUTHEAST UNITED STATES<br><!--2017090800-->
+<a href="2017090800/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090800/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090800/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090800/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090800/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090800/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090800/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090800-->
 
-<p><!--2016100300-->
-<b>2016100300</b><br>
-<i><font color="green">COMPLETED AT Mon Oct  3 06:53:18 UTC 2016</font></i><br><!--2016100300-->
-NORTH ATLANTIC<br><!--2016100300-->
-<a href="2016100300/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100300/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100300/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100300/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100300/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100300/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100300/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100300-->
-<a href="2016100300/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100300/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100300/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100300/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100300/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100300/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100300/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100300-->
+<p><!--2017090712-->
+<b>2017090712</b><br>
+<i><font color="green">COMPLETED AT Thu Sep  7 17:22:49 UTC 2017</font></i><br><!--2017090712-->
+NORTH ATLANTIC<br><!--2017090712-->
+<a href="2017090712/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090712/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090712/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090712/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090712/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090712/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090712/tmq_natl_flanis.html">Total precipitable water</a><br>
+UNITED STATES<br><!--2017090712-->
+<a href="2017090712/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090712/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090712/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090712/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090712/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090712/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090712/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090712-->
 
-<p><!--2016100212-->
-<b>2016100212</b><br>
-<i><font color="green">COMPLETED AT Sun Oct  2 18:51:59 UTC 2016</font></i><br><!--2016100212-->
-NORTH ATLANTIC<br><!--2016100212-->
-<a href="2016100212/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100212/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100212/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100212/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100212/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100212/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100212/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100212-->
-<a href="2016100212/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100212/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100212/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100212/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100212/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100212/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100212/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100212-->
+<p><!--2017090700-->
+<b>2017090700</b><br>
+<i><font color="green">COMPLETED AT Thu Sep  7 05:10:53 UTC 2017</font></i><br><!--2017090700-->
+NORTH ATLANTIC<br><!--2017090700-->
+<a href="2017090700/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090700/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090700/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090700/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090700/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090700/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090700/tmq_natl_flanis.html">Total precipitable water</a><br>
+UNITED STATES<br><!--2017090700-->
+<a href="2017090700/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090700/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090700/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090700/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090700/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090700/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090700/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090700-->
 
-<p><!--2016100200-->
-<b>2016100200</b><br>
-<i><font color="green">COMPLETED AT Sun Oct  2 06:50:28 UTC 2016</font></i><br><!--2016100200-->
-NORTH ATLANTIC<br><!--2016100200-->
-<a href="2016100200/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100200/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100200/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100200/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100200/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100200/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100200/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100200-->
-<a href="2016100200/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100200/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100200/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100200/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100200/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100200/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100200/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100200-->
+<p><!--2017090612-->
+<b>2017090612</b><br>
+<i><font color="green">COMPLETED AT Wed Sep  6 17:11:46 UTC 2017</font></i><br><!--2017090612-->
+NORTH ATLANTIC<br><!--2017090612-->
+<a href="2017090612/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090612/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090612/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090612/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090612/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090612/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090612/tmq_natl_flanis.html">Total precipitable water</a><br>
+UNITED STATES<br><!--2017090612-->
+<a href="2017090612/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090612/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090612/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090612/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090612/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090612/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090612/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090612-->
 
-<p><!--2016100112-->
-<b>2016100112</b><br>
-<i><font color="green">COMPLETED AT Sat Oct  1 18:50:33 UTC 2016</font></i><br><!--2016100112-->
-NORTH ATLANTIC<br><!--2016100112-->
-<a href="2016100112/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100112/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100112/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100112/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100112/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100112/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100112/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100112-->
-<a href="2016100112/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100112/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100112/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100112/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100112/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100112/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100112/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100112-->
 
-<p><!--2016100100-->
-<b>2016100100</b><br>
-<i><font color="green">COMPLETED AT Sat Oct  1 06:57:51 UTC 2016</font></i><br><!--2016100100-->
-NORTH ATLANTIC<br><!--2016100100-->
-<a href="2016100100/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100100/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100100/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100100/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016100100/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100100/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100100/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016100100-->
-<a href="2016100100/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016100100/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016100100/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016100100/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016100100/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016100100/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016100100/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016100100-->
+<p><!--2017090600-->
+<b>2017090600</b><br>
+<i><font color="green">COMPLETED AT Tue Sep  6 05:04:50 UTC 2017</font></i><br><!--2017090600-->
+NORTH ATLANTIC<br><!--2017090600-->
+<a href="2017090600/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090600/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090600/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090600/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090600/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090600/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090600/tmq_natl_flanis.html">Total precipitable water</a><br>
+UNITED STATES<br><!--2017090600-->
+<a href="2017090600/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090600/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090600/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090600/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090600/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090600/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090600/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090600-->
 
-<p><!--2016093012-->
-<b>2016093012</b><br>
-<i><font color="green">COMPLETED AT Fri Sep 30 19:16:48 UTC 2016</font></i><br><!--2016093012-->
-NORTH ATLANTIC<br><!--2016093012-->
-<a href="2016093012/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016093012/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016093012/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016093012/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016093012/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016093012/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016093012/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016093012-->
-<a href="2016093012/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016093012/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016093012/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016093012/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016093012/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016093012/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016093012/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016093012-->
+<p><!--2017090512-->
+<b>2017090512</b><br>
+<i><font color="green">COMPLETED AT Tue Sep  5 17:05:49 UTC 2017</font></i><br><!--2017090512-->
+NORTH ATLANTIC<br><!--2017090512-->
+<a href="2017090512/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090512/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090512/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090512/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090512/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090512/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090512/tmq_natl_flanis.html">Total precipitable water</a><br>
+UNITED STATES<br><!--2017090512-->
+<a href="2017090512/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090512/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090512/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090512/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090512/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090512/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090512/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090512-->
 
-<p><!--2016093000-->
-<b>2016093000</b><br>
-<i><font color="green">COMPLETED AT Fri Sep 30 07:00:51 UTC 2016</font></i><br><!--2016093000-->
-NORTH ATLANTIC<br><!--2016093000-->
-<a href="2016093000/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016093000/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016093000/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016093000/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016093000/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016093000/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016093000/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016093000-->
-<a href="2016093000/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016093000/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016093000/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016093000/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016093000/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016093000/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016093000/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016093000-->
+<p><!--2017090500-->
+<b>2017090500</b><br>
+<i><font color="green">COMPLETED AT Tue Sep  5 05:04:50 UTC 2017</font></i><br><!--2017090500-->
+NORTH ATLANTIC<br><!--2017090500-->
+<a href="2017090500/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090500/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090500/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090500/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090500/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090500/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090500/tmq_natl_flanis.html">Total precipitable water</a><br>
+UNITED STATES<br><!--2017090500-->
+<a href="2017090500/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090500/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090500/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090500/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090500/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090500/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090500/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090500-->
 
-<p><!--2016092912-->
-<b>2016092912</b><br>
-<i><font color="green">COMPLETED AT Thu Sep 29 19:01:40 UTC 2016</font></i><br><!--2016092912-->
-NORTH ATLANTIC<br><!--2016092912-->
-<a href="2016092912/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016092912/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016092912/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016092912/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016092912/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016092912/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016092912/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016092912-->
-<a href="2016092912/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016092912/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016092912/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016092912/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016092912/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016092912/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016092912/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016092912-->
-
-<p><!--2016092900-->
-<b>2016092900</b><br>
-<i><font color="green">COMPLETED AT Thu Sep 29 07:04:30 UTC 2016</font></i><br><!--2016092900-->
-NORTH ATLANTIC<br><!--2016092900-->
-<a href="2016092900/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016092900/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016092900/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016092900/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016092900/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016092900/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016092900/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016092900-->
-<a href="2016092900/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016092900/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016092900/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016092900/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016092900/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016092900/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016092900/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016092900-->
-
-<p><!--2016092812-->
-<b>2016092812</b><br>
-<i><font color="green">COMPLETED AT Wed Sep 28 20:07:46 UTC 2016</font></i><br><!--2016092812-->
-NORTH ATLANTIC<br><!--2016092812-->
-<a href="2016092812/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016092812/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016092812/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016092812/prect_natl_flanis.html">Precipitation</a><br>
-<a href="2016092812/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
-<a href="2016092812/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016092812/tmq_natl_flanis.html">Total precipitable water</a><br>
-UNITED STATES<br><!--2016092812-->
-<a href="2016092812/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
-<a href="2016092812/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2016092812/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
-<a href="2016092812/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
-<a href="2016092812/prect_epac_flanis.html">Precipitation</a><br>
-<a href="2016092812/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2016092812/tmq_epac_flanis.html">Total precipitable water</a><br>
-</p><!--2016092812-->
+<p><!--2017090412-->
+<b>2017090412</b><br>
+<i><font color="green">COMPLETED AT Mon Sep  4 18:57:04 UTC 2017</font></i><br><!--2017090412-->
+NORTH ATLANTIC<br><!--2017090412-->
+<a href="2017090412/wind_natl_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090412/500vort_natl_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090412/flut_natl_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090412/prect_natl_flanis.html">Precipitation</a><br>
+<a href="2017090412/sumprect_natl_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090412/shear850200_natl_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090412/tmq_natl_flanis.html">Total precipitable water</a><br>
+UNITED STATES<br><!--2017090412-->
+<a href="2017090412/wind_epac_flanis.html">850 mb wind/MSLP</a><br>
+<a href="2017090412/500vort_epac_flanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017090412/flut_epac_flanis.html">Outgoing longwave radiation</a><br>
+<a href="2017090412/sumprect_epac_flanis.html">Accumulated precipitation</a><br>
+<a href="2017090412/prect_epac_flanis.html">Precipitation</a><br>
+<a href="2017090412/shear850200_epac_flanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017090412/tmq_epac_flanis.html">Total precipitable water</a><br>
+</p><!--2017090412-->
 
 
 
 
-<img src="ecsnow_30_x4.png" alt="ecsnow cam-se grid">
+
+
+
+
+<img style="width: 40%" src="natlantic_30_x4.png" alt="cam-se grid">
 
 </body>
 </html>

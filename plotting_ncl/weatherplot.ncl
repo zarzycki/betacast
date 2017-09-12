@@ -15,7 +15,7 @@ begin
 
 ;ncl weatherplot.ncl inisec=00000 iniday=02 inimon=10 iniyear=2015 'filename="/glade/scratch/zarzycki/ecsnow_30_x4_forecast/run/2015100200/_ecsnow_30_x4_forecast.cam.h1.2015-10-04-00000.nc"'
 
-wgt_file = "/glade/p/work/zarzycki/maps/forecast_plot_maps/ecsnow_30_x4_to_0.25x0.25_patch.nc"
+wgt_file = "/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
 
 iniyearstr = sprinti("%04d",iniyear)
 inimonstr = sprinti("%02d",inimon)
@@ -184,12 +184,18 @@ if (plotindex .eq. 0)
 ;  minlat = 5.
 ;  maxlon = 270. 
 ;  minlon = 195.
-else if (plotindex .eq. 1)     ; Modif EPAC for CONUS
+else if (plotindex .eq. 1)     ; Modif EPAC for SE USA
   plotname = "epac"
-  maxlat = 53.              
-  minlat = 25.
-  maxlon = 300. 
-  minlon = 230.
+  maxlat = 37.              
+  minlat = 20.
+  maxlon = 289. 
+  minlon = 269.
+;else if (plotindex .eq. 1)     ; Modif EPAC for CONUS
+;  plotname = "epac"
+;  maxlat = 53.              
+;  minlat = 25.
+;  maxlon = 300. 
+;  minlon = 230.
 else
   plotname = "glob"
   maxlat = 90.           ; choose subregion           
@@ -309,7 +315,7 @@ res_sumprecip                    = res
 gsn_define_colormap(wks,"MPL_Paired")          ; choose colormap
 res_sumprecip@gsnSpreadColors      = True              ; use full colormap
 res_sumprecip@cnLevelSelectionMode = "ExplicitLevels"    			; set explicit contour levels
-res_sumprecip@cnLevels    = (/0.1,0.15,0.2,0.3,0.4,0.5,0.75,1,1.25,1.5,1.75,2,2.5,3,3.5,4,4.5,5,5.5,6/)	; set levels
+res_sumprecip@cnLevels    = (/0.1,0.15,0.2,0.3,0.4,0.5,0.75,1,1.25,1.5,1.75,2,2.5,3,3.5,4,4.5,5,5.5,6,7,8,9,10,12,14,16,20/)	; set levels
 res_sumprecip@lbLabelStride=1
 res_sumprecip@lbLabelAngleF=50                 ; angle labels
 plotprecipsum = gsn_csm_contour_map(wks,prectav_in(0,:,:),res_sumprecip)

@@ -13,37 +13,38 @@
 ##=======================================================================
 module load ncl
 ###############################################################################
-yearstr=2016
-monthstr=10
-daystr=11
+yearstr=2017
+monthstr=09
+daystr=12
 cyclestr=00
 cyclestrsec=00000
 ###############################################################################
-runDir=/glade/u/home/zarzycki/scratch/ecsnow_30_x4_forecast/run/${yearstr}${monthstr}${daystr}${cyclestr}/
+runDir=/glade/u/home/zarzycki/scratch/forecast_natlantic_30_x4_CAM5/run/${yearstr}${monthstr}${daystr}${cyclestr}/
 path_to_ncl=/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/
 htmlFolder=/glade/u/home/zarzycki/sewx-cam-forecast/html_for_upload/
 twodaysago=20120821
 
 echo "SSHings..."
-ssh balloflight@s483.sureserver.com "mkdir -p /home/balloflight/www/weather/current/${yearstr}${monthstr}${daystr}${cyclestr} ; \ 
-		 cd /home/balloflight/www/weather/current/ ; \
+ssh zarzycki@burnt.cgd.ucar.edu "mkdir -p /web/web-data/staff/zarzycki/current/${yearstr}${monthstr}${daystr}${cyclestr} ; \ 
+		 cd /web/web-data/staff/zarzycki/current/ ; \
 		 cp *cfg *html ${yearstr}${monthstr}${daystr}${cyclestr} ; \
 		 rm ${yearstr}${monthstr}${daystr}${cyclestr}/index.html "
 
 ## UPDATE html page
 cd ${htmlFolder}
 if [ ! -f index.html ]; then
+        echo "copying index and sedding in this date"
 	cp -v index.HOLD index.html
 	sed '/<!--FORECASTHEAD-->/ r htmltemplate.html' index.html > _index1.html
 	sed -e "/$twodaysago${cyclestr}/d" _index1.html > _index2.html
 	sed -e "s/YYYYMMDDHH/${yearstr}${monthstr}${daystr}${cyclestr}/" _index2.html > _index3.html
 	mv _index3.html index.html
 	rm _index*.html
-	scp index.html balloflight@s483.sureserver.com:/home/balloflight/www/weather/current
+	scp index.html zarzycki@burnt.cgd.ucar.edu:/web/web-data/staff/zarzycki/current
 fi
   
-	filenames=`ls ${runDir}/*h1*.nc`
-	numfiles=`ls ${runDir}/*h1*.nc | wc -l`
+	filenames=`ls ${runDir}/*h0*.nc`
+	numfiles=`ls ${runDir}/*h0*.nc | wc -l`
 	echo $numfiles
 
   VARS=PRECLav,PRECCav
@@ -69,9 +70,9 @@ fi
 		echo "Found at least one file"
 		echo $filenames
 		cd ${runDir}
-		for i in ecsnow*h1*.nc; do mv $i _$i; done
+		for i in forecast_natlantic*h0*.nc; do mv $i _$i; done
 		cd ${htmlFolder}
-		newfiles=`ls ${runDir}/_*h1*-00000.nc ${runDir}/_*h1*-21600.nc ${runDir}/_*h1*-43200.nc ${runDir}/_*h1*-64800.nc`
+		newfiles=`ls ${runDir}/_*h0*-00000.nc ${runDir}/_*h0*-21600.nc ${runDir}/_*h0*-43200.nc ${runDir}/_*h0*-64800.nc`
 		for f in $newfiles
 		do
 			echo "Processing $f"
@@ -122,7 +123,7 @@ fi
 		## Google create remote directory if not existant
 		## use rysnc?
 		echo "Moving files to remote server"
-		scp *.png *.txt balloflight@s483.sureserver.com:/home/balloflight/www/weather/current/${yearstr}${monthstr}${daystr}${cyclestr}
+		scp *.png *.txt zarzycki@burnt.cgd.ucar.edu:/web/web-data/staff/zarzycki/current/${yearstr}${monthstr}${daystr}${cyclestr}
 		#mv $newfiles $procdir
 
 mkdir ${yearstr}${monthstr}${daystr}${cyclestr}
@@ -134,5 +135,5 @@ sed -e 's/\"red/\"green/' index.html > _index4.html
 sed -e "s/CURRENTLY UPDATING/COMPLETED AT $printtime/" _index4.html > _index5.html
 mv _index5.html index.html
 rm _index*html
-scp index.html balloflight@s483.sureserver.com:/home/balloflight/www/weather/current
+scp index.html zarzycki@burnt.cgd.ucar.edu:/web/web-data/staff/zarzycki/current
 mv -v index.html index.HOLD
