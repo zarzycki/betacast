@@ -14,7 +14,7 @@
 module load ncl
 ###############################################################################
 yearstr=2017
-monthstr=09
+monthstr=10
 daystr=12
 cyclestr=00
 cyclestrsec=00000
@@ -61,6 +61,7 @@ fi
       lastFile=`echo $filenames | cut -d" " -f${iminus1}`
       ncrcat -v ${VARS} ${thisFile} ${lastFile} ${runDir}/tmpfile2.nc
       ncra -h -O -y ttl ${runDir}/tmpfile2.nc ${runDir}/sum${i}.nc
+      ncap2 -A -s 'time=time+0.0625' ${runDir}/sum${i}.nc ${runDir}/sum${i}.nc
       ncks -A -v ${VARS} ${runDir}/sum${i}.nc ${thisFile}
       rm ${runDir}/sum${i}.nc ${runDir}/tmpfile2.nc
     fi
@@ -118,16 +119,20 @@ fi
 				
 			done
 		done
+
+    # Copy tracker data over if around...
+    mv -v /glade/u/home/zarzycki/tempest-scripts/forecast/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png .
+    cp -v /glade/u/home/zarzycki/tempest-scripts/forecast/fin-atcf/atcf.tempest.${yearstr}${monthstr}${daystr}${cyclestr} .
 		
 		## Move files to server
 		## Google create remote directory if not existant
 		## use rysnc?
 		echo "Moving files to remote server"
-		scp *.png *.txt zarzycki@burnt.cgd.ucar.edu:/web/web-data/staff/zarzycki/current/${yearstr}${monthstr}${daystr}${cyclestr}
+		scp *.png *.txt atcf.tempest* zarzycki@burnt.cgd.ucar.edu:/web/web-data/staff/zarzycki/current/${yearstr}${monthstr}${daystr}${cyclestr}
 		#mv $newfiles $procdir
 
 mkdir ${yearstr}${monthstr}${daystr}${cyclestr}
-mv *.png *.txt ${yearstr}${monthstr}${daystr}${cyclestr}
+mv *.png *.txt atcf.tempest* ${yearstr}${monthstr}${daystr}${cyclestr}
 
 ### Finish uploading index.html
 printtime=`date -u`

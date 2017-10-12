@@ -1,2 +1,0 @@
-Unify SST scripts
-Create script that handles new GFS grid (ideally, script would check nlat/nlon in GFS file and decide appropriately)

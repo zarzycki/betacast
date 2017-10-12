@@ -190,18 +190,12 @@ if (plotindex .eq. 0)
 ;  minlat = 33.
 ;  maxlon = 300. 
 ;  minlon = 283.
-;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
-;  plotname = "epac"
-;  maxlat = 30.              
-;  minlat = 10.
-;  maxlon = -55. 
-;  minlon = -85.
-else if (plotindex .eq. 1)     ; Modif EPAC for Gulf
+else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
   plotname = "epac"
-  maxlat = 35.              
+  maxlat = 30.              
   minlat = 10.
-  maxlon = -70. 
-  minlon = -105.
+  maxlon = -55. 
+  minlon = -85.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for SE USA
 ;  plotname = "epac"
 ;  maxlat = 37.              
@@ -261,8 +255,8 @@ res@gsnCenterString = "VALID "+hourstr+"Z "+monstr+" "+daystr+" "+yearstr
 
 out_type = "png"
 ; previously was 900x900 before 9/12/17
-out_type@wkWidth = 750
-out_type@wkHeight = 750
+out_type@wkWidth = 1000
+out_type@wkHeight = 1000
 
 res_mslp = True
 res_mslp@gsnDraw          = False           ; don't draw
