@@ -13,9 +13,10 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-;ncl weatherplot.NEW.ncl inisec=43200 iniday=04 inimon=09 iniyear=2017 'filename="/glade/scratch/zarzycki/forecast_natlantic_30_x4_CAM5/run/2017090412/_forecast_natlantic_30_x4_CAM5.cam.h0.2017-09-04-54000.nc"'
+;ncl weatherplot.ncl inisec=43200 iniday=17 inimon=11 iniyear=2017 'filename="/glade/scratch/zarzycki/forecast_conus_30_x8_CAM5/run/2017111712/_forecast_conus_30_x8_CAM5.cam.h0.2017-11-19-00000.nc"' 'wgt_file="/glade/p/work/zarzycki/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc"'
 
-wgt_file = "/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
+; now read as command line option as of 11/17/17
+;wgt_file = "/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
 
 iniyearstr = sprinti("%04d",iniyear)
 inimonstr = sprinti("%02d",inimon)
@@ -172,36 +173,43 @@ shear850250 = 1.943*sqrt((u850-u250)^2 + (v850-v250)^2)
 
 do plotindex = 0,1
 
+; NORTH ATLANTIC
+;if (plotindex .eq. 0)
+;  plotname = "natl"
+;  maxlat = 55.           ; choose subregion           
+;  minlat = 5.
+;  maxlon = -5. 
+;  minlon = -100.
 if (plotindex .eq. 0)
   plotname = "natl"
-  maxlat = 55.           ; choose subregion           
-  minlat = 5.
-  maxlon = -5. 
-  minlon = -100.
+  maxlat = 53.           ; choose subregion           
+  minlat = 21.
+  maxlon = -65. 
+  minlon = -130.
 ;else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  plotname = "epac"
 ;  maxlat = 40.             
 ;  minlat = 5.
 ;  maxlon = 270. 
 ;  minlon = 195.
-;else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
-;  plotname = "epac"
-;  maxlat = 50.              
-;  minlat = 33.
-;  maxlon = 300. 
-;  minlon = 283.
+else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+  plotname = "epac"
+  maxlat = 50.              
+  minlat = 33.
+  maxlon = 300. 
+  minlon = 283.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
 ;  plotname = "epac"
 ;  maxlat = 30.              
 ;  minlat = 10.
 ;  maxlon = -55. 
 ;  minlon = -85.
-else if (plotindex .eq. 1)     ; Modif EPAC for Gulf
-  plotname = "epac"
-  maxlat = 35.              
-  minlat = 10.
-  maxlon = -70. 
-  minlon = -105.
+;else if (plotindex .eq. 1)     ; Modif EPAC for Gulf
+;  plotname = "epac"
+;  maxlat = 35.              
+;  minlat = 10.
+;  maxlon = -70. 
+;  minlon = -105.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for SE USA
 ;  plotname = "epac"
 ;  maxlat = 37.              
@@ -444,8 +452,9 @@ vecres@gsnRightString   = ""             ; turn off right string
 vecres@gsnLeftString    = ""             ; turn off left string
 vecres@tiXAxisString    = ""             ; turn off axis label 
 ;vecres@vcRefAnnoOrthogonalPosF = -.535    ; move ref vector into plot
-  
-plot500winds   = gsn_csm_vector(wks,u500(0,::8,::8),v500(0,::8,::8),vecres)
+
+; this is 8 for 0.25deg data, 16 for 0.125deg data
+plot500winds   = gsn_csm_vector(wks,u500(0,::16,::16),v500(0,::16,::16),vecres)
 overlay(plot500vort,plotz500)
 overlay(plot500vort,plot500winds)
 

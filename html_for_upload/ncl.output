@@ -12,14 +12,14 @@ Total Size: 8 bytes
 Number of Dimensions: 1
 Dimensions and sizes:	[1]
 Coordinates: 
-(0)	192
-(0)	Forecast for: 00Z 10 20 2017
-(0)	Initialized at: 00Z 10 12 2017
-(0)	1038.409
-(0)	953.8432
+(0)	048
+(0)	Forecast for: 12Z 11 19 2017
+(0)	Initialized at: 12Z 11 17 2017
+(0)	1050.972
+(0)	955.2109
 (0)	Begin interp
-(0)	1038.337
-(0)	953.8879
+(0)	1050.365
+(0)	955.3804
 (0)	end interp
 (0)	Plotting: natl
 (0)	Plotting instant precip...

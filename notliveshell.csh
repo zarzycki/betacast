@@ -27,7 +27,7 @@ machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 
 
 sendplots=true ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
 
-dotracking=true ; echo "dotracking set to $dotracking"
+dotracking=false ; echo "dotracking set to $dotracking"
 
 runmodel=true ; echo "runmodel set to $runmodel"
  
@@ -39,7 +39,7 @@ atmDataType=1             # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
 sstDataType=1              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
 numLevels=30               # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
 
-numdays=8                  #forecast length (in days)
+numdays=7                  #forecast length (in days)
 
 # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
 doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
@@ -55,11 +55,12 @@ land_spinup=false   #daily land spinup
 
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
-casename=forecast_natlantic_30_x4_CAM5
+casename=forecast_conus_30_x8_CAM5
 path_to_case=/glade/p/work/$LOGNAME/${casename}
-gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_natlantic_30_x4_patc.nc
-sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC.nc
-sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC_filter.nc
+gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
+sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC.nc
+sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC_filter.nc
+nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc
 
 usingCIME=true
 
@@ -146,6 +147,15 @@ timestamp=`date +%Y%m%d.%H%M`
 #gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_natlantic_30_x4_patc.nc
 #sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC.nc
 #sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC_filter.nc
+#nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc
+
+#casename=forecast_conus_30_x8_CAM5
+#path_to_case=/glade/p/work/$LOGNAME/${casename}
+#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
+#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC.nc
+#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC_filter.nc
+#nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc
+
 
 echo "We are using ${casename} for the case"
 echo "The formal SE run will start at +$numHoursSEStart hours from actual init time"
@@ -855,7 +865,7 @@ rm -v *.cam.rh3.*.nc
 rm -v *.cice.r.*.nc
 rm -v rpointer.*
 
-mv -v $archivedir $outputdir/${yearstr}${monthstr}${daystr}${cyclestr}
+mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 
 if $dotracking ; then
   cd /glade/u/home/zarzycki/tempest-scripts/forecast/
@@ -878,7 +888,7 @@ if $sendplots ; then
   sed -i 's?.*daystr=.*?daystr='${daystr}'?' ${upload_ncl_script}
   sed -i 's?.*cyclestrsec=.*?cyclestrsec='${cyclestrsec}'?' ${upload_ncl_script}
   sed -i 's?.*cyclestr=.*?cyclestr='${cyclestr}'?' ${upload_ncl_script}
-  /bin/bash ${upload_ncl_script}
+  /bin/bash ${upload_ncl_script} ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 fi
 
 date

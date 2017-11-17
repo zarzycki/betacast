@@ -14,12 +14,14 @@
 module load ncl
 ###############################################################################
 yearstr=2017
-monthstr=10
-daystr=12
-cyclestr=00
-cyclestrsec=00000
+monthstr=11
+daystr=17
+cyclestr=12
+cyclestrsec=43200
 ###############################################################################
-runDir=/glade/u/home/zarzycki/scratch/forecast_natlantic_30_x4_CAM5/run/${yearstr}${monthstr}${daystr}${cyclestr}/
+#nclweightfile="/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
+nclweightfile=$1
+runDir=$2
 path_to_ncl=/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/
 htmlFolder=/glade/u/home/zarzycki/sewx-cam-forecast/html_for_upload/
 twodaysago=20120821
@@ -71,17 +73,17 @@ fi
 		echo "Found at least one file"
 		echo $filenames
 		cd ${runDir}
-		for i in forecast_natlantic*h0*.nc; do mv $i _$i; done
+		for i in *h0*.nc; do mv $i _$i; done
 		cd ${htmlFolder}
 		newfiles=`ls ${runDir}/_*h0*-00000.nc ${runDir}/_*h0*-21600.nc ${runDir}/_*h0*-43200.nc ${runDir}/_*h0*-64800.nc`
 		for f in $newfiles
 		do
 			echo "Processing $f"
- 			ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec iniday=$daystr inimon=$monthstr iniyear=$yearstr 'filename="'$f'"' > ncl.output 2>&1
+ 			ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec iniday=$daystr inimon=$monthstr iniyear=$yearstr 'filename="'${f}'"' 'wgt_file="'${nclweightfile}'"' > ncl.output 2>&1
  			if [ grep FileReadVar ncl.output ]; then
  				sleep 5
  				echo "Found an error"
- 				ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec iniday=$daystr inimon=$monthstr iniyear=$yearstr 'filename="'$f'"'
+ 				ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec iniday=$daystr inimon=$monthstr iniyear=$yearstr 'filename="'${f}'"' 'wgt_file="'${nclweightfile}'"'
  			fi
  			#rm ncl.output
 		done
