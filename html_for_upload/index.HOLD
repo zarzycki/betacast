@@ -15,27 +15,405 @@
 <p><font color="#FF2D00">UPDATE: Using 14km CONUS mesh from ASD runs as of 00Z 2017 11 18.</font></p>
 
 <!--FORECASTHEAD-->
-<p><!--2017111712-->
-<b>2017111712</b><br>
-<i><font color="green">COMPLETED AT Fri Nov 17 18:42:41 UTC 2017</font></i><br><!--2017111712-->
-NORTH ATLANTIC<br><!--2017111712-->
-<a href="2017111712/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
-<a href="2017111712/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2017111712/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
-<a href="2017111712/prect_natl_hanis.html">Precipitation</a><br>
-<a href="2017111712/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
-<a href="2017111712/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2017111712/tmq_natl_hanis.html">Total precipitable water</a><br>
-<a href="2017111712/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
-NORTHEAST USA<br><!--2017111712-->
-<a href="2017111712/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
-<a href="2017111712/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2017111712/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
-<a href="2017111712/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
-<a href="2017111712/prect_epac_hanis.html">Precipitation</a><br>
-<a href="2017111712/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
-<a href="2017111712/tmq_epac_hanis.html">Total precipitable water</a><br>
-</p><!--2017111712-->
+<p><!--2017120500-->
+<b>2017120500</b><br>
+<i><font color="green">COMPLETED AT Tue Dec  5 05:06:24 UTC 2017</font></i><br><!--2017120500-->
+CONUS<br><!--2017120500-->
+<a href="2017120500/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017120500/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017120500/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017120500/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2017120500/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017120500/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017120500/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017120500/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017120500/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017120500-->
+<a href="2017120500/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017120500/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017120500/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017120500/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2017120500/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017120500/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017120500/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017120500/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017120500-->
+
+
+<p><!--2017120400-->
+<b>2017120400</b><br>
+<i><font color="green">COMPLETED AT Mon Dec  4 05:32:49 UTC 2017</font></i><br><!--2017120400-->
+CONUS<br><!--2017120400-->
+<a href="2017120400/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017120400/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017120400/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017120400/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017120400/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017120400/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017120400/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017120400/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017120400-->
+<a href="2017120400/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017120400/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017120400/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017120400/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017120400/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017120400/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017120400/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017120400-->
+
+<p><!--2017120300-->
+<b>2017120300</b><br>
+<i><font color="green">COMPLETED AT Sun Dec  3 05:34:21 UTC 2017</font></i><br><!--2017120300-->
+CONUS<br><!--2017120300-->
+<a href="2017120300/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017120300/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017120300/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017120300/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017120300/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017120300/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017120300/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017120300/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017120300-->
+<a href="2017120300/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017120300/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017120300/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017120300/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017120300/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017120300/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017120300/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017120300-->
+
+<p><!--2017120200-->
+<b>2017120200</b><br>
+<i><font color="green">COMPLETED AT Sat Dec  2 05:37:53 UTC 2017</font></i><br><!--2017120200-->
+CONUS<br><!--2017120200-->
+<a href="2017120200/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017120200/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017120200/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017120200/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017120200/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017120200/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017120200/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017120200/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017120200-->
+<a href="2017120200/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017120200/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017120200/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017120200/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017120200/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017120200/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017120200/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017120200-->
+
+<p><!--2017120100-->
+<b>2017120100</b><br>
+<i><font color="green">COMPLETED AT Fri Dec  1 05:21:59 UTC 2017</font></i><br><!--2017120100-->
+CONUS<br><!--2017120100-->
+<a href="2017120100/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017120100/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017120100/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017120100/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017120100/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017120100/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017120100/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017120100/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017120100-->
+<a href="2017120100/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017120100/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017120100/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017120100/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017120100/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017120100/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017120100/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017120100-->
+
+<p><!--2017113000-->
+<b>2017113000</b><br>
+<i><font color="green">COMPLETED AT Thu Nov 30 05:34:07 UTC 2017</font></i><br><!--2017113000-->
+CONUS<br><!--2017113000-->
+<a href="2017113000/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017113000/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017113000/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017113000/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017113000/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017113000/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017113000/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017113000/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017113000-->
+<a href="2017113000/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017113000/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017113000/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017113000/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017113000/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017113000/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017113000/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017113000-->
+
+<p><!--2017112900-->
+<b>2017112900</b><br>
+<i><font color="green">COMPLETED AT Wed Nov 29 05:31:08 UTC 2017</font></i><br><!--2017112900-->
+CONUS<br><!--2017112900-->
+<a href="2017112900/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112900/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112900/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112900/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017112900/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112900/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112900/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017112900/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017112900-->
+<a href="2017112900/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112900/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112900/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112900/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112900/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017112900/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112900/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017112900-->
+
+<p><!--2017112800-->
+<b>2017112800</b><br>
+<i><font color="green">COMPLETED AT Tue Nov 28 05:24:33 UTC 2017</font></i><br><!--2017112800-->
+CONUS<br><!--2017112800-->
+<a href="2017112800/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112800/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112800/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112800/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017112800/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112800/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112800/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017112800/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017112800-->
+<a href="2017112800/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112800/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112800/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112800/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112800/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017112800/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112800/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017112800-->
+
+<p><!--2017112700-->
+<b>2017112700</b><br>
+<i><font color="green">COMPLETED AT Mon Nov 27 05:18:37 UTC 2017</font></i><br><!--2017112700-->
+CONUS<br><!--2017112700-->
+<a href="2017112700/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112700/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112700/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112700/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017112700/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112700/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112700/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017112700/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017112700-->
+<a href="2017112700/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112700/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112700/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112700/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112700/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017112700/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112700/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017112700-->
+
+<p><!--2017112600-->
+<b>2017112600</b><br>
+<i><font color="green">COMPLETED AT Sun Nov 26 05:27:52 UTC 2017</font></i><br><!--2017112600-->
+CONUS<br><!--2017112600-->
+<a href="2017112600/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112600/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112600/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112600/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017112600/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112600/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112600/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017112600/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017112600-->
+<a href="2017112600/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112600/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112600/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112600/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112600/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017112600/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112600/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017112600-->
+
+<p><!--2017112500-->
+<b>2017112500</b><br>
+<i><font color="green">COMPLETED AT Sat Nov 25 05:27:13 UTC 2017</font></i><br><!--2017112500-->
+CONUS<br><!--2017112500-->
+<a href="2017112500/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112500/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112500/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112500/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017112500/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112500/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112500/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017112500/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017112500-->
+<a href="2017112500/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112500/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112500/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112500/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112500/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017112500/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112500/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017112500-->
+
+<p><!--2017112400-->
+<b>2017112400</b><br>
+<i><font color="green">COMPLETED AT Fri Nov 24 05:21:03 UTC 2017</font></i><br><!--2017112400-->
+CONUS<br><!--2017112400-->
+<a href="2017112400/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112400/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112400/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112400/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017112400/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112400/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112400/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017112400/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017112400-->
+<a href="2017112400/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112400/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112400/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112400/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112400/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017112400/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112400/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017112400-->
+
+<p><!--2017112300-->
+<b>2017112300</b><br>
+<i><font color="green">COMPLETED AT Thu Nov 23 06:06:33 UTC 2017</font></i><br><!--2017112300-->
+CONUS<br><!--2017112300-->
+<a href="2017112300/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112300/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112300/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112300/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017112300/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112300/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112300/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017112300/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017112300-->
+<a href="2017112300/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112300/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112300/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112300/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112300/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017112300/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112300/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017112300-->
+
+<p><!--2017112200-->
+<b>2017112200</b><br>
+<i><font color="green">COMPLETED AT Wed Nov 22 05:22:11 UTC 2017</font></i><br><!--2017112200-->
+CONUS<br><!--2017112200-->
+<a href="2017112200/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112200/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112200/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112200/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017112200/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112200/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112200/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017112200/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017112200-->
+<a href="2017112200/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112200/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112200/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112200/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112200/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017112200/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112200/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017112200-->
+
+<p><!--2017112100-->
+<b>2017112100</b><br>
+<i><font color="green">COMPLETED AT Tue Nov 21 05:25:48 UTC 2017</font></i><br><!--2017112100-->
+CONUS<br><!--2017112100-->
+<a href="2017112100/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112100/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112100/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112100/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017112100/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112100/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112100/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017112100/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017112100-->
+<a href="2017112100/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112100/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112100/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112100/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112100/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017112100/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112100/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017112100-->
+
+<p><!--2017112000-->
+<b>2017112000</b><br>
+<i><font color="green">COMPLETED AT Mon Nov 20 05:22:17 UTC 2017</font></i><br><!--2017112000-->
+CONUS<br><!--2017112000-->
+<a href="2017112000/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112000/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112000/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112000/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017112000/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112000/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112000/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017112000/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017112000-->
+<a href="2017112000/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017112000/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017112000/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017112000/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017112000/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017112000/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017112000/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017112000-->
+
+<p><!--2017111900-->
+<b>2017111900</b><br>
+<i><font color="green">COMPLETED AT Sun Nov 19 05:20:01 UTC 2017</font></i><br><!--2017111900-->
+CONUS<br><!--2017111900-->
+<a href="2017111900/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017111900/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017111900/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017111900/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017111900/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017111900/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017111900/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017111900/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017111900-->
+<a href="2017111900/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017111900/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017111900/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017111900/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017111900/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017111900/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017111900/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017111900-->
+
+<p><!--2017111800-->
+<b>2017111800</b><br>
+<i><font color="green">COMPLETED AT Sat Nov 18 05:18:22 UTC 2017</font></i><br><!--2017111800-->
+CONUS<br><!--2017111800-->
+<a href="2017111800/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017111800/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017111800/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017111800/prect_natl_hanis.html">Precipitation</a><br>
+<a href="2017111800/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017111800/shear850200_natl_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017111800/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017111800/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+NORTHEAST USA<br><!--2017111800-->
+<a href="2017111800/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017111800/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017111800/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017111800/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017111800/prect_epac_hanis.html">Precipitation</a><br>
+<a href="2017111800/shear850200_epac_hanis.html">850 mb - 250 mb wind shear</a><br>
+<a href="2017111800/tmq_epac_hanis.html">Total precipitable water</a><br>
+</p><!--2017111800-->
+
 
 <img style="width: 40%" src="conus_30_x8.png" alt="cam-se grid">
 

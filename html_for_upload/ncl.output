@@ -1,0 +1,62 @@
+ Copyright (C) 1995-2017 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.4.0
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+
+
+Variable: forecastHourStr
+Type: string
+Total Size: 8 bytes
+            1 values
+Number of Dimensions: 1
+Dimensions and sizes:	[1]
+Coordinates: 
+(0)	168
+(0)	Forecast for: 00Z 12 12 2017
+(0)	Initialized at: 00Z 12 05 2017
+(0)	1051.066
+(0)	962.1548
+(0)	Begin interp
+(0)	1046.645
+(0)	988.9961
+(0)	end interp
+
+Variable: vort500
+Type: float
+Total Size: 808640 bytes
+            202160 values
+Number of Dimensions: 3
+Dimensions and sizes:	[time | 1] x [lat | 361] x [lon | 560]
+Coordinates: 
+            time: [6.875..6.875]
+            lat: [  10..  55]
+            lon: [ 230..299.875]
+Number Of Attributes: 5
+  missing_value :	9.96921e+36
+  remap :	remapped via ESMF_regrid_with_weights: Higher-order Patch
+  long_name :	Vorticity
+  units :	1E-5 1/s
+  _FillValue :	9.96921e+36
+(0)	Plotting: natl
+(0)	Plotting instant precip...
+(0)	Plotting accumulated precip...
+(0)	Plotting accumulated snow...
+(0)	Plotting 500 mb vort + z500 + U/V 500...
+(0)	Plotting TMQ...
+(0)	Plotting TS...
+(0)	304.1676
+(0)	246.5396
+(0)	Plotting FLUT...
+(0)	Plotting 850mb wind + MSLP...
+(0)	Plotting: epac
+(0)	Plotting instant precip...
+(0)	Plotting accumulated precip...
+(0)	Plotting accumulated snow...
+(0)	Plotting 500 mb vort + z500 + U/V 500...
+(0)	Plotting TMQ...
+(0)	Plotting TS...
+(0)	304.1676
+(0)	246.5396
+(0)	Plotting FLUT...
+(0)	Plotting 850mb wind + MSLP...

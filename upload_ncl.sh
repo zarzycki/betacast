@@ -14,10 +14,10 @@
 module load ncl
 ###############################################################################
 yearstr=2017
-monthstr=11
-daystr=17
-cyclestr=12
-cyclestrsec=43200
+monthstr=12
+daystr=05
+cyclestr=00
+cyclestrsec=00000
 ###############################################################################
 #nclweightfile="/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
 nclweightfile=$1
@@ -49,7 +49,7 @@ fi
 	numfiles=`ls ${runDir}/*h0*.nc | wc -l`
 	echo $numfiles
 
-  VARS=PRECLav,PRECCav
+  VARS=PRECLav,PRECCav,PRECBSN,PRECBRA,PRECBIP,PRECBFZ
 
   for i in `seq 1 ${numfiles}`;
   do
@@ -92,12 +92,13 @@ fi
 		genpngs=`ls *png`
 		for g in $genpngs
 		do
-			convert -trim +repage $g $g
+			convert -trim +repage $g -colors 255 $g
 		done
 		
 		## Get file list in txt file for FLANIS viewer
 		basins=(natl epac)
-		outflds=(wind tmq flut prect sumprect 500vort shear850250)
+		#outflds=(wind tmq flut prect sumprect 500vort shear850250)
+		outflds=(wind tmq flut prect sumprect 500vort sumsnow ts)
 
 		# Loop over items in outflds
 		for basin in ${basins[*]}

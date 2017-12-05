@@ -13,7 +13,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-;ncl weatherplot.ncl inisec=43200 iniday=17 inimon=11 iniyear=2017 'filename="/glade/scratch/zarzycki/forecast_conus_30_x8_CAM5/run/2017111712/_forecast_conus_30_x8_CAM5.cam.h0.2017-11-19-00000.nc"' 'wgt_file="/glade/p/work/zarzycki/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc"'
+;ncl weatherplot.ncl inisec=64800 iniday=4 inimon=12 iniyear=2017 'filename="/glade/scratch/zarzycki/forecast_conus_30_x8_CAM5/run/2017120418/___forecast_conus_30_x8_CAM5.cam.h0.2017-12-06-00000.nc"' 'wgt_file="/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc"'
 
 ; now read as command line option as of 11/17/17
 ;wgt_file = "/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
@@ -68,8 +68,8 @@ print("Initialized at: "+inihourstr+"Z "+inimonstr+" "+inidaystr+" "+iniyearstr)
 
 ;---Get two variables to regrid and the source lat/lon grid
 prect_se = datafile->PRECT            ; time (1) x nlev x ncol
-u250_se = datafile->U200
-v250_se = datafile->V200
+;u250_se = datafile->U200
+;v250_se = datafile->V200
 u500_se = datafile->U500
 v500_se = datafile->V500
 z500_se = datafile->Z500
@@ -80,20 +80,22 @@ v850_se = datafile->V850
 mslp_se = datafile->PSL/100
 preclav_se=datafile->PRECLav
 preccav_se=datafile->PRECCav
+precbsn_se=datafile->PRECBSN
+ts_se=datafile->TS
 
 prectav_se=preclav_se
 prectav_se=preclav_se+preccav_se
 delete(preclav_se)
 delete(preccav_se)
 
-
 print(max(mslp_se))
 print(min(mslp_se))
 
+print("Begin interp")
 Opt         = True
 prect  = ESMF_regrid_with_weights(prect_se,wgt_file,Opt)
-u250  = ESMF_regrid_with_weights(u250_se,wgt_file,Opt)
-v250  = ESMF_regrid_with_weights(v250_se,wgt_file,Opt)
+;u250  = ESMF_regrid_with_weights(u250_se,wgt_file,Opt)
+;v250  = ESMF_regrid_with_weights(v250_se,wgt_file,Opt)
 u500  = ESMF_regrid_with_weights(u500_se,wgt_file,Opt)
 v500  = ESMF_regrid_with_weights(v500_se,wgt_file,Opt)
 z500  = ESMF_regrid_with_weights(z500_se,wgt_file,Opt)
@@ -103,8 +105,9 @@ u850  = ESMF_regrid_with_weights(u850_se,wgt_file,Opt)
 v850  = ESMF_regrid_with_weights(v850_se,wgt_file,Opt)
 mslp  = ESMF_regrid_with_weights(mslp_se,wgt_file,Opt)
 prectav= ESMF_regrid_with_weights(prectav_se,wgt_file,Opt)
+precbsn= ESMF_regrid_with_weights(precbsn_se,wgt_file,Opt)
+ts= ESMF_regrid_with_weights(ts_se,wgt_file,Opt)
 
-print("Begin interp")
 guess     = 1                ; use zonal means
 is_cyclic = True             ; cyclic [global]
 nscan     = 500             ; usually much less than this
@@ -112,8 +115,8 @@ eps       = 1.e-2            ; variable dependent
 relc      = 0.5              ; relaxation coefficient
 opt       = 0                ; not used
 
-poisson_grid_fill( u250, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( v250, is_cyclic, guess, nscan, eps, relc, opt)
+;poisson_grid_fill( u250, is_cyclic, guess, nscan, eps, relc, opt)
+;poisson_grid_fill( v250, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( u500, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( v500, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( prect, is_cyclic, guess, nscan, eps, relc, opt)
@@ -124,14 +127,21 @@ poisson_grid_fill( u850, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( v850, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( mslp, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( prectav, is_cyclic, guess, nscan, eps, relc, opt)
+poisson_grid_fill( precbsn, is_cyclic, guess, nscan, eps, relc, opt)
+poisson_grid_fill( ts, is_cyclic, guess, nscan, eps, relc, opt)
 
 print(max(mslp))
 print(min(mslp))
 
 print("end interp")
 
-;lat = u&lat
-;lon = u&lon
+dims=dimsizes(mslp)
+ntime=dims(0)
+nlat=dims(1)
+nlon=dims(2)
+lat = mslp&lat
+lon = mslp&lon
+
 ;lat!0 = "lat"
 ;lon!0 = "lon"
 ;lat&lat = lat
@@ -152,19 +162,37 @@ prectav_in = prectav_in*39.3701  ; now inches per timestep
 prectav_in@units="inches"
 prectav_in=where(prectav_in.lt.0.1,prectav_in@_FillValue,prectav_in)
 
+precbsn_in = precbsn
+precbsn_in = precbsn_in*10800 ; seconds in 3 hours, now gives us meters per timestep
+precbsn_in = precbsn_in*39.3701  ; now inches per timestep
+precbsn_in = precbsn_in*10  ; now snow water ratio
+precbsn_in@units="inches"
+precbsn_in=where(precbsn_in.lt.0.1,precbsn_in@_FillValue,precbsn_in)
+
 ;vort250 = uv2vrF_Wrap(u250,v250)
 ;vort250 = vort250/1e-5
 ;vort250@units="1E-5 1/s"
 
-vort500 = uv2vrF_Wrap(u500,v500)
+;vort500 = uv2vrF_Wrap(u500,v500)
+;vort500 = vort500/1e-5
+;vort500@units="1E-5 1/s"
+
+vort500 = uv2vr_cfd (u500,v500,lat,lon, 2) 
+copy_VarMeta(u850,vort500)
 vort500 = vort500/1e-5
 vort500@units="1E-5 1/s"
+vort500@long_name="Vorticity"
+printVarSummary(vort500)
 
-wind = u850
+wind = u850 
 wind = sqrt(u850^2 + v850^2)
 
-shear850250 = u850
-shear850250 = 1.943*sqrt((u850-u250)^2 + (v850-v250)^2)
+tsf = ts
+tsf = (ts-273.15)*9.0/5.0+32.0
+tsf@units="degrees F"
+
+;shear850250 = u850
+;shear850250 = 1.943*sqrt((u850-u250)^2 + (v850-v250)^2)
 
 
 ;*****************************************************
@@ -184,8 +212,8 @@ if (plotindex .eq. 0)
   plotname = "natl"
   maxlat = 53.           ; choose subregion           
   minlat = 21.
-  maxlon = -65. 
-  minlon = -130.
+  maxlon = 295. 
+  minlon = 230.
 ;else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  plotname = "epac"
 ;  maxlat = 40.             
@@ -194,10 +222,10 @@ if (plotindex .eq. 0)
 ;  minlon = 195.
 else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
   plotname = "epac"
-  maxlat = 50.              
-  minlat = 33.
-  maxlon = 300. 
-  minlon = 283.
+  maxlat = 49.              
+  minlat = 37.
+  maxlon = 295. 
+  minlon = 275.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
 ;  plotname = "epac"
 ;  maxlat = 30.              
@@ -269,8 +297,8 @@ res@gsnCenterString = "VALID "+hourstr+"Z "+monstr+" "+daystr+" "+yearstr
 
 out_type = "png"
 ; previously was 900x900 before 9/12/17
-out_type@wkWidth = 750
-out_type@wkHeight = 750
+out_type@wkWidth = 900
+out_type@wkHeight = 900
 
 res_mslp = True
 res_mslp@gsnDraw          = False           ; don't draw
@@ -354,12 +382,18 @@ res_rain@lbOrientation = "vertical"
 res_rain@gsnLeftString = "Instant. precip. rate"
 
 plotrain = gsn_csm_contour_map(wks,prect_mmday(0,:,:),res_rain)
-;plotrain = gsn_csm_contour_map(wks,prect_mmday(0,{minlat:maxlat},{minlon:maxlon}),res_rain)
+plotmslp = gsn_csm_contour(wks,mslp(0,:,:),res_mslp)
+overlay(plotrain,plotmslp)
+
 draw(plotrain)
 frame(wks)
+
 delete(wks)
+delete(plotmslp)
 delete(cmap)
 delete(cmap_interp)
+
+
 
 print("Plotting accumulated precip...")
 out_type = "png"
@@ -401,6 +435,56 @@ frame(wks)
 delete(wks)
 delete(cmap)
 delete(cmap_interp)
+
+
+
+
+print("Plotting accumulated snow...")
+out_type = "png"
+wks = gsn_open_wks(out_type,"sumsnow_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
+res_sumsnow                    = res
+
+cmap = read_colormap_file("/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/colormaps/wxbell_snow.rgb")
+res_sumsnow@cnFillPalette = cmap(::-1,:)       ; reverse color map
+res_sumsnow@cnFillOpacityF = 0.75
+
+res_sumsnow@cnLevelSelectionMode = "ExplicitLevels"    			; set explicit contour levels
+res_sumsnow@cnLevels    = (/ 0.25, 0.5, 1., 1.5, 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16., 17., 18., 19., 20., 21., 22., 23., 24., 26., 28., 30., 32., 34., 36., 38., 40., 42., 44., 46., 48., 52., 56., 60., 64., 68., 72./)
+res_sumsnow@lbLabelStride=1
+res_sumsnow@lbLabelAngleF=50                 ; angle labels
+
+res_sumsnow@gsnLeftString = "Accum. 10:1 snow (thermo)"
+
+plotsnowsum = gsn_csm_contour_map(wks,precbsn_in(0,:,:),res_sumsnow)
+
+txres               = True  
+txres@txFontHeightF = 0.011             ; Set the font height
+txres@txFont   = "helvetica-bold"
+text = new((/nlat,nlon/),"graphic")
+
+if (plotindex .eq. 0) then
+  stride=19
+else
+  stride=9
+end if
+do ii = 0,nlat-1,stride
+do jj = 0,nlon-1,stride
+  if (lat(ii) .ge. minlat .and. lat(ii) .le. maxlat .and. lon(jj) .ge. minlon .and. lon(jj) .le. maxlon) then
+    if (.not.ismissing(precbsn_in(0,ii,jj)) .and. precbsn_in(0,ii,jj) .ge. 1.0) then
+      text(ii,jj) = gsn_add_text(wks,plotsnowsum,tostring(toint(precbsn_in(0,ii,jj))),lon(jj),lat(ii),txres)
+    end if
+  end if
+end do
+end do
+
+draw(plotsnowsum)
+frame(wks)
+delete(wks)
+delete(cmap)
+
+delete(text)
+delete(stride)
+delete(txres)
 
 
 ; ====== Plot 250 VORT ============
@@ -504,6 +588,60 @@ frame(wks)
 delete(wks)
 delete(cmap)
 
+
+
+; ====== Plot TS ============
+print("Plotting TS...")
+out_type = "png"
+wks = gsn_open_wks(out_type,"ts_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
+
+res_ts = res
+
+cmap = read_colormap_file("amwg256")
+res_ts@cnFillPalette=cmap
+res_sumsnow@cnFillOpacityF = 0.75
+
+res_ts@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
+res_ts@cnLevelSpacingF      =  2.5             ;
+res_ts@cnMinLevelValF       =  -5.0           ;
+res_ts@cnMaxLevelValF       =  110.0 ; Use 80.0 -> 60 for this
+
+res_ts@gsnLeftString = "Surface temp."
+
+print(max(ts))
+print(min(ts))
+
+plotts = gsn_csm_contour_map(wks,tsf(0,:,:),res_ts)
+
+txres               = True  
+txres@txFontHeightF = 0.011             ; Set the font height
+txres@txFont   = "helvetica-bold"
+text = new((/nlat,nlon/),"graphic")
+
+if (plotindex .eq. 0) then
+  stride=31
+else
+  stride=11
+end if
+do ii = 0,nlat-1,stride
+do jj = 0,nlon-1,stride
+  if (lat(ii) .ge. minlat .and. lat(ii) .le. maxlat .and. lon(jj) .ge. minlon .and. lon(jj) .le. maxlon) then
+    if (.not.ismissing(tsf(0,ii,jj))) then
+      text(ii,jj) = gsn_add_text(wks,plotts,tostring(toint(tsf(0,ii,jj))),lon(jj),lat(ii),txres)
+    end if
+  end if
+end do
+end do
+
+
+draw(plotts)
+frame(wks)
+delete(wks)
+delete(cmap)
+
+
+
+
 ; ====== Plot FLUT ============
 print("Plotting FLUT...")
 out_type = "png"
@@ -577,31 +715,32 @@ delete(cmap)
 ;system("rm wind_"+plotname+"_"+yearstr+monstr+daystr+hourstr+".000001.png")
 ;system("mv wind_"+plotname+"_"+yearstr+monstr+daystr+hourstr+".000002.png wind_"+plotname+"_"+yearstr+monstr+daystr+hourstr+".png")
 
-; ====== Plot 250-850 SHEAR ============
-print("Plotting 250-850 shear...")
-out_type = "png"
-wks = gsn_open_wks(out_type,"shear850250_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
+; ========================= Plot 250-850 SHEAR ===============================
 
-
-res_shear850250 = res
-
-cmap = read_colormap_file("BlAqGrYeOrReVi200")
-res_shear850250@cnFillPalette=cmap
-;gsn_define_colormap(wks,"BlAqGrYeOrReVi200")
-
-res_shear850250@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
- res_shear850250@cnLevelSpacingF      =  5.0                ;
- res_shear850250@cnMinLevelValF       =  0.0           ;
- res_shear850250@cnMaxLevelValF       =  100.0 ; Use 80.0 -> 60 for this
-
-res_shear850250@gsnLeftString = "850-250mb shear mag."
-
-plotshear850250 = gsn_csm_contour_map(wks,shear850250(0,:,:),res_shear850250)
-draw(plotshear850250)
-frame(wks)
-delete(wks)
-delete(res_shear850250)
-delete(cmap)
+;print("Plotting 250-850 shear...")
+;out_type = "png"
+;wks = gsn_open_wks(out_type,"shear850250_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
+;
+;
+;res_shear850250 = res
+;
+;cmap = read_colormap_file("BlAqGrYeOrReVi200")
+;res_shear850250@cnFillPalette=cmap
+;;gsn_define_colormap(wks,"BlAqGrYeOrReVi200")
+;
+;res_shear850250@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
+; res_shear850250@cnLevelSpacingF      =  5.0                ;
+; res_shear850250@cnMinLevelValF       =  0.0           ;
+; res_shear850250@cnMaxLevelValF       =  100.0 ; Use 80.0 -> 60 for this
+;
+;res_shear850250@gsnLeftString = "850-250mb shear mag."
+;
+;plotshear850250 = gsn_csm_contour_map(wks,shear850250(0,:,:),res_shear850250)
+;draw(plotshear850250)
+;frame(wks)
+;delete(wks)
+;delete(res_shear850250)
+;delete(cmap)
 
 
 

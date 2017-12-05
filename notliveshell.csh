@@ -27,7 +27,7 @@ machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 
 
 sendplots=true ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
 
-dotracking=false ; echo "dotracking set to $dotracking"
+dotracking=true ; echo "dotracking set to $dotracking"
 
 runmodel=true ; echo "runmodel set to $runmodel"
  
@@ -60,7 +60,7 @@ path_to_case=/glade/p/work/$LOGNAME/${casename}
 gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC.nc
 sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC_filter.nc
-nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc
+nclPlotWeights=/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc
 
 usingCIME=true
 
