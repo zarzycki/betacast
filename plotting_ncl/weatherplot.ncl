@@ -13,7 +13,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-;ncl weatherplot.ncl inisec=64800 iniday=4 inimon=12 iniyear=2017 'filename="/glade/scratch/zarzycki/forecast_conus_30_x8_CAM5/run/2017120418/___forecast_conus_30_x8_CAM5.cam.h0.2017-12-06-00000.nc"' 'wgt_file="/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc"'
+;ncl weatherplot.ncl inisec=43200 iniday=5 inimon=12 iniyear=2017 'filename="/glade/scratch/zarzycki/forecast_conus_30_x8_CAM5/run/2017120512/_forecast_conus_30_x8_CAM5.cam.h0.2017-12-12-00000.nc"' 'wgt_file="/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc"'
 
 ; now read as command line option as of 11/17/17
 ;wgt_file = "/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
@@ -24,6 +24,8 @@ inidaystr = sprinti("%02d",iniday)
 inisecstr = sprinti("%05d",inisec)
 inihourstr = sprinti("%02d",toint(inisec)/3600)
 inihoursince = cd_inv_calendar(toint(iniyearstr),toint(inimonstr),toint(inidaystr),toint(inihourstr),0,0,"hours", 0)
+
+out_type = "png"
 
 ;datafiledir = "/home/zarzycki/tcforecast_68_x4/run/test/proc/"
 ;fils = systemfunc("ls " + datafiledir + "*cam.h1*")
@@ -81,7 +83,8 @@ mslp_se = datafile->PSL/100
 preclav_se=datafile->PRECLav
 preccav_se=datafile->PRECCav
 precbsn_se=datafile->PRECBSN
-ts_se=datafile->TS
+ts_se=datafile->TREFHT
+ptype_se=datafile->PTYPE
 
 prectav_se=preclav_se
 prectav_se=preclav_se+preccav_se
@@ -107,6 +110,7 @@ mslp  = ESMF_regrid_with_weights(mslp_se,wgt_file,Opt)
 prectav= ESMF_regrid_with_weights(prectav_se,wgt_file,Opt)
 precbsn= ESMF_regrid_with_weights(precbsn_se,wgt_file,Opt)
 ts= ESMF_regrid_with_weights(ts_se,wgt_file,Opt)
+ptype= ESMF_regrid_with_weights(ptype_se,wgt_file,Opt)
 
 guess     = 1                ; use zonal means
 is_cyclic = True             ; cyclic [global]
@@ -129,6 +133,7 @@ poisson_grid_fill( mslp, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( prectav, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( precbsn, is_cyclic, guess, nscan, eps, relc, opt)
 poisson_grid_fill( ts, is_cyclic, guess, nscan, eps, relc, opt)
+poisson_grid_fill( ptype, is_cyclic, guess, nscan, eps, relc, opt)
 
 print(max(mslp))
 print(min(mslp))
@@ -191,6 +196,12 @@ tsf = ts
 tsf = (ts-273.15)*9.0/5.0+32.0
 tsf@units="degrees F"
 
+ptype = toint(ptype)
+copy_VarMeta(u850,ptype)
+ptype@units="-"
+ptype@long_name="Precipitation type"
+ptype = where(prect_mmday .lt. 0.1,ptype@_FillValue,ptype)
+
 ;shear850250 = u850
 ;shear850250 = 1.943*sqrt((u850-u250)^2 + (v850-v250)^2)
 
@@ -199,7 +210,7 @@ tsf@units="degrees F"
 ; PLOT
 ;*****************************************************
 
-do plotindex = 0,1
+do plotindex = 0,2
 
 ; NORTH ATLANTIC
 ;if (plotindex .eq. 0)
@@ -213,7 +224,7 @@ if (plotindex .eq. 0)
   maxlat = 53.           ; choose subregion           
   minlat = 21.
   maxlon = 295. 
-  minlon = 230.
+  minlon = 231.
 ;else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  plotname = "epac"
 ;  maxlat = 40.             
@@ -250,6 +261,12 @@ else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
 ;  minlat = 25.
 ;  maxlon = 300. 
 ;  minlon = 230.
+else if (plotindex .eq. 2)     ; Modif EPAC for CONUS
+  plotname = "float1"
+  maxlat = 41.5              
+  minlat = 36.5
+  maxlon = 258.5 
+  minlon = 250.5
 else
   plotname = "glob"
   maxlat = 90.           ; choose subregion           
@@ -258,17 +275,23 @@ else
   minlon = 0.
 end if
 end if
+end if
 
 print("Plotting: "+plotname)
 
 
 ;----------- Global resources -----------------------------------------
 
-res                 = True
+resbase                 = True
+resbase@gsnDraw      = False                        ; don't draw yet
+resbase@gsnFrame     = False                        ; don't advance frame yet
+resbase@gsnMaximize = True
+resbase@gsnLeftString = ""
+resbase@gsnCenterString=""
+resbase@gsnRightString = ""
+resbase@tiMainString=""
 
-res@gsnDraw      = False                        ; don't draw yet
-res@gsnFrame     = False                        ; don't advance frame yet
-res@gsnMaximize = True
+res = resbase
 
 res@gsnAddCyclic = False                    ; Don't add a cyclic point.
 
@@ -276,7 +299,6 @@ res@cnFillOn		  = True
 res@cnLinesOn   = False 
 
 res@mpFillOn                    = False        ; turn off gray fill
-res@mpOutlineBoundarySets       = "National"   ; turn on country boundaries
 res@mpGeophysicalLineColor      = "Black"      ; color of cont. outlines
 res@mpGeophysicalLineThicknessF = 3            ; thickness of outlines
 
@@ -286,25 +308,56 @@ res@mpMinLonF = minlon
 res@mpMaxLonF = maxlon 
 res@mpCenterLonF = (res@mpMinLonF+res@mpMaxLonF)/2.
 
-;res@gsnSpreadColors      = True
+if (plotindex .eq. 2)
+  res@mpOutlineBoundarySets = "AllBoundaries"
+  res@mpDataBaseVersion         = "mediumres"             ; select database
+  res@mpDataSetName             = "Earth..4"
+  res@mpUSStateLineThicknessF = 4.0
+else
+  res@mpOutlineBoundarySets     = "geophysicalandusstates"; turn on states
+  res@mpDataBaseVersion         = "mediumres"             ; select database
+  res@mpDataSetName             = "Earth..2"
+end if
 
-res@mpOutlineBoundarySets     = "geophysicalandusstates"; turn on states
-res@mpDataBaseVersion         = "mediumres"             ; select database
-res@mpDataSetName             = "Earth..2"
+; OLD: removed 12/5/17
+;res@tiMainString = "+"+forecastHourStr
+;res@gsnCenterString = "VALID "+hourstr+"Z "+monstr+" "+daystr+" "+yearstr
+; NEW: as of 12/15/17
+res@gsnLeftString = "VALID "+hourstr+"Z "+monstr+" "+daystr+" "+yearstr+" [+"+forecastHourStr+"]"
 
-res@tiMainString = "+"+forecastHourStr
-res@gsnCenterString = "VALID "+hourstr+"Z "+monstr+" "+daystr+" "+yearstr
+res@tmXBMajorLengthF=0.0005
+res@tmXBMajorOutwardLengthF=0.0005
+res@tmXTMajorLengthF=res@tmXBMajorLengthF
+res@tmXTMajorOutwardLengthF=res@tmXBMajorOutwardLengthF
+
+res@tmYLMajorLengthF=0.0005
+res@tmYLMajorOutwardLengthF=0.0005
+res@tmYRMajorLengthF=res@tmYLMajorLengthF
+res@tmYRMajorOutwardLengthF=res@tmYLMajorOutwardLengthF
+
+res@tmXBLabelFontHeightF=0.008
+res@tmXBLabelDeltaF=0.05
+
+res@lbLabelFontHeightF = 0.01
+res@pmLabelBarHeightF = 0.05
+res@pmLabelBarWidthF = 0.6
 
 out_type = "png"
 ; previously was 900x900 before 9/12/17
-out_type@wkWidth = 900
-out_type@wkHeight = 900
+out_type@wkWidth = 825
+out_type@wkHeight = 825
 
-res_mslp = True
-res_mslp@gsnDraw          = False           ; don't draw
-res_mslp@gsnFrame         = False           ; don't advance frame
-res_mslp@cnFillOn		  = False
-res_mslp@cnLinesOn   = True
+res_contour = True
+res_contour@gsnDraw          = False           ; don't draw
+res_contour@gsnFrame         = False           ; don't advance frame
+res_contour@cnFillOn		  = False
+res_contour@cnLinesOn   = True
+res_contour@gsnRightString   = ""    
+res_contour@gsnLeftString    = ""
+res_contour@gsnCenterString  = ""
+res_contour@cnInfoLabelOn = False
+
+res_mslp = res_contour
 res_mslp@cnLowLabelsOn = True
 res_mslp@cnLowLabelBackgroundColor = -1
 res_mslp@cnLabelMasking = False
@@ -314,15 +367,8 @@ res_mslp@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
 res_mslp@cnLevelSpacingF      =  4.0                ;
 res_mslp@cnMinLevelValF       =  900.0           ;
 res_mslp@cnMaxLevelValF       =  1060.0 ; Use 80.0 -> 60 for this
-res_mslp@gsnRightString   = ""    
-res_mslp@gsnLeftString    = ""
-res_mslp@gsnCenterString  = ""
 
-res_z500 = True
-res_z500@gsnDraw          = False           ; don't draw
-res_z500@gsnFrame         = False           ; don't advance frame
-res_z500@cnFillOn		  = False
-res_z500@cnLinesOn   = True
+res_z500 = res_contour
 res_z500@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
 res_z500@cnLevelSpacingF      =  60.0                ;
 res_z500@cnMinLevelValF       =  4800.0           ;
@@ -331,9 +377,10 @@ res_z500@gsnRightString   = ""
 res_z500@gsnLeftString    = ""
 res_z500@gsnCenterString  = ""
 
+; =============================================================================================================================================
 
 print("Plotting instant precip...")
-out_type = "png"
+
 wks = gsn_open_wks(out_type,"prect_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 
 ;;;; RAIN, SIMULATED RADAR
@@ -369,19 +416,16 @@ cmap_interp(1,:) = cmap(1,:)
 ;cmap_interp((nnewcolors-1),:) = cmap((ncolors-1),:)
 ;cmap_interp((nnewcolors-2),:) = cmap((ncolors-2),:)
 
-
-
 res_rain@cnFillPalette=cmap
 
-;gsn_define_colormap(wks,"WhViBlGrYeOrReWh")          ; choose colormap
-;res_rain@gsnRightString = "Rainfall"
 res_rain@cnLevelSelectionMode = "ExplicitLevels"    			; set explicit contour levels
 res_rain@cnLevels    = (/0.1,0.25,0.5,1.0,2.0,3.0,4.0,5.0,7.5,10.0,15.0,20.0,25.0,35.0/)	; set levels
-;res_rain@lbLabelStride = 2
-res_rain@lbOrientation = "vertical"
-res_rain@gsnLeftString = "Instant. precip. rate"
+
+res_rain@gsnRightString = "Instant. precip. rate (color, mm/hr), MSLP (black contour, hPa)"
 
 plotrain = gsn_csm_contour_map(wks,prect_mmday(0,:,:),res_rain)
+
+; overlay
 plotmslp = gsn_csm_contour(wks,mslp(0,:,:),res_mslp)
 overlay(plotrain,plotmslp)
 
@@ -393,13 +437,58 @@ delete(plotmslp)
 delete(cmap)
 delete(cmap_interp)
 
+; =============================================================================================================================================
 
+print("Plotting ptype...")
+
+wks = gsn_open_wks(out_type,"ptype_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
+
+;;;; ptype, MM/DAY
+res_rainptype = res
+cmap = read_colormap_file("MPL_Greys")
+res_rainptype@cnFillPalette=cmap
+
+res_rainptype@cnLevelSelectionMode = "ExplicitLevels"    			; set explicit contour levels
+res_rainptype@cnLevels    = (/0.1,0.15,0.25,0.5,0.75,1.0,2.0,3.0,4.0,5.0,6.0,8.0,10.0,15.0/)	; set levels
+
+res_rainptype@gsnRightString = "Instant. precip. rate (shading, mm/hr), precip. type (color)"
+
+plotptype = gsn_csm_contour_map(wks,prect_mmday(0,:,:),res_rainptype)
+
+res_ptype = resbase
+res_ptype@cnFillOn		  = True
+res_ptype@cnLinesOn   = False
+res_ptype@lbLabelBarOn = False
+res_ptype@cnInfoLabelOn = False
+
+delete(cmap)
+cmap = (/"white","dodgerblue","orange","green","red","white"/)
+res_ptype@cnFillPalette=cmap
+res_ptype@cnLevelSelectionMode = "ExplicitLevels"    			; set explicit contour levels
+res_ptype@cnLevels    = (/0,1,2,3,4/)	; set levels
+res_ptype@cnFillOpacityF=0.2
+
+plotptype2 = gsn_csm_contour(wks,ptype(0,:,:),res_ptype)
+overlay(plotptype,plotptype2)
+
+; overlay
+plotmslp = gsn_csm_contour(wks,mslp(0,:,:),res_mslp)
+overlay(plotptype,plotmslp)
+
+draw(plotptype)
+frame(wks)
+
+delete(wks)
+delete(cmap)
+
+delete(plotmslp)
+delete(plotptype2)
+
+; =============================================================================================================================================
 
 print("Plotting accumulated precip...")
-out_type = "png"
 wks = gsn_open_wks(out_type,"sumprect_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 res_sumprecip                    = res
-;gsn_define_colormap(wks,"precip2_17lev")          ; choose colormap
 
 cmap = read_colormap_file("precip2_17lev")
 cmap_dims = dimsizes(cmap)
@@ -418,7 +507,6 @@ cmap_interp(1,:) = cmap(1,:)
 ;cmap_interp((nnewcolors-1),:) = cmap((ncolors-1),:)
 ;cmap_interp((nnewcolors-2),:) = cmap((ncolors-2),:)
 
-
 res_sumprecip@cnFillPalette=cmap_interp
 
 res_sumprecip@cnLevelSelectionMode = "ExplicitLevels"    			; set explicit contour levels
@@ -426,23 +514,22 @@ res_sumprecip@cnLevels    = (/0.05,0.1,0.15,0.2,0.3,0.4,0.5,0.75,1,1.25,1.5,1.75
 res_sumprecip@lbLabelStride=1
 res_sumprecip@lbLabelAngleF=50                 ; angle labels
 
-res_sumprecip@gsnLeftString = "Accum. precip."
-
+res_sumprecip@gsnRightString = "Accum. precipitation (in.)"
 
 plotprecipsum = gsn_csm_contour_map(wks,prectav_in(0,:,:),res_sumprecip)
 draw(plotprecipsum)
 frame(wks)
+
 delete(wks)
 delete(cmap)
 delete(cmap_interp)
 
-
-
+; =============================================================================================================================================
 
 print("Plotting accumulated snow...")
-out_type = "png"
+
 wks = gsn_open_wks(out_type,"sumsnow_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
-res_sumsnow                    = res
+res_sumsnow   = res
 
 cmap = read_colormap_file("/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/colormaps/wxbell_snow.rgb")
 res_sumsnow@cnFillPalette = cmap(::-1,:)       ; reverse color map
@@ -450,10 +537,8 @@ res_sumsnow@cnFillOpacityF = 0.75
 
 res_sumsnow@cnLevelSelectionMode = "ExplicitLevels"    			; set explicit contour levels
 res_sumsnow@cnLevels    = (/ 0.25, 0.5, 1., 1.5, 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16., 17., 18., 19., 20., 21., 22., 23., 24., 26., 28., 30., 32., 34., 36., 38., 40., 42., 44., 46., 48., 52., 56., 60., 64., 68., 72./)
-res_sumsnow@lbLabelStride=1
-res_sumsnow@lbLabelAngleF=50                 ; angle labels
 
-res_sumsnow@gsnLeftString = "Accum. 10:1 snow (thermo)"
+res_sumsnow@gsnRightString = "Accum. Bourgouin snow (10:1 in.)"
 
 plotsnowsum = gsn_csm_contour_map(wks,precbsn_in(0,:,:),res_sumsnow)
 
@@ -464,9 +549,13 @@ text = new((/nlat,nlon/),"graphic")
 
 if (plotindex .eq. 0) then
   stride=19
-else
+else if (plotindex .eq. 1) then
   stride=9
+else
+  stride=3
 end if
+end if
+
 do ii = 0,nlat-1,stride
 do jj = 0,nlon-1,stride
   if (lat(ii) .ge. minlat .and. lat(ii) .le. maxlat .and. lon(jj) .ge. minlon .and. lon(jj) .le. maxlon) then
@@ -487,7 +576,7 @@ delete(stride)
 delete(txres)
 
 
-; ====== Plot 250 VORT ============
+; =============================================================================================================================================
 
 ; >>>out_type = "png"
 ; >>>wks = gsn_open_wks(out_type,"250vort_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
@@ -503,10 +592,11 @@ delete(txres)
 ; >>>frame(wks)
 ; >>>delete(wks)
 
-; ====== Plot 500 VORT ============
+; =============================================================================================================================================
 
 print("Plotting 500 mb vort + z500 + U/V 500...")
-out_type = "png"
+
+
 wks = gsn_open_wks(out_type,"500vort_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 
 res_500vort = res
@@ -520,7 +610,7 @@ res_500vort@cnLevelSpacingF      =  2.0              ;
 res_500vort@cnMinLevelValF       =  0.0           ;
 res_500vort@cnMaxLevelValF       =  40.0 ; Use 80.0 -> 60 for this
 
-res_500vort@gsnLeftString = "500mb vort/Z/wind"
+res_500vort@gsnRightString = "500mb vort/Z/wind"
 
 
 plot500vort = gsn_csm_contour_map(wks,vort500(0,:,:),res_500vort)
@@ -564,35 +654,34 @@ delete(cmap)
 ; >>>delete(wks)
 
 ; ====== Plot TMQ ============
+
 print("Plotting TMQ...")
-out_type = "png"
+
 wks = gsn_open_wks(out_type,"tmq_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 
 res_tmq = res
 
 cmap = read_colormap_file("nice_gfdl")
 res_tmq@cnFillPalette=cmap
-;gsn_define_colormap(wks,"rainbow")          ; choose colormap
 
 res_tmq@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
 res_tmq@cnLevelSpacingF      =  2.0              ;
 res_tmq@cnMinLevelValF       =  20.0           ;
 res_tmq@cnMaxLevelValF       =  66.0 ; Use 80.0 -> 60 for this
 
-res_tmq@gsnLeftString = "TPW"
-
+res_tmq@gsnRightString = "Total precipitable water (mm)"
 
 plottmq = gsn_csm_contour_map(wks,tmq(0,:,:),res_tmq)
 draw(plottmq)
 frame(wks)
+
 delete(wks)
 delete(cmap)
 
-
-
 ; ====== Plot TS ============
+
 print("Plotting TS...")
-out_type = "png"
+
 wks = gsn_open_wks(out_type,"ts_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 
 res_ts = res
@@ -606,12 +695,19 @@ res_ts@cnLevelSpacingF      =  2.5             ;
 res_ts@cnMinLevelValF       =  -5.0           ;
 res_ts@cnMaxLevelValF       =  110.0 ; Use 80.0 -> 60 for this
 
-res_ts@gsnLeftString = "Surface temp."
-
-print(max(ts))
-print(min(ts))
+res_ts@gsnRightString = "Surface temperature (F)"
 
 plotts = gsn_csm_contour_map(wks,tsf(0,:,:),res_ts)
+
+res_fzTS=res_contour
+res_fzTS@cnLevelSelectionMode = "ExplicitLevels"     ; set manual contour levels
+res_fzTS@cnLevels    = (/ 32. /)      ; set levels
+res_fzTS@cnLineLabelsOn       = False
+res_fzTS@cnInfoLabelOn = False
+res_fzTS@cnLineColor="red3"
+res_fzTS@cnLineThicknessF = 4.             ; doubles thickness of zero contour
+plotzeroline = gsn_csm_contour(wks,tsf(0,::2,::2),res_fzTS)
+overlay(plotts,plotzeroline)
 
 txres               = True  
 txres@txFontHeightF = 0.011             ; Set the font height
@@ -620,9 +716,13 @@ text = new((/nlat,nlon/),"graphic")
 
 if (plotindex .eq. 0) then
   stride=31
-else
+else if (plotindex .eq. 1) then
   stride=11
+else
+  stride=5
 end if
+end if
+
 do ii = 0,nlat-1,stride
 do jj = 0,nlon-1,stride
   if (lat(ii) .ge. minlat .and. lat(ii) .le. maxlat .and. lon(jj) .ge. minlon .and. lon(jj) .le. maxlon) then
@@ -633,44 +733,33 @@ do jj = 0,nlon-1,stride
 end do
 end do
 
-
 draw(plotts)
 frame(wks)
+
 delete(wks)
 delete(cmap)
 
-
-
-
 ; ====== Plot FLUT ============
+
 print("Plotting FLUT...")
-out_type = "png"
 wks = gsn_open_wks(out_type,"flut_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 
 res_flut = res
 
 cmap = read_colormap_file("MPL_gist_yarg")
 res_flut@cnFillPalette=cmap
-;gsn_define_colormap(wks,"irsat")        ; choose color map
-
-;res_flut@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
-;res_flut@cnLevelSpacingF      =  15.0              ;
-;res_flut@cnMinLevelValF       =  90.0           ;
-;res_flut@cnMaxLevelValF       =  360.0 ; Use 80.0 -> 60 for this
 
 res_flut@cnLevelSelectionMode = "ManualLevels"
 res_flut@cnLevelSpacingF      =  10.
 res_flut@cnMinLevelValF       =  120.0
 res_flut@cnMaxLevelValF       =  250.0
 
-;res_flut@cnFillMode="RasterFill"
-
 res_flut@mpFillOn = True
 res_flut@mpOceanFillColor       = "black"
 res_flut@mpLandFillColor        = "darkgreen"
 res_flut@mpInlandWaterFillColor = "black"
 
-res_flut@gsnLeftString = "OLR"
+res_flut@gsnRightString = "Outgoing longwave rad. (W/m2)"
 
 res_flut@mpGeophysicalLineColor="green"
 
@@ -678,28 +767,28 @@ res_flut@mpGeophysicalLineColor="green"
 plotflut = gsn_csm_contour_map(wks,flut(0,:,:),res_flut)
 draw(plotflut)
 frame(wks)
+
 delete(wks)
 delete(res_flut)
 delete(cmap)
 
 ; ====== Plot 850 WIND ============
+
 print("Plotting 850mb wind + MSLP...")
-out_type = "png"
+
 wks = gsn_open_wks(out_type,"wind_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 
 res_wind = res
 
 cmap = read_colormap_file("WhBlGrYeRe")
 res_wind@cnFillPalette=cmap
-;gsn_define_colormap(wks,"WhBlGrYeRe")
-
 
 res_wind@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
 res_wind@cnLevelSpacingF      =  2.0                ;
 res_wind@cnMinLevelValF       =  4.0           ;
 res_wind@cnMaxLevelValF       =  46.0 ; Use 80.0 -> 60 for this
 
-res_wind@gsnLeftString = "MSLP/850mb wind"
+res_wind@gsnRightString = "MSLP/850mb wind"
 
 plotwind = gsn_csm_contour_map(wks,wind(0,:,:),res_wind)
 plotmslp = gsn_csm_contour(wks,mslp(0,:,:),res_mslp)
@@ -741,6 +830,7 @@ delete(cmap)
 ;delete(wks)
 ;delete(res_shear850250)
 ;delete(cmap)
+
 
 
 

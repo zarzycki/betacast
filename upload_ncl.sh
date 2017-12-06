@@ -15,7 +15,7 @@ module load ncl
 ###############################################################################
 yearstr=2017
 monthstr=12
-daystr=05
+daystr=06
 cyclestr=00
 cyclestrsec=00000
 ###############################################################################
@@ -49,25 +49,25 @@ fi
 	numfiles=`ls ${runDir}/*h0*.nc | wc -l`
 	echo $numfiles
 
-  VARS=PRECLav,PRECCav,PRECBSN,PRECBRA,PRECBIP,PRECBFZ
-
-  for i in `seq 1 ${numfiles}`;
-  do
-    thisFile=`echo $filenames | cut -d" " -f${i}`
-    if [ "$i" -eq 1 ] ; then
-      ncks -v ${VARS} ${thisFile} ${runDir}/sum${i}.nc
-      ncks -A -v ${VARS} ${runDir}/sum${i}.nc ${thisFile}
-      rm ${runDir}/sum${i}.nc
-    else
-      iminus1=`expr $i - 1`
-      lastFile=`echo $filenames | cut -d" " -f${iminus1}`
-      ncrcat -v ${VARS} ${thisFile} ${lastFile} ${runDir}/tmpfile2.nc
-      ncra -h -O -y ttl ${runDir}/tmpfile2.nc ${runDir}/sum${i}.nc
-      ncap2 -A -s 'time=time+0.0625' ${runDir}/sum${i}.nc ${runDir}/sum${i}.nc
-      ncks -A -v ${VARS} ${runDir}/sum${i}.nc ${thisFile}
-      rm ${runDir}/sum${i}.nc ${runDir}/tmpfile2.nc
-    fi
-  done 
+   VARS=PRECLav,PRECCav,PRECBSN,PRECBRA,PRECBIP,PRECBFZ
+ 
+   for i in `seq 1 ${numfiles}`;
+   do
+     thisFile=`echo $filenames | cut -d" " -f${i}`
+     if [ "$i" -eq 1 ] ; then
+       ncks -v ${VARS} ${thisFile} ${runDir}/sum${i}.nc
+       ncks -A -v ${VARS} ${runDir}/sum${i}.nc ${thisFile}
+       rm ${runDir}/sum${i}.nc
+     else
+       iminus1=`expr $i - 1`
+       lastFile=`echo $filenames | cut -d" " -f${iminus1}`
+       ncrcat -v ${VARS} ${thisFile} ${lastFile} ${runDir}/tmpfile2.nc
+       ncra -h -O -y ttl ${runDir}/tmpfile2.nc ${runDir}/sum${i}.nc
+       ncap2 -A -s 'time=time+0.0625' ${runDir}/sum${i}.nc ${runDir}/sum${i}.nc
+       ncks -A -v ${VARS} ${runDir}/sum${i}.nc ${thisFile}
+       rm ${runDir}/sum${i}.nc ${runDir}/tmpfile2.nc
+     fi
+   done 
 		
 		sleep 5
 		echo "Found at least one file"
@@ -96,9 +96,10 @@ fi
 		done
 		
 		## Get file list in txt file for FLANIS viewer
-		basins=(natl epac)
+		#basins=(natl epac)
+		basins=(natl epac float1)
 		#outflds=(wind tmq flut prect sumprect 500vort shear850250)
-		outflds=(wind tmq flut prect sumprect 500vort sumsnow ts)
+		outflds=(wind tmq flut prect sumprect 500vort sumsnow ts ptype)
 
 		# Loop over items in outflds
 		for basin in ${basins[*]}
