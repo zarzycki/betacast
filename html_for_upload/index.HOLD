@@ -15,7 +15,7 @@
 
 <h1>CESM/CAM-SE forecast simulations</h1>
 
-Site maintained by: <a href="http://www.colinzarzycki.com">Colin Zarzycki</a>
+Simulations and site maintained by: <a href="http://www.colinzarzycki.com">Colin Zarzycki</a>
 
 <p>Computing support is currently provided through <a href="https://www2.cisl.ucar.edu/resources/computational-systems/cheyenne">CISL Cheyenne</a> at the National Center for Atmospheric Research. Web space is provided by the <a href="http://www.cgd.ucar.edu/systems/">Climate and Global Dynamics Information Systems group.</a></p>
 
@@ -25,47 +25,1436 @@ Site maintained by: <a href="http://www.colinzarzycki.com">Colin Zarzycki</a>
 
 <p>(<a href="http://dx.doi.org/10.1175/MWR-D-15-0159.1"><b>DOI</b></a>) <b>C. M. Zarzycki</b> and C. Jablonowski (2015), Experimental tropical cyclone forecasts using a variable-resolution global model. <i>Mon. Weat. Rev.</i>, doi:10.1175/MWR-D-15-0159.1</p>
 
-<p><font color="#FF2D00">UPDATE: Using 14km CONUS mesh from NCAR ASD runs as of 00Z 2017 11 18.</font></p>
-<p><font color="#FF2D00">UPDATE: Added snowfall, precipitation type, and surface temperature products as of 00Z 2017 12 05.</font></p>
-<p><font color="#FF2D00">UPDATE: Added Colorado zoom floater as of 00Z 2017 12 06.</font></p>
+<p>
+<font color="#FF2D00">UPDATE: Using 14km CONUS mesh from NCAR ASD runs as of 00Z 2017 11 18.</font><br>
+<font color="#FF2D00">UPDATE: Added snowfall, precipitation type, and surface temperature products as of 00Z 2017 12 05. Other suggestions welcome.</font><br>
+<font color="#FF2D00">UPDATE: Added Colorado zoom floater as of 00Z 2017 12 06.</font><br>
+<font color="#FF2D00">UPDATE: Updated from MG1 to MG2 microphysics (i.e., essentially CAM5.3 to CAM5.4) as of 00Z 2017 12 29.</font>
+</p>
 
 <!--FORECASTHEAD-->
-<p><!--2017120600-->
-<font size="5"><b>2017120600</b></font><br>
-<i><font color="green">COMPLETED AT Wed Dec  6 05:03:47 UTC 2017</font></i><br><!--2017120600-->
-<b>CONUS</b><br><!--2017120600-->
-<a href="2017120600/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
-<a href="2017120600/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2017120600/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
-<a href="2017120600/ts_natl_hanis.html">Surface temperature</a><br>
-<a href="2017120600/prect_natl_hanis.html">Precipitation/MSLP</a><br>
-<a href="2017120600/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
-<a href="2017120600/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
-<a href="2017120600/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
-<a href="2017120600/tmq_natl_hanis.html">Total precipitable water</a><br>
-<a href="2017120600/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
-<br><b>NORTHEAST USA</b><br><!--2017120600-->
-<a href="2017120600/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
-<a href="2017120600/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2017120600/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
-<a href="2017120600/ts_epac_hanis.html">Surface temperature</a><br>
-<a href="2017120600/prect_epac_hanis.html">Precipitation/MSLP</a><br>
-<a href="2017120600/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
-<a href="2017120600/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
-<a href="2017120600/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
-<a href="2017120600/tmq_epac_hanis.html">Total precipitable water</a><br>
-<br><b>COLORADO</b><br><!--2017120600-->
-<a href="2017120600/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
-<a href="2017120600/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
-<a href="2017120600/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
-<a href="2017120600/ts_float1_hanis.html">Surface temperature</a><br>
-<a href="2017120600/prect_float1_hanis.html">Precipitation/MSLP</a><br>
-<a href="2017120600/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
-<a href="2017120600/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
-<a href="2017120600/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
-<a href="2017120600/tmq_float1_hanis.html">Total precipitable water</a><br>
+<p><!--2018011712-->
+<font size="5"><b>2018011712</b></font><br>
+<i><font color="green">COMPLETED AT Wed Jan 17 17:28:21 UTC 2018</font></i><br><!--2018011712-->
+<b>CONUS</b><br><!--2018011712-->
+<a href="2018011712/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011712/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011712/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011712/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011712/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011712/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011712/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011712/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011712/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011712/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011712/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011712-->
+<a href="2018011712/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011712/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011712/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011712/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011712/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011712/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011712/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011712/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011712/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011712/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011712-->
+<a href="2018011712/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011712/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011712/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011712/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011712/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011712/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011712/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011712/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011712/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011712/tmq_float1_hanis.html">Total precipitable water</a><br>
 <br>
-</p><!--2017120600-->
+</p><!--2018011712-->
+
+<p><!--2018011700-->
+<font size="5"><b>2018011700</b></font><br>
+<i><font color="green">COMPLETED AT Wed Jan 17 05:24:46 UTC 2018</font></i><br><!--2018011700-->
+<b>CONUS</b><br><!--2018011700-->
+<a href="2018011700/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011700/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011700/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011700/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011700/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011700/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011700/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011700/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011700/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011700/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011700/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011700-->
+<a href="2018011700/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011700/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011700/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011700/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011700/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011700/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011700/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011700/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011700/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011700/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011700-->
+<a href="2018011700/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011700/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011700/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011700/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011700/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011700/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011700/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011700/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011700/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011700/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011700-->
+
+<p><!--2018011612-->
+<font size="5"><b>2018011612</b></font><br>
+<i><font color="green">COMPLETED AT Tue Jan 16 20:51:45 UTC 2018</font></i><br><!--2018011612-->
+<b>CONUS</b><br><!--2018011612-->
+<a href="2018011612/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011612/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011612/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011612/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011612/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011612/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011612/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011612/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011612/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011612/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011612/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011612-->
+<a href="2018011612/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011612/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011612/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011612/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011612/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011612/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011612/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011612/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011612/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011612/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011612-->
+<a href="2018011612/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011612/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011612/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011612/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011612/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011612/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011612/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011612/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011612/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011612/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011612-->
+
+<p><!--2018011600-->
+<font size="5"><b>2018011600</b></font><br>
+<i><font color="green">COMPLETED AT Tue Jan 16 05:23:02 UTC 2018</font></i><br><!--2018011600-->
+<b>CONUS</b><br><!--2018011600-->
+<a href="2018011600/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011600/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011600/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011600/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011600/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011600/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011600/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011600/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011600/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011600/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011600/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011600-->
+<a href="2018011600/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011600/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011600/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011600/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011600/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011600/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011600/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011600/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011600/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011600/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011600-->
+<a href="2018011600/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011600/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011600/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011600/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011600/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011600/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011600/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011600/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011600/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011600/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011600-->
+
+<p><!--2018011512-->
+<font size="5"><b>2018011512</b></font><br>
+<i><font color="green">COMPLETED AT Mon Jan 15 17:19:36 UTC 2018</font></i><br><!--2018011512-->
+<b>CONUS</b><br><!--2018011512-->
+<a href="2018011512/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011512/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011512/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011512/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011512/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011512/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011512/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011512/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011512/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011512/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011512/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011512-->
+<a href="2018011512/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011512/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011512/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011512/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011512/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011512/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011512/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011512/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011512/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011512/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011512-->
+<a href="2018011512/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011512/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011512/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011512/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011512/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011512/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011512/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011512/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011512/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011512/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011512-->
+
+<p><!--2018011500-->
+<font size="5"><b>2018011500</b></font><br>
+<i><font color="green">COMPLETED AT Mon Jan 15 05:16:07 UTC 2018</font></i><br><!--2018011500-->
+<b>CONUS</b><br><!--2018011500-->
+<a href="2018011500/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011500/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011500/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011500/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011500/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011500/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011500/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011500/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011500/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011500/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011500/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011500-->
+<a href="2018011500/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011500/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011500/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011500/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011500/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011500/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011500/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011500/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011500/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011500/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011500-->
+<a href="2018011500/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011500/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011500/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011500/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011500/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011500/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011500/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011500/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011500/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011500/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011500-->
+
+<p><!--2018011412-->
+<font size="5"><b>2018011412</b></font><br>
+<i><font color="green">COMPLETED AT Sun Jan 14 17:18:20 UTC 2018</font></i><br><!--2018011412-->
+<b>CONUS</b><br><!--2018011412-->
+<a href="2018011412/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011412/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011412/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011412/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011412/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011412/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011412/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011412/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011412/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011412/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011412/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011412-->
+<a href="2018011412/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011412/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011412/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011412/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011412/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011412/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011412/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011412/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011412/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011412/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011412-->
+<a href="2018011412/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011412/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011412/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011412/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011412/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011412/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011412/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011412/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011412/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011412/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011412-->
+
+<p><!--2018011400-->
+<font size="5"><b>2018011400</b></font><br>
+<i><font color="green">COMPLETED AT Sun Jan 14 05:21:29 UTC 2018</font></i><br><!--2018011400-->
+<b>CONUS</b><br><!--2018011400-->
+<a href="2018011400/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011400/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011400/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011400/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011400/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011400/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011400/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011400/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011400/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011400/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011400/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011400-->
+<a href="2018011400/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011400/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011400/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011400/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011400/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011400/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011400/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011400/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011400/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011400/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011400-->
+<a href="2018011400/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011400/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011400/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011400/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011400/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011400/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011400/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011400/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011400/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011400/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011400-->
+
+<p><!--2018011312-->
+<font size="5"><b>2018011312</b></font><br>
+<i><font color="green">COMPLETED AT Sat Jan 13 17:18:43 UTC 2018</font></i><br><!--2018011312-->
+<b>CONUS</b><br><!--2018011312-->
+<a href="2018011312/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011312/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011312/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011312/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011312/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011312/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011312/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011312/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011312/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011312/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011312/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011312-->
+<a href="2018011312/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011312/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011312/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011312/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011312/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011312/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011312/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011312/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011312/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011312/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011312-->
+<a href="2018011312/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011312/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011312/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011312/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011312/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011312/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011312/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011312/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011312/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011312/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011312-->
+
+<p><!--2018011300-->
+<font size="5"><b>2018011300</b></font><br>
+<i><font color="green">COMPLETED AT Sat Jan 13 05:20:27 UTC 2018</font></i><br><!--2018011300-->
+<b>CONUS</b><br><!--2018011300-->
+<a href="2018011300/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011300/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011300/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011300/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011300/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011300/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011300/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011300/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011300/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011300/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011300/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011300-->
+<a href="2018011300/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011300/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011300/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011300/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011300/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011300/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011300/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011300/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011300/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011300/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011300-->
+<a href="2018011300/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011300/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011300/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011300/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011300/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011300/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011300/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011300/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011300/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011300/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011300-->
+
+<p><!--2018011212-->
+<font size="5"><b>2018011212</b></font><br>
+<i><font color="green">COMPLETED AT Fri Jan 12 17:19:21 UTC 2018</font></i><br><!--2018011212-->
+<b>CONUS</b><br><!--2018011212-->
+<a href="2018011212/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011212/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011212/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011212/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011212/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011212/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011212/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011212/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011212/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011212/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011212/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011212-->
+<a href="2018011212/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011212/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011212/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011212/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011212/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011212/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011212/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011212/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011212/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011212/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011212-->
+<a href="2018011212/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011212/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011212/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011212/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011212/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011212/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011212/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011212/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011212/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011212/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011212-->
+
+<p><!--2018011200-->
+<font size="5"><b>2018011200</b></font><br>
+<i><font color="green">COMPLETED AT Fri Jan 12 05:17:29 UTC 2018</font></i><br><!--2018011200-->
+<b>CONUS</b><br><!--2018011200-->
+<a href="2018011200/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011200/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011200/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011200/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011200/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011200/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011200/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011200/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011200/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011200/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011200/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011200-->
+<a href="2018011200/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011200/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011200/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011200/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011200/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011200/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011200/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011200/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011200/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011200/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011200-->
+<a href="2018011200/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011200/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011200/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011200/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011200/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011200/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011200/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011200/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011200/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011200/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011200-->
+
+<p><!--2018011112-->
+<font size="5"><b>2018011112</b></font><br>
+<i><font color="green">COMPLETED AT Thu Jan 11 17:18:53 UTC 2018</font></i><br><!--2018011112-->
+<b>CONUS</b><br><!--2018011112-->
+<a href="2018011112/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011112/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011112/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011112/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011112/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011112/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011112/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011112/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011112/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011112/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011112/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011112-->
+<a href="2018011112/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011112/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011112/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011112/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011112/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011112/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011112/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011112/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011112/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011112/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011112-->
+<a href="2018011112/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011112/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011112/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011112/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011112/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011112/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011112/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011112/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011112/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011112/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011112-->
+
+<p><!--2018011100-->
+<font size="5"><b>2018011100</b></font><br>
+<i><font color="green">COMPLETED AT Thu Jan 11 05:18:45 UTC 2018</font></i><br><!--2018011100-->
+<b>CONUS</b><br><!--2018011100-->
+<a href="2018011100/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011100/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011100/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011100/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011100/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011100/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011100/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011100/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011100/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011100/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011100/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011100-->
+<a href="2018011100/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011100/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011100/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011100/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011100/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011100/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011100/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011100/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011100/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011100/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011100-->
+<a href="2018011100/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011100/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011100/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011100/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011100/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011100/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011100/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011100/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011100/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011100/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011100-->
+
+<p><!--2018011012-->
+<font size="5"><b>2018011012</b></font><br>
+<i><font color="green">COMPLETED AT Wed Jan 10 17:18:48 UTC 2018</font></i><br><!--2018011012-->
+<b>CONUS</b><br><!--2018011012-->
+<a href="2018011012/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011012/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011012/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011012/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011012/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011012/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011012/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011012/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011012/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011012/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011012/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011012-->
+<a href="2018011012/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011012/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011012/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011012/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011012/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011012/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011012/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011012/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011012/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011012/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011012-->
+<a href="2018011012/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011012/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011012/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011012/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011012/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011012/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011012/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011012/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011012/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011012/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011012-->
+
+<p><!--2018011000-->
+<font size="5"><b>2018011000</b></font><br>
+<i><font color="green">COMPLETED AT Wed Jan 10 05:19:23 UTC 2018</font></i><br><!--2018011000-->
+<b>CONUS</b><br><!--2018011000-->
+<a href="2018011000/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011000/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011000/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011000/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018011000/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011000/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011000/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011000/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011000/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011000/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018011000/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018011000-->
+<a href="2018011000/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011000/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011000/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011000/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018011000/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011000/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011000/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011000/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011000/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011000/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018011000-->
+<a href="2018011000/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018011000/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018011000/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018011000/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018011000/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018011000/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018011000/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018011000/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018011000/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018011000/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018011000-->
+
+<p><!--2018010912-->
+<font size="5"><b>2018010912</b></font><br>
+<i><font color="green">COMPLETED AT Tue Jan  9 17:19:56 UTC 2018</font></i><br><!--2018010912-->
+<b>CONUS</b><br><!--2018010912-->
+<a href="2018010912/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010912/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010912/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010912/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010912/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010912/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010912/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010912/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010912/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010912/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010912/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010912-->
+<a href="2018010912/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010912/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010912/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010912/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010912/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010912/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010912/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010912/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010912/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010912/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010912-->
+<a href="2018010912/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010912/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010912/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010912/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010912/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010912/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010912/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010912/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010912/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010912/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010912-->
+
+<p><!--2018010900-->
+<font size="5"><b>2018010900</b></font><br>
+<i><font color="green">COMPLETED AT Tue Jan  9 05:20:44 UTC 2018</font></i><br><!--2018010900-->
+<b>CONUS</b><br><!--2018010900-->
+<a href="2018010900/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010900/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010900/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010900/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010900/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010900/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010900/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010900/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010900/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010900/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010900/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010900-->
+<a href="2018010900/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010900/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010900/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010900/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010900/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010900/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010900/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010900/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010900/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010900/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010900-->
+<a href="2018010900/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010900/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010900/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010900/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010900/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010900/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010900/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010900/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010900/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010900/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010900-->
+
+<p><!--2018010812-->
+<font size="5"><b>2018010812</b></font><br>
+<i><font color="green">COMPLETED AT Mon Jan  8 17:23:36 UTC 2018</font></i><br><!--2018010812-->
+<b>CONUS</b><br><!--2018010812-->
+<a href="2018010812/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010812/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010812/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010812/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010812/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010812/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010812/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010812/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010812/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010812/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010812/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010812-->
+<a href="2018010812/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010812/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010812/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010812/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010812/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010812/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010812/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010812/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010812/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010812/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010812-->
+<a href="2018010812/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010812/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010812/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010812/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010812/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010812/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010812/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010812/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010812/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010812/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010812-->
+
+<p><!--2018010800-->
+<font size="5"><b>2018010800</b></font><br>
+<i><font color="green">COMPLETED AT Mon Jan  8 05:20:36 UTC 2018</font></i><br><!--2018010800-->
+<b>CONUS</b><br><!--2018010800-->
+<a href="2018010800/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010800/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010800/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010800/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010800/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010800/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010800/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010800/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010800/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010800/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010800/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010800-->
+<a href="2018010800/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010800/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010800/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010800/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010800/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010800/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010800/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010800/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010800/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010800/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010800-->
+<a href="2018010800/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010800/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010800/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010800/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010800/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010800/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010800/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010800/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010800/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010800/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010800-->
+
+<p><!--2018010712-->
+<font size="5"><b>2018010712</b></font><br>
+<i><font color="green">COMPLETED AT Sun Jan  7 17:20:55 UTC 2018</font></i><br><!--2018010712-->
+<b>CONUS</b><br><!--2018010712-->
+<a href="2018010712/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010712/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010712/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010712/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010712/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010712/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010712/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010712/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010712/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010712/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010712/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010712-->
+<a href="2018010712/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010712/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010712/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010712/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010712/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010712/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010712/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010712/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010712/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010712/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010712-->
+<a href="2018010712/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010712/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010712/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010712/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010712/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010712/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010712/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010712/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010712/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010712/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010712-->
+
+<p><!--2018010700-->
+<font size="5"><b>2018010700</b></font><br>
+<i><font color="green">COMPLETED AT Sun Jan  7 05:21:40 UTC 2018</font></i><br><!--2018010700-->
+<b>CONUS</b><br><!--2018010700-->
+<a href="2018010700/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010700/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010700/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010700/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010700/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010700/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010700/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010700/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010700/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010700/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010700/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010700-->
+<a href="2018010700/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010700/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010700/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010700/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010700/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010700/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010700/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010700/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010700/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010700/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010700-->
+<a href="2018010700/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010700/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010700/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010700/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010700/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010700/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010700/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010700/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010700/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010700/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010700-->
+
+<p><!--2018010612-->
+<font size="5"><b>2018010612</b></font><br>
+<i><font color="green">COMPLETED AT Sat Jan  6 17:21:06 UTC 2018</font></i><br><!--2018010612-->
+<b>CONUS</b><br><!--2018010612-->
+<a href="2018010612/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010612/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010612/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010612/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010612/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010612/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010612/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010612/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010612/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010612/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010612/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010612-->
+<a href="2018010612/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010612/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010612/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010612/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010612/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010612/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010612/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010612/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010612/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010612/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010612-->
+<a href="2018010612/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010612/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010612/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010612/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010612/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010612/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010612/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010612/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010612/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010612/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010612-->
+
+<p><!--2018010600-->
+<font size="5"><b>2018010600</b></font><br>
+<i><font color="green">COMPLETED AT Sat Jan  6 05:23:14 UTC 2018</font></i><br><!--2018010600-->
+<b>CONUS</b><br><!--2018010600-->
+<a href="2018010600/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010600/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010600/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010600/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010600/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010600/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010600/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010600/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010600/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010600/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010600/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010600-->
+<a href="2018010600/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010600/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010600/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010600/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010600/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010600/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010600/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010600/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010600/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010600/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010600-->
+<a href="2018010600/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010600/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010600/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010600/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010600/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010600/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010600/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010600/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010600/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010600/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010600-->
+
+<p><!--2018010512-->
+<font size="5"><b>2018010512</b></font><br>
+<i><font color="green">COMPLETED AT Fri Jan  5 17:20:57 UTC 2018</font></i><br><!--2018010512-->
+<b>CONUS</b><br><!--2018010512-->
+<a href="2018010512/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010512/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010512/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010512/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010512/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010512/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010512/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010512/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010512/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010512/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010512/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010512-->
+<a href="2018010512/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010512/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010512/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010512/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010512/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010512/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010512/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010512/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010512/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010512/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010512-->
+<a href="2018010512/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010512/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010512/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010512/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010512/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010512/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010512/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010512/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010512/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010512/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010512-->
+
+<p><!--2018010500-->
+<font size="5"><b>2018010500</b></font><br>
+<i><font color="green">COMPLETED AT Fri Jan  5 05:18:51 UTC 2018</font></i><br><!--2018010500-->
+<b>CONUS</b><br><!--2018010500-->
+<a href="2018010500/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010500/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010500/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010500/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010500/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010500/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010500/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010500/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010500/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010500/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010500/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010500-->
+<a href="2018010500/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010500/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010500/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010500/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010500/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010500/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010500/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010500/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010500/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010500/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010500-->
+<a href="2018010500/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010500/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010500/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010500/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010500/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010500/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010500/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010500/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010500/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010500/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010500-->
+
+<p><!--2018010412-->
+<font size="5"><b>2018010412</b></font><br>
+<i><font color="green">COMPLETED AT Thu Jan  4 17:21:28 UTC 2018</font></i><br><!--2018010412-->
+<b>CONUS</b><br><!--2018010412-->
+<a href="2018010412/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010412/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010412/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010412/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010412/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010412/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010412/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010412/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010412/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010412/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010412/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010412-->
+<a href="2018010412/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010412/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010412/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010412/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010412/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010412/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010412/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010412/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010412/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010412/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010412-->
+<a href="2018010412/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010412/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010412/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010412/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010412/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010412/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010412/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010412/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010412/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010412/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010412-->
+
+<p><!--2018010400-->
+<font size="5"><b>2018010400</b></font><br>
+<i><font color="green">COMPLETED AT Thu Jan  4 05:25:21 UTC 2018</font></i><br><!--2018010400-->
+<b>CONUS</b><br><!--2018010400-->
+<a href="2018010400/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010400/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010400/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010400/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2018010400/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010400/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010400/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010400/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010400/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010400/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2018010400/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2018010400-->
+<a href="2018010400/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010400/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010400/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010400/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2018010400/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010400/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010400/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010400/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010400/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010400/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2018010400-->
+<a href="2018010400/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2018010400/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2018010400/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2018010400/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2018010400/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2018010400/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2018010400/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2018010400/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2018010400/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2018010400/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2018010400-->
+
+<p><!--2017123012-->
+<font size="5"><b>2017123012</b></font><br>
+<i><font color="green">COMPLETED AT Sat Dec 30 17:17:41 UTC 2017</font></i><br><!--2017123012-->
+<b>CONUS</b><br><!--2017123012-->
+<a href="2017123012/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017123012/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017123012/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017123012/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2017123012/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2017123012/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017123012/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017123012/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017123012/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017123012/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017123012/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2017123012-->
+<a href="2017123012/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017123012/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017123012/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017123012/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2017123012/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2017123012/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017123012/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017123012/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017123012/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017123012/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2017123012-->
+<a href="2017123012/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017123012/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017123012/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017123012/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2017123012/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2017123012/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017123012/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017123012/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2017123012/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017123012/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2017123012-->
+
+<p><!--2017123000-->
+<font size="5"><b>2017123000</b></font><br>
+<i><font color="green">COMPLETED AT Sat Dec 30 07:33:30 UTC 2017</font></i><br><!--2017123000-->
+<b>CONUS</b><br><!--2017123000-->
+<a href="2017123000/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017123000/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017123000/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017123000/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2017123000/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2017123000/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017123000/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017123000/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017123000/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017123000/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017123000/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2017123000-->
+<a href="2017123000/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017123000/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017123000/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017123000/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2017123000/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2017123000/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017123000/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017123000/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017123000/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017123000/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2017123000-->
+<a href="2017123000/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017123000/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017123000/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017123000/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2017123000/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2017123000/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017123000/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017123000/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2017123000/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017123000/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2017123000-->
+
+
+<p><!--2017122912-->
+<font size="5"><b>2017122912</b></font><br>
+<i><font color="green">COMPLETED AT Fri Dec 29 17:17:20 UTC 2017</font></i><br><!--2017122912-->
+<b>CONUS</b><br><!--2017122912-->
+<a href="2017122912/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122912/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122912/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122912/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2017122912/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122912/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122912/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122912/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122912/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017122912/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2017122912-->
+<a href="2017122912/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122912/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122912/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122912/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2017122912/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122912/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122912/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122912/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122912/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2017122912-->
+<a href="2017122912/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122912/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122912/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122912/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2017122912/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122912/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122912/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122912/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122912/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2017122912-->
+
+<p><!--2017122900-->
+<font size="5"><b>2017122900</b></font><br>
+<i><font color="green">COMPLETED AT Fri Dec 29 05:17:01 UTC 2017</font></i><br><!--2017122900-->
+<b>CONUS</b><br><!--2017122900-->
+<a href="2017122900/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122900/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122900/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122900/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2017122900/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122900/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122900/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122900/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122900/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017122900/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2017122900-->
+<a href="2017122900/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122900/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122900/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122900/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2017122900/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122900/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122900/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122900/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122900/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2017122900-->
+<a href="2017122900/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122900/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122900/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122900/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2017122900/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122900/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122900/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122900/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122900/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2017122900-->
+
+<p><!--2017122812-->
+<font size="5"><b>2017122812</b></font><br>
+<i><font color="green">COMPLETED AT Thu Dec 28 17:02:03 UTC 2017</font></i><br><!--2017122812-->
+<b>CONUS</b><br><!--2017122812-->
+<a href="2017122812/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122812/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122812/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122812/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2017122812/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122812/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122812/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122812/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122812/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017122812/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2017122812-->
+<a href="2017122812/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122812/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122812/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122812/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2017122812/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122812/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122812/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122812/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122812/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2017122812-->
+<a href="2017122812/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122812/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122812/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122812/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2017122812/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122812/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122812/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122812/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122812/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2017122812-->
+
+<p><!--2017122800-->
+<font size="5"><b>2017122800</b></font><br>
+<i><font color="green">COMPLETED AT Thu Dec 28 05:04:21 UTC 2017</font></i><br><!--2017122800-->
+<b>CONUS</b><br><!--2017122800-->
+<a href="2017122800/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122800/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122800/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122800/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2017122800/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122800/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122800/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122800/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122800/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017122800/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2017122800-->
+<a href="2017122800/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122800/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122800/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122800/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2017122800/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122800/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122800/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122800/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122800/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2017122800-->
+<a href="2017122800/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122800/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122800/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122800/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2017122800/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122800/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122800/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122800/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122800/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2017122800-->
+
+<p><!--2017122712-->
+<font size="5"><b>2017122712</b></font><br>
+<i><font color="green">COMPLETED AT Wed Dec 27 17:04:39 UTC 2017</font></i><br><!--2017122712-->
+<b>CONUS</b><br><!--2017122712-->
+<a href="2017122712/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122712/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122712/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122712/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2017122712/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122712/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122712/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122712/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122712/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017122712/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2017122712-->
+<a href="2017122712/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122712/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122712/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122712/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2017122712/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122712/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122712/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122712/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122712/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2017122712-->
+<a href="2017122712/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122712/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122712/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122712/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2017122712/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122712/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122712/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122712/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122712/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2017122712-->
+
+<p><!--2017122700-->
+<font size="5"><b>2017122700</b></font><br>
+<i><font color="green">COMPLETED AT Wed Dec 27 05:02:27 UTC 2017</font></i><br><!--2017122700-->
+<b>CONUS</b><br><!--2017122700-->
+<a href="2017122700/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122700/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122700/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122700/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2017122700/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122700/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122700/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122700/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122700/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2017122700/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png">Cyclone tracks (Tempest)</a><br>
+<br><b>NORTHEAST USA</b><br><!--2017122700-->
+<a href="2017122700/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122700/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122700/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122700/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2017122700/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122700/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122700/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122700/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122700/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>COLORADO</b><br><!--2017122700-->
+<a href="2017122700/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2017122700/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2017122700/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2017122700/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2017122700/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2017122700/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2017122700/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2017122700/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2017122700/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2017122700-->
 
 <img style="width: 40%" src="conus_30_x8.png" alt="cam-se grid">
 

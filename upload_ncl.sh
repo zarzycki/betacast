@@ -13,11 +13,11 @@
 ##=======================================================================
 module load ncl
 ###############################################################################
-yearstr=2017
-monthstr=12
-daystr=06
-cyclestr=00
-cyclestrsec=00000
+yearstr=2018
+monthstr=01
+daystr=17
+cyclestr=12
+cyclestrsec=43200
 ###############################################################################
 #nclweightfile="/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
 nclweightfile=$1
@@ -99,7 +99,7 @@ fi
 		#basins=(natl epac)
 		basins=(natl epac float1)
 		#outflds=(wind tmq flut prect sumprect 500vort shear850250)
-		outflds=(wind tmq flut prect sumprect 500vort sumsnow ts ptype)
+		outflds=(wind tmq flut prect sumprect 500vort sumsnow ts tsanom ptype)
 
 		# Loop over items in outflds
 		for basin in ${basins[*]}
@@ -110,10 +110,10 @@ fi
 					
 					if [ ! -f ${item}_${basin}_files.txt ]; then
 						echo "File not found!"
-						ls -1 ${item}*${basin}*png > ${item}_${basin}_files_nopath.txt
+						ls -1 ${item}_${basin}*png > ${item}_${basin}_files_nopath.txt
 					else
 						mv ${item}_${basin}_files_nopath.txt orig_${item}_${basin}_files.txt
-						ls -1 ${item}*${basin}*png > tocat_${item}_${basin}_files.txt
+						ls -1 ${item}_${basin}*png > tocat_${item}_${basin}_files.txt
 						cat orig_${item}_${basin}_files.txt tocat_${item}_${basin}_files.txt > ${item}_${basin}_files_nopath.txt
 						rm tocat_${item}_${basin}_files.txt orig_${item}_${basin}_files.txt
 					fi

@@ -13,7 +13,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-;ncl weatherplot.ncl inisec=43200 iniday=5 inimon=12 iniyear=2017 'filename="/glade/scratch/zarzycki/forecast_conus_30_x8_CAM5/run/2017120512/_forecast_conus_30_x8_CAM5.cam.h0.2017-12-12-00000.nc"' 'wgt_file="/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc"'
+;ncl weatherplot.ncl inisec=43200 iniday=29 inimon=12 iniyear=2017 'filename="/glade/scratch/zarzycki/forecast_conus_30_x8_CAM5/run/2017122912/_forecast_conus_30_x8_CAM5.cam.h0.2017-12-30-00000.nc"' 'wgt_file="/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc"'
 
 ; now read as command line option as of 11/17/17
 ;wgt_file = "/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
@@ -86,6 +86,8 @@ precbsn_se=datafile->PRECBSN
 ts_se=datafile->TREFHT
 ptype_se=datafile->PTYPE
 
+delete([/datafile/])
+
 prectav_se=preclav_se
 prectav_se=preclav_se+preccav_se
 delete(preclav_se)
@@ -111,6 +113,9 @@ prectav= ESMF_regrid_with_weights(prectav_se,wgt_file,Opt)
 precbsn= ESMF_regrid_with_weights(precbsn_se,wgt_file,Opt)
 ts= ESMF_regrid_with_weights(ts_se,wgt_file,Opt)
 ptype= ESMF_regrid_with_weights(ptype_se,wgt_file,Opt)
+
+delete([/prect_se,u500_se,v500_se,z500_se,tmq_se,flut_se,u850_se,v850_se,mslp_se,prectav_se,precbsn_se,ts_se,ptype_se/])
+
 
 guess     = 1                ; use zonal means
 is_cyclic = True             ; cyclic [global]
@@ -204,6 +209,20 @@ ptype = where(prect_mmday .lt. 0.1,ptype@_FillValue,ptype)
 
 ;shear850250 = u850
 ;shear850250 = 1.943*sqrt((u850-u250)^2 + (v850-v250)^2)
+
+;*****************************************************
+; ANOMS
+;*****************************************************
+
+f_anom=addfile("/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/climo-files/TS-1980-2009-NCEP.nc","r")
+ANOMTIME=f_anom->time
+ANOMDATE=cd_inv_calendar(2000,toint(monstr),toint(daystr),toint(hourstr),0,0,ANOMTIME@units,0)
+TSANOM=f_anom->TS({ANOMDATE},:,:)
+TSANOM_CAM=linint2(TSANOM&lon,TSANOM&lat,TSANOM,True,tsf&lon,tsf&lat,0)
+TSANOM_CAM_F=(TSANOM_CAM-273.15)*9.0/5.0+32.0
+tsf_anom=tsf
+tsf_anom(0,:,:)=tsf(0,:,:)-TSANOM_CAM_F(:,:)
+delete([/f_anom,ANOMTIME,ANOMDATE,TSANOM,TSANOM_CAM,TSANOM_CAM_F/])
 
 
 ;*****************************************************
@@ -688,14 +707,13 @@ res_ts = res
 
 cmap = read_colormap_file("amwg256")
 res_ts@cnFillPalette=cmap
-res_sumsnow@cnFillOpacityF = 0.75
 
 res_ts@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
 res_ts@cnLevelSpacingF      =  2.5             ;
 res_ts@cnMinLevelValF       =  -5.0           ;
 res_ts@cnMaxLevelValF       =  110.0 ; Use 80.0 -> 60 for this
 
-res_ts@gsnRightString = "Surface temperature (F)"
+res_ts@gsnRightString = "Surface temperature (degF)"
 
 plotts = gsn_csm_contour_map(wks,tsf(0,:,:),res_ts)
 
@@ -732,6 +750,32 @@ do jj = 0,nlon-1,stride
   end if
 end do
 end do
+
+draw(plotts)
+frame(wks)
+
+delete(wks)
+delete(cmap)
+
+; ====== Plot TS ANOM ============
+
+print("Plotting TS ANOM...")
+
+wks = gsn_open_wks(out_type,"tsanom_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
+
+res_tsanom = res
+
+cmap = read_colormap_file("MPL_RdBu")
+res_tsanom@cnFillPalette=cmap(::-1,:)
+
+res_tsanom@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
+res_tsanom@cnLevelSpacingF      =  2.5             ;
+res_tsanom@cnMinLevelValF       =  -25.0           ;
+res_tsanom@cnMaxLevelValF       =  25.0 ; Use 80.0 -> 60 for this
+
+res_tsanom@gsnRightString = "Sfc. temp. anom. (1980-2009 NCEP base) (degF)"
+
+plotts = gsn_csm_contour_map(wks,tsf_anom(0,:,:),res_tsanom)
 
 draw(plotts)
 frame(wks)
