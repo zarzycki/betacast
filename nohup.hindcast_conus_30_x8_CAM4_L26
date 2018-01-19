@@ -1,0 +1,436 @@
+nohup: ignoring input
+debug set to 0
+islive set to 0
+isliveresub set to 1
+machineid set to 1
+sendplots set to false
+dotracking set to false
+runmodel set to true
+doFilter set to true
+filterOnly set to false
+We are using hindcast_conus_30_x8_CAM4_L26 for the case
+The formal SE run will start at +3 hours from actual init time
+2017
+12
+01
+00
+‘dates.hindcast_conus_30_x8_CAM4_L26.txt.2’ -> ‘dates.hindcast_conus_30_x8_CAM4_L26.txt’
+0
+03
+10800
+The current time is 
+We are using 2017 12 01 00 Z (00000 seconds) for GFS data
+We are using 2017 12 01 00 Z for SST data
+SE initialization will occur at 2017 12 01 03 Z (10800 seconds)
+Using GFS forecast ICs
+Getting GFS conditions
+Getting Atmo file
+Attempting to download gfs.0p25.2017120100.f000.grib2
+Using NOAAOI SSTs
+ Copyright (C) 1995-2017 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.4.0
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+(0)	copying SST file from repo to /glade/p/work/zarzycki/sewx/SST/sst_hindcast_conus_30_x8_CAM4_L26_1x1.nc
+(0)	running date 2017120100
+(0)	Writing 1x1 SSTs
+(0)	Sorting bad SST
+(0)	Converting SST floats to doubles
+(0)	Copying SST metadata
+(0)	Correcting SST time records
+(0)	Sorting bad ice
+(0)	Converting ICE floats to doubles
+(0)	Copying ICE metadata
+(0)	Correcting ICE time records
+(0)	Convert to float
+(0)	Writing file...
+(0)	done
+SST NCL completed successfully
+Cding to GFS interpolation directory
+Doing NCL
+ncl -n atm_to_cam.ncl datasource="GFS" numlevels=26 YYYYMMDDHH=2017120100 data_filename = "/glade/p/work/zarzycki/sewx/GFS/gfs_atm_2017120100.grib2" wgt_filename="/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc" se_inic = "/glade/p/work/zarzycki/sewx/INIC/hindcast_conus_30_x8_CAM4_L26_INIC.nc"
+ Copyright (C) 1995-2017 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.4.0
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+Regridding analysis from: 2017 12 01 00Z
+---------------------------------------------------------
+Using this file: /glade/p/work/zarzycki/sewx/GFS/gfs_atm_2017120100.grib2
+Using this remap: /glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
+---------------------------------------------------------
+Loading lat/lon/lev
+cldlev varname: lv_ISBL6
+rhlev varname: lv_ISBL6
+---------------------------------------------------------
+Loading variables
+Interpolating GRIB to uniform vertical levels
+Calculating q from RH
+Sorting bad values
+seperating cloud ice and water
+=================================================================
+************ NATIVE DATA
+Max T: 317.085   min T: 184.193
+Max U: 137.1   min U: -45.7561
+Max V: 86.8419   min V: -63.7128
+Max Q: 0.0313551   min Q: -0.020223
+Max PS: 105157   min PS: 47784.4
+Max CLDICE: 0.003078   min CLDICE: 0
+Max CLDLIQ: 0.003352   min CLDLIQ: 0
+=================================================================
+---------------------------------------------------------
+Loading CAM levels
+Loading 26 level data
+Interpolating to CAM hybrid coordinates
+Using pressure to hybrid interpolation
+=================================================================
+************ AFTER VERTICAL INTERP
+Max T: 310.472   min T: 184.484
+Max U: 97.7027   min U: -44.5036
+Max V: 83.7295   min V: -63.4728
+Max Q: 0.0199554   min Q: 0
+Max PS: 105157   min PS: 47784.4
+Max CLDICE: 0.0018251   min CLDICE: 0
+Max CLDLIQ: 0.00285011   min CLDLIQ: 0
+=================================================================
+Interpolating horizontal to CAM
+=================================================================
+************ AFTER HORIZONTAL INTERP
+Max T: 310.192   min T: 184.978
+Max U: 97.6504   min U: -43.2802
+Max V: 83.3935   min V: -62.2794
+Max Q: 0.0198555   min Q: -4.89818e-07
+Max PS: 105157   min PS: 47784.4
+Max CLDICE: 0.00135413   min CLDICE: -2.25391e-05
+Max CLDLIQ: 0.00221946   min CLDLIQ: -3.13025e-05
+=================================================================
+
+Variable: ps_fv
+Type: float
+Total Size: 696392 bytes
+            174098 values
+Number of Dimensions: 1
+Dimensions and sizes:	[174098]
+Coordinates: 
+Number Of Attributes: 15
+  center :	US National Weather Service - NCEP (WMC)
+  production_status :	Operational products
+  long_name :	Pressure
+  units :	Pa
+  _FillValue :	1e+20
+  grid_type :	Latitude/longitude
+  parameter_discipline_and_category :	Meteorological products, Mass
+  parameter_template_discipline_category_number :	( 0, 0, 3, 0 )
+  level_type :	Ground or water surface
+  level :	 0
+  forecast_time :	0
+  forecast_time_units :	hours
+  initial_time :	12/01/2017 (00:00)
+  remap :	remapped via ESMF_regrid_with_weights: Higher-order Patch
+  missing_value :	1e+20
+Converting floats to doubles
+Correcting time records
+Writing output file
+
+=====> Wall Clock Elapsed Time: Total runtime: 43 seconds <=====
+
+done
+ATM NCL completed successfully
+Turning off archiving and restart file output in env_run.xml
+Setting SST from default to our SST
+Update env_run.xml with runtime parameters
+‘user_nl_cam_run’ -> ‘user_nl_cam’
+Setting input land dataset
+/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/clmstart/hindcast_conus_30_x8_CAM4_L26.clm2.r.2017-12-01-00000.nc
+File exists at exact time
+landrestartfile: /glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/clmstart/hindcast_conus_30_x8_CAM4_L26.clm2.r.2017-12-01-00000.nc
+numlogfiles: 1
+‘user_nl_cam_filter’ -> ‘user_nl_cam’
+Begin call to filter-run
+Creating component namelists
+   Calling cam buildnml
+   Calling clm buildnml
+   Calling cice buildnml
+   Calling docn buildnml
+   Calling srof buildnml
+   Running srof buildnml
+
+   Calling sglc buildnml
+   Running sglc buildnml
+
+   Calling swav buildnml
+   Running swav buildnml
+
+   Calling sesp buildnml
+   Running sesp buildnml
+
+   Calling drv buildnml
+Finished creating component namelists
+Checking that inputdata is available as part of case submission
+Loading input file list: 'Buildconf/clm.input_data_list'
+Loading input file list: 'Buildconf/cpl.input_data_list'
+Loading input file list: 'Buildconf/cice.input_data_list'
+Loading input file list: 'Buildconf/docn.input_data_list'
+Loading input file list: 'Buildconf/cam.input_data_list'
+Check case OK
+submit_jobs case.run
+job is case.run
+Submit job case.run
+Submitting job script qsub    -q regular -l walltime=00:11:00 -A P05010048 case.run 
+Submitted job id is 3402151.chadmin1
+Submitted job ids ['3402151.chadmin1']
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Run over done sleeping will hold for 60 more sec to make sure files moved
+Running filter
+ Copyright (C) 1995-2017 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.4.0
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+(0)	FILTER PROCESSING
+(0)	Using filter file: /glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/hindcast_conus_30_x8_CAM4_L26.cam.h0.2017-12-01-00000.nc
+(0)	Will output post-filter file here: /glade/p/work/zarzycki/sewx/INIC/hindcast_conus_30_x8_CAM4_L26_INIC_filter.nc
+(0)	-----------------
+(0)	Using a t_cut of: 6
+(0)	Simulation is 6 hours long
+(0)	timestep is: 0.125
+
+
+Variable: h_k
+Type: double
+Total Size: 392 bytes
+            49 values
+Number of Dimensions: 1
+Dimensions and sizes:	[49]
+Coordinates: 
+Number Of Attributes: 1
+  _FillValue :	9.969209968386869e+36
+(0)	1.517556416053978e-09
+(1)	0.0001688088182977668
+(2)	0.0005415464271692167
+(3)	0.001150043482704225
+(4)	0.002021228666026033
+(5)	0.003175625085612405
+(6)	0.004625999854621036
+(7)	0.00637624392724522
+(8)	0.008420558137758135
+(9)	0.01074295016150227
+(10)	0.01331712395732192
+(11)	0.01610675783056973
+(12)	0.0190661754647743
+(13)	0.02214141985299004
+(14)	0.02527166153791945
+(15)	0.02839092333568524
+(16)	0.03143006955477153
+(17)	0.0343189602993774
+(18)	0.03698871742490774
+(19)	0.03937396507447863
+(20)	0.04141506878128701
+(21)	0.04306011735793127
+(22)	0.0442667547780445
+(23)	0.04500359179862974
+(24)	0.04525137374563741
+(25)	0.04500359179862974
+(26)	0.0442667547780445
+(27)	0.04306011735793127
+(28)	0.04141506878128701
+(29)	0.03937396507447863
+(30)	0.03698871742490774
+(31)	0.0343189602993774
+(32)	0.03143006955477153
+(33)	0.02839092333568524
+(34)	0.02527166153791945
+(35)	0.02214141985299004
+(36)	0.0190661754647743
+(37)	0.01610675783056973
+(38)	0.01331712395732192
+(39)	0.01074295016150227
+(40)	0.008420558137758135
+(41)	0.00637624392724522
+(42)	0.004625999854621036
+(43)	0.003175625085612405
+(44)	0.002021228666026033
+(45)	0.001150043482704225
+(46)	0.0005415464271692167
+(47)	0.0001688088182977668
+(48)	1.517556416053978e-09
+(0)	Doing PS
+(0)	Writing PS...
+(0)	Doing T
+(0)	Writing T...
+(0)	Doing U
+(0)	Writing U...
+(0)	Doing V
+(0)	Writing V...
+(0)	Doing Q
+(0)	Writing Q...
+(0)	Doing CLDLIQ
+(0)	Writing CLDLIQ...
+(0)	Doing CLDICE
+(0)	Writing CLDICE...
+(0)	done
+done with filter, removing filter files
+‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/cat.nc’ -> ‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/filtered/cat.nc’
+‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/hindcast_conus_30_x8_CAM4_L26.cam.h0.2017-12-01-00000.nc’ -> ‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/filtered/hindcast_conus_30_x8_CAM4_L26.cam.h0.2017-12-01-00000.nc’
+‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/hindcast_conus_30_x8_CAM4_L26.cam.i.2017-12-01-21600.nc’ -> ‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/filtered/hindcast_conus_30_x8_CAM4_L26.cam.i.2017-12-01-21600.nc’
+‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/SEMapping.nc’ -> ‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/filtered/SEMapping.nc’
+‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/tmp.nc’ -> ‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/filtered/tmp.nc’
+removed ‘/glade/scratch/zarzycki/hindcast_conus_30_x8_CAM4_L26/run/filtered/hindcast_conus_30_x8_CAM4_L26.cam.h0.2017-12-01-00000.nc’
+Make changes in CESM-SE namelist
+‘user_nl_cam_run’ -> ‘user_nl_cam’
+Begin call to forecast run
+Using Yellowstone
+Creating component namelists
+   Calling cam buildnml
+   Calling clm buildnml
+   Calling cice buildnml
+   Calling docn buildnml
+   Calling srof buildnml
+   Running srof buildnml
+
+   Calling sglc buildnml
+   Running sglc buildnml
+
+   Calling swav buildnml
+   Running swav buildnml
+
+   Calling sesp buildnml
+   Running sesp buildnml
+
+   Calling drv buildnml
+Finished creating component namelists
+Checking that inputdata is available as part of case submission
+Loading input file list: 'Buildconf/clm.input_data_list'
+Loading input file list: 'Buildconf/cpl.input_data_list'
+Loading input file list: 'Buildconf/cice.input_data_list'
+Loading input file list: 'Buildconf/docn.input_data_list'
+Loading input file list: 'Buildconf/cam.input_data_list'
+Check case OK
+submit_jobs case.run
+job is case.run
+Submit job case.run
+Submitting job script qsub    -q regular -l walltime=01:59:00 -A P05010048 case.run 
+Submitted job id is 3404242.chadmin1
+Submitted job ids ['3404242.chadmin1']
+numlogfiles: 7
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping
+Sleeping

@@ -165,9 +165,13 @@ else if (numlevels .eq. 32)
 else if (numlevels .eq. 26)
   print("Loading 26 level data")
   fC   = addfile ("./L26template.nc", "r")
+else if (numlevels .eq. 59)
+  print("Loading 59 level data")
+  fC   = addfile ("./L59template.nc", "r")
 else
   print("Bad numlevs, exiting...")
   exit
+end if
 end if
 end if
 end if

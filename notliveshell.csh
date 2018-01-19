@@ -58,13 +58,13 @@ land_spinup=false   #daily land spinup
 casename=forecast_conus_30_x8_CAM5
 path_to_case=/glade/p/work/$LOGNAME/${casename}
 gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
-sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC.nc
-sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC_filter.nc
+sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC.nc
+sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC_filter.nc
 nclPlotWeights=/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc
 
 usingCIME=true
 
-sstFileIC=/glade/p/work/zarzycki/sewx/SST/sst_1x1.nc
+sstFileIC=/glade/p/work/zarzycki/sewx/SST/sst_${casename}_1x1.nc
 
 sewxscriptsdir=/glade/u/home/$LOGNAME/sewx-cam-forecast/
 
@@ -75,6 +75,12 @@ sst_files_path=/glade/p/work/$LOGNAME/sewx/SST          # Temp path for SST
 path_to_rundir=/glade/scratch/$LOGNAME/${casename}/run
 
 upload_ncl_script=${sewxscriptsdir}/upload_ncl.sh
+
+FILTERWALLCLOCK=00:11:00
+FILTERQUEUE=regular
+RUNWALLCLOCK=01:59:00
+RUNQUEUE=regular
+
 ###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
 path_to_nc_files=${path_to_rundir}              # Path where .nc files are
@@ -201,7 +207,8 @@ then
     exit 1
   fi
 else     # if not live, draw from dates.txt file
-  longdate=$(head -n 1 dates.txt)
+  datesfile=dates.${casename}.txt
+  longdate=$(head -n 1 ${datesfile})
   
   yearstr=${longdate:0:4}
   monthstr=${longdate:4:2}
@@ -214,8 +221,8 @@ else     # if not live, draw from dates.txt file
   echo $cyclestr
   
   #Remove top line from dates file
-  tail -n +2 dates.txt > dates2.txt
-  mv -v dates2.txt dates.txt
+  tail -n +2 ${datesfile} > ${datesfile}.2
+  mv -v ${datesfile}.2 ${datesfile}
 fi
 
 ## Figure out the seconds which correspond to the cycle and zero pad if neces
@@ -720,7 +727,10 @@ if $doFilter ; then
   cd $path_to_case
   ./xmlchange STOP_OPTION=nhours,STOP_N=${filterHourLength}
   cp -v user_nl_cam_filter user_nl_cam
+  sed -i 's?.*ncdata.*?ncdata='"'${sePreFilterIC}'"'?' user_nl_cam
   ./xmlchange ATM_NCPL=192
+  ./xmlchange JOB_WALLCLOCK_TIME=${FILTERWALLCLOCK}
+  ./xmlchange JOB_QUEUE=${FILTERQUEUE}
 
   if [ $debug -ne 1 ] ; then
     echo "Begin call to filter-run"
@@ -781,7 +791,10 @@ if $doFilter ; then
   cd $path_to_case
   ./xmlchange RUN_STARTDATE=$se_yearstr-$se_monthstr-$se_daystr,START_TOD=$se_cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
   cp -v user_nl_cam_run user_nl_cam
+  sed -i 's?.*ncdata.*?ncdata='"'${sePostFilterIC}'"'?' user_nl_cam
   ./xmlchange ATM_NCPL=192
+  ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
+  ./xmlchange JOB_QUEUE=${RUNQUEUE}
 
 fi
 
@@ -891,73 +904,11 @@ if $sendplots ; then
   /bin/bash ${upload_ncl_script} ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 fi
 
-date
-
 cd $sewxscriptsdir
 
-if [ $islive -ne 0 ] ; then
-  ### Still need to figure out how to convert machzone properly
-  if [ $machzone -eq -0000 ]
-  then
-    machzone=0
-  elif [ $machzone -eq -0300 ]
-  then
-    machzone=-300
-  elif [ $machzone -eq -0400 ]
-  then
-    machzone=-400
-  elif [ $machzone -eq -0500 ]
-  then
-    machzone=-500
-  elif [ $machzone -eq -0600 ]
-  then
-    machzone=-600
-  elif [ $machzone -eq -0700 ]
-  then
-    machzone=-700
-  elif [ $machzone -eq -0800 ]
-  then
-    machzone=-800
-  elif [ $machzone -eq -0900 ]
-  then
-    machzone=-900
-  else
-    echo "Can't figure out machzone, you probably need to manually add it"
-    echo "at least until Colin figures out bash arithmetic"
-  fi
-  
-  ## 
-  if [ $cyclestr -eq 00 ]
-  then
-    let "resubhour = 1500 + $machzone"
-  elif [ $cyclestr -eq 06 ]
-  then
-    let "resubhour = 2100 + $machzone"
-  elif [ $cyclestr -eq 12 ]
-  then
-    let "resubhour = 300 + $machzone"
-  elif [ $cyclestr -eq 18 ]
-  then
-    let "resubhour = 900 + $machzone"
-  else
-    echo "Can't figure out start time"
-  fi
-  
-  if [ $resubhour -lt 0 ]
-  then
-    let "resubhour = 2400 + $resubhour"
-  fi
-  let "resubhour = $resubhour/100"
-  
-  echo "The resub hour is: $resubhour"
-  echo "Therefore restart time is: ${resubhour}:30"
-  
-  #Sed into testshell.csh
-  #sed -i 's?^#SBATCH --begin.*?#SBATCH --begin='$resubhour':30?' testshell.csh
-fi
-
 if [ $isliveresub -ne 0 ] ; then
-  bsub < notliveshell.csh
+  sleep 60
+  nohup ./notliveshell.csh &
 fi
 
 exit 0

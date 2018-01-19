@@ -24,6 +24,9 @@ begin
 ;SST_write_dir = "/glade/p/work/zarzycki/sewx/SST/"
 ;datasource = "GDAS"
 
+print("copying SST file from repo to "+SST_write_file)
+system("cp ./sst_1x1.nc "+SST_write_file)
+
 print("running date "+initdate)
 KtoC=273.15
 
