@@ -908,7 +908,7 @@ cd $sewxscriptsdir
 
 if [ $isliveresub -ne 0 ] ; then
   sleep 60
-  nohup ./notliveshell.csh &
+  nohup ./main-realtime.sh &
 fi
 
 exit 0
