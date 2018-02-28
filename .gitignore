@@ -1,5 +1,6 @@
+*-NCEP.nc
 simple.nc
-nohup.out
+nohup*
 html_for_upload/20*
 *.Log
 core.*

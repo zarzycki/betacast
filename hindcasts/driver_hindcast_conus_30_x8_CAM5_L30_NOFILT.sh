@@ -38,12 +38,12 @@ runmodel=true ; echo "runmodel set to $runmodel"
 atmDataType=1             # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
 ### Use NOAAOI unless running real-time
 sstDataType=3              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
-numLevels=26               # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
+numLevels=30               # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
 
 numdays=10                  #forecast length (in days)
 
 # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
-doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
+doFilter=false ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
 filterOnly=false ; echo "filterOnly set to $filterOnly" #if true, exits after filter (generates init data)
 numHoursSEStart=3
 filterHourLength=6
@@ -56,7 +56,7 @@ land_spinup=false   #daily land spinup
 
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
-casename=hindcast_conus_30_x8_CAM4_L26
+casename=hindcast_conus_30_x8_CAM5_L30_NOFILT
 path_to_case=/glade/p/work/$LOGNAME/${casename}
 gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC.nc
@@ -79,8 +79,8 @@ upload_ncl_script=${sewxscriptsdir}/upload_ncl.sh
 
 FILTERWALLCLOCK=00:11:00
 FILTERQUEUE=regular
-RUNWALLCLOCK=01:59:00
-RUNQUEUE=regular
+RUNWALLCLOCK=01:49:00
+RUNQUEUE=economy
 
 ###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
@@ -644,9 +644,6 @@ echo "Update env_run.xml with runtime parameters"
 
 ./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
 
-cp -v user_nl_cam_run user_nl_cam
-./xmlchange ATM_NCPL=192
-
 echo "Setting input land dataset"
 # We want to check ${landdir} for clm restart files. If so, use those.
 landrestartfile=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
@@ -789,13 +786,14 @@ if $doFilter ; then
   echo "Make changes in CESM-SE namelist"
   cd $path_to_case
   ./xmlchange RUN_STARTDATE=$se_yearstr-$se_monthstr-$se_daystr,START_TOD=$se_cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
-  cp -v user_nl_cam_run user_nl_cam
-  sed -i 's?.*ncdata.*?ncdata='"'${sePostFilterIC}'"'?' user_nl_cam
-  ./xmlchange ATM_NCPL=192
-  ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
-  ./xmlchange JOB_QUEUE=${RUNQUEUE}
-
 fi
+
+cd $path_to_case
+cp -v user_nl_cam_run user_nl_cam
+sed -i 's?.*ncdata.*?ncdata='"'${sePostFilterIC}'"'?' user_nl_cam
+./xmlchange ATM_NCPL=192
+./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
+./xmlchange JOB_QUEUE=${RUNQUEUE}
 
 if [ $debug -ne 1 ]
 then
@@ -857,9 +855,8 @@ mv timing/ $archivedir/
 ## Move land files to new restart location
 cd $path_to_nc_files
 mkdir $landdir
-echo "Removing 06Z and 18Z land restart files"
-rm -v *.clm2.r.*32400.nc
-rm -v *.clm2.r.*75600.nc
+echo "Removing 12Z land restart files"
+rm -v *.clm2.r.*43200.nc
 echo "Moving land restart files"
 mv -v *.clm2.r.*nc $landdir
 rm -v *.clm2.r.*.nc
@@ -903,11 +900,11 @@ if $sendplots ; then
   /bin/bash ${upload_ncl_script} ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 fi
 
-cd $sewxscriptsdir
+cd $sewxscriptsdir/hindcasts/
 
 if [ $isliveresub -ne 0 ] ; then
   sleep 60
-  nohup ./hindcast_driver.sh &
+  nohup ./driver_${casename}.sh &
 fi
 
 exit 0
