@@ -11,6 +11,23 @@
 #PBS -l select=1:ncpus=8
 ##=======================================================================
 
+###################################################################################
+# Colin Zarzycki (zarzycki@ucar.edu)
+#
+# Driver script for running CESM/CAM in "forecast" or "hindcast" mode.
+# This code will either read UTC unix clock or read in a specified list of dates,
+# download dataset, map to CAM grid, and run a forecast.
+#
+# Generally can be executed on login nodes or in the background, ex:
+# $> nohup ./main-realtime.sh &
+# but see above for example of PBS options to submit to batch nodes
+#
+# Details can be found in:
+# C. M. Zarzycki and C. Jablonowski (2015), Experimental tropical cyclone forecasts 
+# using a variable-resolution global model. Mon. Weat. Rev., 143(10), 4012–4037.
+# doi:10.1175/MWR-D-15-0159.1.
+###################################################################################
+
 set -e
 #set -v
 
@@ -18,7 +35,8 @@ set -e
 module load ncl
 
 ###################################################################################
-############### OPTIONS ############################################
+############### OPTIONS ###########################################################
+############### NEED TO BE SET BY USER ############################################
 
 debug=0 ; echo "debug set to $debug"    # 0 = no debug, 1 = debug
 islive=1 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, running live
@@ -53,14 +71,14 @@ add_perturbs=false   # Add perturbations from climate forcing run -- right now o
 preSavedCLMuserNL=true   # is there a user_nl_clm_presave file?
 land_spinup=false   #daily land spinup
 
-###################################################################################
-############### NEED TO BE SET BY USER ############################################
+######### SEE CONFIGS.TXT #########################################################
 casename=forecast_conus_30_x8_CAM5
 path_to_case=/glade/p/work/$LOGNAME/${casename}
 gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC.nc
 sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC_filter.nc
 nclPlotWeights=/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc
+###################################################################################
 
 usingCIME=true
 
@@ -81,16 +99,18 @@ FILTERQUEUE=regular
 RUNWALLCLOCK=01:59:00
 RUNQUEUE=regular
 
-###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
 path_to_nc_files=${path_to_rundir}              # Path where .nc files are
 outputdir=${path_to_rundir}                     # Path where .nc files are being written
 archivedir=${path_to_rundir}/proc               # Path to temporarily stage final data
 landdir=${path_to_rundir}/clmstart              # Path to store CLM restart files
+
+############ END USER OPTIONS #####################################################
 ###################################################################################
-### THESE COME WITH THE REPO, DO NOT CHANGE #######################################
-gfs_to_cam_path=${sewxscriptsdir}/gfs_to_cam
-era_to_cam_path=${sewxscriptsdir}/interim_to_cam
+
+
+###################################################################################
+########### THESE COME WITH THE REPO, DO NOT CHANGE ###############################
 atm_to_cam_path=${sewxscriptsdir}/atm_to_cam
 sst_to_cam_path=${sewxscriptsdir}/sst_to_cam
 filter_path=${sewxscriptsdir}/filter
@@ -98,70 +118,6 @@ filter_path=${sewxscriptsdir}/filter
 
 # Set timestamp for backing up files, etc.
 timestamp=`date +%Y%m%d.%H%M`
-
-#casename=colorado_30_x16_forecast
-#path_to_case=/glade/p/work/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_colorado_30_x16_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/colorado_30_x16_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/colorado_30_x16_INIC_filter.nc 
-
-#casename=ecsnow_30_x0_forecast
-#path_to_case=/glade/p/work/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_ecsnow_30_x0_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x0_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x0_INIC_filter.nc 
-
-#casename=haiyan_48_x8
-#path_to_case=/glade/u/home/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_haiyan_48_x8_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC_filter.nc
-
-#casename=ecsnow_30_x4_forecast
-#path_to_case=/glade/p/work/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ecsnow_30_x4_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc 
-
-# casename=uniform_60
-# gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_uniform_60_patc.nc
-# sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC.nc
-# sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC_filter.nc
-
-#casename=uniform_240
-#gfs2seWeights=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/maps/map_gfs0.50_TO_uniform240_patc.141127.nc
-#sePreFilterIC=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/inic/inic_uniform_240_INIC.nc
-#sePostFilterIC=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/inic/inic_uniform_240_INIC.nc
-
-#casename=newgulf_30_x4
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_newgulf_30_x4_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/newgulf_30_x4_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/newgulf_30_x4_INIC_filter.nc
-
-#casename=haiyan_48_x8
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_haiyan_48_x8_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC_filter.nc
-
-#casename=native_uniform_30_forecast
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_native_ne30_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/native_ne30_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/native_ne30_INIC_filter.nc
-
-#casename=forecast_natlantic_30_x4_CAM5
-#path_to_case=/glade/p/work/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_natlantic_30_x4_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC_filter.nc
-#nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc
-
-#casename=forecast_conus_30_x8_CAM5
-#path_to_case=/glade/p/work/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC_filter.nc
-#nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc
-
 
 echo "We are using ${casename} for the case"
 echo "The formal SE run will start at +$numHoursSEStart hours from actual init time"
@@ -814,11 +770,6 @@ then
     echo "Unsupported machine" ; exit 1
   fi
   
-  #mkdir -p $archivedir
-  #mkdir -p $archivedir/images
-  #mkdir -p $archivedir/text
-  #mkdir -p $archivedir/nl_files
-  #mkdir -p $archivedir/logs
   cd $outputdir
   
   echo "Running again!" > ${path_to_rundir}/testrunning.gz
