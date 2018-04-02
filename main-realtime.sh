@@ -605,6 +605,8 @@ echo "Update env_run.xml with runtime parameters"
 cp -v user_nl_cam_run user_nl_cam
 sed -i 's?.*ncdata.*?ncdata='"'${sePreFilterIC}'"'?' user_nl_cam
 ./xmlchange ATM_NCPL=192
+./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
+./xmlchange JOB_QUEUE=${RUNQUEUE}
 
 echo "Setting input land dataset"
 # Clean up file to delete any special interp lines that may be needed later (but aren't needed for native init)
