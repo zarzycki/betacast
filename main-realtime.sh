@@ -78,6 +78,7 @@ gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_pat
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC.nc
 sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC_filter.nc
 nclPlotWeights=/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc
+landrawdir=
 ###################################################################################
 
 usingCIME=true
@@ -602,13 +603,21 @@ echo "Update env_run.xml with runtime parameters"
 ./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
 
 cp -v user_nl_cam_run user_nl_cam
+sed -i 's?.*ncdata.*?ncdata='"'${sePreFilterIC}'"'?' user_nl_cam
 ./xmlchange ATM_NCPL=192
 
 echo "Setting input land dataset"
+# Clean up file to delete any special interp lines that may be needed later (but aren't needed for native init)
+#sed -i '/finidat/d' user_nl_clm
+sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_clm
+sed -i '/use_init_interp/d' user_nl_clm
+#echo "finidat=''" >> user_nl_clm
+
 # We want to check ${landdir} for clm restart files. If so, use those.
 landrestartfile=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
 echo $landrestartfile
 
+# Check to see if file exists on native SE land grid
 if [ -f ${landrestartfile} ]; then
    echo "File exists at exact time"
 else
@@ -627,50 +636,25 @@ echo "landrestartfile: ${landrestartfile}"
 if [ ${landrestartfile} ] ; then
   sed -i 's?.*finidat.*?finidat='"'${landrestartfile}'"'?' user_nl_clm
 else
-  if ${preSavedCLMuserNL} ; then
-    echo "Using pre-written user_nl_clm file"
-    cp user_nl_clm_presave user_nl_clm
+  rawlandrestartfile=`ls ${landrawdir}/*.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc`
+  echo "rawlandrestartfile: ${rawlandrestartfile}"
+  if [ -f ${rawlandrestartfile} ]; then
+    sed -i 's?.*finidat.*?finidat='"'${rawlandrestartfile}'"'?' user_nl_clm
+    echo "use_init_interp = .true." >> user_nl_clm
+    echo "init_interp_fill_missing_with_natveg = .true." >> user_nl_clm
   else
-    echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
-    exit
-    #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
+    if ${preSavedCLMuserNL} ; then
+      echo "Using pre-written user_nl_clm file"
+      cp user_nl_clm_presave user_nl_clm
+    else
+      echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
+      exit
+      #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
+    fi
   fi
 fi
 
-# echo "Setting input land dataset"
-# # Copy dummy lnd namelist over with commented "!finidat" line
-# # If input land DOES exist, we'll sed in the file and remove ! comment
-# # If it does not exist, we'll do nothing and let CESM use arbitrary ICs
-# 
-# if $doFilter ; then
-#   landFileName=${landdir}/${casename}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
-#   otherLandFileName=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
-# else
-#   landFileName=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
-#   otherLandFileName=${landdir}/${casename}.clm2.r.${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
-# fi
-# 
-# if [ -f ${landFileName} ] ; then
-#   echo "Land file exists: ${landFileName}     sedding that into CLM namelist"
-#   sed -i 's?.*finidat.*?finidat='"'${landFileName}'"'?' user_nl_clm
-# else
-#   if [ -f ${otherLandFileName} ] ; then
-#       echo "Alternative land file exists: ${landFileName}     sedding that into CLM namelist"
-#       sed -i 's?.*finidat.*?finidat='"'${otherLandFileName}'"'?' user_nl_clm
-#   else
-#     if ${preSavedCLMuserNL} ; then
-#       echo "Using pre-written user_nl_clm file"
-#       cp user_nl_clm_presave user_nl_clm
-#       #echo "OK, Colin is cheating and using a different land file"
-#       #echo "He really should specify 3-4 files by month as dummies instead of CESM cold starts"
-#       #sed -i 's?!finidat.*?finidat='"'"/home/zarzycki/"${gridname}"/run/clmstart/"${gridname}".clm2.r.2012-08-24-10800.nc"'"'?' user_nl_clm
-#     else
-#       echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
-#       sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
-#     fi
-#   fi    
-# fi
-
+# Add reference *.gz file so we can count/sleep...
 echo "Running again!" > ${path_to_rundir}/testrunning.gz
 
 ## Get number of log files archived

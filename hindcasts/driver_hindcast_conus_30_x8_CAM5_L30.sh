@@ -43,7 +43,7 @@ numLevels=30               # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM
 numdays=10                  #forecast length (in days)
 
 # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
-doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
+doFilter=false ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
 filterOnly=false ; echo "filterOnly set to $filterOnly" #if true, exits after filter (generates init data)
 numHoursSEStart=3
 filterHourLength=6
@@ -62,6 +62,7 @@ gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_pat
 sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC.nc
 sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC_filter.nc
 nclPlotWeights=/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc
+landrawdir=/glade/scratch/zarzycki/forecast_ne30_CAM5/run/clmstart/
 
 usingCIME=true
 
@@ -645,13 +646,21 @@ echo "Update env_run.xml with runtime parameters"
 ./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
 
 cp -v user_nl_cam_run user_nl_cam
+sed -i 's?.*ncdata.*?ncdata='"'${sePreFilterIC}'"'?' user_nl_cam
 ./xmlchange ATM_NCPL=192
 
 echo "Setting input land dataset"
+# Clean up file to delete any special interp lines that may be needed later (but aren't needed for native init)
+#sed -i '/finidat/d' user_nl_clm
+sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_clm
+sed -i '/use_init_interp/d' user_nl_clm
+#echo "finidat=''" >> user_nl_clm
+
 # We want to check ${landdir} for clm restart files. If so, use those.
 landrestartfile=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
 echo $landrestartfile
 
+# Check to see if file exists on native SE land grid
 if [ -f ${landrestartfile} ]; then
    echo "File exists at exact time"
 else
@@ -670,13 +679,21 @@ echo "landrestartfile: ${landrestartfile}"
 if [ ${landrestartfile} ] ; then
   sed -i 's?.*finidat.*?finidat='"'${landrestartfile}'"'?' user_nl_clm
 else
-  if ${preSavedCLMuserNL} ; then
-    echo "Using pre-written user_nl_clm file"
-    cp user_nl_clm_presave user_nl_clm
+  rawlandrestartfile=`ls ${landrawdir}/*.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc`
+  echo "rawlandrestartfile: ${rawlandrestartfile}"
+  if [ -f ${rawlandrestartfile} ]; then
+    sed -i 's?.*finidat.*?finidat='"'${rawlandrestartfile}'"'?' user_nl_clm
+    echo "use_init_interp = .true." >> user_nl_clm
+    echo "init_interp_fill_missing_with_natveg = .true." >> user_nl_clm
   else
-    echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
-    exit
-    #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
+    if ${preSavedCLMuserNL} ; then
+      echo "Using pre-written user_nl_clm file"
+      cp user_nl_clm_presave user_nl_clm
+    else
+      echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
+      exit
+      #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
+    fi
   fi
 fi
 
