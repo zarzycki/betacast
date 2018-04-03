@@ -1,19 +1,22 @@
 #!/bin/bash
 
 ##=======================================================================
-#SBATCH -J hindcast-driver
-#SBATCH -N 1
-#SBATCH -n 1
-#SBATCH -C geyser
-#SBATCH -t 08:00:00
-#SBATCH -A P93300042
-#SBATCH -p dav
+#PBS -N wx-driver
+#PBS -A P54048000 
+#PBS -l walltime=6:00:00
+#PBS -q share
+#PBS -k oe
+#PBS -m a 
+#PBS -M zarzycki@ucar.edu
+#PBS -l select=1:ncpus=8
 ##=======================================================================
 
 set -e
 #set -v
 
-#source /glade/u/apps/opt/slurm_init/init.sh
+#source /glade/apps/opt/lmod/lmod/init/bash
+module load ncl
+
 
 ###################################################################################
 ############### OPTIONS ############################################
@@ -37,10 +40,10 @@ atmDataType=1             # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
 sstDataType=3              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
 numLevels=30               # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
 
-numdays=10                  #forecast length (in days)
+numdays=7                  #forecast length (in days)
 
 # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
-doFilter=false ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
+doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
 filterOnly=false ; echo "filterOnly set to $filterOnly" #if true, exits after filter (generates init data)
 numHoursSEStart=3
 filterHourLength=6
@@ -53,39 +56,41 @@ land_spinup=false   #daily land spinup
 
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
-casename=hindcast_conus_30_x8_CAM5_L30
+casename=hindcast_natlantic_30_x4_CAM5_L30
 path_to_case=/glade/p/work/$LOGNAME/${casename}
-gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
-sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC.nc
-sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/${casename}_INIC_filter.nc
-nclPlotWeights=/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc
+gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_natlantic_30_x4_patc.nc
+pathToINICfiles=/glade/p/work/${LOGNAME}/sewx/INIC/
+sePreFilterIC=${pathToINICfiles}/${casename}_INIC.nc
+sePostFilterIC=${pathToINICfiles}/${casename}_INIC_filter.nc
+nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc
 landrawdir=/glade/scratch/zarzycki/forecast_ne30_CAM5/run/clmstart/
 
 usingCIME=true
 
-sstFileIC=/glade/p/work/zarzycki/sewx/SST/sst_${casename}_1x1.nc
+pathToSSTfiles=/glade/p/work/${LOGNAME}/sewx/SST/
+sstFileIC=${pathToSSTfiles}/sst_${casename}_1x1.nc
 
-sewxscriptsdir=/glade/u/home/$LOGNAME/sewx-cam-forecast/
+sewxscriptsdir=/glade/u/home/${LOGNAME}/sewx-cam-forecast/
 
-gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS          # Temp path for GFS/CFSR DL/proc
+gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS/          # Temp path for GFS/CFSR DL/proc
 era_files_path=/glade/p/work/$LOGNAME/getECMWFdata/
-sst_files_path=/glade/p/work/$LOGNAME/sewx/SST          # Temp path for SST
+sst_files_path=/glade/p/work/$LOGNAME/sewx/SST/          # Temp path for SST
 
-path_to_rundir=/glade/scratch/$LOGNAME/${casename}/run
+path_to_rundir=/glade/scratch/$LOGNAME/${casename}/run/
 
 upload_ncl_script=${sewxscriptsdir}/upload_ncl.sh
 
 FILTERWALLCLOCK=00:11:00
 FILTERQUEUE=regular
 RUNWALLCLOCK=01:49:00
-RUNQUEUE=economy
+RUNQUEUE=regular
 
 ###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
 path_to_nc_files=${path_to_rundir}              # Path where .nc files are
 outputdir=${path_to_rundir}                     # Path where .nc files are being written
-archivedir=${path_to_rundir}/proc               # Path to temporarily stage final data
-landdir=${path_to_rundir}/clmstart              # Path to store CLM restart files
+archivedir=${path_to_rundir}/proc/              # Path to temporarily stage final data
+landdir=${path_to_rundir}/clmstart/             # Path to store CLM restart files
 ###################################################################################
 ### THESE COME WITH THE REPO, DO NOT CHANGE #######################################
 gfs_to_cam_path=${sewxscriptsdir}/gfs_to_cam
@@ -95,72 +100,12 @@ sst_to_cam_path=${sewxscriptsdir}/sst_to_cam
 filter_path=${sewxscriptsdir}/filter
 ###################################################################################
 
+## Create paths to generate initial files if they don't exist...
+mkdir -p ${pathToINICfiles}
+mkdir -p ${pathToSSTfiles}
+
 # Set timestamp for backing up files, etc.
 timestamp=`date +%Y%m%d.%H%M`
-
-#casename=colorado_30_x16_forecast
-#path_to_case=/glade/p/work/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_colorado_30_x16_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/colorado_30_x16_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/colorado_30_x16_INIC_filter.nc 
-
-#casename=ecsnow_30_x0_forecast
-#path_to_case=/glade/p/work/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_ecsnow_30_x0_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x0_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x0_INIC_filter.nc 
-
-#casename=haiyan_48_x8
-#path_to_case=/glade/u/home/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_haiyan_48_x8_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC_filter.nc
-
-#casename=ecsnow_30_x4_forecast
-#path_to_case=/glade/p/work/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ecsnow_30_x4_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/ecsnow_30_x4_INIC_filter.nc 
-
-# casename=uniform_60
-# gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_uniform_60_patc.nc
-# sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC.nc
-# sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/uniform_60_INIC_filter.nc
-
-#casename=uniform_240
-#gfs2seWeights=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/maps/map_gfs0.50_TO_uniform240_patc.141127.nc
-#sePreFilterIC=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/inic/inic_uniform_240_INIC.nc
-#sePostFilterIC=/glade/u/home/zarzycki/scratch/unigridFiles/uniform_240/inic/inic_uniform_240_INIC.nc
-
-#casename=newgulf_30_x4
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_newgulf_30_x4_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/newgulf_30_x4_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/newgulf_30_x4_INIC_filter.nc
-
-#casename=haiyan_48_x8
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.50_TO_haiyan_48_x8_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/haiyan_48_x8_INIC_filter.nc
-
-#casename=native_uniform_30_forecast
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_native_ne30_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/native_ne30_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/native_ne30_INIC_filter.nc
-
-#casename=forecast_natlantic_30_x4_CAM5
-#path_to_case=/glade/p/work/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_natlantic_30_x4_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/natlantic_30_x4_L30_INIC_filter.nc
-#nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc
-
-#casename=forecast_conus_30_x8_CAM5
-#path_to_case=/glade/p/work/$LOGNAME/${casename}
-#gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
-#sePreFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC.nc
-#sePostFilterIC=/glade/p/work/zarzycki/sewx/INIC/conus_30_x8_L30_INIC_filter.nc
-#nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc
-
 
 echo "We are using ${casename} for the case"
 echo "The formal SE run will start at +$numHoursSEStart hours from actual init time"
@@ -349,8 +294,8 @@ then
         else
           rm -f gfs.t*pgrb2f00*
           gfsFTPFile=gfs.0p25.${yearstr}${monthstr}${daystr}${cyclestr}.f000.grib2
-          cp /glade/p/rda/data_old/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/${gfsFTPFile} .
-          echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
+          cp /glade2/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/${gfsFTPFile} .
+          echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
         fi
         mv $gfsFTPFile 'gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
   elif [ $atmDataType -eq 2 ] ; then  
@@ -365,6 +310,7 @@ then
   elif [ $atmDataType -eq 3 ] ; then  
       echo "Using CFSR ICs"
       echo "Cding to GFS interpolation directory since they are practically the same thing"
+      mkdir -p $gfs_files_path
       cd $gfs_files_path
       STCUTARR=(26 21 16 11 06 01)
       ENCUTARR=(99 25 20 15 10 05)
@@ -409,6 +355,7 @@ then
       ## Pull sea surface temps, need to rename and delete (if necess)
       #echo "Live GFS SST hasn't been updated in a while..." ; exit
       echo "Getting SST data"
+      mkdir -p ${sst_files_path}
       cd ${sst_files_path}
       if [ $islive -ne 0 ] ; then
         # Here is where we get the "live" GDAS SST file
@@ -470,6 +417,7 @@ then
   elif [ ${sstDataType} -eq 3 ] ; then
     SSTTYPE=NOAAOI
     echo "Using NOAAOI SSTs"
+    mkdir -p ${sst_files_path}
     cd ${sst_files_path}
     sstFile=sst.day.mean.${yearstr}.v2.nc
     if [ ! -f ${sst_files_path}/${sstFile} ] ; then
@@ -503,8 +451,6 @@ then
         fi
       done        
     fi
-
-
   else
       echo "Incorrect SST data type entered" ; exit 1
   fi
@@ -837,8 +783,8 @@ mv timing/ $archivedir/
 ## Move land files to new restart location
 cd $path_to_nc_files
 mkdir $landdir
-echo "Removing 12Z land restart files"
-rm -v *.clm2.r.*43200.nc
+#echo "Removing 12Z land restart files"
+#rm -v *.clm2.r.*43200.nc
 echo "Moving land restart files"
 mv -v *.clm2.r.*nc $landdir
 rm -v *.clm2.r.*.nc
