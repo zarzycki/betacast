@@ -1,22 +1,10 @@
 #!/bin/bash
 
-##=======================================================================
-#PBS -N wx-driver
-#PBS -A P54048000 
-#PBS -l walltime=6:00:00
-#PBS -q share
-#PBS -k oe
-#PBS -m a 
-#PBS -M zarzycki@ucar.edu
-#PBS -l select=1:ncpus=8
-##=======================================================================
-
 set -e
 #set -v
 
 #source /glade/apps/opt/lmod/lmod/init/bash
 module load ncl
-
 
 ###################################################################################
 ############### OPTIONS ############################################
@@ -150,7 +138,7 @@ then
     echo "Can't figure out start time"
     exit 1
   fi
-else     # if not live, draw from dates.txt file
+else     # if not live, draw from head of dates.txt file
   datesfile=dates.${casename}.txt
   longdate=$(head -n 1 ${datesfile})
   
@@ -271,7 +259,7 @@ then
         # gfsFtpPath=http://nomads.ncdc.noaa.gov/data/gfsanl/$yearstr$monstr/$yearstr$monstr$daystr/
         # gfs.t12z.pgrb2f00.grb2
         echo "Getting Atmo file"
-        if [ $islive -ne 0 ]
+        if [ $islive -ne 0 ]   # Pull data from GFS server
         then
           rm -f gfs.t*pgrb2f00*
           gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr$cyclestr/
@@ -291,7 +279,7 @@ then
               sleep 120
             fi
           done
-        else
+        else                  # Copy GFS data from RDA archive at NCAR
           rm -f gfs.t*pgrb2f00*
           gfsFTPFile=gfs.0p25.${yearstr}${monthstr}${daystr}${cyclestr}.f000.grib2
           cp /glade2/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/${gfsFTPFile} .
@@ -351,67 +339,36 @@ then
 ############################### GET SST / NCL ############################### 
 
   if [ ${sstDataType} -eq 1 ] ; then
-      SSTTYPE=GDAS
-      ## Pull sea surface temps, need to rename and delete (if necess)
-      #echo "Live GFS SST hasn't been updated in a while..." ; exit
-      echo "Getting SST data"
-      mkdir -p ${sst_files_path}
-      cd ${sst_files_path}
-      if [ $islive -ne 0 ] ; then
-        # Here is where we get the "live" GDAS SST file
-        rm -f gdas1*sstgrb*
-        sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/sst.${yestyearstr}${yestmonthstr}${yestdaystr}/
-        sstFTPFile='rtgssthr_grb_0.5.grib2'
-        echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
-      else
-        echo "NCEP broke support for historical GDAS, use NOAAOI instead."
-        exit
+    SSTTYPE=GDAS
+    ## Pull sea surface temps, need to rename and delete (if necess)
+    #echo "Live GFS SST hasn't been updated in a while..." ; exit
+    echo "Getting SST data"
+    mkdir -p ${sst_files_path}
+    cd ${sst_files_path}
+    if [ $islive -ne 0 ] ; then
+      # Here is where we get the "live" GDAS SST file
+      rm -f gdas1*sstgrb*
+      sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/sst.${yestyearstr}${yestmonthstr}${yestdaystr}/
+      sstFTPFile='rtgssthr_grb_0.5.grib2'
+      echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
+    else
+      echo "NCEP broke support for historical GDAS, use NOAAOI instead."
+      exit
+    fi
+    ## Scrape for files
+    error=1
+    while [ $error != 0 ]
+    do
+      wget -nv $sstFTPPath$sstFTPFile
+      error=`echo $?`
+      if [ $error -ne 0 ]
+      then
+        echo "Cannot get file, will wait 2 min and scrape again"
+        sleep 120
       fi
-      ## Scrape for files
-      error=1
-      while [ $error != 0 ]
-      do
-        wget -nv $sstFTPPath$sstFTPFile
-        error=`echo $?`
-        if [ $error -ne 0 ]
-        then
-          echo "Cannot get file, will wait 2 min and scrape again"
-          sleep 120
-        fi
-      done
-      sstFile='gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-      mv ${sstFTPFile} ${sstFile}
-      
-#       echo "Getting SST data"
-#       cd ${sst_files_path}
-#       if [ $islive -ne 0 ] ; then
-#         # Here is where we get the "live" GDAS SST file
-#         rm -f gdas1*sstgrb*
-#         sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gdas.$sstyearstr$sstmonthstr$sstdaystr/
-#         sstFTPFile='gdas1.t'$sstcyclestr'z.sstgrb.grib2'
-#         echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
-#       else
-#         # Here is where we get the archived historical SST file
-#         rm -f gdas1*sstgrb*
-#         sstFTPPath=http://nomads.ncdc.noaa.gov/data/gdas/${yearstr}${monthstr}/${yearstr}${monthstr}${daystr}/
-#         #sstFTPFile='gdas1.t'$sstcyclestr'z.sstgrb.grib2'
-#         sstFTPFile='gdas-sstgrb_3_'${yearstr}${monthstr}${daystr}'_'$sstcyclestr'00_000.grb2'
-#         #sstFTPFile='gdas-sstgrb_3_'${yearstr}${monthstr}${daystr}'_0600_000.grb2'
-#         echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
-#       fi
-#       ## Scrape for files
-#       error=1
-#       while [ $error != 0 ]
-#       do
-#         wget -nv $sstFTPPath$sstFTPFile
-#         error=`echo $?`
-#         if [ $error -ne 0 ]
-#         then
-#           echo "Cannot get file, will wait 2 min and scrape again"
-#           sleep 120
-#         fi
-#       done
-#       mv $sstFTPFile 'gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
+    done
+    sstFile='gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
+    mv ${sstFTPFile} ${sstFile}
   elif [ ${sstDataType} -eq 2 ] ; then  
     echo "ERA SST not quite supported yet..." ; exit 1
   elif [ ${sstDataType} -eq 3 ] ; then
@@ -455,20 +412,20 @@ then
       echo "Incorrect SST data type entered" ; exit 1
   fi
 
-    set +e
-    cd ${sst_to_cam_path}
-    ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
-      'datasource="'${SSTTYPE}'"' \
-      'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
-      'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
-      'SST_write_file = "'${sstFileIC}'"'
-    if [[ $? -ne 9 ]]
-    then
-      echo "NCL exited with non-9 error code"
-      exit 240
-    fi
-    echo "SST NCL completed successfully"
-    set -e # Turn error checking back on
+  set +e
+  cd ${sst_to_cam_path}
+  ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
+    'datasource="'${SSTTYPE}'"' \
+    'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
+    'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
+    'SST_write_file = "'${sstFileIC}'"'
+  if [[ $? -ne 9 ]]
+  then
+    echo "NCL exited with non-9 error code"
+    exit 240
+  fi
+  echo "SST NCL completed successfully"
+  set -e # Turn error checking back on
 
 ############################### ATM NCL ############################### 
 
