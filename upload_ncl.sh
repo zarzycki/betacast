@@ -14,7 +14,7 @@
 module load ncl
 ###############################################################################
 yearstr=2018
-monthstr=04
+monthstr=05
 daystr=04
 cyclestr=00
 cyclestrsec=00000

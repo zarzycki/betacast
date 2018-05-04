@@ -51,7 +51,7 @@ pathToINICfiles=/glade/p/work/${LOGNAME}/sewx/INIC/
 sePreFilterIC=${pathToINICfiles}/${casename}_INIC.nc
 sePostFilterIC=${pathToINICfiles}/${casename}_INIC_filter.nc
 nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc
-landrawdir=/glade/scratch/zarzycki/forecast_ne30_CAM5/run/clmstart/
+landrawdir=/glade/scratch/zarzycki/forecast_ne30_CAM5/run/clmstart/   # Repo of 1deg CLM inic for "cold starts"
 
 usingCIME=true
 
@@ -739,7 +739,7 @@ mv timing/ $archivedir/
 
 ## Move land files to new restart location
 cd $path_to_nc_files
-mkdir $landdir
+mkdir -p $landdir
 #echo "Removing 12Z land restart files"
 #rm -v *.clm2.r.*43200.nc
 echo "Moving land restart files"
