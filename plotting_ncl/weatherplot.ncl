@@ -13,7 +13,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-;ncl weatherplot.ncl inisec=43200 iniday=29 inimon=12 iniyear=2017 'filename="/glade/scratch/zarzycki/forecast_conus_30_x8_CAM5/run/2017122912/_forecast_conus_30_x8_CAM5.cam.h0.2017-12-30-00000.nc"' 'wgt_file="/glade/u/home/zarzycki/work/ASD2017_files/offline-remap/map_conus_30_x8_to_0.125x0.125reg_patch.nc"'
+;ncl weatherplot.ncl inisec=43200 iniday=25 inimon=05 iniyear=2018 'filename="/glade/scratch/zarzycki/forecast_natlantic_30_x4_CAM5_L30/run/2018052512/_forecast_natlantic_30_x4_CAM5_L30.cam.h0.2018-05-27-00000.nc"' 'wgt_file="/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"'
 
 ; now read as command line option as of 11/17/17
 ;wgt_file = "/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
@@ -232,30 +232,30 @@ delete([/f_anom,ANOMTIME,ANOMDATE,TSANOM,TSANOM_CAM,TSANOM_CAM_F/])
 do plotindex = 0,2
 
 ; NORTH ATLANTIC
-;if (plotindex .eq. 0)
-;  plotname = "natl"
-;  maxlat = 55.           ; choose subregion           
-;  minlat = 5.
-;  maxlon = -5. 
-;  minlon = -100.
 if (plotindex .eq. 0)
   plotname = "natl"
-  maxlat = 53.           ; choose subregion           
-  minlat = 21.
-  maxlon = 295. 
-  minlon = 231.
+  maxlat = 55.           ; NATL         
+  minlat = 5.
+  maxlon = -5. 
+  minlon = -100.
+;if (plotindex .eq. 0)
+;  plotname = "natl"
+;  maxlat = 53.           ; CONUS         
+;  minlat = 21.
+;  maxlon = 295. 
+;  minlon = 231.
 ;else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  plotname = "epac"
 ;  maxlat = 40.             
 ;  minlat = 5.
 ;  maxlon = 270. 
 ;  minlon = 195.
-else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
-  plotname = "epac"
-  maxlat = 49.              
-  minlat = 37.
-  maxlon = 295. 
-  minlon = 275.
+;else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+;  plotname = "epac"
+;  maxlat = 49.              
+;  minlat = 37.
+;  maxlon = 295. 
+;  minlon = 275.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
 ;  plotname = "epac"
 ;  maxlat = 30.              
@@ -274,13 +274,19 @@ else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
 ;  minlat = 20.
 ;  maxlon = 289. 
 ;  minlon = 269.
+else if (plotindex .eq. 1)     ; Modif EPAC for Gulf + Carrib
+  plotname = "epac"
+  maxlat = 33.              
+  minlat = 8.
+  maxlon = -58. 
+  minlon = -100.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for CONUS
 ;  plotname = "epac"
 ;  maxlat = 53.              
 ;  minlat = 25.
 ;  maxlon = 300. 
 ;  minlon = 230.
-else if (plotindex .eq. 2)     ; Modif EPAC for CONUS
+else if (plotindex .eq. 2)     ; Modif EPAC for Colorado
   plotname = "float1"
   maxlat = 41.5              
   minlat = 36.5
