@@ -14,10 +14,10 @@
 module load ncl
 ###############################################################################
 yearstr=2018
-monthstr=05
-daystr=25
-cyclestr=12
-cyclestrsec=43200
+monthstr=06
+daystr=05
+cyclestr=00
+cyclestrsec=00000
 ###############################################################################
 #nclweightfile="/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
 nclweightfile=$1

@@ -190,6 +190,12 @@ else
   exit 1
 fi
 
+if [ -d "${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}" ]; then
+  echo "directory already exists, ensemble time."
+fi
+
+
+
 if [ $islive -ne 0 ]
 then
   ## Use currtime to figure out what SST we can download
