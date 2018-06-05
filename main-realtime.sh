@@ -34,54 +34,46 @@ set -e
 #source /glade/apps/opt/lmod/lmod/init/bash
 module load ncl
 
+NAMELISTFILE=${1}
+echo "Reading namelist ${NAMELISTFILE}..."
+inputstream=`cat ${NAMELISTFILE}|grep -v "^#"`
+set -- $inputstream
+while [ $1 ]
+ do
+  echo "NAMELIST: setting ${1} to ${3}"
+  eval $1=$3
+  shift 3
+ done
+
+set -u  # turn on crashes for unbound variables in bash
+
 ###################################################################################
 ############### OPTIONS ############################################
 
-debug=0 ; echo "debug set to $debug"    # 0 = no debug, 1 = debug
-islive=1 ; echo "islive set to $islive" # 0 no, using historical data - 1 yes, running live
-isliveresub=0 ; echo "isliveresub set to $isliveresub" # 0 no, 1 yes -- do we want to resubmit when running live?
-machineid=1 ; echo "machineid set to $machineid" # 1 = Yellowstone, 2 = Flux, 3 = Agri
-
-sendplots=true ; echo "sendplots set to $sendplots" # 0 send plots to external server, no, 1 yes
-
-dotracking=true ; echo "dotracking set to $dotracking"
-
-runmodel=true ; echo "runmodel set to $runmodel"
- 
-### islive=0 (historical)
-### GFS analysis available from 8/2004 onward
-### CFSR analysis available from 1979 to Mar 2011
-atmDataType=1             # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
-### Use NOAAOI unless running real-time
-sstDataType=1              # 1 = GDAS, 2 = ERA, 3 = NOAAOI
-numLevels=30               # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
-
-numdays=7                  #forecast length (in days)
-
-# Filter options (generally, only set doFilter unless you have a good reason to change defaults)
-doFilter=true ; echo "doFilter set to $doFilter"  #true/false, needs to be lowercase
-filterOnly=false ; echo "filterOnly set to $filterOnly" #if true, exits after filter (generates init data)
-numHoursSEStart=3
-filterHourLength=6
-filtTcut=6
-
-add_perturbs=false   # Add perturbations from climate forcing run -- right now only works with M. Wehner data
-
-preSavedCLMuserNL=true   # is there a user_nl_clm_presave file?
-land_spinup=false   #daily land spinup
+# echo "debug set to $debug"
+# echo "islive set to $islive" 
+# echo "isliveresub set to $isliveresub"
+# echo "machineid set to $machineid"
+# echo "sendplots set to $sendplots" 
+# echo "dotracking set to $dotracking"
+# echo "runmodel set to $runmodel"
+#               
+# # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
+# echo "doFilter set to $doFilter" 
+# echo "filterOnly set to $filterOnly" 
+# 
+# echo "casename is: ${casename}"
+# echo "gfs2seWeights is: ${gfs2seWeights}"
+# echo "nclPlotWeights is: ${nclPlotWeights}"
+# echo "are we using CIME? ${usingCIME}"
 
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
-casename=forecast_natlantic_30_x4_CAM5_L30
+
 path_to_case=/glade/p/work/$LOGNAME/${casename}
-gfs2seWeights=/glade/p/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_natlantic_30_x4_patc.nc
 pathToINICfiles=/glade/p/work/${LOGNAME}/sewx/INIC/
 sePreFilterIC=${pathToINICfiles}/${casename}_INIC.nc
 sePostFilterIC=${pathToINICfiles}/${casename}_INIC_filter.nc
-nclPlotWeights=/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc
-landrawdir=/glade/scratch/zarzycki/forecast_ne30_CAM5/run/clmstart/   # Repo of 1deg CLM inic for "cold starts"
-
-usingCIME=true
 
 pathToSSTfiles=/glade/p/work/${LOGNAME}/sewx/SST/
 sstFileIC=${pathToSSTfiles}/sst_${casename}_1x1.nc
@@ -95,11 +87,6 @@ sst_files_path=/glade/p/work/$LOGNAME/sewx/SST/          # Temp path for SST
 path_to_rundir=/glade/scratch/$LOGNAME/${casename}/run/
 
 upload_ncl_script=${sewxscriptsdir}/upload_ncl.sh
-
-FILTERWALLCLOCK=00:11:00
-FILTERQUEUE=regular
-RUNWALLCLOCK=01:49:00
-RUNQUEUE=regular
 
 ###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
@@ -122,6 +109,7 @@ mkdir -p ${pathToSSTfiles}
 
 # Set timestamp for backing up files, etc.
 timestamp=`date +%Y%m%d.%H%M`
+uniqtime=`date +"%s%N"`
 
 echo "We are using ${casename} for the case"
 echo "The formal SE run will start at +$numHoursSEStart hours from actual init time"
@@ -397,6 +385,7 @@ then
     done
     sstFile='gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
     mv ${sstFTPFile} ${sstFile}
+    iceFile=''   # do not need icefile since ice stored on sstfile
   elif [ ${sstDataType} -eq 2 ] ; then  
     echo "ERA SST not quite supported yet..." ; exit 1
   elif [ ${sstDataType} -eq 3 ] ; then
@@ -803,13 +792,17 @@ fi
 if $sendplots ; then
   ### Begin output calls
   echo "Sending plots!"
-  sed -i 's?.*yearstr=.*?yearstr='${yearstr}'?' ${upload_ncl_script}
-  sed -i 's?.*monthstr=.*?monthstr='${monthstr}'?' ${upload_ncl_script}
-  sed -i 's?.*daystr=.*?daystr='${daystr}'?' ${upload_ncl_script}
-  sed -i 's?.*cyclestrsec=.*?cyclestrsec='${cyclestrsec}'?' ${upload_ncl_script}
-  sed -i 's?.*cyclestr=.*?cyclestr='${cyclestr}'?' ${upload_ncl_script}
-  /bin/bash ${upload_ncl_script} ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
+  cp ${upload_ncl_script} ${upload_ncl_script}.${uniqtime}.ncl
+  sed -i 's?.*yearstr=.*?yearstr='${yearstr}'?' ${upload_ncl_script}.${uniqtime}.ncl
+  sed -i 's?.*monthstr=.*?monthstr='${monthstr}'?' ${upload_ncl_script}.${uniqtime}.ncl
+  sed -i 's?.*daystr=.*?daystr='${daystr}'?' ${upload_ncl_script}.${uniqtime}.ncl
+  sed -i 's?.*cyclestrsec=.*?cyclestrsec='${cyclestrsec}'?' ${upload_ncl_script}.${uniqtime}.ncl
+  sed -i 's?.*cyclestr=.*?cyclestr='${cyclestr}'?' ${upload_ncl_script}.${uniqtime}.ncl
+  /bin/bash ${upload_ncl_script}.${uniqtime}.ncl ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 fi
+
+# Cleanup
+rm ${upload_ncl_script}.${uniqtime}.ncl
 
 cd $sewxscriptsdir
 
