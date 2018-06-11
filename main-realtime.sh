@@ -693,7 +693,7 @@ if $doFilter ; then
   ./xmlchange RUN_STARTDATE=$se_yearstr-$se_monthstr-$se_daystr,START_TOD=$se_cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
   cp -v user_nl_cam_run user_nl_cam
   sed -i 's?.*ncdata.*?ncdata='"'${sePostFilterIC}'"'?' user_nl_cam
-  ./xmlchange ATM_NCPL=192
+  ./xmlchange ATM_NCPL=96
   ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
   ./xmlchange JOB_QUEUE=${RUNQUEUE}
 

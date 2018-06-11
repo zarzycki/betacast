@@ -244,12 +244,12 @@ if (plotindex .eq. 0)
 ;  minlat = 21.
 ;  maxlon = 295. 
 ;  minlon = 231.
-;else if (plotindex .eq. 1)    ; ORIG EPAC
-;  plotname = "epac"
-;  maxlat = 40.             
-;  minlat = 5.
-;  maxlon = 270. 
-;  minlon = 195.
+else if (plotindex .eq. 1)    ; ORIG EPAC
+  plotname = "epac"
+  maxlat = 40.             
+  minlat = 5.
+  maxlon = -90.
+  minlon = -165.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
 ;  plotname = "epac"
 ;  maxlat = 49.              
@@ -274,8 +274,8 @@ if (plotindex .eq. 0)
 ;  minlat = 20.
 ;  maxlon = 289. 
 ;  minlon = 269.
-else if (plotindex .eq. 1)     ; Modif EPAC for Gulf + Carrib
-  plotname = "epac"
+else if (plotindex .eq. 2)     ; for Gulf + Carrib
+  plotname = "float1"
   maxlat = 33.              
   minlat = 8.
   maxlon = -58. 
@@ -286,12 +286,18 @@ else if (plotindex .eq. 1)     ; Modif EPAC for Gulf + Carrib
 ;  minlat = 25.
 ;  maxlon = 300. 
 ;  minlon = 230.
-else if (plotindex .eq. 2)     ; Modif EPAC for Colorado
-  plotname = "float1"
-  maxlat = 41.5              
-  minlat = 36.5
-  maxlon = 258.5 
-  minlon = 250.5
+;else if (plotindex .eq. 2)     ; Modif EPAC for Colorado
+;  plotname = "float1"
+;  maxlat = 41.5              
+;  minlat = 36.5
+;  maxlon = 258.5 
+;  minlon = 250.5
+;else if (plotindex .eq. 2)     ; Modif GLOB
+;  plotname = "float1"
+;  maxlat = 50.0
+;  minlat = -50.0
+;  maxlon = 360.0
+;  minlon = 0.0
 else
   plotname = "glob"
   maxlat = 90.           ; choose subregion           
@@ -575,7 +581,7 @@ text = new((/nlat,nlon/),"graphic")
 if (plotindex .eq. 0) then
   stride=19
 else if (plotindex .eq. 1) then
-  stride=9
+  stride=19
 else
   stride=3
 end if
@@ -739,11 +745,11 @@ txres@txFont   = "helvetica-bold"
 text = new((/nlat,nlon/),"graphic")
 
 if (plotindex .eq. 0) then
-  stride=31
+  stride=25
 else if (plotindex .eq. 1) then
-  stride=11
+  stride=25
 else
-  stride=5
+  stride=15
 end if
 end if
 

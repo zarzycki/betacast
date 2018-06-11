@@ -10,10 +10,10 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-gridName="conus_30_x8"
+gridName="ne0np4nhemitc.ne30x4"
 InterpMethod="patch"
-;outres="0.25x0.25"
-outres="0.125x0.125"
+outres="0.25x0.25"
+;outres="0.125x0.125"
 ;outres="0.5x0.5"
 ;outres="1x1"
 ;dstGridDir="."
@@ -26,8 +26,8 @@ srcGridDir="/glade/u/home/zarzycki/work/grids/scrip/"
 ;srcGridFile="ne16np4_110512_pentagons.nc"
 ;srcGridFile="ne120np4_pentagons_100310.nc"
 srcGridFile=gridName+".g_scrip.nc"
-wgtFileDir="/glade/scratch/zarzycki/"
-wgtFileName=gridName+"_to_"+outres+"_"+InterpMethod+".nc"
+wgtFileDir="/glade/p/work/zarzycki/maps/forecast_plot_maps/"
+wgtFileName="map_"+gridName+"_to_"+outres+"_"+InterpMethod+".nc"
 
 ;----------------------------------------------------------------------
 
