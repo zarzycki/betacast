@@ -70,19 +70,19 @@ set -u  # turn on crashes for unbound variables in bash
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
 
-path_to_case=/glade/p/work/$LOGNAME/${casename}
-pathToINICfiles=/glade/p/work/${LOGNAME}/sewx/INIC/
+path_to_case=/glade/work/${LOGNAME}/${casename}
+pathToINICfiles=/glade/work/${LOGNAME}/sewx/INIC/
 sePreFilterIC=${pathToINICfiles}/${casename}_INIC.nc
 sePostFilterIC=${pathToINICfiles}/${casename}_INIC_filter.nc
 
-pathToSSTfiles=/glade/p/work/${LOGNAME}/sewx/SST/
+pathToSSTfiles=/glade/work/${LOGNAME}/sewx/SST/
 sstFileIC=${pathToSSTfiles}/sst_${casename}_1x1.nc
 
 sewxscriptsdir=/glade/u/home/${LOGNAME}/sewx-cam-forecast/
 
-gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS/          # Temp path for GFS/CFSR DL/proc
-era_files_path=/glade/p/work/$LOGNAME/getECMWFdata/
-sst_files_path=/glade/p/work/$LOGNAME/sewx/SST/          # Temp path for SST
+gfs_files_path=/glade/work/$LOGNAME/sewx/GFS/          # Temp path for GFS/CFSR DL/proc
+era_files_path=/glade/work/$LOGNAME/getECMWFdata/
+sst_files_path=/glade/work/$LOGNAME/sewx/SST/          # Temp path for SST
 
 path_to_rundir=/glade/scratch/$LOGNAME/${casename}/run/
 
@@ -287,7 +287,7 @@ then
           error=1
           while [ $error != 0 ]
           do
-            wget $gfsFTPPath$gfsFTPFile
+            wget --quiet $gfsFTPPath$gfsFTPFile
             error=`echo $?`
             if [ $error -ne 0 ]
             then
@@ -488,8 +488,8 @@ then
     ncl -n atm_to_cam.ncl 'datasource="ERAI"'     \
         numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-       'data_filename = "/glade/p/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
-       'wgt_filename="/glade/p/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
+       'data_filename = "/glade/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
+       'wgt_filename="/glade/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
        'se_inic = "'${sePreFilterIC}'"'
 
   elif [ $atmDataType -eq 3 ] # CFSR
@@ -649,11 +649,9 @@ if $doFilter ; then
 
     while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
     do
-      sleep 20
-      echo "Sleeping"
+      sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
     done
-    echo "Run over done sleeping will hold for 60 more sec to make sure files moved" 
-    sleep 40
+    echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved" ; sleep 40
 
     ## Run NCL filter
     cd $filter_path
@@ -727,9 +725,9 @@ then
   ## Hold script while log files from filter run haven't been archived yet
   while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
   do
-    sleep 20 ; echo "Sleeping"
+    sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
   done
-  echo "Run over done sleeping will hold for 30 more sec to make sure files moved"
+  echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved"
   sleep 30
 fi
 
