@@ -274,12 +274,12 @@ else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  minlat = 20.
 ;  maxlon = 289. 
 ;  minlon = 269.
-else if (plotindex .eq. 2)     ; for Gulf + Carrib
-  plotname = "float1"
-  maxlat = 33.              
-  minlat = 8.
-  maxlon = -58. 
-  minlon = -100.
+;else if (plotindex .eq. 2)     ; for Gulf + Carrib
+;  plotname = "float1"
+;  maxlat = 33.              
+;  minlat = 8.
+;  maxlon = -58. 
+;  minlon = -100.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for CONUS
 ;  plotname = "epac"
 ;  maxlat = 53.              
@@ -292,6 +292,12 @@ else if (plotindex .eq. 2)     ; for Gulf + Carrib
 ;  minlat = 36.5
 ;  maxlon = 258.5 
 ;  minlon = 250.5
+else if (plotindex .eq. 2)     ; Modif EPAC for Colorado
+  plotname = "float1"
+  maxlat = 40.0              
+  minlat = 5.0
+  maxlon = 170.0
+  minlon = 100.0
 ;else if (plotindex .eq. 2)     ; Modif GLOB
 ;  plotname = "float1"
 ;  maxlat = 50.0

@@ -160,7 +160,7 @@ if (numlevels .eq. 30)
   print("Loading 30 level data")
   fC   = addfile ("./L30template.nc", "r")
 else if (numlevels .eq. 32)
-  print("Loading 23 level data")
+  print("Loading 32 level data")
   fC   = addfile ("./L32template.nc", "r")
 else if (numlevels .eq. 26)
   print("Loading 26 level data")
@@ -250,8 +250,14 @@ print("Interpolating horizontal to CAM")
 ;lonCell     = dfile->lon
 ;latCell     = dfile->lat
 Opt         = True
-Opt@CopyVarCoords = False
+
+; Here we need to keep VarCoords on to extract lat/lon
+Opt@CopyVarCoords = True
 ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
+selat=todouble(ps_fv@lat1d)
+selon=todouble(ps_fv@lon1d)
+delete_VarAtts(ps_fv,(/"lat1d","lon1d"/))
+Opt@CopyVarCoords = False  ; now we can turn off
 ;pblh_fv  = ESMF_regrid_with_weights(pblh,wgt_filename,Opt)
 t_fv  = ESMF_regrid_with_weights(t_cam,wgt_filename,Opt)
 u_fv  = ESMF_regrid_with_weights(u_cam,wgt_filename,Opt)
@@ -358,6 +364,9 @@ cldliq_fv_dbl_time!2 = "ncol"
 cldice_fv_dbl_time!0 = "time"
 cldice_fv_dbl_time!1 = "lev"
 cldice_fv_dbl_time!2 = "ncol"
+
+selat!0 = "ncol"
+selon!0 = "ncol"
 
 else if (dycore .eq. "fv") then
 
@@ -539,6 +548,9 @@ if(dycore .eq. "fv") then
   in2->slat=slat
   in2->slon=slon
   in2->w_stag=w_stag
+else  ; put lat/lon arrays on SE grid needed as of c2b08
+  in2->lat=selat
+  in2->lon=selon
 end if
 
 NUMLIQ=cldliq_fv_dbl_time

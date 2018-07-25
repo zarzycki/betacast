@@ -10,9 +10,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-dstGridFile="ne0np4nhemitc.ne30x4.g_scrip.nc"
-GFSres="0.25" ;0.50 or 0.25
-gridName="ne0np4nhemitc.ne30x4"
+dstGridFile="ne30np4_091226_pentagons.nc"
+GFSres="0.50" ;0.50 or 0.25
+gridName="ne30np4"
 InterpMethod="patch"
 
 if (InterpMethod .eq. "patch") then
