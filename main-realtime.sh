@@ -70,7 +70,7 @@ set -u  # turn on crashes for unbound variables in bash
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
 
-path_to_case=/glade/work/${LOGNAME}/${casename}
+path_to_case=/glade/work/$LOGNAME/${casename}
 pathToINICfiles=/glade/work/${LOGNAME}/sewx/INIC/
 sePreFilterIC=${pathToINICfiles}/${casename}_INIC.nc
 sePostFilterIC=${pathToINICfiles}/${casename}_INIC_filter.nc
@@ -252,7 +252,6 @@ yestmonthstr=`date --date="yesterday" -u +%m`
 yestdaystr=`date --date="yesterday" -u +%d`
 yestyearstr=`date --date="yesterday" -u +%Y`
 
-echo "The current time is $currtime"
 echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds) for GFS data"
 echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST data"
 echo "SE initialization will occur at $se_yearstr $se_monthstr $se_daystr $se_cyclestr Z ($se_cyclestrsec seconds)"
@@ -297,8 +296,9 @@ then
           done
         else                  # Copy GFS data from RDA archive at NCAR
           rm -f gfs.t*pgrb2f00*
+          gfsFTPPath=/glade2/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/
           gfsFTPFile=gfs.0p25.${yearstr}${monthstr}${daystr}${cyclestr}.f000.grib2
-          cp /glade2/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/${gfsFTPFile} .
+          cp ${gfsFTPPath}/${gfsFTPFile} .
           echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
         fi
         mv $gfsFTPFile 'gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
@@ -332,7 +332,7 @@ then
       #echo $index
       if [[ "$index" -eq "$zero" ]]; then
         ENCUTARR[${zero}]=`date -d "$monthstr/1 + 1 month - 1 day" "+%d"`
-        echo "Last day of month ($monstr) is $ENCUTARR[${zero}]"
+        echo "Last day of month ($monthstr) is $ENCUTARR[${zero}]"
       fi
       ## NEED TO IMPLEMENT LEAP YEAR FIX
       CFSRFILENAME=pgbhnl.gdas.${yearstr}${monthstr}${FILEDAY}-${yearstr}${monthstr}${ENCUTARR[$index]}.tar
@@ -433,11 +433,11 @@ then
 
   set +e
   cd ${sst_to_cam_path}
-  ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
+  (set -x; ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
     'datasource="'${SSTTYPE}'"' \
     'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
     'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
-    'SST_write_file = "'${sstFileIC}'"'
+    'SST_write_file = "'${sstFileIC}'"' )
   if [[ $? -ne 9 ]]
   then
     echo "NCL exited with non-9 error code"
@@ -445,6 +445,7 @@ then
   fi
   echo "SST NCL completed successfully"
   set -e # Turn error checking back on
+  ncatted -O -a units,time,o,c,"days since 0001-01-01 00:00:00" ${sstFileIC} ${sstFileIC}
 
 ############################### ATM NCL ############################### 
 
@@ -462,47 +463,36 @@ then
     cd $atm_to_cam_path 
     echo "Doing NCL"
 
-    echo     ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
+    (set -x; ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
         numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
-       'se_inic = "'${sePreFilterIC}'"'
-
-
-    ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
-        numlevels=${numLevels} \
-        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-       'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
-       'wgt_filename="'${gfs2seWeights}'"' \
-       'se_inic = "'${sePreFilterIC}'"'
-
-
+       'se_inic = "'${sePreFilterIC}'"' )
        
-    #ncl sst_interp.ncl initdate=${yearstr}${monthstr}${daystr}${cyclestr} 'sst_file_full = "'$gfs_files_path'/gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2"'
   elif [ $atmDataType -eq 2 ] # ERA
   then
     echo "CD ing to ERA-interim interpolation directory"
     cd $atm_to_cam_path
 
-    ncl -n atm_to_cam.ncl 'datasource="ERAI"'     \
+    (set -x; ncl -n atm_to_cam.ncl 'datasource="ERAI"'     \
         numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-       'data_filename = "/glade/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
-       'wgt_filename="/glade/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
-       'se_inic = "'${sePreFilterIC}'"'
+       'data_filename = "/glade/p/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
+       'wgt_filename="/glade/p/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
+       'se_inic = "'${sePreFilterIC}'"' )
 
   elif [ $atmDataType -eq 3 ] # CFSR
   then
       echo "CD ing to interpolation directory"
       cd $atm_to_cam_path 
     
-     ncl -n atm_to_cam.ncl 'datasource="CFSR"'     \
+      (set -x; ncl -n atm_to_cam.ncl 'datasource="CFSR"'     \
         numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'data_filename = "'$gfs_files_path'/cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
-       'se_inic = "'${sePreFilterIC}'"'
+       'se_inic = "'${sePreFilterIC}'"' )
   else
       echo "Incorrect model IC entered"
       exit 1
@@ -555,13 +545,16 @@ echo "Turning off archiving and restart file output in env_run.xml"
 ./xmlchange DOUT_S=FALSE,REST_OPTION=nyears,REST_N=9999
 echo "Setting SST from default to our SST"
 ./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
+echo "Setting GLC coupling to handle forecasts across calendar years"
+./xmlchange GLC_AVG_PERIOD="glc_coupling_period"
+echo "Standardizing streams for SST"
+./xmlchange SSTICE_YEAR_START=1,SSTICE_YEAR_END=1
 ####### 
 if [ "$land_spinup" = true ] ; then
   ./xmlchange REST_OPTION=ndays,REST_N=1
 fi
 #######
 echo "Update env_run.xml with runtime parameters"
-
 ./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
 
 cp -v user_nl_cam_run user_nl_cam
@@ -638,6 +631,8 @@ if $doFilter ; then
     if [ $machineid -eq 1 ]
     then
       if $usingCIME ; then
+        ./case.setup --reset
+        ./case.build
         ./case.submit
       else
         bsub < ${casename}.run
@@ -705,6 +700,8 @@ then
     echo "Using Yellowstone"
     if $usingCIME ; then
       #bsub < case.run
+      ./case.setup --reset
+      ./case.build
       ./case.submit
     else
       bsub < ${casename}.run
@@ -797,16 +794,15 @@ if $sendplots ; then
   sed -i 's?.*cyclestrsec=.*?cyclestrsec='${cyclestrsec}'?' ${upload_ncl_script}.${uniqtime}.ncl
   sed -i 's?.*cyclestr=.*?cyclestr='${cyclestr}'?' ${upload_ncl_script}.${uniqtime}.ncl
   /bin/bash ${upload_ncl_script}.${uniqtime}.ncl ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
+  # Cleanup
+  rm ${upload_ncl_script}.${uniqtime}.ncl
 fi
-
-# Cleanup
-rm ${upload_ncl_script}.${uniqtime}.ncl
 
 cd $sewxscriptsdir
 
 if [ $isliveresub -ne 0 ] ; then
   sleep 60
-  nohup ./main-realtime.sh &
+  nohup ./main-realtime.sh ${NAMELISTFILE} &
 fi
 
 exit 0

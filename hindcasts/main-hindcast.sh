@@ -70,19 +70,19 @@ set -u  # turn on crashes for unbound variables in bash
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
 
-path_to_case=/glade/p/work/$LOGNAME/${casename}
-pathToINICfiles=/glade/p/work/${LOGNAME}/sewx/INIC/
+path_to_case=/glade/work/$LOGNAME/${casename}
+pathToINICfiles=/glade/work/${LOGNAME}/sewx/INIC/
 sePreFilterIC=${pathToINICfiles}/${casename}_INIC.nc
 sePostFilterIC=${pathToINICfiles}/${casename}_INIC_filter.nc
 
-pathToSSTfiles=/glade/p/work/${LOGNAME}/sewx/SST/
+pathToSSTfiles=/glade/work/${LOGNAME}/sewx/SST/
 sstFileIC=${pathToSSTfiles}/sst_${casename}_1x1.nc
 
 sewxscriptsdir=/glade/u/home/${LOGNAME}/sewx-cam-forecast/
 
-gfs_files_path=/glade/p/work/$LOGNAME/sewx/GFS/          # Temp path for GFS/CFSR DL/proc
-era_files_path=/glade/p/work/$LOGNAME/getECMWFdata/
-sst_files_path=/glade/p/work/$LOGNAME/sewx/SST/          # Temp path for SST
+gfs_files_path=/glade/work/$LOGNAME/sewx/GFS/          # Temp path for GFS/CFSR DL/proc
+era_files_path=/glade/work/$LOGNAME/getECMWFdata/
+sst_files_path=/glade/work/$LOGNAME/sewx/SST/          # Temp path for SST
 
 path_to_rundir=/glade/scratch/$LOGNAME/${casename}/run/
 
@@ -286,7 +286,7 @@ then
           error=1
           while [ $error != 0 ]
           do
-            wget $gfsFTPPath$gfsFTPFile
+            wget --quiet $gfsFTPPath$gfsFTPFile
             error=`echo $?`
             if [ $error -ne 0 ]
             then
@@ -296,8 +296,9 @@ then
           done
         else                  # Copy GFS data from RDA archive at NCAR
           rm -f gfs.t*pgrb2f00*
+          gfsFTPPath=/glade2/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/
           gfsFTPFile=gfs.0p25.${yearstr}${monthstr}${daystr}${cyclestr}.f000.grib2
-          cp /glade2/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/${gfsFTPFile} .
+          cp ${gfsFTPPath}/${gfsFTPFile} .
           echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
         fi
         mv $gfsFTPFile 'gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
@@ -444,7 +445,7 @@ then
   fi
   echo "SST NCL completed successfully"
   set -e # Turn error checking back on
-  ncatted -O -a units,time,o,c,"days since 2000-01-01 00:00:00" ${sstFileIC} ${sstFileIC}
+  ncatted -O -a units,time,o,c,"days since 0001-01-01 00:00:00" ${sstFileIC} ${sstFileIC}
 
 ############################### ATM NCL ############################### 
 
@@ -546,6 +547,8 @@ echo "Setting SST from default to our SST"
 ./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
 echo "Setting GLC coupling to handle forecasts across calendar years"
 ./xmlchange GLC_AVG_PERIOD="glc_coupling_period"
+echo "Standardizing streams for SST"
+./xmlchange SSTICE_YEAR_START=1,SSTICE_YEAR_END=1
 ####### 
 if [ "$land_spinup" = true ] ; then
   ./xmlchange REST_OPTION=ndays,REST_N=1
@@ -641,11 +644,9 @@ if $doFilter ; then
 
     while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
     do
-      sleep 20
-      echo "Sleeping"
+      sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
     done
-    echo "Run over done sleeping will hold for 60 more sec to make sure files moved" 
-    sleep 40
+    echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved" ; sleep 40
 
     ## Run NCL filter
     cd $filter_path
@@ -721,9 +722,9 @@ then
   ## Hold script while log files from filter run haven't been archived yet
   while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
   do
-    sleep 20 ; echo "Sleeping"
+    sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
   done
-  echo "Run over done sleeping will hold for 30 more sec to make sure files moved"
+  echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved"
   sleep 30
 fi
 
@@ -797,11 +798,11 @@ if $sendplots ; then
   rm ${upload_ncl_script}.${uniqtime}.ncl
 fi
 
-cd $sewxscriptsdir
+cd $sewxscriptsdir/hindcasts/
 
 if [ $isliveresub -ne 0 ] ; then
   sleep 60
-  nohup ./main-realtime.sh &
+  nohup ./main-hindcast.sh ${NAMELISTFILE} &
 fi
 
 exit 0
