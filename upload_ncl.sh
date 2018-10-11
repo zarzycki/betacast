@@ -125,7 +125,7 @@ fi
 		done
 
     # Copy tracker data over if around...
-    mv -v /glade/u/home/zarzycki/tempest-scripts/forecast/trajs.trajectories.txt.NATLANTIC30X4-CYCLONES.png .
+    mv -v /glade/u/home/zarzycki/tempest-scripts/forecast/trajs.*.png .
     cp -v /glade/u/home/zarzycki/tempest-scripts/forecast/fin-atcf/atcf.tempest.${yearstr}${monthstr}${daystr}${cyclestr} .
 		
 		## Move files to server

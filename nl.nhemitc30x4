@@ -2,19 +2,19 @@
   debug = 0
 
 # 0 no, using historical data - 1 yes, running live
-  islive = 0
+  islive = 1
 
 # 0 no, 1 yes -- do we want to resubmit when running live?
-  isliveresub = 1
+  isliveresub = 0
 
 # 1 = Yellowstone, 2 = Flux, 3 = Agri
   machineid = 1
 
 # 0 send plots to external server, no, 1 yes
-  sendplots = false
+  sendplots = true
 
 #SSSS
-  dotracking = false
+  dotracking = true
 
   runmodel = true
 
@@ -25,13 +25,13 @@
   atmDataType = 1
 
 # 1 = GDAS, 2 = ERA, 3 = NOAAOI
-  sstDataType = 3
+  sstDataType = 1
 
 # 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
   numLevels = 30
 
 #forecast length (in days)
-  numdays = 5
+  numdays = 7
 
 #true/false, needs to be lowercase
   doFilter = true
@@ -52,25 +52,21 @@
   land_spinup = false
 
 # Case name
-  casename = forecast_ne30_CAM5
+  casename = forecast_nhemitc_30_x4_CAM5_L30
 
 # Weight file for going from GFS -> VR-SE
-  gfs2seWeights = /glade/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ne30np4_patc.nc
+  gfs2seWeights = /glade/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ne0np4nhemitc.ne30x4_patc.nc
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = /glade/work/zarzycki/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc
 
 # Repo of 1deg CLM inic for "cold starts"
-  landrawdir = /glade/scratch/zarzycki/clmstart/
+  landrawdir = /glade/u/home/zarzycki/scratch/forecast_natlantic_30_x4_CAM5_L30/run/clmstart/
 
 # Timing settings
   FILTERWALLCLOCK = 00:11:00
   FILTERQUEUE = regular
-  RUNWALLCLOCK = 00:59:00
-  RUNQUEUE = economy
+  RUNWALLCLOCK = 01:29:00
+  RUNQUEUE = regular
 
   usingCIME = true
-  
-  DTIME=600
-  
-  FINE_NE=30

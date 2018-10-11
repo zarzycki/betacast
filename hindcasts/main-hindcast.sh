@@ -349,9 +349,6 @@ then
       exit 1
   fi
 
-
-
-
 ############################### GET SST / NCL ############################### 
 
   if [ ${sstDataType} -eq 1 ] ; then
@@ -539,6 +536,18 @@ if [ "${add_perturbs}" = true ] ; then
 fi
 
 ############################### #### ############################### 
+##### MODEL SETTINGS LOGIC
+
+ATM_NCPL=`python -c "print int(86400/${DTIME})"`
+STABILITY=`python -c "print 900*30/${FINE_NE}"`
+SE_NSPLIT=`python -c "from math import ceil; print int(ceil(float(${DTIME})/float(${STABILITY})))"`
+echo $STABILITY $ATM_NCPL $SE_NSPLIT
+echo "${DTIME}s dt_phys means ${ATM_NCPL} coupling intervals/day"
+echo "${DTIME}s dt_phys and fine res: ne${FINE_NE} = ${STABILITY}s CFL stability"
+echo "${DTIME}s dt_phys and ${STABILITY}s dt_dyn --> se_nsplit: ${SE_NSPLIT}"
+
+############################### #### ############################### 
+
 
 cd $path_to_case
 echo "Turning off archiving and restart file output in env_run.xml"
@@ -602,7 +611,7 @@ else
       echo "Using pre-written user_nl_clm file"
       cp user_nl_clm_presave user_nl_clm
     else
-      echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
+      echo "ERROR: Land file DOES NOT EXIST, consider cold start"
       exit
       #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
     fi
@@ -631,8 +640,8 @@ if $doFilter ; then
     if [ $machineid -eq 1 ]
     then
       if $usingCIME ; then
-        ./case.setup --reset
-        ./case.build
+        #./case.setup --reset
+        #./case.build
         ./case.submit
       else
         bsub < ${casename}.run
@@ -686,7 +695,7 @@ if $doFilter ; then
   ./xmlchange RUN_STARTDATE=$se_yearstr-$se_monthstr-$se_daystr,START_TOD=$se_cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
   cp -v user_nl_cam_run user_nl_cam
   sed -i 's?.*ncdata.*?ncdata='"'${sePostFilterIC}'"'?' user_nl_cam
-  ./xmlchange ATM_NCPL=144
+  ./xmlchange ATM_NCPL=${ATM_NCPL}
   ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
   ./xmlchange JOB_QUEUE=${RUNQUEUE}
 
@@ -700,8 +709,8 @@ then
     echo "Using Yellowstone"
     if $usingCIME ; then
       #bsub < case.run
-      ./case.setup --reset
-      ./case.build
+      #./case.setup --reset
+      #./case.build
       ./case.submit
     else
       bsub < ${casename}.run

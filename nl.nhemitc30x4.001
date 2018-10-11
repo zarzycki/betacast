@@ -11,7 +11,7 @@
   machineid = 1
 
 # 0 send plots to external server, no, 1 yes
-  sendplots = true
+  sendplots = false
 
 #SSSS
   dotracking = true
@@ -52,7 +52,7 @@
   land_spinup = false
 
 # Case name
-  casename = forecast_nhemitc_30_x4_CAM5_L30
+  casename = forecast_nhemitc_30_x4_CAM5_L30.001
 
 # Weight file for going from GFS -> VR-SE
   gfs2seWeights = /glade/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ne0np4nhemitc.ne30x4_patc.nc
@@ -61,7 +61,7 @@
   nclPlotWeights = /glade/work/zarzycki/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc
 
 # Repo of 1deg CLM inic for "cold starts"
-  landrawdir = /glade/u/home/zarzycki/scratch/forecast_natlantic_30_x4_CAM5_L30/run/clmstart/
+  landrawdir = /glade/u/home/zarzycki/scratch/forecast_nhemitc_30_x4_CAM5_L30/run/clmstart/
 
 # Timing settings
   FILTERWALLCLOCK = 00:11:00

@@ -625,14 +625,16 @@ if $doFilter ; then
   ./xmlchange ATM_NCPL=192
   ./xmlchange JOB_WALLCLOCK_TIME=${FILTERWALLCLOCK}
   ./xmlchange JOB_QUEUE=${FILTERQUEUE}
+  ./xmlchange PROJECT=P93300642
+
 
   if [ $debug -ne 1 ] ; then
     echo "Begin call to filter-run"
     if [ $machineid -eq 1 ]
     then
       if $usingCIME ; then
-        ./case.setup --reset
-        ./case.build
+        #./case.setup --reset
+        #./case.build
         ./case.submit
       else
         bsub < ${casename}.run
@@ -689,6 +691,7 @@ if $doFilter ; then
   ./xmlchange ATM_NCPL=96
   ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
   ./xmlchange JOB_QUEUE=${RUNQUEUE}
+  ./xmlchange PROJECT=P93300642
 
 fi
 
@@ -699,9 +702,8 @@ then
   then
     echo "Using Yellowstone"
     if $usingCIME ; then
-      #bsub < case.run
-      ./case.setup --reset
-      ./case.build
+      #./case.setup --reset
+      #./case.build
       ./case.submit
     else
       bsub < ${casename}.run
@@ -772,14 +774,21 @@ rm -v rpointer.*
 mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 
 if $dotracking ; then
+#yearstr="2018"
+#monthstr="09"
+#daystr="09"
+#cyclestr="18"
+#casename="forecast_nhemitc_30_x4_CAM5_L30.001"
+  TCVITFILE=./fin-tcvitals/tcvitals.${yearstr}${monthstr}${daystr}${cyclestr}
+  ATCFFILE=atcf.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}
   cd /glade/u/home/zarzycki/tempest-scripts/forecast/
-  rm -v tcvitals ATCF
-  wget ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr$cyclestr/gfs.t${cyclestr}z.syndata.tcvitals.tm00
-  mv -v gfs.t${cyclestr}z.syndata.tcvitals.tm00 tcvitals
-  if [ -f tcvitals ]; then
-    /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr}
-    cp -v ATCF fin-atcf/atcf.tempest.$yearstr$monthstr$daystr$cyclestr
-    cp -v tcvitals fin-tcvitals/tcvitals.$yearstr$monthstr$daystr$cyclestr
+  if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
+    wget ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr$cyclestr/gfs.t${cyclestr}z.syndata.tcvitals.tm00
+    mv -v gfs.t${cyclestr}z.syndata.tcvitals.tm00 ${TCVITFILE}
+  fi
+  if [ -f ${TCVITFILE} ]; then  # if file does exist (i.e., it was downloaded), run tracker
+    /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} ${casename} ${TCVITFILE} ${ATCFFILE}
+    cp trajs.trajectories.txt.${casename}.png ./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png
   fi
   cd $path_to_nc_files
 fi
