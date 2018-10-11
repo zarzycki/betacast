@@ -514,6 +514,17 @@ fi #End debug if statement
 ############################### #### ############################### 
 ##### ADD PERTURBATIONS
 
+if ${add_noise} ; then
+  set +e
+  echo "Adding white noise to initial condition"
+  cd $atm_to_cam_path 
+  (set -x; ncl -n perturb_white_noise.ncl 'basFileName = "'${sePreFilterIC}'"' )
+  set -e
+fi
+
+############################### #### ############################### 
+##### ADD PERTURBATIONS
+
 if [ "${add_perturbs}" = true ] ; then
   echo "Adding perturbations from Michael Wehner"
 

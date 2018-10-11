@@ -45,6 +45,7 @@
 
 # Add perturbations from climate forcing run -- right now only works with M. Wehner data
   add_perturbs = false
+  add_noise = false
 
 # is there a user_nl_clm_presave file?
   preSavedCLMuserNL = true
