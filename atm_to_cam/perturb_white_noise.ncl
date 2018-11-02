@@ -5,7 +5,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-pertMag=0.001
+pertMag=0.002
 ;basFileName="BC_ne30_CAM5_climo.cam.r.0003-01-01-00000.nc"
 
 basFile = addfile(basFileName,"w")
