@@ -244,8 +244,8 @@ if (plotindex .eq. 0)
   plotname = "natl"
   maxlat = 53.           ; CONUS         
   minlat = 21.
-  maxlon = 295. 
-  minlon = 231.
+  maxlon = 295.-360. 
+  minlon = 231.-360.
 ;else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  plotname = "epac"
 ;  maxlat = 40.             
@@ -256,8 +256,8 @@ else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
   plotname = "epac"
   maxlat = 49.              
   minlat = 37.
-  maxlon = 295. 
-  minlon = 275.
+  maxlon = 295.-360. 
+  minlon = 275.-360.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
 ;  plotname = "epac"
 ;  maxlat = 30.              
@@ -292,8 +292,8 @@ else if (plotindex .eq. 2)     ; Modif EPAC for Colorado
   plotname = "float1"
   maxlat = 41.5              
   minlat = 36.5
-  maxlon = 258.5 
-  minlon = 250.5
+  maxlon = 258.5-360. 
+  minlon = 250.5-360.
 ;else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
 ;  plotname = "float1"
 ;  maxlat = 40.0              
