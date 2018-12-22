@@ -192,7 +192,7 @@ copy_VarMeta(u850,vort500)
 vort500 = vort500/1e-5
 vort500@units="1E-5 1/s"
 vort500@long_name="Vorticity"
-printVarSummary(vort500)
+;printVarSummary(vort500)
 
 wind = u850 
 wind = sqrt(u850^2 + v850^2)
@@ -214,10 +214,12 @@ ptype = where(prect_mmday .lt. 0.1,ptype@_FillValue,ptype)
 ; ANOMS
 ;*****************************************************
 
+print("doing anoms")
 f_anom=addfile("/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/climo-files/TS-1980-2009-NCEP.nc","r")
 ANOMTIME=f_anom->time
 ANOMDATE=cd_inv_calendar(2000,toint(monstr),toint(daystr),toint(hourstr),0,0,ANOMTIME@units,0)
 TSANOM=f_anom->TS({ANOMDATE},:,:)
+TSANOM=lonFlip(TSANOM)
 TSANOM_CAM=linint2(TSANOM&lon,TSANOM&lat,TSANOM,True,tsf&lon,tsf&lat,0)
 TSANOM_CAM_F=(TSANOM_CAM-273.15)*9.0/5.0+32.0
 tsf_anom=tsf
@@ -232,30 +234,30 @@ delete([/f_anom,ANOMTIME,ANOMDATE,TSANOM,TSANOM_CAM,TSANOM_CAM_F/])
 do plotindex = 0,2
 
 ; NORTH ATLANTIC
-if (plotindex .eq. 0)
-  plotname = "natl"
-  maxlat = 55.           ; NATL         
-  minlat = 5.
-  maxlon = -5. 
-  minlon = -100.
 ;if (plotindex .eq. 0)
 ;  plotname = "natl"
-;  maxlat = 53.           ; CONUS         
-;  minlat = 21.
-;  maxlon = 295. 
-;  minlon = 231.
-else if (plotindex .eq. 1)    ; ORIG EPAC
-  plotname = "epac"
-  maxlat = 40.             
-  minlat = 5.
-  maxlon = -90.
-  minlon = -165.
-;else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+;  maxlat = 55.           ; NATL         
+;  minlat = 5.
+;  maxlon = -5. 
+;  minlon = -100.
+if (plotindex .eq. 0)
+  plotname = "natl"
+  maxlat = 53.           ; CONUS         
+  minlat = 21.
+  maxlon = 295. 
+  minlon = 231.
+;else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  plotname = "epac"
-;  maxlat = 49.              
-;  minlat = 37.
-;  maxlon = 295. 
-;  minlon = 275.
+;  maxlat = 40.             
+;  minlat = 5.
+;  maxlon = -90.
+;  minlon = -165.
+else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+  plotname = "epac"
+  maxlat = 49.              
+  minlat = 37.
+  maxlon = 295. 
+  minlon = 275.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
 ;  plotname = "epac"
 ;  maxlat = 30.              
@@ -286,18 +288,18 @@ else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  minlat = 25.
 ;  maxlon = 300. 
 ;  minlon = 230.
-;else if (plotindex .eq. 2)     ; Modif EPAC for Colorado
-;  plotname = "float1"
-;  maxlat = 41.5              
-;  minlat = 36.5
-;  maxlon = 258.5 
-;  minlon = 250.5
 else if (plotindex .eq. 2)     ; Modif EPAC for Colorado
   plotname = "float1"
-  maxlat = 40.0              
-  minlat = 5.0
-  maxlon = 170.0
-  minlon = 100.0
+  maxlat = 41.5              
+  minlat = 36.5
+  maxlon = 258.5 
+  minlon = 250.5
+;else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
+;  plotname = "float1"
+;  maxlat = 40.0              
+;  minlat = 5.0
+;  maxlon = 170.0
+;  minlon = 100.0
 ;else if (plotindex .eq. 2)     ; Modif GLOB
 ;  plotname = "float1"
 ;  maxlat = 50.0
@@ -787,16 +789,20 @@ cmap = read_colormap_file("MPL_RdBu")
 res_tsanom@cnFillPalette=cmap(::-1,:)
 
 res_tsanom@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
-res_tsanom@cnLevelSpacingF      =  2.5             ;
-res_tsanom@cnMinLevelValF       =  -25.0           ;
-res_tsanom@cnMaxLevelValF       =  25.0 ; Use 80.0 -> 60 for this
+res_tsanom@cnLevelSpacingF      =  2.0             ;
+res_tsanom@cnMinLevelValF       =  -20.0           ;
+res_tsanom@cnMaxLevelValF       =  20.0 ; Use 80.0 -> 60 for this
 
 res_tsanom@gsnRightString = "Sfc. temp. anom. (1980-2009 NCEP base) (degF)"
 
-plotts = gsn_csm_contour_map(wks,tsf_anom(0,:,:),res_tsanom)
+;plotts = gsn_csm_contour_map(wks,tsf_anom(0,:,:),res_tsanom)
+tsf_tmp=area_hi2lores_Wrap(tsf_anom&lon,tsf_anom&lat,tsf_anom,True,1,tsf_anom&lon(::4),tsf_anom&lat(::4), False)
+plotts = gsn_csm_contour_map(wks,tsf_tmp(0,:,:),res_tsanom)
 
 draw(plotts)
 frame(wks)
+
+delete(tsf_tmp)
 
 delete(wks)
 delete(cmap)
