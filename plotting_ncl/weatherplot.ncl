@@ -589,7 +589,7 @@ text = new((/nlat,nlon/),"graphic")
 if (plotindex .eq. 0) then
   stride=19
 else if (plotindex .eq. 1) then
-  stride=19
+  stride=8
 else
   stride=3
 end if
@@ -755,9 +755,9 @@ text = new((/nlat,nlon/),"graphic")
 if (plotindex .eq. 0) then
   stride=25
 else if (plotindex .eq. 1) then
-  stride=25
+  stride=10
 else
-  stride=15
+  stride=4
 end if
 end if
 
