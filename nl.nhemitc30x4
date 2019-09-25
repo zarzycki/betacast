@@ -62,9 +62,10 @@
   nclPlotWeights = /glade/work/zarzycki/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc
 
 # Repo of 1deg CLM inic for "cold starts"
-  landrawdir = /glade/u/home/zarzycki/scratch/forecast_natlantic_30_x4_CAM5_L30/run/clmstart/
+  landrawdir = /glade/u/home/zarzycki/scratch/forecast_conus_30_x8_CAM5_L30/run/clmstart/
 
 # Timing settings
+  PROJECTID = UNSB0017
   FILTERWALLCLOCK = 00:11:00
   FILTERQUEUE = regular
   RUNWALLCLOCK = 01:29:00

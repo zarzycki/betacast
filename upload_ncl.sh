@@ -27,8 +27,8 @@ htmlFolder=/glade/u/home/zarzycki/sewx-cam-forecast/html_for_upload/
 twodaysago=20120821
 
 echo "SSHings..."
-ssh zarzycki@burnt.cgd.ucar.edu "mkdir -p /web/web-data/staff/zarzycki/current/${yearstr}${monthstr}${daystr}${cyclestr} ; \ 
-		 cd /web/web-data/staff/zarzycki/current/ ; \
+ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current/${yearstr}${monthstr}${daystr}${cyclestr} ; \ 
+		 cd /home/colinzar/www/www/current/ ; \
 		 cp *cfg *html ${yearstr}${monthstr}${daystr}${cyclestr} ; \
 		 rm ${yearstr}${monthstr}${daystr}${cyclestr}/index.html "
 
@@ -42,7 +42,7 @@ if [ ! -f index.html ]; then
 	sed -e "s/YYYYMMDDHH/${yearstr}${monthstr}${daystr}${cyclestr}/" _index2.html > _index3.html
 	mv _index3.html index.html
 	rm _index*.html
-	scp index.html zarzycki@burnt.cgd.ucar.edu:/web/web-data/staff/zarzycki/current
+	scp index.html colinzar@colinzarzycki.com:/home/colinzar/www/www/current
 fi
   
 	filenames=`ls ${runDir}/*h0*.nc`
@@ -132,7 +132,7 @@ fi
 		## Google create remote directory if not existant
 		## use rysnc?
 		echo "Moving files to remote server"
-		scp *.png *.txt atcf.tempest* zarzycki@burnt.cgd.ucar.edu:/web/web-data/staff/zarzycki/current/${yearstr}${monthstr}${daystr}${cyclestr}
+		scp *.png *.txt atcf.tempest* colinzar@colinzarzycki.com:/home/colinzar/www/www/current/${yearstr}${monthstr}${daystr}${cyclestr}
 		#mv $newfiles $procdir
 
 mkdir ${yearstr}${monthstr}${daystr}${cyclestr}
@@ -144,5 +144,5 @@ sed -e 's/\"red/\"green/' index.html > _index4.html
 sed -e "s/CURRENTLY UPDATING/COMPLETED AT $printtime/" _index4.html > _index5.html
 mv _index5.html index.html
 rm _index*html
-scp index.html zarzycki@burnt.cgd.ucar.edu:/web/web-data/staff/zarzycki/current
+scp index.html colinzar@colinzarzycki.com:/home/colinzar/www/www/current
 mv -v index.html index.HOLD

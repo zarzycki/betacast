@@ -65,6 +65,7 @@
   landrawdir = /glade/u/home/zarzycki/scratch/forecast_nhemitc_30_x4_CAM5_L30/run/clmstart/
 
 # Timing settings
+  PROJECTID = UNSB0017
   FILTERWALLCLOCK = 00:11:00
   FILTERQUEUE = regular
   RUNWALLCLOCK = 01:29:00

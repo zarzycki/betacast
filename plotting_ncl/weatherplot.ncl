@@ -234,30 +234,30 @@ delete([/f_anom,ANOMTIME,ANOMDATE,TSANOM,TSANOM_CAM,TSANOM_CAM_F/])
 do plotindex = 0,2
 
 ; NORTH ATLANTIC
-;if (plotindex .eq. 0)
-;  plotname = "natl"
-;  maxlat = 55.           ; NATL         
-;  minlat = 5.
-;  maxlon = -5. 
-;  minlon = -100.
 if (plotindex .eq. 0)
   plotname = "natl"
-  maxlat = 53.           ; CONUS         
-  minlat = 21.
-  maxlon = 295.-360. 
-  minlon = 231.-360.
-;else if (plotindex .eq. 1)    ; ORIG EPAC
-;  plotname = "epac"
-;  maxlat = 40.             
-;  minlat = 5.
-;  maxlon = -90.
-;  minlon = -165.
-else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+  maxlat = 55.           ; NATL         
+  minlat = 5.
+  maxlon = -5. 
+  minlon = -100.
+;if (plotindex .eq. 0)
+;  plotname = "natl"
+;  maxlat = 53.           ; CONUS         
+;  minlat = 21.
+;  maxlon = 295.-360. 
+;  minlon = 231.-360.
+else if (plotindex .eq. 1)    ; ORIG EPAC
   plotname = "epac"
-  maxlat = 49.              
-  minlat = 37.
-  maxlon = 295.-360. 
-  minlon = 275.-360.
+  maxlat = 40.             
+  minlat = 5.
+  maxlon = -90.
+  minlon = -165.
+;else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+;  plotname = "epac"
+;  maxlat = 49.              
+;  minlat = 37.
+;  maxlon = 295.-360. 
+;  minlon = 275.-360.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
 ;  plotname = "epac"
 ;  maxlat = 30.              
@@ -288,18 +288,18 @@ else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
 ;  minlat = 25.
 ;  maxlon = 300. 
 ;  minlon = 230.
-else if (plotindex .eq. 2)     ; Modif EPAC for Colorado
-  plotname = "float1"
-  maxlat = 41.5              
-  minlat = 36.5
-  maxlon = 258.5-360. 
-  minlon = 250.5-360.
-;else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
+;else if (plotindex .eq. 2)     ; Modif EPAC for Colorado
 ;  plotname = "float1"
-;  maxlat = 40.0              
-;  minlat = 5.0
-;  maxlon = 170.0
-;  minlon = 100.0
+;  maxlat = 41.5              
+;  minlat = 36.5
+;  maxlon = 258.5-360. 
+;  minlon = 250.5-360.
+else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
+  plotname = "float1"
+  maxlat = 40.0              
+  minlat = 5.0
+  maxlon = 170.0
+  minlon = 100.0
 ;else if (plotindex .eq. 2)     ; Modif GLOB
 ;  plotname = "float1"
 ;  maxlat = 50.0
@@ -761,6 +761,7 @@ else
 end if
 end if
 
+if (plotindex .eq. 0) then
 do ii = 0,nlat-1,stride
 do jj = 0,nlon-1,stride
   if (lat(ii) .ge. minlat .and. lat(ii) .le. maxlat .and. lon(jj) .ge. minlon .and. lon(jj) .le. maxlon) then
@@ -770,6 +771,7 @@ do jj = 0,nlon-1,stride
   end if
 end do
 end do
+end if
 
 draw(plotts)
 frame(wks)

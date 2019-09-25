@@ -32,7 +32,7 @@ set -e
 #set -v
 
 #source /glade/apps/opt/lmod/lmod/init/bash
-module load ncl
+module load ncl/6.6.2 
 
 NAMELISTFILE=${1}
 echo "Reading namelist ${NAMELISTFILE}..."
@@ -268,40 +268,43 @@ then
       echo "Getting GFS conditions"
       mkdir -p $gfs_files_path
       cd $gfs_files_path
+        LOCALGFSFILE='gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
         ## Pull atmospheric conditions
         ## Need to write an if call depending on how far back the GFS files are located
         ## The NCEP server only holds them for a few days -- otherwise go to nomads at NCDC
         # gfsFtpPath=http://nomads.ncdc.noaa.gov/data/gfsanl/$yearstr$monstr/$yearstr$monstr$daystr/
         # gfs.t12z.pgrb2f00.grb2
-        echo "Getting Atmo file"
-        if [ $islive -ne 0 ]   # Pull data from GFS server
-        then
-          rm -f gfs.t*pgrb2f00*
-          gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr$cyclestr/
-          #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
-          gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p25.anl'
-          #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p50.anl'
-          echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
-          ## Scrape for files
-          error=1
-          while [ $error != 0 ]
-          do
-            wget --quiet $gfsFTPPath$gfsFTPFile
-            error=`echo $?`
-            if [ $error -ne 0 ]
-            then
-              echo "Cannot get file, will wait 2 min and scrape again"
-              sleep 120
-            fi
-          done
-        else                  # Copy GFS data from RDA archive at NCAR
-          rm -f gfs.t*pgrb2f00*
-          gfsFTPPath=/glade2/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/
-          gfsFTPFile=gfs.0p25.${yearstr}${monthstr}${daystr}${cyclestr}.f000.grib2
-          cp ${gfsFTPPath}/${gfsFTPFile} .
-          echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
+        if [ ! -f ${LOCALGFSFILE} ]; then
+          echo "Getting Atmo file"
+          if [ $islive -ne 0 ]   # Pull data from GFS server
+          then
+            rm -f gfs.t*pgrb2f00*
+            gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/
+            #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
+            gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p25.anl'
+            #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p50.anl'
+            echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
+            ## Scrape for files
+            error=1
+            while [ $error != 0 ]
+            do
+              wget --quiet $gfsFTPPath$gfsFTPFile
+              error=`echo $?`
+              if [ $error -ne 0 ]
+              then
+                echo "Cannot get file, will wait 2 min and scrape again"
+                sleep 120
+              fi
+            done
+          else                  # Copy GFS data from RDA archive at NCAR
+            rm -f gfs.t*pgrb2f00*
+            gfsFTPPath=/glade2/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/
+            gfsFTPFile=gfs.0p25.${yearstr}${monthstr}${daystr}${cyclestr}.f000.grib2
+            cp ${gfsFTPPath}/${gfsFTPFile} .
+            echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
+          fi
+          mv $gfsFTPFile ${LOCALGFSFILE}
         fi
-        mv $gfsFTPFile 'gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
   elif [ $atmDataType -eq 2 ] ; then  
       echo "Using ERA-Interim forecast ICs"
       echo "Cding to ERA-Interim interpolation directory"
@@ -636,7 +639,7 @@ if $doFilter ; then
   ./xmlchange ATM_NCPL=192
   ./xmlchange JOB_WALLCLOCK_TIME=${FILTERWALLCLOCK}
   ./xmlchange JOB_QUEUE=${FILTERQUEUE}
-  ./xmlchange PROJECT=P93300642
+  ./xmlchange PROJECT=${PROJECTID}
 
 
   if [ $debug -ne 1 ] ; then
@@ -702,7 +705,7 @@ if $doFilter ; then
   ./xmlchange ATM_NCPL=192
   ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
   ./xmlchange JOB_QUEUE=${RUNQUEUE}
-  ./xmlchange PROJECT=P93300642
+  ./xmlchange PROJECT=${PROJECTID}
 
 fi
 
@@ -794,7 +797,7 @@ if $dotracking ; then
   ATCFFILE=atcf.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}
   cd /glade/u/home/zarzycki/tempest-scripts/forecast/
   if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
-    wget ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr$cyclestr/gfs.t${cyclestr}z.syndata.tcvitals.tm00
+    wget ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/gfs.t${cyclestr}z.syndata.tcvitals.tm00
     mv -v gfs.t${cyclestr}z.syndata.tcvitals.tm00 ${TCVITFILE}
   fi
   if [ -f ${TCVITFILE} ]; then  # if file does exist (i.e., it was downloaded), run tracker
