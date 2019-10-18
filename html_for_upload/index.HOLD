@@ -17,7 +17,7 @@
 
 Simulations and site maintained by: <a href="http://www.colinzarzycki.com">Colin Zarzycki</a>
 
-<p>Computing support is currently provided through <a href="https://www2.cisl.ucar.edu/resources/computational-systems/cheyenne">CISL Cheyenne</a> at the National Center for Atmospheric Research. Web space is provided by the <a href="http://www.cgd.ucar.edu/systems/">Climate and Global Dynamics Information Systems group.</a></p>
+<p>Computing support is currently provided through the <a href="https://ics.psu.edu/computing-services/">Advanced CyberInfrastructure</a> system in the Institute for CyberScience at Penn State University.</p>
 
 <p><b>*** NOTE: This is NON-OPERATIONAL and EXPERIMENTAL. Please refer to the <a href="http://www.weather.gov">National Weather Service</a> and <a href="http://www.nhc.noaa.gov">National Hurricane Center</a> for official forecasts.</b></p>
 
@@ -26,10 +26,1937 @@ Simulations and site maintained by: <a href="http://www.colinzarzycki.com">Colin
 <p>(<a href="http://dx.doi.org/10.1175/MWR-D-15-0159.1"><b>DOI</b></a>) <b>C. M. Zarzycki</b> and C. Jablonowski (2015), Experimental tropical cyclone forecasts using a variable-resolution global model. <i>Mon. Weat. Rev.</i>, doi:10.1175/MWR-D-15-0159.1</p>
 
 <p>
-<font color="#FF2D00">UPDATE: 14km CONUS betacasts starting 12 23 2018 at 00Z.</font><br>
+<font color="#FF2D00">UPDATE: Simulations running in-house at PSU on ICS-ACI as of 00Z 10-07-2019</font><br>
 </p>
 
 <!--FORECASTHEAD-->
+<p><!--2019101700-->
+<font size="5"><b>2019101700</b></font><br>
+<i><font color="green">COMPLETED AT Thu Oct 17 06:33:55 UTC 2019</font></i><br><!--2019101700-->
+<b>NORTH ATLANTIC</b><br><!--2019101700-->
+<a href="2019101700/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101700/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101700/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101700/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101700/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101700/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101700/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101700/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101700/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101700/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101700/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101700/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101700-->
+<a href="2019101700/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101700/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101700/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101700/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101700/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101700/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101700/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101700/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101700/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101700/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101700-->
+<a href="2019101700/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101700/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101700/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101700/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101700/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101700/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101700/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101700/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101700/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101700/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101700-->
+
+<p><!--2019101612-->
+<font size="5"><b>2019101612</b></font><br>
+<i><font color="green">COMPLETED AT Wed Oct 16 18:29:53 UTC 2019</font></i><br><!--2019101612-->
+<b>NORTH ATLANTIC</b><br><!--2019101612-->
+<a href="2019101612/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101612/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101612/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101612/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101612/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101612/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101612/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101612/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101612/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101612/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101612/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101612/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101612-->
+<a href="2019101612/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101612/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101612/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101612/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101612/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101612/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101612/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101612/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101612/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101612/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101612-->
+<a href="2019101612/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101612/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101612/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101612/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101612/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101612/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101612/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101612/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101612/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101612/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101612-->
+
+<p><!--2019101600-->
+<font size="5"><b>2019101600</b></font><br>
+<i><font color="green">COMPLETED AT Wed Oct 16 06:37:10 UTC 2019</font></i><br><!--2019101600-->
+<b>NORTH ATLANTIC</b><br><!--2019101600-->
+<a href="2019101600/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101600/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101600/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101600/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101600/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101600/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101600/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101600/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101600/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101600/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101600/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101600/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101600-->
+<a href="2019101600/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101600/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101600/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101600/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101600/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101600/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101600/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101600/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101600/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101600/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101600-->
+<a href="2019101600/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101600/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101600/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101600/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101600/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101600/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101600/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101600/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101600/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101600/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101600-->
+
+<p><!--2019101512-->
+<font size="5"><b>2019101512</b></font><br>
+<i><font color="green">COMPLETED AT Tue Oct 15 18:17:47 UTC 2019</font></i><br><!--2019101512-->
+<b>NORTH ATLANTIC</b><br><!--2019101512-->
+<a href="2019101512/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101512/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101512/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101512/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101512/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101512/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101512/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101512/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101512/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101512/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101512/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101512/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101512-->
+<a href="2019101512/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101512/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101512/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101512/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101512/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101512/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101512/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101512/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101512/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101512/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101512-->
+<a href="2019101512/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101512/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101512/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101512/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101512/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101512/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101512/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101512/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101512/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101512/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101512-->
+
+<p><!--2019101500-->
+<font size="5"><b>2019101500</b></font><br>
+<i><font color="green">COMPLETED AT Tue Oct 15 06:15:25 UTC 2019</font></i><br><!--2019101500-->
+<b>NORTH ATLANTIC</b><br><!--2019101500-->
+<a href="2019101500/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101500/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101500/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101500/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101500/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101500/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101500/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101500/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101500/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101500/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101500/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101500/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101500-->
+<a href="2019101500/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101500/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101500/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101500/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101500/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101500/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101500/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101500/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101500/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101500/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101500-->
+<a href="2019101500/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101500/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101500/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101500/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101500/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101500/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101500/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101500/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101500/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101500/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101500-->
+
+<p><!--2019101412-->
+<font size="5"><b>2019101412</b></font><br>
+<i><font color="green">COMPLETED AT Mon Oct 14 18:26:57 UTC 2019</font></i><br><!--2019101412-->
+<b>NORTH ATLANTIC</b><br><!--2019101412-->
+<a href="2019101412/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101412/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101412/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101412/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101412/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101412/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101412/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101412/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101412/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101412/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101412/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101412/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101412-->
+<a href="2019101412/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101412/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101412/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101412/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101412/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101412/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101412/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101412/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101412/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101412/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101412-->
+<a href="2019101412/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101412/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101412/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101412/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101412/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101412/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101412/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101412/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101412/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101412/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101412-->
+
+<p><!--2019101400-->
+<font size="5"><b>2019101400</b></font><br>
+<i><font color="green">COMPLETED AT Mon Oct 14 06:33:49 UTC 2019</font></i><br><!--2019101400-->
+<b>NORTH ATLANTIC</b><br><!--2019101400-->
+<a href="2019101400/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101400/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101400/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101400/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101400/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101400/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101400/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101400/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101400/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101400/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101400/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101400/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101400-->
+<a href="2019101400/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101400/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101400/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101400/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101400/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101400/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101400/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101400/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101400/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101400/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101400-->
+<a href="2019101400/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101400/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101400/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101400/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101400/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101400/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101400/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101400/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101400/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101400/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101400-->
+
+<p><!--2019101312-->
+<font size="5"><b>2019101312</b></font><br>
+<i><font color="green">COMPLETED AT Sun Oct 13 18:40:48 UTC 2019</font></i><br><!--2019101312-->
+<b>NORTH ATLANTIC</b><br><!--2019101312-->
+<a href="2019101312/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101312/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101312/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101312/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101312/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101312/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101312/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101312/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101312/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101312/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101312/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101312/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101312-->
+<a href="2019101312/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101312/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101312/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101312/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101312/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101312/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101312/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101312/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101312/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101312/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101312-->
+<a href="2019101312/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101312/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101312/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101312/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101312/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101312/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101312/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101312/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101312/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101312/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101312-->
+
+<p><!--2019101300-->
+<font size="5"><b>2019101300</b></font><br>
+<i><font color="green">COMPLETED AT Sun Oct 13 06:40:45 UTC 2019</font></i><br><!--2019101300-->
+<b>NORTH ATLANTIC</b><br><!--2019101300-->
+<a href="2019101300/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101300/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101300/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101300/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101300/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101300/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101300/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101300/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101300/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101300/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101300/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101300/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101300-->
+<a href="2019101300/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101300/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101300/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101300/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101300/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101300/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101300/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101300/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101300/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101300/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101300-->
+<a href="2019101300/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101300/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101300/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101300/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101300/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101300/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101300/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101300/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101300/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101300/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101300-->
+
+<p><!--2019101212-->
+<font size="5"><b>2019101212</b></font><br>
+<i><font color="green">COMPLETED AT Sat Oct 12 18:39:55 UTC 2019</font></i><br><!--2019101212-->
+<b>NORTH ATLANTIC</b><br><!--2019101212-->
+<a href="2019101212/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101212/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101212/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101212/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101212/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101212/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101212/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101212/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101212/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101212/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101212/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101212/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101212-->
+<a href="2019101212/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101212/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101212/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101212/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101212/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101212/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101212/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101212/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101212/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101212/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101212-->
+<a href="2019101212/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101212/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101212/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101212/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101212/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101212/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101212/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101212/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101212/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101212/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101212-->
+
+<p><!--2019101200-->
+<font size="5"><b>2019101200</b></font><br>
+<i><font color="green">COMPLETED AT Sat Oct 12 06:42:26 UTC 2019</font></i><br><!--2019101200-->
+<b>NORTH ATLANTIC</b><br><!--2019101200-->
+<a href="2019101200/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101200/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101200/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101200/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101200/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101200/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101200/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101200/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101200/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101200/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101200/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101200/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101200-->
+<a href="2019101200/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101200/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101200/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101200/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101200/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101200/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101200/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101200/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101200/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101200/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101200-->
+<a href="2019101200/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101200/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101200/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101200/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101200/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101200/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101200/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101200/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101200/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101200/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101200-->
+
+<p><!--2019101112-->
+<font size="5"><b>2019101112</b></font><br>
+<i><font color="green">COMPLETED AT Fri Oct 11 19:18:36 UTC 2019</font></i><br><!--2019101112-->
+<b>NORTH ATLANTIC</b><br><!--2019101112-->
+<a href="2019101112/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101112/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101112/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101112/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101112/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101112/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101112/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101112/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101112/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101112/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101112/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101112/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101112-->
+<a href="2019101112/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101112/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101112/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101112/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101112/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101112/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101112/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101112/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101112/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101112/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101112-->
+<a href="2019101112/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101112/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101112/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101112/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101112/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101112/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101112/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101112/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101112/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101112/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101112-->
+
+<p><!--2019101100-->
+<font size="5"><b>2019101100</b></font><br>
+<i><font color="green">COMPLETED AT Fri Oct 11 06:22:16 UTC 2019</font></i><br><!--2019101100-->
+<b>NORTH ATLANTIC</b><br><!--2019101100-->
+<a href="2019101100/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101100/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101100/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101100/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101100/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101100/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101100/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101100/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101100/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101100/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101100/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101100/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101100-->
+<a href="2019101100/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101100/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101100/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101100/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101100/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101100/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101100/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101100/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101100/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101100/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101100-->
+<a href="2019101100/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101100/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101100/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101100/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101100/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101100/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101100/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101100/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101100/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101100/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101100-->
+
+<p><!--2019101000-->
+<font size="5"><b>2019101000</b></font><br>
+<i><font color="green">COMPLETED AT Thu Oct 10 06:40:09 UTC 2019</font></i><br><!--2019101000-->
+<b>NORTH ATLANTIC</b><br><!--2019101000-->
+<a href="2019101000/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101000/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101000/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101000/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019101000/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101000/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101000/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101000/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101000/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101000/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019101000/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019101000/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019101000-->
+<a href="2019101000/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101000/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101000/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101000/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019101000/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101000/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101000/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101000/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101000/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101000/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019101000-->
+<a href="2019101000/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019101000/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019101000/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019101000/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019101000/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019101000/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019101000/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019101000/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019101000/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019101000/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019101000-->
+
+<p><!--2019100912-->
+<font size="5"><b>2019100912</b></font><br>
+<i><font color="green">COMPLETED AT Wed Oct  9 18:44:16 UTC 2019</font></i><br><!--2019100912-->
+<b>NORTH ATLANTIC</b><br><!--2019100912-->
+<a href="2019100912/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100912/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100912/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100912/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100912/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100912/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100912/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100912/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100912/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100912/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100912/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100912/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100912-->
+<a href="2019100912/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100912/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100912/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100912/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100912/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100912/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100912/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100912/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100912/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100912/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100912-->
+<a href="2019100912/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100912/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100912/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100912/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100912/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100912/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100912/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100912/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100912/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100912/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100912-->
+
+<p><!--2019100900-->
+<font size="5"><b>2019100900</b></font><br>
+<i><font color="green">COMPLETED AT Wed Oct  9 06:14:54 UTC 2019</font></i><br><!--2019100900-->
+<b>NORTH ATLANTIC</b><br><!--2019100900-->
+<a href="2019100900/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100900/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100900/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100900/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100900/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100900/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100900/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100900/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100900/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100900/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100900/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100900/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100900-->
+<a href="2019100900/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100900/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100900/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100900/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100900/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100900/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100900/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100900/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100900/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100900/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100900-->
+<a href="2019100900/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100900/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100900/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100900/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100900/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100900/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100900/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100900/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100900/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100900/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100900-->
+
+<p><!--2019100812-->
+<font size="5"><b>2019100812</b></font><br>
+<i><font color="green">COMPLETED AT Tue Oct  8 18:37:13 UTC 2019</font></i><br><!--2019100812-->
+<b>NORTH ATLANTIC</b><br><!--2019100812-->
+<a href="2019100812/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100812/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100812/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100812/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100812/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100812/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100812/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100812/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100812/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100812/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100812/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100812/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100812-->
+<a href="2019100812/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100812/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100812/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100812/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100812/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100812/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100812/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100812/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100812/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100812/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100812-->
+<a href="2019100812/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100812/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100812/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100812/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100812/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100812/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100812/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100812/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100812/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100812/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100812-->
+
+<p><!--2019100800-->
+<font size="5"><b>2019100800</b></font><br>
+<i><font color="green">COMPLETED AT Tue Oct  8 06:38:16 UTC 2019</font></i><br><!--2019100800-->
+<b>NORTH ATLANTIC</b><br><!--2019100800-->
+<a href="2019100800/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100800/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100800/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100800/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100800/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100800/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100800/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100800/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100800/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100800/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100800/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100800/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100800-->
+<a href="2019100800/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100800/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100800/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100800/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100800/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100800/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100800/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100800/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100800/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100800/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100800-->
+<a href="2019100800/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100800/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100800/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100800/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100800/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100800/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100800/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100800/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100800/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100800/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100800-->
+
+<p><!--2019100712-->
+<font size="5"><b>2019100712</b></font><br>
+<i><font color="green">COMPLETED AT Mon Oct  7 18:16:56 UTC 2019</font></i><br><!--2019100712-->
+<b>NORTH ATLANTIC</b><br><!--2019100712-->
+<a href="2019100712/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100712/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100712/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100712/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100712/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100712/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100712/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100712/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100712/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100712/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100712/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100712/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100712-->
+<a href="2019100712/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100712/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100712/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100712/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100712/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100712/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100712/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100712/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100712/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100712/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100712-->
+<a href="2019100712/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100712/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100712/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100712/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100712/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100712/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100712/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100712/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100712/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100712/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100712-->
+
+<p><!--2019100700-->
+<font size="5"><b>2019100700</b></font><br>
+<i><font color="green">COMPLETED AT Mon Oct  7 06:33:32 UTC 2019</font></i><br><!--2019100700-->
+<b>NORTH ATLANTIC</b><br><!--2019100700-->
+<a href="2019100700/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100700/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100700/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100700/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100700/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100700/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100700/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100700/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100700/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100700/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100700/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100700/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100700-->
+<a href="2019100700/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100700/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100700/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100700/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100700/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100700/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100700/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100700/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100700/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100700/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100700-->
+<a href="2019100700/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100700/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100700/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100700/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100700/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100700/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100700/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100700/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100700/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100700/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100700-->
+
+<p><!--2019100612-->
+<font size="5"><b>2019100612</b></font><br>
+<i><font color="green">COMPLETED AT Sun Oct  6 18:32:37 UTC 2019</font></i><br><!--2019100612-->
+<b>NORTH ATLANTIC</b><br><!--2019100612-->
+<a href="2019100612/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100612/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100612/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100612/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100612/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100612/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100612/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100612/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100612/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100612/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100612/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100612/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100612-->
+<a href="2019100612/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100612/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100612/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100612/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100612/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100612/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100612/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100612/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100612/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100612/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100612-->
+<a href="2019100612/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100612/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100612/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100612/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100612/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100612/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100612/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100612/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100612/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100612/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100612-->
+
+<p><!--2019100600-->
+<font size="5"><b>2019100600</b></font><br>
+<i><font color="green">COMPLETED AT Sun Oct  6 06:33:30 UTC 2019</font></i><br><!--2019100600-->
+<b>NORTH ATLANTIC</b><br><!--2019100600-->
+<a href="2019100600/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100600/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100600/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100600/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100600/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100600/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100600/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100600/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100600/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100600/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100600/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100600/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100600-->
+<a href="2019100600/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100600/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100600/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100600/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100600/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100600/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100600/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100600/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100600/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100600/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100600-->
+<a href="2019100600/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100600/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100600/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100600/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100600/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100600/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100600/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100600/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100600/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100600/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100600-->
+
+<p><!--2019100512-->
+<font size="5"><b>2019100512</b></font><br>
+<i><font color="green">COMPLETED AT Sat Oct  5 18:31:52 UTC 2019</font></i><br><!--2019100512-->
+<b>NORTH ATLANTIC</b><br><!--2019100512-->
+<a href="2019100512/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100512/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100512/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100512/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100512/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100512/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100512/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100512/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100512/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100512/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100512/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100512/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100512-->
+<a href="2019100512/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100512/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100512/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100512/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100512/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100512/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100512/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100512/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100512/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100512/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100512-->
+<a href="2019100512/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100512/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100512/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100512/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100512/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100512/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100512/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100512/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100512/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100512/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100512-->
+
+<p><!--2019100500-->
+<font size="5"><b>2019100500</b></font><br>
+<i><font color="green">COMPLETED AT Sat Oct  5 06:58:41 UTC 2019</font></i><br><!--2019100500-->
+<b>NORTH ATLANTIC</b><br><!--2019100500-->
+<a href="2019100500/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100500/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100500/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100500/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100500/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100500/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100500/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100500/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100500/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100500/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100500/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100500/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100500-->
+<a href="2019100500/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100500/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100500/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100500/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100500/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100500/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100500/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100500/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100500/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100500/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100500-->
+<a href="2019100500/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100500/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100500/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100500/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100500/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100500/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100500/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100500/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100500/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100500/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100500-->
+
+<p><!--2019100400-->
+<font size="5"><b>2019100400</b></font><br>
+<i><font color="green">COMPLETED AT Fri Oct  4 06:52:15 UTC 2019</font></i><br><!--2019100400-->
+<b>NORTH ATLANTIC</b><br><!--2019100400-->
+<a href="2019100400/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100400/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100400/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100400/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100400/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100400/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100400/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100400/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100400/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100400/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100400/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100400/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100400-->
+<a href="2019100400/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100400/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100400/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100400/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100400/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100400/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100400/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100400/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100400/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100400/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100400-->
+<a href="2019100400/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100400/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100400/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100400/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100400/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100400/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100400/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100400/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100400/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100400/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100400-->
+
+<p><!--2019100312-->
+<font size="5"><b>2019100312</b></font><br>
+<i><font color="green">COMPLETED AT Thu Oct  3 18:34:49 UTC 2019</font></i><br><!--2019100312-->
+<b>NORTH ATLANTIC</b><br><!--2019100312-->
+<a href="2019100312/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100312/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100312/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100312/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100312/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100312/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100312/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100312/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100312/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100312/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100312/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100312/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100312-->
+<a href="2019100312/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100312/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100312/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100312/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100312/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100312/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100312/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100312/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100312/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100312/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100312-->
+<a href="2019100312/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100312/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100312/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100312/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100312/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100312/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100312/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100312/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100312/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100312/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100312-->
+
+<p><!--2019100300-->
+<font size="5"><b>2019100300</b></font><br>
+<i><font color="green">COMPLETED AT Thu Oct  3 06:21:55 UTC 2019</font></i><br><!--2019100300-->
+<b>NORTH ATLANTIC</b><br><!--2019100300-->
+<a href="2019100300/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100300/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100300/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100300/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100300/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100300/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100300/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100300/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100300/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100300/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100300/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100300/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100300-->
+<a href="2019100300/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100300/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100300/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100300/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100300/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100300/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100300/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100300/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100300/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100300/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100300-->
+<a href="2019100300/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100300/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100300/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100300/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100300/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100300/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100300/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100300/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100300/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100300/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100300-->
+
+<p><!--2019100212-->
+<font size="5"><b>2019100212</b></font><br>
+<i><font color="green">COMPLETED AT Wed Oct  2 18:17:49 UTC 2019</font></i><br><!--2019100212-->
+<b>NORTH ATLANTIC</b><br><!--2019100212-->
+<a href="2019100212/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100212/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100212/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100212/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100212/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100212/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100212/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100212/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100212/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100212/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100212/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100212/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100212-->
+<a href="2019100212/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100212/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100212/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100212/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100212/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100212/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100212/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100212/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100212/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100212/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100212-->
+<a href="2019100212/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100212/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100212/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100212/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100212/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100212/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100212/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100212/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100212/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100212/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100212-->
+
+<p><!--2019100200-->
+<font size="5"><b>2019100200</b></font><br>
+<i><font color="green">COMPLETED AT Wed Oct  2 06:38:15 UTC 2019</font></i><br><!--2019100200-->
+<b>NORTH ATLANTIC</b><br><!--2019100200-->
+<a href="2019100200/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100200/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100200/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100200/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100200/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100200/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100200/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100200/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100200/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100200/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100200/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100200/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100200-->
+<a href="2019100200/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100200/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100200/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100200/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100200/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100200/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100200/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100200/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100200/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100200/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100200-->
+<a href="2019100200/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100200/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100200/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100200/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100200/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100200/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100200/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100200/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100200/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100200/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100200-->
+
+<p><!--2019100112-->
+<font size="5"><b>2019100112</b></font><br>
+<i><font color="green">COMPLETED AT Tue Oct  1 18:22:32 UTC 2019</font></i><br><!--2019100112-->
+<b>NORTH ATLANTIC</b><br><!--2019100112-->
+<a href="2019100112/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100112/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100112/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100112/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100112/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100112/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100112/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100112/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100112/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100112/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100112/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100112/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100112-->
+<a href="2019100112/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100112/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100112/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100112/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100112/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100112/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100112/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100112/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100112/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100112/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100112-->
+<a href="2019100112/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100112/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100112/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100112/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100112/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100112/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100112/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100112/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100112/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100112/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100112-->
+
+<p><!--2019100100-->
+<font size="5"><b>2019100100</b></font><br>
+<i><font color="green">COMPLETED AT Tue Oct  1 06:50:57 UTC 2019</font></i><br><!--2019100100-->
+<b>NORTH ATLANTIC</b><br><!--2019100100-->
+<a href="2019100100/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100100/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100100/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100100/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019100100/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100100/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100100/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100100/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100100/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100100/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019100100/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019100100/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019100100-->
+<a href="2019100100/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100100/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100100/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100100/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019100100/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100100/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100100/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100100/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100100/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100100/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019100100-->
+<a href="2019100100/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019100100/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019100100/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019100100/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019100100/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019100100/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019100100/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019100100/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019100100/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019100100/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019100100-->
+
+<p><!--2019093012-->
+<font size="5"><b>2019093012</b></font><br>
+<i><font color="green">COMPLETED AT Mon Sep 30 17:23:56 UTC 2019</font></i><br><!--2019093012-->
+<b>NORTH ATLANTIC</b><br><!--2019093012-->
+<a href="2019093012/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019093012/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019093012/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019093012/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019093012/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019093012/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019093012/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019093012/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019093012/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019093012/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019093012/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019093012/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019093012-->
+<a href="2019093012/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019093012/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019093012/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019093012/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019093012/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019093012/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019093012/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019093012/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019093012/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019093012/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019093012-->
+<a href="2019093012/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019093012/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019093012/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019093012/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019093012/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019093012/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019093012/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019093012/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019093012/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019093012/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019093012-->
+
+<p><!--2019093000-->
+<font size="5"><b>2019093000</b></font><br>
+<i><font color="green">COMPLETED AT Mon Sep 30 05:25:15 UTC 2019</font></i><br><!--2019093000-->
+<b>NORTH ATLANTIC</b><br><!--2019093000-->
+<a href="2019093000/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019093000/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019093000/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019093000/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019093000/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019093000/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019093000/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019093000/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019093000/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019093000/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019093000/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019093000/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019093000-->
+<a href="2019093000/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019093000/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019093000/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019093000/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019093000/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019093000/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019093000/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019093000/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019093000/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019093000/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019093000-->
+<a href="2019093000/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019093000/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019093000/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019093000/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019093000/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019093000/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019093000/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019093000/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019093000/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019093000/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019093000-->
+
+<p><!--2019092900-->
+<font size="5"><b>2019092900</b></font><br>
+<i><font color="green">COMPLETED AT Sun Sep 29 19:33:00 UTC 2019</font></i><br><!--2019092900-->
+<b>NORTH ATLANTIC</b><br><!--2019092900-->
+<a href="2019092900/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092900/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092900/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092900/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092900/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092900/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092900/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092900/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092900/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092900/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092900/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092900/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092900-->
+<a href="2019092900/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092900/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092900/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092900/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092900/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092900/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092900/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092900/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092900/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092900/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092900-->
+<a href="2019092900/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092900/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092900/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092900/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092900/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092900/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092900/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092900/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092900/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092900/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092900-->
+
+<p><!--2019092900-->
+<font size="5"><b>2019092900</b></font><br>
+<i><font color="green">COMPLETED AT Sun Sep 29 15:22:48 UTC 2019</font></i><br><!--2019092900-->
+<b>NORTH ATLANTIC</b><br><!--2019092900-->
+<a href="2019092900/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092900/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092900/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092900/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092900/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092900/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092900/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092900/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092900/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092900/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092900/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092900/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092900-->
+<a href="2019092900/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092900/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092900/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092900/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092900/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092900/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092900/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092900/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092900/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092900/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092900-->
+<a href="2019092900/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092900/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092900/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092900/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092900/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092900/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092900/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092900/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092900/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092900/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092900-->
+
+<p><!--2019092812-->
+<font size="5"><b>2019092812</b></font><br>
+<i><font color="green">COMPLETED AT Sat Sep 28 19:00:50 UTC 2019</font></i><br><!--2019092812-->
+<b>NORTH ATLANTIC</b><br><!--2019092812-->
+<a href="2019092812/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092812/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092812/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092812/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092812/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092812/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092812/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092812/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092812/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092812/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092812/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092812/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092812-->
+<a href="2019092812/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092812/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092812/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092812/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092812/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092812/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092812/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092812/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092812/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092812/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092812-->
+<a href="2019092812/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092812/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092812/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092812/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092812/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092812/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092812/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092812/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092812/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092812/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092812-->
+
+<p><!--2019092800-->
+<font size="5"><b>2019092800</b></font><br>
+<i><font color="green">COMPLETED AT Sat Sep 28 05:27:26 UTC 2019</font></i><br><!--2019092800-->
+<b>NORTH ATLANTIC</b><br><!--2019092800-->
+<a href="2019092800/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092800/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092800/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092800/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092800/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092800/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092800/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092800/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092800/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092800/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092800/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092800/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092800-->
+<a href="2019092800/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092800/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092800/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092800/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092800/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092800/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092800/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092800/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092800/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092800/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092800-->
+<a href="2019092800/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092800/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092800/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092800/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092800/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092800/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092800/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092800/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092800/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092800/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092800-->
+
+<p><!--2019092712-->
+<font size="5"><b>2019092712</b></font><br>
+<i><font color="green">COMPLETED AT Fri Sep 27 19:53:40 UTC 2019</font></i><br><!--2019092712-->
+<b>NORTH ATLANTIC</b><br><!--2019092712-->
+<a href="2019092712/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092712/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092712/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092712/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092712/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092712/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092712/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092712/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092712/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092712/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092712/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092712/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092712-->
+<a href="2019092712/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092712/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092712/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092712/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092712/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092712/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092712/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092712/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092712/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092712/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092712-->
+<a href="2019092712/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092712/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092712/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092712/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092712/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092712/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092712/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092712/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092712/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092712/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092712-->
+
+<p><!--2019092700-->
+<font size="5"><b>2019092700</b></font><br>
+<i><font color="green">COMPLETED AT Fri Sep 27 05:28:41 UTC 2019</font></i><br><!--2019092700-->
+<b>NORTH ATLANTIC</b><br><!--2019092700-->
+<a href="2019092700/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092700/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092700/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092700/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092700/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092700/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092700/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092700/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092700/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092700/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092700/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092700/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092700-->
+<a href="2019092700/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092700/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092700/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092700/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092700/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092700/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092700/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092700/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092700/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092700/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092700-->
+<a href="2019092700/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092700/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092700/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092700/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092700/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092700/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092700/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092700/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092700/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092700/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092700-->
+
+<p><!--2019092612-->
+<font size="5"><b>2019092612</b></font><br>
+<i><font color="green">COMPLETED AT Fri Sep 27 02:18:57 UTC 2019</font></i><br><!--2019092612-->
+<b>NORTH ATLANTIC</b><br><!--2019092612-->
+<a href="2019092612/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092612/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092612/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092612/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092612/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092612/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092612/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092612/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092612/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092612/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092612/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092612/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092612-->
+<a href="2019092612/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092612/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092612/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092612/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092612/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092612/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092612/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092612/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092612/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092612/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092612-->
+<a href="2019092612/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092612/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092612/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092612/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092612/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092612/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092612/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092612/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092612/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092612/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092612-->
+
+<p><!--2019092612-->
+<font size="5"><b>2019092612</b></font><br>
+<i><font color="green">COMPLETED AT Thu Sep 26 17:34:49 UTC 2019</font></i><br><!--2019092612-->
+<b>NORTH ATLANTIC</b><br><!--2019092612-->
+<a href="2019092612/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092612/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092612/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092612/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092612/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092612/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092612/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092612/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092612/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092612/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092612/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092612/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092612-->
+<a href="2019092612/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092612/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092612/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092612/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092612/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092612/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092612/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092612/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092612/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092612/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092612-->
+<a href="2019092612/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092612/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092612/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092612/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092612/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092612/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092612/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092612/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092612/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092612/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092612-->
+
+<p><!--2019092600-->
+<font size="5"><b>2019092600</b></font><br>
+<i><font color="green">COMPLETED AT Thu Sep 26 15:07:56 UTC 2019</font></i><br><!--2019092600-->
+<b>NORTH ATLANTIC</b><br><!--2019092600-->
+<a href="2019092600/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092600/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092600/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092600-->
+<a href="2019092600/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092600-->
+<a href="2019092600/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092600-->
+
+<p><!--2019092600-->
+<font size="5"><b>2019092600</b></font><br>
+<i><font color="green">COMPLETED AT Thu Sep 26 12:51:18 UTC 2019</font></i><br><!--2019092600-->
+<b>NORTH ATLANTIC</b><br><!--2019092600-->
+<a href="2019092600/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092600/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092600/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092600-->
+<a href="2019092600/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092600-->
+<a href="2019092600/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092600-->
+
+<p><!--2019092600-->
+<font size="5"><b>2019092600</b></font><br>
+<i><font color="green">COMPLETED AT Thu Sep 26 11:52:20 UTC 2019</font></i><br><!--2019092600-->
+<b>NORTH ATLANTIC</b><br><!--2019092600-->
+<a href="2019092600/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092600/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092600/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092600-->
+<a href="2019092600/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092600-->
+<a href="2019092600/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092600-->
+
+<p><!--2019092600-->
+<font size="5"><b>2019092600</b></font><br>
+<i><font color="green">COMPLETED AT Thu Sep 26 11:22:01 UTC 2019</font></i><br><!--2019092600-->
+<b>NORTH ATLANTIC</b><br><!--2019092600-->
+<a href="2019092600/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092600/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092600/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092600-->
+<a href="2019092600/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092600-->
+<a href="2019092600/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092600/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092600/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092600/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092600/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092600/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092600/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092600/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092600/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092600/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092600-->
+
+<p><!--2019092512-->
+<font size="5"><b>2019092512</b></font><br>
+<i><font color="green">COMPLETED AT Thu Sep 26 03:41:48 UTC 2019</font></i><br><!--2019092512-->
+<b>NORTH ATLANTIC</b><br><!--2019092512-->
+<a href="2019092512/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092512/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092512/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092512/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092512/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092512/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092512/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092512/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092512/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092512/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092512/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092512/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092512-->
+<a href="2019092512/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092512/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092512/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092512/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092512/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092512/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092512/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092512/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092512/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092512/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092512-->
+<a href="2019092512/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092512/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092512/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092512/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092512/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092512/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092512/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092512/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092512/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092512/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092512-->
+
+<p><!--2019092512-->
+<font size="5"><b>2019092512</b></font><br>
+<i><font color="green">COMPLETED AT Thu Sep 26 03:04:23 UTC 2019</font></i><br><!--2019092512-->
+<b>NORTH ATLANTIC</b><br><!--2019092512-->
+<a href="2019092512/wind_natl_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092512/500vort_natl_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092512/flut_natl_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092512/ts_natl_hanis.html">Surface temperature</a><br>
+<a href="2019092512/tsanom_natl_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092512/prect_natl_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092512/ptype_natl_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092512/sumprect_natl_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092512/sumsnow_natl_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092512/tmq_natl_hanis.html">Total precipitable water</a><br>
+<a href="2019092512/trajs.trajectories.txt.forecast_nhemitc_30_x4_CAM5_L30.png">Control TC tracks (TempestExtremes)</a><br>
+<a href="2019092512/ens_traj.png">Ensemble TC tracks (TempestExtremes)</a><br>
+<br><b>EAST PACIFIC</b><br><!--2019092512-->
+<a href="2019092512/wind_epac_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092512/500vort_epac_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092512/flut_epac_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092512/ts_epac_hanis.html">Surface temperature</a><br>
+<a href="2019092512/tsanom_epac_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092512/prect_epac_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092512/ptype_epac_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092512/sumprect_epac_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092512/sumsnow_epac_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092512/tmq_epac_hanis.html">Total precipitable water</a><br>
+<br><b>WEST PACIFIC</b><br><!--2019092512-->
+<a href="2019092512/wind_float1_hanis.html">850 mb wind/MSLP</a><br>
+<a href="2019092512/500vort_float1_hanis.html">500 mb vorticity/500 mb geopotential height/500 mb wind vectors</a><br>
+<a href="2019092512/flut_float1_hanis.html">Outgoing longwave radiation</a><br>
+<a href="2019092512/ts_float1_hanis.html">Surface temperature</a><br>
+<a href="2019092512/tsanom_float1_hanis.html">Surface temperature anomaly</a><br>
+<a href="2019092512/prect_float1_hanis.html">Precipitation/MSLP</a><br>
+<a href="2019092512/ptype_float1_hanis.html">Precipitation type/MSLP</a><br>
+<a href="2019092512/sumprect_float1_hanis.html">Accumulated precipitation</a><br>
+<a href="2019092512/sumsnow_float1_hanis.html">Accumulated snowfall (10:1)</a><br>
+<a href="2019092512/tmq_float1_hanis.html">Total precipitable water</a><br>
+<br>
+</p><!--2019092512-->
+
 <p><!--2019092500-->
 <font size="5"><b>2019092500</b></font><br>
 <i><font color="green">COMPLETED AT Wed Sep 25 05:18:34 UTC 2019</font></i><br><!--2019092500-->

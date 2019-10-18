@@ -45,7 +45,7 @@
 
 # Add perturbations from climate forcing run -- right now only works with M. Wehner data
   add_perturbs = false
-  add_noise = true
+  add_noise = false
 
 # is there a user_nl_clm_presave file?
   preSavedCLMuserNL = true
@@ -56,19 +56,19 @@
   casename = forecast_nhemitc_30_x4_CAM5_L30.002
 
 # Weight file for going from GFS -> VR-SE
-  gfs2seWeights = /glade/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ne0np4nhemitc.ne30x4_patc.nc
+  gfs2seWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_ne0np4nhemitc.ne30x4_patc.nc
 
 # File for plotting in NCL (native grid to some sort of RLL)
-  nclPlotWeights = /glade/work/zarzycki/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc
+  nclPlotWeights = ~/work/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc
 
 # Repo of 1deg CLM inic for "cold starts"
-  landrawdir = /glade/u/home/zarzycki/scratch/forecast_nhemitc_30_x4_CAM5_L30/run/clmstart/
+  landrawdir = /storage/home/cmz5202/scratch/output/forecast_nhemitc_30_x4_CAM5_L30/run/clmstart/
 
 # Timing settings
-  PROJECTID = UNSB0017
-  FILTERWALLCLOCK = 00:11:00
-  FILTERQUEUE = regular
-  RUNWALLCLOCK = 01:29:00
-  RUNQUEUE = regular
+  PROJECTID = cmz5202_a_g_sc_default 
+  FILTERWALLCLOCK = 00:29:00
+  FILTERQUEUE = batch
+  RUNWALLCLOCK = 03:59:00
+  RUNQUEUE = batch
 
   usingCIME = true

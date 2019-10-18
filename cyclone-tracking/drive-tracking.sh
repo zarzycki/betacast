@@ -15,7 +15,7 @@
 ############ USER OPTIONS #####################
 
 ## Path to serial TempestExtremes binaries
-TEMPESTEXTREMESDIR=/glade/work/zarzycki/tempestextremes_noMPI/
+TEMPESTEXTREMESDIR=/storage/home/cmz5202/sw/tempestextremes_noMPI/
 
 TCVITFILE=${3}
 UQSTR=${2}
@@ -32,10 +32,10 @@ else
 fi
 
 ### Flag needed if using unstructured data (if not using unstruc data, empty string)
-CONNECTFLAG="--in_connect ./connect-files/nhemitc30x4.connect.dat"
+CONNECTFLAG="--in_connect ./nhemitc30x4.connect.dat"
 
 ### Path + filelist of data to process
-PATHTOFILES=/glade/u/home/zarzycki/scratch/${2}/run/${1}/
+PATHTOFILES=/storage/home/cmz5202/scratch/output/${2}/run/${1}/
 FILES=`ls ${PATHTOFILES}/*.cam.h0.*.nc`
 
 ############ TRACKER MECHANICS #####################
@@ -72,8 +72,8 @@ if [ -f ${TCVITFILE} ]; then
   cat ${ATCFFILE} >> ${ATCFFILEMERGE}
   ncl plot_ATCF.ncl
   echo "SSHings..."
-  ssh zarzycki@burnt.cgd.ucar.edu "mkdir -p /web/web-data/staff/zarzycki/current/${YYYYMMDDHH} "
-  scp enstraj.${YYYYMMDDHH}.png zarzycki@burnt.cgd.ucar.edu:/web/web-data/staff/zarzycki/current/${YYYYMMDDHH}/ens_traj.png
+  ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${YYYYMMDDHH} "
+  scp enstraj.${YYYYMMDDHH}.png colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/${YYYYMMDDHH}/ens_traj.png
   rm ${ATCFFILE}
 fi
 

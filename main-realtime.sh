@@ -31,9 +31,6 @@
 set -e
 #set -v
 
-#source /glade/apps/opt/lmod/lmod/init/bash
-module load ncl/6.6.2 
-
 NAMELISTFILE=${1}
 echo "Reading namelist ${NAMELISTFILE}..."
 inputstream=`cat ${NAMELISTFILE}|grep -v "^#"`
@@ -70,21 +67,21 @@ set -u  # turn on crashes for unbound variables in bash
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
 
-path_to_case=/glade/work/$LOGNAME/${casename}
-pathToINICfiles=/glade/work/${LOGNAME}/sewx/INIC/
+path_to_case=/storage/home/cmz5202/SEWX/${casename}
+pathToINICfiles=/gpfs/group/cmz5202/default/sewx/INIC/
 sePreFilterIC=${pathToINICfiles}/${casename}_INIC.nc
 sePostFilterIC=${pathToINICfiles}/${casename}_INIC_filter.nc
 
-pathToSSTfiles=/glade/work/${LOGNAME}/sewx/SST/
+pathToSSTfiles=/gpfs/group/cmz5202/default/sewx/SST/
 sstFileIC=${pathToSSTfiles}/sst_${casename}_1x1.nc
 
-sewxscriptsdir=/glade/u/home/${LOGNAME}/sewx-cam-forecast/
+sewxscriptsdir=~/sw/betacast/
 
-gfs_files_path=/glade/work/$LOGNAME/sewx/GFS/          # Temp path for GFS/CFSR DL/proc
-era_files_path=/glade/work/$LOGNAME/getECMWFdata/
-sst_files_path=/glade/work/$LOGNAME/sewx/SST/          # Temp path for SST
+gfs_files_path=/gpfs/group/cmz5202/default/sewx/GFS/          # Temp path for GFS/CFSR DL/proc
+era_files_path=/gpfs/group/cmz5202/default/getECMWFdata/
+sst_files_path=/gpfs/group/cmz5202/default/SST/          # Temp path for SST
 
-path_to_rundir=/glade/scratch/$LOGNAME/${casename}/run/
+path_to_rundir=~/scratch/output/${casename}/run/
 
 upload_ncl_script=${sewxscriptsdir}/upload_ncl.sh
 
@@ -154,6 +151,10 @@ then
     echo "Can't figure out start time"
     exit 1
   fi
+
+####CMZ 
+#cyclestr=00
+
 else     # if not live, draw from head of dates.txt file
   datesfile=dates.${casename}.txt
   longdate=$(head -n 1 ${datesfile})
@@ -563,6 +564,8 @@ echo "Setting GLC coupling to handle forecasts across calendar years"
 ./xmlchange GLC_AVG_PERIOD="glc_coupling_period"
 echo "Standardizing streams for SST"
 ./xmlchange SSTICE_YEAR_START=1,SSTICE_YEAR_END=1
+echo "Setting projectID and queue"
+./xmlchange --force JOB_QUEUE=${RUNQUEUE},PROJECT=${PROJECTID}
 ####### 
 if [ "$land_spinup" = true ] ; then
   ./xmlchange REST_OPTION=ndays,REST_N=1
@@ -638,7 +641,7 @@ if $doFilter ; then
   sed -i 's?.*ncdata.*?ncdata='"'${sePreFilterIC}'"'?' user_nl_cam
   ./xmlchange ATM_NCPL=192
   ./xmlchange JOB_WALLCLOCK_TIME=${FILTERWALLCLOCK}
-  ./xmlchange JOB_QUEUE=${FILTERQUEUE}
+  ./xmlchange --force JOB_QUEUE=${FILTERQUEUE}
   ./xmlchange PROJECT=${PROJECTID}
 
 
@@ -649,7 +652,7 @@ if $doFilter ; then
       if $usingCIME ; then
         #./case.setup --reset
         #./case.build
-        ./case.submit
+        set +e ; ./case.submit --batch-args "-N cesm" ; set -e
       else
         bsub < ${casename}.run
       fi
@@ -704,7 +707,7 @@ if $doFilter ; then
   sed -i 's?.*ncdata.*?ncdata='"'${sePostFilterIC}'"'?' user_nl_cam
   ./xmlchange ATM_NCPL=192
   ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
-  ./xmlchange JOB_QUEUE=${RUNQUEUE}
+  ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
   ./xmlchange PROJECT=${PROJECTID}
 
 fi
@@ -718,7 +721,10 @@ then
     if $usingCIME ; then
       #./case.setup --reset
       #./case.build
-      ./case.submit
+      #CMZ
+      set +e
+      ./case.submit --batch-args "-N cesm"
+      set -e
     else
       bsub < ${casename}.run
     fi
@@ -788,14 +794,19 @@ rm -v rpointer.*
 mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 
 if $dotracking ; then
-#yearstr="2018"
-#monthstr="09"
-#daystr="09"
-#cyclestr="18"
-#casename="forecast_nhemitc_30_x4_CAM5_L30.001"
-  TCVITFILE=./fin-tcvitals/tcvitals.${yearstr}${monthstr}${daystr}${cyclestr}
+  #yearstr="2019"
+  #monthstr="09"
+  #daystr="26"
+  #cyclestr="12"
+  #casename="forecast_nhemitc_30_x4_CAM5_L30"
+  #sewxscriptsdir=~/sw/betacast/
+  cd ${sewxscriptsdir}/cyclone-tracking/
+  TCVITFOLDER=./fin-tcvitals/
+  TCVITFILE=${TCVITFOLDER}/tcvitals.${yearstr}${monthstr}${daystr}${cyclestr}
+  mkdir -p ${TCVITFOLDER}
+  mkdir -p ./fin-figs/
+  mkdir -p ./fin-atcf/
   ATCFFILE=atcf.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}
-  cd /glade/u/home/zarzycki/tempest-scripts/forecast/
   if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
     wget ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/gfs.t${cyclestr}z.syndata.tcvitals.tm00
     mv -v gfs.t${cyclestr}z.syndata.tcvitals.tm00 ${TCVITFILE}

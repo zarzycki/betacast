@@ -8,7 +8,7 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "/glade/u/home/zarzycki/ncl/functions/rainratetodbz.ncl"
+load "/storage/home/cmz5202/sw/betacast/plotting_ncl/functions/rainratetodbz.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
@@ -215,7 +215,7 @@ ptype = where(prect_mmday .lt. 0.1,ptype@_FillValue,ptype)
 ;*****************************************************
 
 print("doing anoms")
-f_anom=addfile("/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/climo-files/TS-1980-2009-NCEP.nc","r")
+f_anom=addfile("/storage/home/cmz5202/sw/betacast/plotting_ncl/climo-files/TS-1980-2009-NCEP.nc","r")
 ANOMTIME=f_anom->time
 ANOMDATE=cd_inv_calendar(2000,toint(monstr),toint(daystr),toint(hourstr),0,0,ANOMTIME@units,0)
 TSANOM=f_anom->TS({ANOMDATE},:,:)
@@ -570,7 +570,7 @@ print("Plotting accumulated snow...")
 wks = gsn_open_wks(out_type,"sumsnow_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 res_sumsnow   = res
 
-cmap = read_colormap_file("/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/colormaps/wxbell_snow.rgb")
+cmap = read_colormap_file("/storage/home/cmz5202/sw/betacast/plotting_ncl/colormaps/wxbell_snow.rgb")
 res_sumsnow@cnFillPalette = cmap(::-1,:)       ; reverse color map
 res_sumsnow@cnFillOpacityF = 0.75
 

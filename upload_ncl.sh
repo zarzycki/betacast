@@ -1,17 +1,5 @@
 #!/bin/bash
 
-##=======================================================================
-#BSUB -a poe                     # use LSF openmp elim
-#BSUB -N
-#BSUB -n 1                      # yellowstone setting
-#BSUB -o ncl_up.%J                  # output filename
-#BSUB -e ncl_up.%J                  # error filename
-#BSUB -q geyser                 # queue
-#BSUB -J upload_ncl
-#BSUB -W 10:00                    # wall clock limit
-#BSUB -P P54048000               # account number
-##=======================================================================
-module load ncl
 ###############################################################################
 yearstr=2018
 monthstr=06
@@ -19,16 +7,15 @@ daystr=05
 cyclestr=00
 cyclestrsec=00000
 ###############################################################################
-#nclweightfile="/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"
 nclweightfile=$1
 runDir=$2
-path_to_ncl=/glade/u/home/zarzycki/sewx-cam-forecast/plotting_ncl/
-htmlFolder=/glade/u/home/zarzycki/sewx-cam-forecast/html_for_upload/
+path_to_ncl=/storage/home/cmz5202/sw/betacast/plotting_ncl/
+htmlFolder=/storage/home/cmz5202/sw/betacast/html_for_upload/
 twodaysago=20120821
 
 echo "SSHings..."
-ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current/${yearstr}${monthstr}${daystr}${cyclestr} ; \ 
-		 cd /home/colinzar/www/www/current/ ; \
+ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${yearstr}${monthstr}${daystr}${cyclestr} ; \ 
+		 cd /home/colinzar/www/www/current2/ ; \
 		 cp *cfg *html ${yearstr}${monthstr}${daystr}${cyclestr} ; \
 		 rm ${yearstr}${monthstr}${daystr}${cyclestr}/index.html "
 
@@ -42,7 +29,7 @@ if [ ! -f index.html ]; then
 	sed -e "s/YYYYMMDDHH/${yearstr}${monthstr}${daystr}${cyclestr}/" _index2.html > _index3.html
 	mv _index3.html index.html
 	rm _index*.html
-	scp index.html colinzar@colinzarzycki.com:/home/colinzar/www/www/current
+	scp index.html colinzar@colinzarzycki.com:/home/colinzar/www/www/current2
 fi
   
 	filenames=`ls ${runDir}/*h0*.nc`
@@ -125,14 +112,14 @@ fi
 		done
 
     # Copy tracker data over if around...
-    mv -v /glade/u/home/zarzycki/tempest-scripts/forecast/trajs.*.png .
-    cp -v /glade/u/home/zarzycki/tempest-scripts/forecast/fin-atcf/atcf.tempest.${yearstr}${monthstr}${daystr}${cyclestr} .
+    mv -v /storage/home/cmz5202/sw/betacast/cyclone-tracking/trajs.*.png .
+    cp -v /storage/home/cmz5202/sw/betacast/cyclone-tracking/fin-atcf/atcf.tempest.${yearstr}${monthstr}${daystr}${cyclestr} .
 		
 		## Move files to server
 		## Google create remote directory if not existant
 		## use rysnc?
 		echo "Moving files to remote server"
-		scp *.png *.txt atcf.tempest* colinzar@colinzarzycki.com:/home/colinzar/www/www/current/${yearstr}${monthstr}${daystr}${cyclestr}
+		scp *.png *.txt atcf.tempest* colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/${yearstr}${monthstr}${daystr}${cyclestr}
 		#mv $newfiles $procdir
 
 mkdir ${yearstr}${monthstr}${daystr}${cyclestr}
@@ -144,5 +131,5 @@ sed -e 's/\"red/\"green/' index.html > _index4.html
 sed -e "s/CURRENTLY UPDATING/COMPLETED AT $printtime/" _index4.html > _index5.html
 mv _index5.html index.html
 rm _index*html
-scp index.html colinzar@colinzarzycki.com:/home/colinzar/www/www/current
+scp index.html colinzar@colinzarzycki.com:/home/colinzar/www/www/current2
 mv -v index.html index.HOLD
