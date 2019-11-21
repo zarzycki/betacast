@@ -11,10 +11,10 @@
   machineid = 1
 
 # 0 send plots to external server, no, 1 yes
-  sendplots = true
+  sendplots = false
 
 #SSSS
-  dotracking = true
+  dotracking = false
 
   runmodel = true
 
@@ -31,7 +31,7 @@
   numLevels = 30
 
 #forecast length (in days)
-  numdays = 7
+  numdays = 5
 
 #true/false, needs to be lowercase
   doFilter = true
@@ -53,10 +53,10 @@
   land_spinup = false
 
 # Case name
-  casename = forecast_nhemitc_30_x4_CAM5_L30
+  casename = F-2000CMZ
 
 # Weight file for going from GFS -> VR-SE
-  gfs2seWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_ne0np4nhemitc.ne30x4_patc.nc
+  gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx/maps/map_gfs0.25_TO_native_ne30_patc.nc
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = ~/work/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc
@@ -65,10 +65,10 @@
   landrawdir = /glade/u/home/zarzycki/scratch/forecast_conus_30_x8_CAM5_L30/run/clmstart/
 
 # Timing settings
-  PROJECTID = cmz5202_a_g_sc_default 
+  PROJECTID = m2637 
   FILTERWALLCLOCK = 00:29:00
-  FILTERQUEUE = batch
+  FILTERQUEUE = premium
   RUNWALLCLOCK = 05:59:00
-  RUNQUEUE = batch
+  RUNQUEUE = premium
 
   usingCIME = true

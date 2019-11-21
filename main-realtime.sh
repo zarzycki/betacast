@@ -67,21 +67,21 @@ set -u  # turn on crashes for unbound variables in bash
 ###################################################################################
 ############### NEED TO BE SET BY USER ############################################
 
-path_to_case=/storage/home/cmz5202/SEWX/${casename}
-pathToINICfiles=/gpfs/group/cmz5202/default/sewx/INIC/
+path_to_case=/global/homes/c/czarzyck/E3SM/cime/scripts/${casename}/
+pathToINICfiles=/global/homes/c/czarzyck/scratch/sewx/INIC/
 sePreFilterIC=${pathToINICfiles}/${casename}_INIC.nc
 sePostFilterIC=${pathToINICfiles}/${casename}_INIC_filter.nc
 
-pathToSSTfiles=/gpfs/group/cmz5202/default/sewx/SST/
+pathToSSTfiles=/global/homes/c/czarzyck/scratch/sewx/SST/
 sstFileIC=${pathToSSTfiles}/sst_${casename}_1x1.nc
 
-sewxscriptsdir=~/sw/betacast/
+sewxscriptsdir=~/betacast/
 
-gfs_files_path=/gpfs/group/cmz5202/default/sewx/GFS/          # Temp path for GFS/CFSR DL/proc
-era_files_path=/gpfs/group/cmz5202/default/getECMWFdata/
-sst_files_path=/gpfs/group/cmz5202/default/SST/          # Temp path for SST
+gfs_files_path=/global/homes/c/czarzyck/scratch/sewx//GFS/          # Temp path for GFS/CFSR DL/proc
+era_files_path=/global/homes/c/czarzyck/scratch/getECMWFdata/
+sst_files_path=/global/homes/c/czarzyck/scratch/SST/          # Temp path for SST
 
-path_to_rundir=~/scratch/output/${casename}/run/
+path_to_rundir=/global/homes/c/czarzyck/scratch/acme_scratch/cori-knl/${casename}/run/
 
 upload_ncl_script=${sewxscriptsdir}/upload_ncl.sh
 
@@ -652,7 +652,7 @@ if $doFilter ; then
       if $usingCIME ; then
         #./case.setup --reset
         #./case.build
-        set +e ; ./case.submit --batch-args "-N cesm" ; set -e
+        set +e ; ./case.submit ; set -e
       else
         bsub < ${casename}.run
       fi
@@ -723,7 +723,7 @@ then
       #./case.build
       #CMZ
       set +e
-      ./case.submit --batch-args "-N cesm"
+      ./case.submit
       set -e
     else
       bsub < ${casename}.run
