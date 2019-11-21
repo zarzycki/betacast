@@ -19,7 +19,7 @@
 # download dataset, map to CAM grid, and run a forecast.
 #
 # Generally can be executed on login nodes or in the background, ex:
-# $> nohup ./main-realtime.sh nl.ne30 &
+# $> nohup ./main-realtime.sh nl.ne120 &
 # but see above for example of PBS options to submit to batch nodes
 #
 # Details can be found in:
