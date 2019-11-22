@@ -1,0 +1,19 @@
+path_to_case = /storage/home/cmz5202/SEWX/${casename}
+pathToINICfiles = /gpfs/group/cmz5202/default/sewx/INIC/
+sePreFilterIC = ${pathToINICfiles}/${casename}_INIC.nc
+sePostFilterIC = ${pathToINICfiles}/${casename}_INIC_filter.nc
+
+pathToSSTfiles = /gpfs/group/cmz5202/default/sewx/SST/
+sstFileIC = ${pathToSSTfiles}/sst_${casename}_1x1.nc
+
+sewxscriptsdir = ~/sw/betacast/
+
+gfs_files_path = /gpfs/group/cmz5202/default/sewx/GFS/          # Temp path for GFS/CFSR DL/proc
+era_files_path = /gpfs/group/cmz5202/default/getECMWFdata/
+sst_files_path = /gpfs/group/cmz5202/default/SST/          # Temp path for SST
+
+path_to_rundir = ~/scratch/output/${casename}/run/
+
+upload_ncl_script = ${sewxscriptsdir}/upload_ncl.sh
+
+CIMEsubstring = "-N___cesm"
