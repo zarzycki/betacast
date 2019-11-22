@@ -31,59 +31,29 @@
 set -e
 #set -v
 
-NAMELISTFILE=${1}
+# Set files, in reality order doesn't matter
+MACHINEFILE=${1}
+NAMELISTFILE=${2}
+
+# Sanitize namelist files (add carriage return to end)
+sed -i -e '$a\' ${MACHINEFILE}
+sed -i -e '$a\' ${NAMELISTFILE}
+
+# Note, ___ will be converted to a space. Namelists cannot have whitespace due to
+# parsing on whitespaces...
 echo "Reading namelist ${NAMELISTFILE}..."
-inputstream=`cat ${NAMELISTFILE}|grep -v "^#"`
+inputstream=`cat ${NAMELISTFILE} ${MACHINEFILE} | grep -v "^#"`
+echo $inputstream
 set -- $inputstream
 while [ $1 ]
  do
-  echo "NAMELIST: setting ${1} to ${3}"
-  eval $1=$3
+  echo "NAMELIST: setting ${1} to ${3/___/ }"
+  #eval $1=$3
+  eval $1="${3/___/ }"  
   shift 3
  done
 
 set -u  # turn on crashes for unbound variables in bash
-
-###################################################################################
-############### OPTIONS ############################################
-
-# echo "debug set to $debug"
-# echo "islive set to $islive" 
-# echo "isliveresub set to $isliveresub"
-# echo "machineid set to $machineid"
-# echo "sendplots set to $sendplots" 
-# echo "dotracking set to $dotracking"
-# echo "runmodel set to $runmodel"
-#               
-# # Filter options (generally, only set doFilter unless you have a good reason to change defaults)
-# echo "doFilter set to $doFilter" 
-# echo "filterOnly set to $filterOnly" 
-# 
-# echo "casename is: ${casename}"
-# echo "gfs2seWeights is: ${gfs2seWeights}"
-# echo "nclPlotWeights is: ${nclPlotWeights}"
-# echo "are we using CIME? ${usingCIME}"
-
-###################################################################################
-############### NEED TO BE SET BY USER ############################################
-
-path_to_case=/global/homes/c/czarzyck/E3SM/cime/scripts/${casename}/
-pathToINICfiles=/global/homes/c/czarzyck/scratch/sewx/INIC/
-sePreFilterIC=${pathToINICfiles}/${casename}_INIC.nc
-sePostFilterIC=${pathToINICfiles}/${casename}_INIC_filter.nc
-
-pathToSSTfiles=/global/homes/c/czarzyck/scratch/sewx/SST/
-sstFileIC=${pathToSSTfiles}/sst_${casename}_1x1.nc
-
-sewxscriptsdir=~/betacast/
-
-gfs_files_path=/global/homes/c/czarzyck/scratch/sewx//GFS/          # Temp path for GFS/CFSR DL/proc
-era_files_path=/global/homes/c/czarzyck/scratch/getECMWFdata/
-sst_files_path=/global/homes/c/czarzyck/scratch/SST/          # Temp path for SST
-
-path_to_rundir=/global/homes/c/czarzyck/scratch/acme_scratch/cori-knl/${casename}/run/
-
-upload_ncl_script=${sewxscriptsdir}/upload_ncl.sh
 
 ###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
@@ -289,7 +259,7 @@ then
             error=1
             while [ $error != 0 ]
             do
-              wget --quiet $gfsFTPPath$gfsFTPFile
+              wget --read-timeout=30 -nv $gfsFTPPath$gfsFTPFile
               error=`echo $?`
               if [ $error -ne 0 ]
               then
@@ -379,7 +349,7 @@ then
     error=1
     while [ $error != 0 ]
     do
-      wget -nv $sstFTPPath$sstFTPFile
+      wget --read-timeout=30 -nv $sstFTPPath$sstFTPFile
       error=`echo $?`
       if [ $error -ne 0 ]
       then
@@ -652,7 +622,7 @@ if $doFilter ; then
       if $usingCIME ; then
         #./case.setup --reset
         #./case.build
-        set +e ; ./case.submit ; set -e
+        set +e ; ./case.submit --batch-args "${CIMEsubstring}" ; set -e
       else
         bsub < ${casename}.run
       fi
@@ -719,12 +689,7 @@ then
   then
     echo "Using Yellowstone"
     if $usingCIME ; then
-      #./case.setup --reset
-      #./case.build
-      #CMZ
-      set +e
-      ./case.submit
-      set -e
+      set +e ; ./case.submit --batch-args "${CIMEsubstring}" ; set -e
     else
       bsub < ${casename}.run
     fi

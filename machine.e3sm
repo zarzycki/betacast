@@ -1,0 +1,19 @@
+path_to_case = /global/homes/c/czarzyck/E3SM/cime/scripts/${casename}/
+pathToINICfiles = /global/homes/c/czarzyck/scratch/sewx/INIC/
+sePreFilterIC = ${pathToINICfiles}/${casename}_INIC.nc
+sePostFilterIC = ${pathToINICfiles}/${casename}_INIC_filter.nc
+
+pathToSSTfiles = /global/homes/c/czarzyck/scratch/sewx/SST/
+sstFileIC = ${pathToSSTfiles}/sst_${casename}_1x1.nc
+
+sewxscriptsdir = ~/betacast/
+
+gfs_files_path = /global/homes/c/czarzyck/scratch/sewx//GFS/
+era_files_path = /global/homes/c/czarzyck/scratch/getECMWFdata/
+sst_files_path = /global/homes/c/czarzyck/scratch/SST/
+
+path_to_rundir = /global/homes/c/czarzyck/scratch/acme_scratch/cori-knl/${casename}/run/
+
+upload_ncl_script = ${sewxscriptsdir}/upload_ncl.sh
+
+CIMEsubstring = "___"
