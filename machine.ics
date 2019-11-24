@@ -8,9 +8,9 @@ sstFileIC = ${pathToSSTfiles}/sst_${casename}_1x1.nc
 
 sewxscriptsdir = ~/sw/betacast/
 
-gfs_files_path = /gpfs/group/cmz5202/default/sewx/GFS/          # Temp path for GFS/CFSR DL/proc
+gfs_files_path = /gpfs/group/cmz5202/default/sewx/GFS/  
 era_files_path = /gpfs/group/cmz5202/default/getECMWFdata/
-sst_files_path = /gpfs/group/cmz5202/default/SST/          # Temp path for SST
+sst_files_path = /gpfs/group/cmz5202/default/SST/         
 
 path_to_rundir = ~/scratch/output/${casename}/run/
 
