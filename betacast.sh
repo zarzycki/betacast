@@ -44,6 +44,8 @@ echo $MACHINEFILE; echo $NAMELISTFILE; echo $OUTPUTSTREAMS
 # Sanitize namelist files (add carriage return to end)
 sed -i -e '$a\' ${MACHINEFILE}
 sed -i -e '$a\' ${NAMELISTFILE}
+sed -i -e '$a\' ${OUTPUTSTREAMS}
+#'
 
 # Note, ___ will be converted to a space. Namelists cannot have whitespace due to
 # parsing on whitespaces...
@@ -578,12 +580,13 @@ else
     echo "use_init_interp = .true." >> user_nl_clm
     echo "init_interp_fill_missing_with_natveg = .true." >> user_nl_clm
   else
-    if ${preSavedCLMuserNL} ; then
+    if [ -f user_nl_clm_presave ] ; then
       echo "Using pre-written user_nl_clm file"
       cp user_nl_clm_presave user_nl_clm
     else
-      echo "WARNING: Land file DOES NOT EXIST, will use arbitrary CESM spinup"
-      exit
+      echo "WARNING: Land file DOES NOT EXIST, will use arbitrary user_nl_clm already in folder"
+      echo "!!!!!!!!!!!!!"
+      #exit
       #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
     fi
   fi
@@ -623,13 +626,15 @@ if $doFilter ; then
 
   ./xmlchange STOP_OPTION=nhours,STOP_N=${filterHourLength}
 
-  sed -i 's?.*ncdata.*?ncdata='"'${SEINIC}'"'?' user_nl_cam
+  sed -i '/.*ncdata/d' user_nl_cam
+  echo "ncdata='${SEINIC}'" >> user_nl_cam
 
   # Do filter timestepping stability
   ATM_NCPL=192
   SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(450/${STABILITY})))"`
   echo "ATM_NCPL: $ATM_NCPL  SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   DTIME: $DTIME"
-  sed -i 's?.*se_nsplit.*?se_nsplit='${SE_NSPLIT}'?' user_nl_cam
+  sed -i '/.*se_nsplit/d' user_nl_cam
+  echo "se_nsplit=${SE_NSPLIT}" >> user_nl_cam
   ./xmlchange ATM_NCPL=${ATM_NCPL}
 
   # Set NHTFRQ, MFILT, and FINCL fields
@@ -729,13 +734,15 @@ cat ${OUTPUTSTREAMS} >> user_nl_cam
 ATM_NCPL=`python -c "print(int(86400/${DTIME}))"`
 SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))"`
 echo "ATM_NCPL: $ATM_NCPL  SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   DTIME: $DTIME"
-sed -i 's?.*se_nsplit.*?se_nsplit='${SE_NSPLIT}'?' user_nl_cam
+sed -i '/.*se_nsplit/d' user_nl_cam
+echo "se_nsplit=${SE_NSPLIT}" >> user_nl_cam
 ./xmlchange ATM_NCPL=${ATM_NCPL}
 
 ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
 ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
 
-sed -i 's?.*ncdata.*?ncdata='"'${SEINIC}'"'?' user_nl_cam
+sed -i '/.*ncdata/d' user_nl_cam
+echo "ncdata='${SEINIC}'" >> user_nl_cam
 
 if [ $debug -ne 1 ]
 then

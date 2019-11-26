@@ -4,12 +4,6 @@
 # 0 no, using historical data - 1 yes, running live
   islive = 1
 
-# 0 no, 1 yes -- do we want to resubmit when running live?
-  isliveresub = 0
-
-# 1 = Yellowstone, 2 = Flux, 3 = Agri
-  machineid = 1
-
 # 0 send plots to external server, no, 1 yes
   sendplots = false
 
@@ -27,8 +21,8 @@
 # 1 = GDAS, 2 = ERA, 3 = NOAAOI
   sstDataType = 1
 
-# 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
-  numLevels = 30
+# 72 -> E3SM, 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
+  numLevels = 72
 
 #forecast length (in days)
   numdays = 5
@@ -47,22 +41,19 @@
   add_perturbs = false
   add_noise = false
 
-# is there a user_nl_clm_presave file?
-  preSavedCLMuserNL = true
-
   land_spinup = false
 
 # Case name
-  casename = F-2000CMZ
+  casename = F-betacast-FC5AV1C
 
 # Weight file for going from GFS -> VR-SE
   gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx/maps/map_gfs0.25_TO_native_ne30_patc.nc
 
 # File for plotting in NCL (native grid to some sort of RLL)
-  nclPlotWeights = ~/work/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc
+  nclPlotWeights = NULL
 
 # Repo of 1deg CLM inic for "cold starts"
-  landrawdir = /glade/u/home/zarzycki/scratch/forecast_conus_30_x8_CAM5_L30/run/clmstart/
+  landrawdir = NULL
 
 # Timing settings
   PROJECTID = m2637 
@@ -72,3 +63,7 @@
   RUNQUEUE = premium
 
   usingCIME = true
+
+  DTIME = 1800.0
+  FINERES = 30
+  USERSTAB = 112.5
