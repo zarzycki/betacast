@@ -81,7 +81,7 @@ filter_path=${sewxscriptsdir}/filter
 # If positive, use the value in seconds for dt_dyn
 USERSTABTF=`python -c "print('TRUE' if ${USERSTAB} > 0 else 'FALSE')"`
 if [ ${USERSTABTF} == 'FALSE' ] ; then
-  STABILITY=`python -c "print(30/${FINERES}*450.)"`
+  STABILITY=`python -c "print(30./${FINERES}*450.)"`
 else
   STABILITY=${USERSTAB}
 fi
