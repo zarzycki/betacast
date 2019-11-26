@@ -31,10 +31,10 @@
   numLevels = 30
 
 #forecast length (in days)
-  numdays = 7
+  numdays = 5
 
 #true/false, needs to be lowercase
-  doFilter = true
+  doFilter = false
 
 #if true, exits after filter (generates init data)
   filterOnly = false
@@ -53,7 +53,7 @@
   land_spinup = false
 
 # Case name
-  casename = forecast_nhemitc_30_x4_CAM5_L30.001
+  casename = forecast_nhemitc_30_x4_CAM5_L30.002
 
 # Weight file for going from GFS -> VR-SE
   gfs2seWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_ne0np4nhemitc.ne30x4_patc.nc
@@ -72,3 +72,7 @@
   RUNQUEUE = batch
 
   usingCIME = true
+
+  DTIME = 900.0
+  FINERES = 120
+  USERSTAB = -999.9

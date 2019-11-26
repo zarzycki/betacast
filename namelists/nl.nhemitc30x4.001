@@ -4,12 +4,6 @@
 # 0 no, using historical data - 1 yes, running live
   islive = 1
 
-# 0 no, 1 yes -- do we want to resubmit when running live?
-  isliveresub = 0
-
-# 1 = Yellowstone, 2 = Flux, 3 = Agri
-  machineid = 1
-
 # 0 send plots to external server, no, 1 yes
   sendplots = false
 
@@ -31,7 +25,7 @@
   numLevels = 30
 
 #forecast length (in days)
-  numdays = 7
+  numdays = 5
 
 #true/false, needs to be lowercase
   doFilter = true
@@ -53,7 +47,7 @@
   land_spinup = false
 
 # Case name
-  casename = forecast_nhemitc_30_x4_CAM5_L30.002
+  casename = forecast_nhemitc_30_x4_CAM5_L30.001
 
 # Weight file for going from GFS -> VR-SE
   gfs2seWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_ne0np4nhemitc.ne30x4_patc.nc
@@ -72,3 +66,7 @@
   RUNQUEUE = batch
 
   usingCIME = true
+
+  DTIME = 900.0
+  FINERES = 120
+  USERSTAB = -999.9

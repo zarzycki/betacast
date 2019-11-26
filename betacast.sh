@@ -12,7 +12,7 @@
 ##=======================================================================
 
 ###################################################################################
-# Colin Zarzycki (zarzycki@ucar.edu)
+# Colin Zarzycki (czarzycki@psu.edu)
 #
 # Driver script for running CESM/CAM in "forecast" or "hindcast" mode.
 # This code will either read UTC unix clock or read in a specified list of dates,
@@ -34,6 +34,12 @@ set -e
 # Set files, in reality order doesn't matter
 MACHINEFILE=${1}
 NAMELISTFILE=${2}
+OUTPUTSTREAMS=${3}
+# If relative path, convert to absolute path
+if [[ "$DIR" != /* ]]; then MACHINEFILE=${PWD}/${MACHINEFILE}; fi
+if [[ "$DIR" != /* ]]; then NAMELISTFILE=${PWD}/${NAMELISTFILE}; fi
+if [[ "$DIR" != /* ]]; then OUTPUTSTREAMS=${PWD}/${OUTPUTSTREAMS}; fi
+echo $MACHINEFILE; echo $NAMELISTFILE; echo $OUTPUTSTREAMS
 
 # Sanitize namelist files (add carriage return to end)
 sed -i -e '$a\' ${MACHINEFILE}
@@ -43,7 +49,7 @@ sed -i -e '$a\' ${NAMELISTFILE}
 # parsing on whitespaces...
 echo "Reading namelist ${NAMELISTFILE}..."
 inputstream=`cat ${NAMELISTFILE} ${MACHINEFILE} | grep -v "^#"`
-echo $inputstream
+#echo $inputstream
 set -- $inputstream
 while [ $1 ]
  do
@@ -70,6 +76,17 @@ sst_to_cam_path=${sewxscriptsdir}/sst_to_cam
 filter_path=${sewxscriptsdir}/filter
 ###################################################################################
 
+# do some stability calcs
+# if USERSTAB is negative, use internal calcs.
+# If positive, use the value in seconds for dt_dyn
+USERSTABTF=`python -c "print('TRUE' if ${USERSTAB} > 0 else 'FALSE')"`
+if [ ${USERSTABTF} == 'FALSE' ] ; then
+  STABILITY=`python -c "print(30/${FINERES}*450.)"`
+else
+  STABILITY=${USERSTAB}
+fi
+echo "Dynamic stability for ne${FINERES} to be ${STABILITY} seconds"
+
 ## Create paths to generate initial files if they don't exist...
 mkdir -p ${pathToINICfiles}
 mkdir -p ${pathToSSTfiles}
@@ -95,28 +112,28 @@ then
   ## Use currtime to figure out what is the latest cycle we have access to
   if [ $currtime -lt 0328 ]
   then
-    echo "18Z cycle"
+    echo "12Z cycle"
     monthstr=`date --date="yesterday" -u +%m`
     daystr=`date --date="yesterday" -u +%d`
     yearstr=`date --date="yesterday" -u +%Y`
     twodaysago=`date --date='3 days ago' -u +"%Y%m%d"`
-    cyclestr=18
+    cyclestr=12
   elif [ $currtime -lt 0928 ]
   then
     echo "00Z cycle"
     cyclestr=00
   elif [ $currtime -lt 1528 ]
   then
-    echo "06Z cycle"
-    cyclestr=06
+    echo "00Z cycle"
+    cyclestr=00
   elif [ $currtime -lt 2128 ]
   then
     echo "12Z cycle"
     cyclestr=12
   elif [ $currtime -ge 2128 ]
   then
-    echo "18Z cycle"
-    cyclestr=18
+    echo "12Z cycle"
+    cyclestr=12
   else
     echo "Can't figure out start time"
     exit 1
@@ -259,7 +276,7 @@ then
             error=1
             while [ $error != 0 ]
             do
-              wget --read-timeout=30 -nv $gfsFTPPath$gfsFTPFile
+              wget --read-timeout=30 $gfsFTPPath$gfsFTPFile
               error=`echo $?`
               if [ $error -ne 0 ]
               then
@@ -423,11 +440,6 @@ then
 
 ############################### ATM NCL ############################### 
 
-  ## If we are not filtering, we need to make sure CAM writes INIC to correct file
-  if [ "$doFilter" = false ] ; then
-    sePreFilterIC=${sePostFilterIC}
-  fi
-
   set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
   ### We can probably clean this up by merging the above sed commands into command line arguments
   ### then put this if/else statement up inside the whole get data structure above
@@ -523,30 +535,11 @@ if [ "${add_perturbs}" = true ] ; then
 
 fi
 
-############################### #### ############################### 
+############################### SETUP ############################### 
 
 cd $path_to_case
-echo "Turning off archiving and restart file output in env_run.xml"
-./xmlchange DOUT_S=FALSE,REST_OPTION=nyears,REST_N=9999
-echo "Setting SST from default to our SST"
-./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
-echo "Setting GLC coupling to handle forecasts across calendar years"
-./xmlchange GLC_AVG_PERIOD="glc_coupling_period"
-echo "Standardizing streams for SST"
-./xmlchange SSTICE_YEAR_START=1,SSTICE_YEAR_END=1
-echo "Setting projectID and queue"
-./xmlchange --force JOB_QUEUE=${RUNQUEUE},PROJECT=${PROJECTID}
-####### 
-if [ "$land_spinup" = true ] ; then
-  ./xmlchange REST_OPTION=ndays,REST_N=1
-fi
-#######
-echo "Update env_run.xml with runtime parameters"
-./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
 
-cp -v user_nl_cam_run user_nl_cam
-sed -i 's?.*ncdata.*?ncdata='"'${sePreFilterIC}'"'?' user_nl_cam
-./xmlchange ATM_NCPL=192
+############################### CLM SETUP ############################### 
 
 echo "Setting input land dataset"
 # Clean up file to delete any special interp lines that may be needed later (but aren't needed for native init)
@@ -596,41 +589,81 @@ else
   fi
 fi
 
-echo "Running again!" > ${path_to_rundir}/testrunning.gz
+############################### GENERIC CAM SETUP ############################### 
 
-## Get number of log files archived
-numlogfiles=`ls ${path_to_rundir}/*.gz | wc -l`
+./xmlchange PROJECT=${PROJECTID}
 
-echo "numlogfiles: $numlogfiles"
+echo "Turning off archiving and restart file output in env_run.xml"
+./xmlchange DOUT_S=FALSE,REST_OPTION=nyears,REST_N=9999
+echo "Setting SST from default to our SST"
+./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
+echo "Setting GLC coupling to handle forecasts across calendar years"
+./xmlchange GLC_AVG_PERIOD="glc_coupling_period"
+echo "Standardizing streams for SST"
+./xmlchange SSTICE_YEAR_START=1,SSTICE_YEAR_END=1
+echo "Setting projectID and queue"
+./xmlchange --force JOB_QUEUE=${RUNQUEUE},PROJECT=${PROJECTID}
+####### 
+if [ "$land_spinup" = true ] ; then
+  ./xmlchange REST_OPTION=ndays,REST_N=1
+fi
+#######
+
+cp user_nl_cam user_nl_cam.BAK
+
+echo "Update env_run.xml with runtime parameters"
+./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
+
+SEINIC=${sePreFilterIC}
+
+############################### (IF) FILTER SETUP ############################### 
 
 if $doFilter ; then
   # If filtering, need to change these options
-  cd $path_to_case
+
   ./xmlchange STOP_OPTION=nhours,STOP_N=${filterHourLength}
-  cp -v user_nl_cam_filter user_nl_cam
-  sed -i 's?.*ncdata.*?ncdata='"'${sePreFilterIC}'"'?' user_nl_cam
-  ./xmlchange ATM_NCPL=192
+
+  sed -i 's?.*ncdata.*?ncdata='"'${SEINIC}'"'?' user_nl_cam
+
+  # Do filter timestepping stability
+  ATM_NCPL=192
+  SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(450/${STABILITY})))"`
+  echo "ATM_NCPL: $ATM_NCPL  SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   DTIME: $DTIME"
+  sed -i 's?.*se_nsplit.*?se_nsplit='${SE_NSPLIT}'?' user_nl_cam
+  ./xmlchange ATM_NCPL=${ATM_NCPL}
+
+  # Set NHTFRQ, MFILT, and FINCL fields
+  sed -i '/.*nhtfrq/d' user_nl_cam
+  sed -i '/.*mfilt/d' user_nl_cam
+  sed -i '/.*fincl/d' user_nl_cam
+  sed -i '/.*empty_htapes/d' user_nl_cam
+  sed -i '/.*inithist/d' user_nl_cam
+  echo "nhtfrq=1" >> user_nl_cam
+  echo "mfilt=200" >> user_nl_cam
+  echo "fincl1='U:I','V:I','T:I','PS:I','Q:I','CLDICE:I','CLDLIQ:I','NUMICE:I','NUMLIQ:I','ICEFRAC:I','SNOWHICE:I'" >> user_nl_cam
+  echo "empty_htapes=.TRUE." >> user_nl_cam
+  echo "inithist='6-HOURLY'" >> user_nl_cam
+
   ./xmlchange JOB_WALLCLOCK_TIME=${FILTERWALLCLOCK}
   ./xmlchange --force JOB_QUEUE=${FILTERQUEUE}
-  ./xmlchange PROJECT=${PROJECTID}
-
 
   if [ $debug -ne 1 ] ; then
     echo "Begin call to filter-run"
-    if [ $machineid -eq 1 ]
-    then
-      if $usingCIME ; then
-        #./case.setup --reset
-        #./case.build
-        set +e ; ./case.submit --batch-args "${CIMEsubstring}" ; set -e
-      else
-        bsub < ${casename}.run
-      fi
-    else
-      echo "Unsupported machine" ; exit 1
-    fi
-    ## Hold script while log files from filter run haven't been archived yet
 
+    # Get number of log .gz files for sleeping
+    echo "Running again!" > ${path_to_rundir}/testrunning.gz
+    numlogfiles=`ls ${path_to_rundir}/*.gz | wc -l`
+    echo "numlogfiles: $numlogfiles"
+
+    echo "SUBMITTING FILTER RUN"
+    if $usingCIME ; then
+      set +e ; ./case.submit --batch-args "${CIMEsubstring}" ; set -e
+    else
+      # needs to be modified for your machine if not using CIME
+      bsub < ${casename}.run
+    fi
+
+    ## Hold script while log files from filter run haven't been archived yet
     while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
     do
       sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
@@ -670,42 +703,57 @@ if $doFilter ; then
     exit
   fi
 
-  echo "Make changes in CESM-SE namelist"
+  # Special things we have to do to "reset" CESM after filtering
+  echo "Pushing CESM start back a few hours"
   cd $path_to_case
   ./xmlchange RUN_STARTDATE=$se_yearstr-$se_monthstr-$se_daystr,START_TOD=$se_cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
-  cp -v user_nl_cam_run user_nl_cam
-  sed -i 's?.*ncdata.*?ncdata='"'${sePostFilterIC}'"'?' user_nl_cam
-  ./xmlchange ATM_NCPL=192
-  ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
-  ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
-  ./xmlchange PROJECT=${PROJECTID}
 
+  # Set new inic to point to post filter file
+  SEINIC=${sePostFilterIC}
 fi
+
+############################### "ACTUAL" FORECAST RUN ############################### 
+
+sed -i '/.*nhtfrq/d' user_nl_cam
+sed -i '/.*mfilt/d' user_nl_cam
+sed -i '/.*fincl/d' user_nl_cam
+sed -i '/.*empty_htapes/d' user_nl_cam
+sed -i '/.*inithist/d' user_nl_cam
+echo "empty_htapes=.TRUE." >> user_nl_cam
+echo "inithist='NONE'" >> user_nl_cam
+
+# Concatenate output streams to end of user_nl_cam
+cat ${OUTPUTSTREAMS} >> user_nl_cam
+
+# Calculate timestep criteria
+ATM_NCPL=`python -c "print(int(86400/${DTIME}))"`
+SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))"`
+echo "ATM_NCPL: $ATM_NCPL  SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   DTIME: $DTIME"
+sed -i 's?.*se_nsplit.*?se_nsplit='${SE_NSPLIT}'?' user_nl_cam
+./xmlchange ATM_NCPL=${ATM_NCPL}
+
+./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
+./xmlchange --force JOB_QUEUE=${RUNQUEUE}
+
+sed -i 's?.*ncdata.*?ncdata='"'${SEINIC}'"'?' user_nl_cam
 
 if [ $debug -ne 1 ]
 then
   echo "Begin call to forecast run"
-  if [ $machineid -eq 1 ]
-  then
-    echo "Using Yellowstone"
-    if $usingCIME ; then
-      set +e ; ./case.submit --batch-args "${CIMEsubstring}" ; set -e
-    else
-      bsub < ${casename}.run
-    fi
-  else
-    echo "Unsupported machine" ; exit 1
-  fi
-  
-  cd $outputdir
-  
+
+  # Get number of log .gz files for sleeping
   echo "Running again!" > ${path_to_rundir}/testrunning.gz
-
-  ## Get number of log files archived
   numlogfiles=`ls ${path_to_rundir}/*.gz | wc -l`
-
   echo "numlogfiles: $numlogfiles"
 
+  echo "SUBMITTING FORECAST RUN"
+  if $usingCIME ; then
+    set +e ; ./case.submit --batch-args "${CIMEsubstring}" ; set -e
+  else
+    # needs to be modified for your machine if not using CIME
+    bsub < ${casename}.run
+  fi
+  
   ## Hold script while log files from filter run haven't been archived yet
   while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
   do
@@ -717,16 +765,18 @@ fi
 
 fi # end run model
 
+cd $outputdir
+
+echo "Creating archive folder data structure"
 mkdir -p $archivedir
 mkdir -p $archivedir/images
 mkdir -p $archivedir/text
 mkdir -p $archivedir/nl_files
 mkdir -p $archivedir/logs
-cd $outputdir
 
 set +e
 
-## Move other cam files to dir
+echo "Moving relevant files to archive folder"
 mv *.cam.h*.nc $archivedir
 cp *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $archivedir/nl_files
 mv *.txt $archivedir/text
@@ -736,15 +786,14 @@ mv timing/ $archivedir/
 ## Move land files to new restart location
 cd $path_to_nc_files
 mkdir $landdir
-echo "Removing 06Z and 18Z land restart files"
+echo "Removing 06Z and 18Z land restart files if they exist"
 rm -v *.clm2.r.*32400.nc
 rm -v *.clm2.r.*75600.nc
-echo "Moving land restart files"
+echo "Moving land restart files for future runs"
 mv -v *.clm2.r.*nc $landdir
 rm -v *.clm2.r.*.nc
 
-echo "Deleting boring restart files"
-# Delete boring restart files
+echo "Deleting boring restart files produced by CESM that aren't needed"
 cd $path_to_nc_files
 rm -v *.clm2.rh0.*.nc
 rm -v *.docn.rs1.*.bin
@@ -756,6 +805,7 @@ rm -v *.cam.rh3.*.nc
 rm -v *.cice.r.*.nc
 rm -v rpointer.*
 
+echo "Renaming tmp archive directory to YYYYMMDDHH"
 mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 
 if $dotracking ; then
@@ -795,13 +845,6 @@ if $sendplots ; then
   /bin/bash ${upload_ncl_script}.${uniqtime}.ncl ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
   # Cleanup
   rm ${upload_ncl_script}.${uniqtime}.ncl
-fi
-
-cd $sewxscriptsdir
-
-if [ $isliveresub -ne 0 ] ; then
-  sleep 60
-  nohup ./main-realtime.sh ${NAMELISTFILE} &
 fi
 
 exit 0
