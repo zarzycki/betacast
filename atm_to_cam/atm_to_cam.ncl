@@ -156,25 +156,8 @@ print("=================================================================")
 
 print("---------------------------------------------------------")
 print("Loading CAM levels")
-if (numlevels .eq. 30)
-  print("Loading 30 level data")
-  fC   = addfile ("./L30template.nc", "r")
-else if (numlevels .eq. 32)
-  print("Loading 32 level data")
-  fC   = addfile ("./L32template.nc", "r")
-else if (numlevels .eq. 26)
-  print("Loading 26 level data")
-  fC   = addfile ("./L26template.nc", "r")
-else if (numlevels .eq. 59)
-  print("Loading 59 level data")
-  fC   = addfile ("./L59template.nc", "r")
-else
-  print("Bad numlevs, exiting...")
-  exit
-end if
-end if
-end if
-end if
+print("Loading "+numlevels+" level data")
+fC   = addfile ("./L"+numlevels+"template.nc", "r")
 hya  = fC->hyam
 hyb  = fC->hybm
 hyai  = fC->hyai
