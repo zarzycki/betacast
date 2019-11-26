@@ -1,4 +1,4 @@
-path_to_case = /global/homes/c/czarzyck/E3SM/cime/scripts/${casename}/
+path_to_case = /global/homes/c/czarzyck/${casename}/
 pathToINICfiles = /global/homes/c/czarzyck/scratch/sewx/INIC/
 sePreFilterIC = ${pathToINICfiles}/${casename}_INIC.nc
 sePostFilterIC = ${pathToINICfiles}/${casename}_INIC_filter.nc
