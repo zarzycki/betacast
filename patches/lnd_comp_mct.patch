@@ -1,0 +1,13 @@
+--- /global/homes/c/czarzyck/E3SM/components/clm/src/cpl//lnd_comp_mct.F90	2019-11-01 08:14:07.116515804 -0700
++++ /global/homes/c/czarzyck/F-betacast-FC5AV1C/SourceMods/src.clm/lnd_comp_mct.F90	2019-11-26 17:34:18.335739000 -0800
+@@ -449,6 +449,10 @@
+ 
+        rstwr = .false.
+        if (rstwr_sync .and. dosend) rstwr = .true.
++!++CMZ
++       if (tod_sync == 0) rstwr = .true.
++       if (tod_sync == 43200) rstwr = .true.
++!--CMZ
+        nlend = .false.
+        if (nlend_sync .and. dosend) nlend = .true.
+ 
