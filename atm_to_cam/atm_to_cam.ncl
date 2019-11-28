@@ -79,7 +79,17 @@ if (datasource .eq. "GFS") then
   ;pblh = grb_file->HPBL_P0_L1_GLL0(:,:)
   t_gfs = grb_file->TMP_P0_L100_GLL0(:,:,:)
   u_gfs = grb_file->UGRD_P0_L100_GLL0(:,:,:)
+
   v_gfs = grb_file->VGRD_P0_L100_GLL0(:,:,:)
+
+  dNames:=getfilevardims(grb_file,"TMP_P0_L100_GLL0")
+  templevName=dNames(0)
+  dNames:=getfilevardims(grb_file,"UGRD_P0_L100_GLL0")
+  windlevName=dNames(0)
+  if ( "templevName" .ne. "windlevName" ) then
+    u_gfs := int2p_n(grb_file->$windlevName$,u_gfs,grblev,2,0)
+    v_gfs := int2p_n(grb_file->$windlevName$,v_gfs,grblev,2,0)
+  end if
   rh_gfs_native = grb_file->RH_P0_L100_GLL0(:,:,:)
   cldmix_gfs_native = grb_file->CLWMR_P0_L100_GLL0(:,:,:)
   print("Interpolating GRIB to uniform vertical levels")
@@ -169,6 +179,8 @@ ilev = fC->ilev
 print("Interpolating to CAM hybrid coordinates")
 if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   print("Using pressure to hybrid interpolation")
+  printVarSummary(t_gfs)
+  printVarSummary(u_gfs)
   t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,1)
   u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,1)
   v_cam = pres2hybrid_Wrap(grblev,ps,p0,v_gfs,hya,hyb,1)
