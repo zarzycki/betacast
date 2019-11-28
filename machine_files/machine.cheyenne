@@ -1,0 +1,19 @@
+path_to_case = /glade/work/${LOGNAME}/${casename}/
+pathToINICfiles = /glade/work/${LOGNAME}/sewx/INIC/
+sePreFilterIC = ${pathToINICfiles}/${casename}_INIC.nc
+sePostFilterIC = ${pathToINICfiles}/${casename}_INIC_filter.nc
+
+pathToSSTfiles = /glade/work/${LOGNAME}/sewx/SST/
+sstFileIC = ${pathToSSTfiles}/sst_${casename}_1x1.nc
+
+sewxscriptsdir = ~/betacast/
+
+gfs_files_path = /glade/work/${LOGNAME}/sewx/GFS/
+era_files_path = /glade/work/${LOGNAME}/getECMWFdata/
+sst_files_path = /glade/work/${LOGNAME}/sewx/SST/
+
+path_to_rundir = /glade/scratch/${LOGNAME}/${casename}/run/
+
+upload_ncl_script = ${sewxscriptsdir}/upload_ncl.sh
+
+CIMEsubstring = "___"

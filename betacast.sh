@@ -288,7 +288,7 @@ then
             done
           else                  # Copy GFS data from RDA archive at NCAR
             rm -f gfs.t*pgrb2f00*
-            gfsFTPPath=/glade2/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/
+            gfsFTPPath=/glade/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/
             gfsFTPFile=gfs.0p25.${yearstr}${monthstr}${daystr}${cyclestr}.f000.grib2
             cp ${gfsFTPPath}/${gfsFTPFile} .
             echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
@@ -709,7 +709,7 @@ if $doFilter ; then
   fi
 
   # Special things we have to do to "reset" CESM after filtering
-  echo "Pushing CESM start back a few hours"
+  echo "Pushing CESM start back from $cyclestrsec to $se_cyclestrsec seconds..."
   cd $path_to_case
   ./xmlchange RUN_STARTDATE=$se_yearstr-$se_monthstr-$se_daystr,START_TOD=$se_cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
 
