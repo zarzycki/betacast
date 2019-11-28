@@ -4,12 +4,6 @@
 # 0 no, using historical data - 1 yes, running live
   islive = 0
 
-# 0 send plots to external server, no, 1 yes
-  sendplots = false
-
-#SSSS
-  dotracking = false
-
   runmodel = true
 
 ### GFS analysis available from 8/2004 onward
@@ -41,9 +35,6 @@
   add_perturbs = false
   add_noise = false
 
-# is there a user_nl_clm_presave file?
-  preSavedCLMuserNL = true
-
   land_spinup = false
 
 # Case name
@@ -51,9 +42,6 @@
 
 # Weight file for going from GFS -> VR-SE
   gfs2seWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
-
-# File for plotting in NCL (native grid to some sort of RLL)
-  nclPlotWeights = ~/work/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc
 
 # Repo of 1deg CLM inic for "cold starts"
   landrawdir = /storage/home/cmz5202/scratch/output/forecast_nhemitc_30_x4_CAM5_L30/run/clmstart/
@@ -70,3 +58,14 @@
   DTIME = 450.0
   FINERES = 240
   USERSTAB = 112.5
+
+
+
+# 0 send plots to external server, no, 1 yes
+  sendplots = false
+
+#SSSS
+  dotracking = false
+
+# File for plotting in NCL (native grid to some sort of RLL)
+  nclPlotWeights = ~/work/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc

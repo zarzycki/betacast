@@ -248,102 +248,93 @@ echo "SE initialization will occur at $se_yearstr $se_monthstr $se_daystr $se_cy
 
 if $runmodel ; then
 
-if [ $debug -ne 1 ]
-then
+if [ $debug -ne 1 ] ; then
 
 ############################### GET ATM DATA ############################### 
 
   if [ $atmDataType -eq 1 ] ; then
-      echo "Using GFS forecast ICs"
-      echo "Getting GFS conditions"
-      mkdir -p $gfs_files_path
-      cd $gfs_files_path
-        LOCALGFSFILE='gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-        ## Pull atmospheric conditions
-        ## Need to write an if call depending on how far back the GFS files are located
-        ## The NCEP server only holds them for a few days -- otherwise go to nomads at NCDC
-        # gfsFtpPath=http://nomads.ncdc.noaa.gov/data/gfsanl/$yearstr$monstr/$yearstr$monstr$daystr/
-        # gfs.t12z.pgrb2f00.grb2
-        if [ ! -f ${LOCALGFSFILE} ]; then
-          echo "Getting Atmo file"
-          if [ $islive -ne 0 ]   # Pull data from GFS server
-          then
-            rm -f gfs.t*pgrb2f00*
-            gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/
-            #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
-            gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p25.anl'
-            #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p50.anl'
-            echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
-            ## Scrape for files
-            error=1
-            while [ $error != 0 ]
-            do
-              wget --read-timeout=30 $gfsFTPPath$gfsFTPFile
-              error=`echo $?`
-              if [ $error -ne 0 ]
-              then
-                echo "Cannot get file, will wait 2 min and scrape again"
-                sleep 120
-              fi
-            done
-          else                  # Copy GFS data from RDA archive at NCAR
-            rm -f gfs.t*pgrb2f00*
-            gfsFTPPath=/glade/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/
-            gfsFTPFile=gfs.0p25.${yearstr}${monthstr}${daystr}${cyclestr}.f000.grib2
-            cp ${gfsFTPPath}/${gfsFTPFile} .
-            echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
+    echo "Using GFS forecast ICs"
+    echo "Getting GFS conditions"
+    mkdir -p $gfs_files_path
+    cd $gfs_files_path
+    LOCALGFSFILE='gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
+    ## Pull atmospheric conditions
+    ## Need to write an if call depending on how far back the GFS files are located
+    ## The NCEP server only holds them for a few days -- otherwise go to nomads at NCDC
+    # gfsFtpPath=http://nomads.ncdc.noaa.gov/data/gfsanl/$yearstr$monstr/$yearstr$monstr$daystr/
+    # gfs.t12z.pgrb2f00.grb2
+    if [ ! -f ${LOCALGFSFILE} ]; then
+      echo "Getting Atmo file"
+      if [ $islive -ne 0 ] ; then
+        rm -f gfs.t*pgrb2f00*
+        gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/
+        #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
+        gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p25.anl'
+        #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p50.anl'
+        echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
+        ## Scrape for files
+        error=1
+        while [ $error != 0 ] ; do
+          wget --read-timeout=30 $gfsFTPPath$gfsFTPFile
+          error=`echo $?`
+          if [ $error -ne 0 ] ; then
+            echo "Cannot get file, will wait 2 min and scrape again"
+            sleep 120
           fi
-          mv $gfsFTPFile ${LOCALGFSFILE}
-        fi
-  elif [ $atmDataType -eq 2 ] ; then  
-      echo "Using ERA-Interim forecast ICs"
-      echo "Cding to ERA-Interim interpolation directory"
-      mkdir -p $era_files_path
-      cd $era_files_path
-      python getInterim.py ${yearstr}${monthstr}${daystr} ${cyclestr}
-      ncks -A ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-      mv -v ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-      rm -f ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-  elif [ $atmDataType -eq 3 ] ; then  
-      echo "Using CFSR ICs"
-      echo "Cding to GFS interpolation directory since they are practically the same thing"
-      mkdir -p $gfs_files_path
-      cd $gfs_files_path
-      STCUTARR=(26 21 16 11 06 01)
-      ENCUTARR=(99 25 20 15 10 05)
-      zero=0
-      index=$zero
-      for FILEDAY in "${STCUTARR[@]}"
-      do
-        if [ "$daystr" -ge "$FILEDAY" ]
-        then
-      #    echo $FILEDAY
-          break
-        fi
-        index=$((index+1))
-      done
-      #echo $index
-      if [[ "$index" -eq "$zero" ]]; then
-        ENCUTARR[${zero}]=`date -d "$monthstr/1 + 1 month - 1 day" "+%d"`
-        echo "Last day of month ($monthstr) is $ENCUTARR[${zero}]"
+        done
+      else                  # Copy GFS data from RDA archive at NCAR
+        rm -f gfs.t*pgrb2f00*
+        gfsFTPPath=/glade/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/
+        gfsFTPFile=gfs.0p25.${yearstr}${monthstr}${daystr}${cyclestr}.f000.grib2
+        cp ${gfsFTPPath}/${gfsFTPFile} .
+        echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
       fi
-      ## NEED TO IMPLEMENT LEAP YEAR FIX
-      CFSRFILENAME=pgbhnl.gdas.${yearstr}${monthstr}${FILEDAY}-${yearstr}${monthstr}${ENCUTARR[$index]}.tar
-      echo "Getting file: ${CFSRFILENAME}"
-      #Register with RDA, then do following command to get wget cookies
-      #wget --save-cookies ~/.thecookies --post-data="email=your_email_address&passwd=your_password&action=login" https://rda.ucar.edu/cgi-bin/login
-      wget --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
-      
-      tar -xvf $CFSRFILENAME
-      mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 'cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-      rm pgbhnl.gdas.*
+      mv $gfsFTPFile ${LOCALGFSFILE}
+    fi
+  elif [ $atmDataType -eq 2 ] ; then  
+    echo "Using ERA-Interim forecast ICs"
+    echo "Cding to ERA-Interim interpolation directory"
+    mkdir -p $era_files_path
+    cd $era_files_path
+    python getInterim.py ${yearstr}${monthstr}${daystr} ${cyclestr}
+    ncks -A ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc
+    mv -v ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc
+    rm -f ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc
+  elif [ $atmDataType -eq 3 ] ; then  
+    echo "Using CFSR ICs"
+    echo "Cding to GFS interpolation directory since they are practically the same thing"
+    mkdir -p $gfs_files_path
+    cd $gfs_files_path
+    STCUTARR=(26 21 16 11 06 01)
+    ENCUTARR=(99 25 20 15 10 05)
+    zero=0
+    index=$zero
+    for FILEDAY in "${STCUTARR[@]}" ; do
+      if [ "$daystr" -ge "$FILEDAY" ] ; then
+    #    echo $FILEDAY
+        break
+      fi
+      index=$((index+1))
+    done
+    #echo $index
+    if [[ "$index" -eq "$zero" ]] ; then
+      ENCUTARR[${zero}]=`date -d "$monthstr/1 + 1 month - 1 day" "+%d"`
+      echo "Last day of month ($monthstr) is $ENCUTARR[${zero}]"
+    fi
+    ## NEED TO IMPLEMENT LEAP YEAR FIX
+    CFSRFILENAME=pgbhnl.gdas.${yearstr}${monthstr}${FILEDAY}-${yearstr}${monthstr}${ENCUTARR[$index]}.tar
+    echo "Getting file: ${CFSRFILENAME}"
+    #Register with RDA, then do following command to get wget cookies
+    #wget --save-cookies ~/.thecookies --post-data="email=your_email_address&passwd=your_password&action=login" https://rda.ucar.edu/cgi-bin/login
+    wget --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
+    
+    tar -xvf $CFSRFILENAME
+    mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 'cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
+    rm pgbhnl.gdas.*
   else
-      echo "Incorrect model IC entered"
-      exit 1
+    echo "Incorrect model IC entered"
+    exit 1
   fi
-
-
-
 
 ############################### GET SST / NCL ############################### 
 
@@ -407,8 +398,7 @@ then
       echo "NOAAOI file doesn't exist, need to download"
       sstFTPPath=ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/
       error=1
-      while [ $error != 0 ]
-      do
+      while [ $error != 0 ] ; do
         wget -nv ${sstFTPPath}/${iceFile}
         error=`echo $?`
         if [ $error -ne 0 ]
@@ -418,8 +408,6 @@ then
         fi
       done        
     fi
-
-
   else
       echo "Incorrect SST data type entered" ; exit 1
   fi
@@ -431,8 +419,7 @@ then
     'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
     'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
     'SST_write_file = "'${sstFileIC}'"' )
-  if [[ $? -ne 9 ]]
-  then
+  if [[ $? -ne 9 ]] ; then
     echo "NCL exited with non-9 error code"
     exit 240
   fi
@@ -440,50 +427,42 @@ then
   set -e # Turn error checking back on
   ncatted -O -a units,time,o,c,"days since 0001-01-01 00:00:00" ${sstFileIC} ${sstFileIC}
 
-############################### ATM NCL ############################### 
+  ############################### ATM NCL ############################### 
 
   set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
   ### We can probably clean this up by merging the above sed commands into command line arguments
   ### then put this if/else statement up inside the whole get data structure above
-  if [ $atmDataType -eq 1 ] # GFS
-  then
+  if [ $atmDataType -eq 1 ] ; then
     echo "Cding to GFS interpolation directory"
     cd $atm_to_cam_path 
     echo "Doing NCL"
-
     (set -x; ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
         numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
        'se_inic = "'${sePreFilterIC}'"' )
-       
-  elif [ $atmDataType -eq 2 ] # ERA
-  then
+  elif [ $atmDataType -eq 2 ] ; then
     echo "CD ing to ERA-interim interpolation directory"
     cd $atm_to_cam_path
-
     (set -x; ncl -n atm_to_cam.ncl 'datasource="ERAI"'     \
         numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'data_filename = "/glade/p/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
        'wgt_filename="/glade/p/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
        'se_inic = "'${sePreFilterIC}'"' )
-
-  elif [ $atmDataType -eq 3 ] # CFSR
-  then
-      echo "CD ing to interpolation directory"
-      cd $atm_to_cam_path 
-    
-      (set -x; ncl -n atm_to_cam.ncl 'datasource="CFSR"'     \
-        numlevels=${numLevels} \
-        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-       'data_filename = "'$gfs_files_path'/cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
-       'wgt_filename="'${gfs2seWeights}'"' \
-       'se_inic = "'${sePreFilterIC}'"' )
+  elif [ $atmDataType -eq 3 ] ; then
+    echo "CD ing to interpolation directory"
+    cd $atm_to_cam_path 
+    (set -x; ncl -n atm_to_cam.ncl 'datasource="CFSR"'     \
+      numlevels=${numLevels} \
+      YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+     'data_filename = "'$gfs_files_path'/cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
+     'wgt_filename="'${gfs2seWeights}'"' \
+     'se_inic = "'${sePreFilterIC}'"' )
   else
-      echo "Incorrect model IC entered"
-      exit 1
+    echo "Incorrect model IC entered"
+    exit 1
   fi
   # Since NCL doesn't return non-zero codes, I have NCL returning a non-zero code
   # if successful! However, this means we have to check if code is successful with

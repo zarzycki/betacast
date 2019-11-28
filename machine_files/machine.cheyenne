@@ -1,19 +1,27 @@
 path_to_case = /glade/work/${LOGNAME}/${casename}/
-pathToINICfiles = /glade/work/${LOGNAME}/sewx/INIC/
+path_to_inputdata = /glade/work/${LOGNAME}/sewx/
+path_to_rundir = /glade/scratch/${LOGNAME}/${casename}/run/
+sewxscriptsdir = /glade/u/home/${LOGNAME}/betacast/
+
+
+### These do not need to be changed except in special circumstances
+# CAM initial conditions (ncdata) path and file(s)
+pathToINICfiles = ${path_to_inputdata}/INIC/
 sePreFilterIC = ${pathToINICfiles}/${casename}_INIC.nc
 sePostFilterIC = ${pathToINICfiles}/${casename}_INIC_filter.nc
 
-pathToSSTfiles = /glade/work/${LOGNAME}/sewx/SST/
+# SST path and file
+pathToSSTfiles = ${path_to_inputdata}/SST/
 sstFileIC = ${pathToSSTfiles}/sst_${casename}_1x1.nc
 
-sewxscriptsdir = ~/betacast/
+# subdirs for observational/analysis data
+gfs_files_path = ${path_to_inputdata}/GFS/
+era_files_path = ${path_to_inputdata}/ECMWF/
+sst_files_path = ${path_to_inputdata}/SST/
 
-gfs_files_path = /glade/work/${LOGNAME}/sewx/GFS/
-era_files_path = /glade/work/${LOGNAME}/getECMWFdata/
-sst_files_path = /glade/work/${LOGNAME}/sewx/SST/
-
-path_to_rundir = /glade/scratch/${LOGNAME}/${casename}/run/
-
+# Where is the NCL script for live uploads?
 upload_ncl_script = ${sewxscriptsdir}/upload_ncl.sh
 
+### This is only needed to be edited on systems that don't support long job names
+### in the batch submission process. ___ (the underscores) is converted to a space
 CIMEsubstring = "___"
