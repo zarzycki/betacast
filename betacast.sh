@@ -555,7 +555,8 @@ else
   rawlandrestartfile=`ls ${landrawdir}/*.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc || true`   # check for file, suppress failed ls error if true
   echo "rawlandrestartfile: ${rawlandrestartfile}"
   if [ ! -z ${rawlandrestartfile} ]; then   # if rawlandrestartfile string is NOT empty, add it.
-    sed -i 's?.*finidat.*?finidat='"'${rawlandrestartfile}'"'?' user_nl_clm
+    sed -i '/.*finidat/d' user_nl_clm
+    echo "finidat='${rawlandrestartfile}'" >> user_nl_clm
     echo "use_init_interp = .true." >> user_nl_clm
     echo "init_interp_fill_missing_with_natveg = .true." >> user_nl_clm
   else
