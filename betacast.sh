@@ -36,9 +36,9 @@ MACHINEFILE=${1}
 NAMELISTFILE=${2}
 OUTPUTSTREAMS=${3}
 # If relative path, convert to absolute path
-if [[ "$DIR" != /* ]]; then MACHINEFILE=${PWD}/${MACHINEFILE}; fi
-if [[ "$DIR" != /* ]]; then NAMELISTFILE=${PWD}/${NAMELISTFILE}; fi
-if [[ "$DIR" != /* ]]; then OUTPUTSTREAMS=${PWD}/${OUTPUTSTREAMS}; fi
+if [[ "$MACHINEFILE" != /* ]] && [[ "$MACHINEFILE" != ~* ]]; then MACHINEFILE=${PWD}/${MACHINEFILE}; fi
+if [[ "$NAMELISTFILE" != /* ]] && [[ "$NAMELISTFILE" != ~* ]]; then NAMELISTFILE=${PWD}/${NAMELISTFILE}; fi
+if [[ "$OUTPUTSTREAMS" != /* ]] && [[ "$OUTPUTSTREAMS" != ~* ]]; then OUTPUTSTREAMS=${PWD}/${OUTPUTSTREAMS}; fi
 echo $MACHINEFILE; echo $NAMELISTFILE; echo $OUTPUTSTREAMS
 
 # Sanitize namelist files (add carriage return to end)
