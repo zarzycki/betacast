@@ -39,7 +39,7 @@ grb_file = addfile(data_filename,"r")
 
 print("---------------------------------------------------------")
 print("Loading lat/lon/lev")
-if (datasource .eq. "GFS") then
+if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   dNames=getfilevardims(grb_file,"CLWMR_P0_L100_GLL0")
   cldlevName=dNames(0)
   delete(dNames)
@@ -55,12 +55,6 @@ if (datasource .eq. "GFS") then
   rhlev  = grb_file->$rhlevName$
   cldlev = grb_file->$cldlevName$
 end if
-if (datasource .eq. "CFSR") then
-  grblat = grb_file->lat_0
-  grblon = grb_file->lon_0
-  grblev = grb_file->lv_ISBL0
-  cldlev = grb_file->lv_ISBL4
-end if
 if (datasource .eq. "ERAI") then
   grblat = grb_file->latitude
   grblon = grb_file->longitude
@@ -73,7 +67,7 @@ nlon = dimsizes(grblon)
 
 print("---------------------------------------------------------")
 print("Loading variables")
-if (datasource .eq. "GFS") then
+if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   ps = grb_file->PRES_P0_L1_GLL0(:,:)
   p0   = 100000.
   ;pblh = grb_file->HPBL_P0_L1_GLL0(:,:)
@@ -96,32 +90,6 @@ if (datasource .eq. "GFS") then
   rh_gfs = int2p_n(rhlev,rh_gfs_native,grblev,2,0)
   cldmix_gfs = int2p_n(cldlev,cldmix_gfs_native,grblev,2,0)
   delete(rh_gfs_native)
-  delete(cldmix_gfs_native)
-  print("Calculating q from RH")
-  q_gfs = mixhum_ptrh(conform(t_gfs,grblev,0)*0.01, t_gfs , rh_gfs, 2 ) ; specific humidity (g/kg)  
-  print("Sorting bad values")
-  cldmix_gfs = where(ismissing(cldmix_gfs),0,cldmix_gfs) 
-  cldmix_gfs = where(cldmix_gfs.gt.0.01,0,cldmix_gfs)    
-  print("seperating cloud ice and water")
-   ; If T > 0 C, water, if less than < 0, ice
-  cldice_gfs = cldmix_gfs
-  cldliq_gfs = cldmix_gfs
-  cldice_gfs = where(t_gfs.gt.273.15,0,cldice_gfs) 
-  cldliq_gfs = where(t_gfs.gt.273.15,cldliq_gfs,0)    
-  delete(cldmix_gfs)
-  delete(rh_gfs)
-end if
-if (datasource .eq. "CFSR") then
-  ps = grb_file->PRES_P0_L1_GLL0(:,:)
-  p0   = 100000.
-  ;pblh = grb_file->PRES_P0_L1_GLL0(:,:)
-  t_gfs = grb_file->TMP_P0_L100_GLL0(:,:,:)
-  u_gfs = grb_file->UGRD_P0_L100_GLL0(:,:,:)
-  v_gfs = grb_file->VGRD_P0_L100_GLL0(:,:,:)
-  rh_gfs = grb_file->RH_P0_L100_GLL0(:,:,:)
-  cldmix_gfs_native = grb_file->CLWMR_P0_L100_GLL0(:,:,:)
-  print("Interpolating GRIB to uniform vertical levels")
-  cldmix_gfs = int2p_n(cldlev,cldmix_gfs_native,grblev,2,0)
   delete(cldmix_gfs_native)
   print("Calculating q from RH")
   q_gfs = mixhum_ptrh(conform(t_gfs,grblev,0)*0.01, t_gfs , rh_gfs, 2 ) ; specific humidity (g/kg)  
