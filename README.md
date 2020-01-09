@@ -49,7 +49,7 @@ Historically there have been two analysis grid sizes associated with publicly di
 
 ### 3. Edit machine file for your particular system
 
-In `${BETACAST}/machine_files` there are sample files that define where folders and data files will be stored for your system. There are suggested configurations for Cheyenne and Cori-NERSC, but you may edit these for your workflow or copy/paste for a differnt system (i.e., university cluster).
+In `${BETACAST}/machine_files` there are sample files that define where folders and data files will be stored for your system. There are suggested configurations for Cheyenne and Cori-NERSC, but you may edit these for your workflow or copy/paste for a different system (i.e., university cluster).
 
 | Namelist Variable | Description |
 | --- | --- |
@@ -59,6 +59,40 @@ In `${BETACAST}/machine_files` there are sample files that define where folders 
 | sewxscriptsdir | Path to betacast repo (i.e., `${BETACAST}`) |
 
 ### 4. Edit namelist file for your particular case
+
+In `${BETACAST}/namelist_files` there are sample files that define the forecast configuration. This is the primary location where run settings are specified.
+
+| Namelist Variable | Description |
+| --- | --- |
+| debug | Setting to 1 adds debugging options. Otherwise leave at 0 |
+| islive | if 1 then pull GDAS/GFS from server in real-time, 0 is "hindcast" mode |
+| runmodel | Unused, set to "true" |
+| atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR |
+| sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI |
+| numLevels | 72 -> E3SMv1, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 |
+| numdays | How long for forecast to run (in days) |
+| doFilter | Should we apply offline forward DFI? Generally "true" for SE, more diffusive cores can set to "false" |
+| filterOnly | Exit code after the filter run if doFilter=true (useful for producing ncdata for ensembles) |
+| numHoursSEStart | Centerpoint of filter duration (leave at 3)|
+| filterHourLength | Filter duration (leave at 6)|
+| filtTcut | Cut setting for filter (leave at 6) |
+| add_perturbs | Add PGW perturbations for counterfactual runs (leave at false) |
+| add_noise | Add white noise to ncdata for ensemble (leave at false) |
+| land_spinup | Cycle land spinup only (unsupported currently, leave false) |
+| gfs2seWeights | Path to file allowing for GFS -> ATM regridding |
+| landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
+| PROJECTID | Project ID for run submissions |
+| FILTERWALLCLOCK | Wall clock time for filter run |
+| FILTERQUEUE | Submission queue for filter run |
+| RUNWALLCLOCK | Wall clock time for forecast run |
+| RUNQUEUE | Submission queue for forecast run |
+| usingCIME | Are we using CIME (set to "true" unless using a very old CESM tag or unsupported GCM) |
+| DTIME | Physics timestep (in seconds) |
+| FINERES | Finest resolution of SE grid |
+| USERSTAB | Required dynamics timestep (in s), negative values try internal calculation, but use with caution |
+| sendplots | Are we going to send live output to some external server? (generally false unless you are CMZ) |
+| nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) |
+| dotracking | Do online TC tracking and process to ATCF format? |
 
 ### 5. Edit output streams
 
