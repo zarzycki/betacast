@@ -96,7 +96,24 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 
 ### 5. Edit output streams
 
+```
+nhtfrq=-3
+mfilt=1
+fincl1='PS:I',U10:I','PRECT:I'
+```
 
+### 6. Dates file
 
+If not running in real-time, dates to be simulated are passed into the script via a text file in the root betacast directory named `dates.{CASENAME}.txt`.
 
+For example, let's say we are running ne30np4 forecasts with a casename of MY_NE30_BETACAST and want to run a simulation on 00Z August 1, 2nd, and 3rd, 2018. In the `${BETACAST}` directory we would add a text file named `dates.MY_NE30_BETACAST.txt` and add the following lines to the top of the file:
 
+```
+2018080100
+2018080200
+2018080300
+```
+
+### 7. Run model
+
+```./betacast.sh machine_files/machine.cheyenne namelists/nl.conus30x8 output_streams/output.generic```
