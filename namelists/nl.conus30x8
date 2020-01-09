@@ -44,7 +44,7 @@
   gfs2seWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
 
 # Repo of 1deg CLM inic for "cold starts"
-  landrawdir = /storage/home/cmz5202/scratch/output/forecast_nhemitc_30_x4_CAM5_L30/run/clmstart/
+  landrawdir = /glade/u/home/zarzycki/scratch/for-truesdale/clmstart/
 
 # Timing settings
   PROJECTID = UNSB0017 
@@ -58,8 +58,6 @@
   DTIME = 450.0
   FINERES = 240
   USERSTAB = 112.5
-
-
 
 # 0 send plots to external server, no, 1 yes
   sendplots = false
