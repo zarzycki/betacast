@@ -305,32 +305,36 @@ if [ $debug -ne 1 ] ; then
     echo "Cding to GFS interpolation directory since they are practically the same thing"
     mkdir -p $gfs_files_path
     cd $gfs_files_path
-    STCUTARR=(26 21 16 11 06 01)
-    ENCUTARR=(99 25 20 15 10 05)
-    zero=0
-    index=$zero
-    for FILEDAY in "${STCUTARR[@]}" ; do
-      if [ "$daystr" -ge "$FILEDAY" ] ; then
-    #    echo $FILEDAY
-        break
+
+    LOCALCFSRFILE='cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
+    if [ ! -f ${LOCALCFSRFILE} ]; then
+      STCUTARR=(26 21 16 11 06 01)
+      ENCUTARR=(99 25 20 15 10 05)
+      zero=0
+      index=$zero
+      for FILEDAY in "${STCUTARR[@]}" ; do
+        if [ "$daystr" -ge "$FILEDAY" ] ; then
+      #    echo $FILEDAY
+          break
+        fi
+        index=$((index+1))
+      done
+      #echo $index
+      if [[ "$index" -eq "$zero" ]] ; then
+        ENCUTARR[${zero}]=`date -d "$monthstr/1 + 1 month - 1 day" "+%d"`
+        echo "Last day of month ($monthstr) is $ENCUTARR[${zero}]"
       fi
-      index=$((index+1))
-    done
-    #echo $index
-    if [[ "$index" -eq "$zero" ]] ; then
-      ENCUTARR[${zero}]=`date -d "$monthstr/1 + 1 month - 1 day" "+%d"`
-      echo "Last day of month ($monthstr) is $ENCUTARR[${zero}]"
+      ## NEED TO IMPLEMENT LEAP YEAR FIX
+
+      echo "Getting file: ${CFSRFILENAME}"
+      #Register with RDA, then do following command to get wget cookies
+      #wget --save-cookies ~/.thecookies --post-data="email=your_email_address&passwd=your_password&action=login" https://rda.ucar.edu/cgi-bin/login
+      CFSRFILENAME=pgbhnl.gdas.${yearstr}${monthstr}${FILEDAY}-${yearstr}${monthstr}${ENCUTARR[$index]}.tar
+      wget --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
+      tar -xvf $CFSRFILENAME
+      mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 ${LOCALCFSRFILE}
+      rm pgbhnl.gdas.*
     fi
-    ## NEED TO IMPLEMENT LEAP YEAR FIX
-    CFSRFILENAME=pgbhnl.gdas.${yearstr}${monthstr}${FILEDAY}-${yearstr}${monthstr}${ENCUTARR[$index]}.tar
-    echo "Getting file: ${CFSRFILENAME}"
-    #Register with RDA, then do following command to get wget cookies
-    #wget --save-cookies ~/.thecookies --post-data="email=your_email_address&passwd=your_password&action=login" https://rda.ucar.edu/cgi-bin/login
-    wget --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
-    
-    tar -xvf $CFSRFILENAME
-    mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 'cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-    rm pgbhnl.gdas.*
   else
     echo "Incorrect model IC entered"
     exit 1

@@ -2,7 +2,7 @@
   debug = 0
 
 # 0 no, using historical data - 1 yes, running live
-  islive = 1
+  islive = 0
 
 # 0 send plots to external server, no, 1 yes
   sendplots = false
@@ -16,10 +16,10 @@
 ### CFSR analysis available from 1979 to Mar 2011          
 ### Use NOAAOI unless running real-time
 # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
-  atmDataType = 1
+  atmDataType = 3
 
 # 1 = GDAS, 2 = ERA, 3 = NOAAOI
-  sstDataType = 1
+  sstDataType = 3
 
 # 72 -> E3SM, 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
   numLevels = 72
@@ -47,7 +47,7 @@
   casename = F-betacast-FC5AV1C
 
 # Weight file for going from GFS -> VR-SE
-  gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx/maps/map_gfs0.25_TO_native_ne30_patc.nc
+  gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx/maps/map_gfs0.50_TO_ne30np4_patc.nc
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = NULL
