@@ -7,8 +7,9 @@
 3a. Edit machine file for your particular system
 3b. Edit namelist file for your particular use case.
 3c. Edit output streams file.
-4. If running historical, set dates.txt
-5. Submit driver script
+4. Set up data folder structure
+5. If running historical, set dates.txt
+6. Submit driver script
 
 The first step is to create a functional F compset. Broadly, this is active atmosphere, active land, and data ocean/ice. Other configurations may work (e.g., active runoff, wave, glacier models) but have not been tested.
 
@@ -19,6 +20,9 @@ This step just requires a built and tested case of CESM. Any source mods should 
 **CESM example:**
 
 ```
+$ cd ~/work/cesm-release/cime/scripts
+$ ./create_newcase --case ~/F-betacast-F2000climo --compset F2000climo --res ne30_g16 --mach cheyenne --project UNSB0017 --run-unsupported
+$ cd ~/F-betacast-F2000climo
 $ ./case.setup
 $ ### patch land mods for restart
 $ ./case.build
@@ -120,7 +124,15 @@ mfilt=1
 fincl1='PS:I',U10:I','PRECT:I'
 ```
 
-### 4. Dates file
+### 4. Set up data folder structure
+
+Betacast requires a semi-permanent directory structure for which to download analysis data and write forcing data for CESM/E3SM. This does not have to be backed up but may be beneficial to not be truly on scratch space if simulations are to be carried out over a longer period of time.
+
+Directories required are named in the machine namelist file (see 3a below). These can either be created by hand or created by running...
+`$ ./tools/setup_data_dirs.sh ../machine_files/machine.MYMACHINEFILE`
+from the top-level directory of betacast.
+
+### 5. Dates file
 
 If not running in real-time, dates to be simulated are passed into the script via a text file in the root betacast directory named `dates.{CASENAME}.txt`.
 
@@ -134,6 +146,17 @@ For example, let's say we are running ne30np4 forecasts with a casename of MY_NE
 
 ... when islive is equal to 0 in the namelist, the code will extract the YYYY, MM, DD, and HH from the 1st line of this text file (deleting it in the process -- NOTE, if a run is terminated early
 
-### 5. Run model
+### 6. Run model
 
 ```$ ./betacast.sh machine_files/machine.cheyenne namelists/nl.conus30x8 output_streams/output.generic```
+
+## SOME NOTES
+
+(WORK IN PROGRESS!)
+
+#### Pre-storing analysis data so it doesn't need to be pulled from server for hindcasts
+
+
+#### Land model initialization.
+It is really a much better idea to run
+
