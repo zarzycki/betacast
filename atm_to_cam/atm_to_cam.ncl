@@ -32,8 +32,6 @@ print("---------------------------------------------------------")
 print("Using this file: "+data_filename)
 print("Using this remap: "+wgt_filename)
 
-;in = addfile(se_inic,"w")
-
 ; ====== load datafile
 grb_file = addfile(data_filename,"r")
 
@@ -48,7 +46,6 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   rhlevName=dNames(0)
   delete(dNames)
   print("rhlev varname: "+cldlevName)
-
   grblat = grb_file->lat_0
   grblon = grb_file->lon_0
   grblev = grb_file->lv_ISBL0
@@ -63,7 +60,6 @@ end if
 
 nlat = dimsizes(grblat)
 nlon = dimsizes(grblon)
-
 
 print("---------------------------------------------------------")
 print("Loading variables")
