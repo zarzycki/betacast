@@ -152,6 +152,6 @@ end do
 
 print("done")
 
-exit()
-  
+status_exit(9)
+ 
 end

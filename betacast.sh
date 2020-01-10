@@ -673,10 +673,14 @@ if $doFilter ; then
     echo "Running filter"
     cp ${sePreFilterIC} ${sePostFilterIC}
     filtfile_name=${casename}.cam.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
-    ncl lowmemfilter.ncl \
+    (set -x; ncl lowmemfilter.ncl \
      endhour=${filterHourLength} tcut=${filtTcut} \
     'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
-    'writefile_name = "'${sePostFilterIC}'"'
+    'writefile_name = "'${sePostFilterIC}'"' )
+    if [[ $? -ne 9 ]] ; then
+      echo "NCL exited with non-9 error code"
+      exit 240
+    fi
   fi  # debug
 
   echo "done with filter, removing filter files"
