@@ -143,24 +143,15 @@ then
 
 ####CMZ 
 #cyclestr=00
-
 else     # if not live, draw from head of dates.txt file
   datesfile=dates.${casename}.txt
   longdate=$(head -n 1 ${datesfile})
-  
   yearstr=${longdate:0:4}
   monthstr=${longdate:4:2}
   daystr=${longdate:6:2}
   cyclestr=${longdate:8:2}
-  
-  echo $yearstr
-  echo $monthstr
-  echo $daystr
-  echo $cyclestr
-  
-  #Remove top line from dates file
-  tail -n +2 ${datesfile} > ${datesfile}.2
-  mv -v ${datesfile}.2 ${datesfile}
+  echo $yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
+
 fi
 
 ## Figure out the seconds which correspond to the cycle and zero pad if neces
@@ -330,7 +321,11 @@ if [ $debug -ne 1 ] ; then
       #Register with RDA, then do following command to get wget cookies
       #wget --save-cookies ~/.thecookies --post-data="email=your_email_address&passwd=your_password&action=login" https://rda.ucar.edu/cgi-bin/login
       CFSRFILENAME=pgbhnl.gdas.${yearstr}${monthstr}${FILEDAY}-${yearstr}${monthstr}${ENCUTARR[$index]}.tar
-      wget --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
+      if [[ $(hostname -s) = cheyenne* ]]; then
+        cp /glade/collections/rda/data/ds093.0/${yearstr}/${CFSRFILENAME} .
+      else
+        wget --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
+      fi
       tar -xvf $CFSRFILENAME
       mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 ${LOCALCFSRFILE}
       rm pgbhnl.gdas.*
@@ -520,9 +515,11 @@ if [ "${add_perturbs}" = true ] ; then
 
 fi
 
-############################### SETUP ############################### 
+############################### SETUP AND QUERY ############################### 
 
 cd $path_to_case
+DYCORE=`./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs`
+echo "DYCORE: "$DYCORE
 
 ############################### CLM SETUP ############################### 
 
@@ -616,9 +613,14 @@ if $doFilter ; then
   # Do filter timestepping stability
   ATM_NCPL=192
   SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(450/${STABILITY})))"`
-  echo "ATM_NCPL: $ATM_NCPL  SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   DTIME: $DTIME"
-  sed -i '/.*se_nsplit/d' user_nl_cam
-  echo "se_nsplit=${SE_NSPLIT}" >> user_nl_cam
+  echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
+  if [[ "$DYCORE" == "se" ]]; then
+    echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
+    sed -i '/.*se_nsplit/d' user_nl_cam
+    echo "se_nsplit=${SE_NSPLIT}" >> user_nl_cam
+  else
+    echo "non-SE core, make sure timestepping is happy!"
+  fi
   ./xmlchange ATM_NCPL=${ATM_NCPL}
 
   # Set NHTFRQ, MFILT, and FINCL fields
@@ -717,9 +719,14 @@ cat ${OUTPUTSTREAMS} >> user_nl_cam
 # Calculate timestep criteria
 ATM_NCPL=`python -c "print(int(86400/${DTIME}))"`
 SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))"`
-echo "ATM_NCPL: $ATM_NCPL  SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   DTIME: $DTIME"
-sed -i '/.*se_nsplit/d' user_nl_cam
-echo "se_nsplit=${SE_NSPLIT}" >> user_nl_cam
+echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
+if [[ "$DYCORE" == "se" ]]; then
+  echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
+  sed -i '/.*se_nsplit/d' user_nl_cam
+  echo "se_nsplit=${SE_NSPLIT}" >> user_nl_cam
+else
+  echo "non-SE core, make sure timestepping is happy!"
+fi
 ./xmlchange ATM_NCPL=${ATM_NCPL}
 
 ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
@@ -836,6 +843,14 @@ if $sendplots ; then
   /bin/bash ${upload_ncl_script}.${uniqtime}.ncl ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
   # Cleanup
   rm ${upload_ncl_script}.${uniqtime}.ncl
+fi
+
+### If not live and the run has made it here successively, delete top line of datesfile
+if [ $islive -eq 0 ] ; then
+  cd ${sewxscriptsdir}
+  #Remove top line from dates file
+  tail -n +2 ${datesfile} > ${datesfile}.2
+  mv -v ${datesfile}.2 ${datesfile}
 fi
 
 exit 0
