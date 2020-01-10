@@ -521,6 +521,13 @@ cd $path_to_case
 DYCORE=`./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs`
 echo "DYCORE: "$DYCORE
 
+############################### CISM SETUP ############################### 
+
+if [ -f user_nl_cism ]; then
+  sed -i '/dt_count/d' user_nl_cism
+  echo "dt_count = 8" >> user_nl_cism
+fi
+
 ############################### CLM SETUP ############################### 
 
 echo "Setting input land dataset"
