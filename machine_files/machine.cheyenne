@@ -1,4 +1,5 @@
 path_to_case = /glade/work/${LOGNAME}/${casename}/
+#path_to_case = /glade/u/home/${LOGNAME}/${casename}/
 path_to_inputdata = /glade/work/${LOGNAME}/sewx/
 path_to_rundir = /glade/scratch/${LOGNAME}/${casename}/run/
 sewxscriptsdir = /glade/u/home/${LOGNAME}/betacast/
