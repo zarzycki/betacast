@@ -44,10 +44,10 @@
   land_spinup = false
 
 # Case name
-  casename = F-betacast-FC5AV1C
+  casename = F-betacast-FC5AV1C2
 
 # Weight file for going from GFS -> VR-SE
-  gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx/maps/map_gfs0.50_TO_ne30np4_patc.nc
+  gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx.CMZ/maps/map_gfs0.50_TO_ne30np4_patc.nc
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = NULL
