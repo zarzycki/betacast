@@ -124,6 +124,7 @@ fi
 
 mkdir ${yearstr}${monthstr}${daystr}${cyclestr}
 mv *.png *.txt atcf.tempest* ${yearstr}${monthstr}${daystr}${cyclestr}
+rm -rf ${yearstr}${monthstr}${daystr}${cyclestr}
 
 ### Finish uploading index.html
 printtime=`date -u`
