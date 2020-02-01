@@ -867,7 +867,7 @@ if [ $islive -eq 0 ] ; then
   
   AUTORESUB="no"
   if [ $AUTORESUB == "yes" ]; then
-    ./betacast ${MACHINEFILE} ${NAMELISTFILE} ${OUTPUTSTREAMS}
+    ./betacast.sh ${MACHINEFILE} ${NAMELISTFILE} ${OUTPUTSTREAMS}
   fi
 fi
 
