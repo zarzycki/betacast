@@ -864,6 +864,11 @@ if [ $islive -eq 0 ] ; then
   #Remove top line from dates file
   tail -n +2 ${datesfile} > ${datesfile}.2
   mv -v ${datesfile}.2 ${datesfile}
+  
+  AUTORESUB="no"
+  if [ $AUTORESUB == "yes" ]; then
+    ./betacast ${MACHINEFILE} ${NAMELISTFILE} ${OUTPUTSTREAMS}
+  fi
 fi
 
 exit 0
