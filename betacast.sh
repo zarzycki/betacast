@@ -789,6 +789,7 @@ set +e
 
 echo "Moving relevant files to archive folder"
 mv *.cam.h*.nc $archivedir
+mv *.clm2.h*.nc $archivedir
 cp *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $archivedir/nl_files
 mv *.txt $archivedir/text
 mv *.log.* $archivedir/logs
