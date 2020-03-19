@@ -28,7 +28,7 @@
   numdays = 5
 
 #true/false, needs to be lowercase
-  doFilter = true
+  doFilter = false
 
 #if true, exits after filter (generates init data)
   filterOnly = false

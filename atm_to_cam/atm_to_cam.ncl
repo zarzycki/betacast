@@ -1,9 +1,6 @@
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
-
 begin
+
+wcStrt = systemfunc("date")
 
 ; Inputs needed
 ; machineid (integer)
@@ -13,9 +10,14 @@ begin
 ; ERA_dir (string)
 ; 
 
+; Constants
+gamma_s = 6.5/1000.   ; lapse rate in K/m
+grav = 9.80616
+Rd = 287.058
+
 dycore="se"   ; fv or se
 
-wcStrt = systemfunc("date")
+;model_topo_file="/project/projectdirs/acme/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc"
 
 ; ===== Getting date from YYYYMMDDHH
 dtime_map = (/4,2,2,2/)
@@ -239,8 +241,67 @@ print("=================================================================")
 
 sePS = ps_fv
 dim_sePS=dimsizes(sePS)
-printVarSummary(ps_fv)
+;printVarSummary(ps_fv)
 
+if isvar("model_topo_file") then
+  print("Performing hydrostatic correction for surface pressure")
+;;;; Do hydrostatic correction for PS
+
+  ; load additional fields from reanalysis
+  topo_data = grb_file->HGT_P0_L1_GLL0(:,:)    ; gpm
+  sfct_data = grb_file->TMP_P0_L104_GLL0(:,:)  ; 0.995 sigma T in K
+
+  ; correct topo from gpm to m2/s2
+  topo_data = topo_data * grav
+
+  ; regrid to model grid
+  topo_data_SE = ESMF_regrid_with_weights(topo_data,wgt_filename,Opt)
+  sfct_data_SE = ESMF_regrid_with_weights(sfct_data,wgt_filename,Opt)
+
+  ; load model orography
+  ttfile = addfile(model_topo_file,"r")
+  topo_model_SE = ttfile->PHIS     ;ncol
+
+  ncol=dim_sePS(0)
+
+  do kk = 0,ncol-1
+
+    ; get difference in geopotential
+    deltaPhi = topo_data_SE(kk) - topo_model_SE(kk)
+    
+    ; estimate "model's" surface temperature
+    Tsfc_fv = sfct_data_SE(kk) + gamma_s * (deltaPhi / grav)
+
+    ; calculate layer mean temperature for use in hydrostatic
+    Tlayermean = (Tsfc_fv + sfct_data_SE(kk)) / 2.
+
+    ; correct very warm and very cold layer means based on Trenberth 1993
+    tcorriter=0
+    if (Tlayermean .lt. 255.0) then
+      Tlayermean = (255.0 + Tlayermean)/2.
+      tcorriter=tcorriter+1
+    else if (Tlayermean .gt. 290.5) then
+      Tlayermean = (290.5 + Tlayermean)/2.
+      tcorriter=tcorriter+1
+    else
+      ; no correction
+    end if
+    end if
+
+    ; correct
+    ps_orig = ps_fv(kk)
+    beta = exp( tofloat(deltaPhi) / tofloat(Rd) / tofloat(Tlayermean) )
+    ps_fv(kk) = ps_fv(kk) * beta
+
+    if (mod(kk,1000) .eq. 0) then
+      print("Correcting: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
+    end if
+  end do
+  print("needed to correct "+tcorriter+" temps for being too cold or too hot")
+  delete([/beta,ps_orig,tcorriter,Tlayermean,Tsfc_fv,deltaPhi/])
+  delete([/ttfile,topo_model_SE,topo_data_SE,sfct_data_SE,topo_data,sfct_data/])
+;;;;
+end if
 
  print("Converting floats to doubles")
  ; Convert floats to doubles
