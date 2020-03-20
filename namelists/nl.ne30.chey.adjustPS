@@ -25,11 +25,11 @@
   numLevels = 32
 
 #forecast length (in days)
-  numdays = 5
+  numdays = 7
 
 # Adjustment settings
   adjust_topo = /glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc
-  #adjust_flags = a
+  adjust_flags = 00
 
 #true/false, needs to be lowercase
   doFilter = false
@@ -48,7 +48,7 @@
   land_spinup = false
 
 # Case name
-  casename = F-betacast-F2000climo
+  casename = Q-adjustPS-ne30-F2000climo
 
 # Weight file for going from GFS -> VR-SE
   gfs2seWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_ne30np4_patc.nc
@@ -62,9 +62,9 @@
 # Timing settings
   PROJECTID = UNSB0017 
   FILTERWALLCLOCK = 00:29:00
-  FILTERQUEUE = premium
+  FILTERQUEUE = regular
   RUNWALLCLOCK = 05:59:00
-  RUNQUEUE = premium
+  RUNQUEUE = regular
 
   usingCIME = true
 

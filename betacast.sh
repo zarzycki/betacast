@@ -441,6 +441,7 @@ if [ $debug -ne 1 ] ; then
        'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
        'model_topo_file="'${adjust_topo-}'"' \
+       'adjust_config="'${adjust_flags-}'"' \
        'se_inic = "'${sePreFilterIC}'"' )
   elif [ $atmDataType -eq 2 ] ; then
     echo "CD ing to ERA-interim interpolation directory"
@@ -460,6 +461,7 @@ if [ $debug -ne 1 ] ; then
      'data_filename = "'$gfs_files_path'/cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
      'wgt_filename="'${gfs2seWeights}'"' \
      'model_topo_file="'${adjust_topo-}'"' \
+     'adjust_config="'${adjust_flags-}'"' \
      'se_inic = "'${sePreFilterIC}'"' )
   else
     echo "Incorrect model IC entered"
@@ -868,7 +870,7 @@ if [ $islive -eq 0 ] ; then
   tail -n +2 ${datesfile} > ${datesfile}.2
   mv -v ${datesfile}.2 ${datesfile}
   
-  AUTORESUB="no"
+  AUTORESUB="yes"
   if [ $AUTORESUB == "yes" ]; then
     ./betacast.sh ${MACHINEFILE} ${NAMELISTFILE} ${OUTPUTSTREAMS}
   fi

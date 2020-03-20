@@ -241,10 +241,15 @@ sePS = ps_fv
 dim_sePS=dimsizes(sePS)
 ;printVarSummary(ps_fv)
 
-
 if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
   print("Performing hydrostatic correction for surface pressure using "+model_topo_file)
-;;;; Do hydrostatic correction for PS
+
+  ; set flags for config
+  tempadjustflag=""
+  if (isvar("adjust_config") .and. adjust_config .ne. "") then
+    tempadjustflag=str_get_cols(adjust_config,0,0)
+  end if
+  print("tempadjustflag set to: "+tempadjustflag)
 
   ; load additional fields from reanalysis
   topo_data = grb_file->HGT_P0_L1_GLL0(:,:)    ; gpm
@@ -292,14 +297,20 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
     beta = exp( tofloat(deltaPhi) / tofloat(Rd) / tofloat(Tlayermean) )
     ps_fv(kk) = ps_fv(kk) * beta
 
-    ; correct T by shifting Tbot "down" the same delta
-    nlev=dimsizes(lev)
-    t_orig = t_fv(nlev-1,kk)
-    delT = Tsfc_fv - sfct_data_SE(kk)
-;    t_fv(nlev-1,kk) = t_fv(nlev-1,kk) + tofloat(delT)
-
     if (mod(kk,1000) .eq. 0) then
-      print("Correcting: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
+      print("Correcting PS: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
+    end if
+
+    ; correct T by shifting Tbot "down" the same delta
+    if (tempadjustflag .eq. "a")
+
+      nlev=dimsizes(lev)
+      t_orig = t_fv(nlev-1,kk)
+      delT = Tsfc_fv - sfct_data_SE(kk)
+      t_fv(nlev-1,kk) = t_fv(nlev-1,kk) + tofloat(delT)
+      if (mod(kk,1000) .eq. 0) then
+        print("Correcting TBOT: "+kk+" of "+(ncol-1)+"   from "+t_orig+" to "+t_fv(nlev-1,kk))
+      end if
     end if
 
   end do
