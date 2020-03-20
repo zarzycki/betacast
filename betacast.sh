@@ -440,6 +440,7 @@ if [ $debug -ne 1 ] ; then
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
        'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
+       'model_topo_file="'${adjust_topo}'"' \
        'se_inic = "'${sePreFilterIC}'"' )
   elif [ $atmDataType -eq 2 ] ; then
     echo "CD ing to ERA-interim interpolation directory"
@@ -458,6 +459,7 @@ if [ $debug -ne 1 ] ; then
       YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
      'data_filename = "'$gfs_files_path'/cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
      'wgt_filename="'${gfs2seWeights}'"' \
+     'model_topo_file="'${adjust_topo}'"' \
      'se_inic = "'${sePreFilterIC}'"' )
   else
     echo "Incorrect model IC entered"

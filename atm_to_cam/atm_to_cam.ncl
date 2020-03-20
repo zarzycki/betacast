@@ -8,7 +8,7 @@ wcStrt = systemfunc("date")
 ; YYYYMMDDHH (string)
 ; gridname (string)
 ; ERA_dir (string)
-; 
+;model_topo_file="/project/projectdirs/acme/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc"
 
 ; Constants
 gamma_s = 6.5/1000.   ; lapse rate in K/m
@@ -16,8 +16,6 @@ grav = 9.80616
 Rd = 287.058
 
 dycore="se"   ; fv or se
-
-;model_topo_file="/project/projectdirs/acme/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc"
 
 ; ===== Getting date from YYYYMMDDHH
 dtime_map = (/4,2,2,2/)
@@ -243,8 +241,9 @@ sePS = ps_fv
 dim_sePS=dimsizes(sePS)
 ;printVarSummary(ps_fv)
 
-if isvar("model_topo_file") then
-  print("Performing hydrostatic correction for surface pressure")
+
+if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
+  print("Performing hydrostatic correction for surface pressure using "+model_topo_file)
 ;;;; Do hydrostatic correction for PS
 
   ; load additional fields from reanalysis
@@ -293,14 +292,33 @@ if isvar("model_topo_file") then
     beta = exp( tofloat(deltaPhi) / tofloat(Rd) / tofloat(Tlayermean) )
     ps_fv(kk) = ps_fv(kk) * beta
 
+    ; correct T by shifting Tbot "down" the same delta
+    nlev=dimsizes(lev)
+    t_orig = t_fv(nlev-1,kk)
+    delT = Tsfc_fv - sfct_data_SE(kk)
+;    t_fv(nlev-1,kk) = t_fv(nlev-1,kk) + tofloat(delT)
+
     if (mod(kk,1000) .eq. 0) then
       print("Correcting: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
     end if
+
   end do
   print("needed to correct "+tcorriter+" temps for being too cold or too hot")
   delete([/beta,ps_orig,tcorriter,Tlayermean,Tsfc_fv,deltaPhi/])
   delete([/ttfile,topo_model_SE,topo_data_SE,sfct_data_SE,topo_data,sfct_data/])
-;;;;
+else if (isvar("model_topo_file") .and. (model_topo_file .eq. " " .or. model_topo_file .eq. "NULL" .or. model_topo_file .eq. "")) then
+  print("Empty model topo file entered, not performing hydro adjustment")
+  print("continuing...")
+else if (isvar("model_topo_file") .and. .not. fileexists(model_topo_file)) then
+  print("model_topo_file passed in but cannot find file on Unix system")
+  print("if you do not want adjustment, specify NULL in the namelist")
+  print("exiting...")
+  exit
+else
+  print("No model topo file passed into script, not performing hydro adjustment")
+  print("continuing...")
+end if
+end if
 end if
 
  print("Converting floats to doubles")
@@ -492,101 +510,101 @@ slon&slon=slon
 
 else
   print("unsupported dycore")
-  exit
-end if
-end if
+	  exit
+	end if
+	end if
 
 
-; Fix error where Q goes very large (missing values?)
-qthresh=1.0
-q_fv_dbl_time=where(q_fv_dbl_time.gt.qthresh,0.0,q_fv_dbl_time)
-qthresh=1.0e-12
-q_fv_dbl_time=where(q_fv_dbl_time.le.qthresh,0.0,q_fv_dbl_time)
-if(any(ismissing(q_fv_dbl_time))) then
-  print("Q is missing data...")
-end if
-q_fv_dbl_time = where(ismissing(q_fv_dbl_time),0.0,q_fv_dbl_time)
+	; Fix error where Q goes very large (missing values?)
+	qthresh=1.0
+	q_fv_dbl_time=where(q_fv_dbl_time.gt.qthresh,0.0,q_fv_dbl_time)
+	qthresh=1.0e-12
+	q_fv_dbl_time=where(q_fv_dbl_time.le.qthresh,0.0,q_fv_dbl_time)
+	if(any(ismissing(q_fv_dbl_time))) then
+	  print("Q is missing data...")
+	end if
+	q_fv_dbl_time = where(ismissing(q_fv_dbl_time),0.0,q_fv_dbl_time)
 
-;q_fv_dbl_time=0.0
+	;q_fv_dbl_time=0.0
 
-print("Writing output file")
-;in->PS=(/ps_fv_dbl_time/)
-;in->U=(/u_fv_dbl_time/)
-;in->V=(/v_fv_dbl_time/)
-;in->T=(/t_fv_dbl_time/)
-;in->Q=(/q_fv_dbl_time/)
-;in->CLDLIQ=(/cldliq_fv_dbl_time/)
-;in->CLDICE=(/cldice_fv_dbl_time/)
+	print("Writing output file")
+	;in->PS=(/ps_fv_dbl_time/)
+	;in->U=(/u_fv_dbl_time/)
+	;in->V=(/v_fv_dbl_time/)
+	;in->T=(/t_fv_dbl_time/)
+	;in->Q=(/q_fv_dbl_time/)
+	;in->CLDLIQ=(/cldliq_fv_dbl_time/)
+	;in->CLDICE=(/cldice_fv_dbl_time/)
 
-;  in->PBLH=(/pblh_fv_dbl_time/)
+	;  in->PBLH=(/pblh_fv_dbl_time/)
 
-other_stuff=True
-if (other_stuff) then
-system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
-in2 = addfile(se_inic,"c")  ; open output netCDF file
+	other_stuff=True
+	if (other_stuff) then
+	system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
+	in2 = addfile(se_inic,"c")  ; open output netCDF file
 
-;===================================================================
-; create global attributes of the file (optional)
-;===================================================================
-fAtt               = True            ; assign file attributes
-fAtt@title         = "NCL Simple Approach to netCDF Creation"
-fAtt@source_file   =  "original-file.nc"
-fAtt@Conventions   = "None"
-fAtt@creation_date = systemfunc ("date")
-fileattdef( in2, fAtt )            ; copy file attributes
+	;===================================================================
+	; create global attributes of the file (optional)
+	;===================================================================
+	fAtt               = True            ; assign file attributes
+	fAtt@title         = "NCL Simple Approach to netCDF Creation"
+	fAtt@source_file   =  "original-file.nc"
+	fAtt@Conventions   = "None"
+	fAtt@creation_date = systemfunc ("date")
+	fileattdef( in2, fAtt )            ; copy file attributes
 
-;===================================================================
-; make time an UNLIMITED dimension; recommended  for most applications
-;===================================================================
-filedimdef(in2,"time",-1,True) 
+	;===================================================================
+	; make time an UNLIMITED dimension; recommended  for most applications
+	;===================================================================
+	filedimdef(in2,"time",-1,True) 
 
-;===================================================================
-; output variables directly; NCL will call appropriate functions
-; to write the meta data associated with each variable
-;===================================================================
-in2->PS=ps_fv_dbl_time
-if(dycore .eq. "fv") then
-  in2->US=u_fv_dbl_time
-  in2->VS=v_fv_dbl_time
-else
-  in2->U=u_fv_dbl_time
-  in2->V=v_fv_dbl_time
-end if
-in2->T=t_fv_dbl_time
-in2->Q=q_fv_dbl_time
-in2->CLDLIQ=cldliq_fv_dbl_time
-in2->CLDICE=cldice_fv_dbl_time
-in2->hyam  = hya
-in2->hybm  = hyb
-in2->hyai  = hyai
-in2->hybi  = hybi
-in2->lev = lev
-in2->ilev = ilev
-if(dycore .eq. "fv") then
-  in2->lat=lat
-  in2->lon=lon
-  in2->slat=slat
-  in2->slon=slon
-  in2->w_stag=w_stag
-else  ; put lat/lon arrays on SE grid needed as of c2b08
-  in2->lat=selat
-  in2->lon=selon
-end if
+	;===================================================================
+	; output variables directly; NCL will call appropriate functions
+	; to write the meta data associated with each variable
+	;===================================================================
+	in2->PS=ps_fv_dbl_time
+	if(dycore .eq. "fv") then
+	  in2->US=u_fv_dbl_time
+	  in2->VS=v_fv_dbl_time
+	else
+	  in2->U=u_fv_dbl_time
+	  in2->V=v_fv_dbl_time
+	end if
+	in2->T=t_fv_dbl_time
+	in2->Q=q_fv_dbl_time
+	in2->CLDLIQ=cldliq_fv_dbl_time
+	in2->CLDICE=cldice_fv_dbl_time
+	in2->hyam  = hya
+	in2->hybm  = hyb
+	in2->hyai  = hyai
+	in2->hybi  = hybi
+	in2->lev = lev
+	in2->ilev = ilev
+	if(dycore .eq. "fv") then
+	  in2->lat=lat
+	  in2->lon=lon
+	  in2->slat=slat
+	  in2->slon=slon
+	  in2->w_stag=w_stag
+	else  ; put lat/lon arrays on SE grid needed as of c2b08
+	  in2->lat=selat
+	  in2->lon=selon
+	end if
 
-NUMLIQ=cldliq_fv_dbl_time
-NUMLIQ=0
-NUMICE=cldice_fv_dbl_time
-NUMICE=0
+	NUMLIQ=cldliq_fv_dbl_time
+	NUMLIQ=0
+	NUMICE=cldice_fv_dbl_time
+	NUMICE=0
 
-;in2->NUMICE=NUMICE
-;in2->NUMLIQ=NUMLIQ
+	;in2->NUMICE=NUMICE
+	;in2->NUMLIQ=NUMLIQ
 
-end if
+	end if
 
-wallClockElapseTime(wcStrt, "Total runtime", 0)
-print("done")
+	wallClockElapseTime(wcStrt, "Total runtime", 0)
+	print("done")
 
-status_exit(9)
+	status_exit(9)
   
 end
 
