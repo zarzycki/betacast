@@ -93,7 +93,9 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI |
 | numLevels | 72 -> E3SMv1, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 |
 | numdays | How long for forecast to run (in days) |
-| doFilter | Should we apply offline forward DFI? Generally "true" for SE, more diffusive cores can set to "false" |
+| adjust_topo | Full path to a *model* topography file. If valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. |
+| adjust_flags | Hydrostatic adjustment options. Currently "a" (include TBOT adjustment) and "-" (PS adjustment only) are supported. Only applied with valid adjust_topo file. |
+| doFilter | Should we apply offline forward DFI? Generally "false" for diffusive dycores and/or SE with hydrostatic adjustment. Set to "true" if using SE with no adjustment to minimize GW noise during first ~72 hours. |
 | filterOnly | Exit code after the filter run if doFilter=true (useful for producing ncdata for ensembles) |
 | numHoursSEStart | Centerpoint of filter duration (leave at 3)|
 | filterHourLength | Filter duration (leave at 6)|
