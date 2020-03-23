@@ -29,6 +29,7 @@
 
 # File for adjusting topography during init. Set to NULL if not desired or file doesn't exist
   adjust_topo = /project/projectdirs/acme/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc
+  adjust_flags = a
 
 #true/false, needs to be lowercase
   doFilter = false
