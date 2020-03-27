@@ -551,7 +551,8 @@ else
 
 	other_stuff=True
 	if (other_stuff) then
-	system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
+	setfileoption("nc","Format","LargeFile")
+        system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
 	in2 = addfile(se_inic,"c")  ; open output netCDF file
 
 	;===================================================================
