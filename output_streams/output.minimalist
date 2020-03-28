@@ -1,3 +1,3 @@
 nhtfrq=-3
 mfilt=1
-fincl1='PS:I','PRECT:I','U850:I','V850:I','PSL:I','TBOT:I','T850:I','UBOT:I','VBOT:I','TMQ:I'
+fincl1='PS:I','PRECT:I','U850:I','V850:I','PSL:I','TBOT:I','T850:I','UBOT:I','VBOT:I','TMQ:I','Z500:I','U200:I','V200:I'
