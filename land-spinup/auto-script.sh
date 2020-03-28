@@ -4,16 +4,17 @@
 set -e
 
 ### User settings
-FORECASTDATE=20160304
-CIMEROOT=~/scream
+FORECASTDATE=19960116
+CIMEROOT=~/dev-E3SM
 PATHTOCASE=~/
-CASENAME=YYY_ICLM45
+CASENAME=ICLM45-dev-E3SM
 PROJECT=m2637
 MACHINE=cori-knl
-NNODES=8
+NNODES=48
 COMPSET=ICLM45
-RESOL=ne30_ne30
+RESOL=ne120_oRRS18v3
 RUNQUEUE=premium
+NMONTHSSPIN=6
 
 ### Date logic
 FORECASTYEAR="${FORECASTDATE:0:4}"
@@ -22,6 +23,8 @@ FORECASTYEARP1=$((FORECASTYEAR+1))
 echo "Trying to get CLM restart for "${FORECASTDATE}
 echo "Year plus one equals: "${FORECASTYEARP1}
 echo "Year minus one equals: "${FORECASTYEARM1}
+
+STARTDATE=`date -d "${FORECASTDATE} - ${NMONTHSSPIN} months" "+%Y-%m-%d"`
 
 ### Configure, build, run land model w/ DATM
 if (( FORECASTYEAR > 2016 )); then
@@ -41,12 +44,12 @@ else
   ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
   ./case.setup
   ./xmlchange DATM_MODE=CLMCRUNCEPv7
-  ./xmlchange STOP_N=3
+  ./xmlchange STOP_N=2
   ./xmlchange STOP_OPTION='nyears'
   ./xmlchange DATM_CLMNCEP_YR_START=${FORECASTYEARM1}
-  ./xmlchange DATM_CLMNCEP_YR_END=${FORECASTYEARP1}
+  ./xmlchange DATM_CLMNCEP_YR_END=${FORECASTYEAR}
   ./xmlchange DATM_CLMNCEP_YR_ALIGN=${FORECASTYEARM1}
-  ./xmlchange RUN_STARTDATE=${FORECASTYEARM1}-01-01
+  ./xmlchange RUN_STARTDATE=${STARTDATE}
   ./xmlchange STOP_DATE=${FORECASTDATE}
   ./xmlchange REST_OPTION='end'
   ./case.build
