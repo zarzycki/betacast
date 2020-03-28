@@ -98,7 +98,6 @@ timestamp=`date +%Y%m%d.%H%M`
 uniqtime=`date +"%s%N"`
 
 echo "We are using ${casename} for the case"
-echo "The formal SE run will start at +$numHoursSEStart hours from actual init time"
 
 if [ $islive -ne 0 ]    # Find most recent GFS forecast
 then
@@ -150,8 +149,24 @@ else     # if not live, draw from head of dates.txt file
   monthstr=${longdate:4:2}
   daystr=${longdate:6:2}
   cyclestr=${longdate:8:2}
-  echo $yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
+  echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
 
+  # Do some simple error trapping on date string to ensure validity
+  if [ -z "$longdate" ]; then
+    echo "Date string passed in is empty, exiting..." ; exit 91
+  fi
+  if [ ${#longdate} -ne 10 ]; then 
+    echo "Malformed date string, $longdate is ${#longdate} characters, needs 10 (YYYYMMDDHH). Exiting..." ; exit 92
+  fi
+  if [[ -n $(echo $longdate | tr -d '[0-9]') ]] ; then
+    echo "Malformed date string, $longdate contains non-numeric values. Exiting..." ; exit 93
+  fi
+  if (( yearstr > 3000 || yearstr < 1 )); then
+    echo "Year set to $yearstr, this sounds wrong, exiting..." ; exit 94
+  fi
+  if (( cyclestr > 23 )); then
+    echo "Cycle string set to $cyclestr Z, this sounds wrong, exiting..." ; exit 95
+  fi
 fi
 
 ## Figure out the seconds which correspond to the cycle and zero pad if neces
