@@ -1,10 +1,14 @@
 #!/bin/bash
 
+# Script to automatically create a case, configure, build, and run I compset to spin up
+# CLM or ELM for betacast runs
+
 # Turn on error checking
 set -e
 
 ### User settings
 FORECASTDATE=19960116
+NMONTHSSPIN=6
 CIMEROOT=~/dev-E3SM
 PATHTOCASE=~/
 CASENAME=ICLM45-dev-E3SM
@@ -14,7 +18,8 @@ NNODES=48
 COMPSET=ICLM45
 RESOL=ne120_oRRS18v3
 RUNQUEUE=premium
-NMONTHSSPIN=6
+
+### Do not edit below this line!
 
 ### Date logic
 FORECASTYEAR="${FORECASTDATE:0:4}"
