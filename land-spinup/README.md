@@ -1,5 +1,25 @@
 ## Generating a CLM initial condition for a CESM forecast
 
+| Namelist Variable | Description |
+| --- | --- |
+| FORECASTDATE | Date a CLM/ELM restart file is needed in YYYYMMDD (00Z) |
+| CIMEROOT | Path to root of E3SM/CESM |
+| PATHTOCASE | Path where you want case generated |
+| CASENAME | Name for spinup case |
+| PROJECT | Project charging ID |
+| MACHINE | Machine (CIME) |
+| NNODES | Number of nodes you want to run on |
+| COMPSET | I compset to generate file for |
+| RESOL | What resolution? Make sure land matches coupled land res |
+| RUNQUEUE | Queue to run in |
+| NMONTHSSPIN | Integer number of months to spinup (1-12) |
+
+
+
+
+
+OLD --->
+
 This README details the use of a CESM "I" compset (active land, data atmosphere) to "nudge" CLM into a state balanced to the atmosphere. This is done to generate a consistent CLM initial condition that can be used with a CAM initial data file derived from observations or reanalysis to produce an initialized simulation akin to a forecast run.
 
 -------------------------------------------------------------------------------------------------------------------------
