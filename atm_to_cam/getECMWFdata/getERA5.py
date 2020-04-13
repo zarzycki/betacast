@@ -47,7 +47,7 @@ c.retrieve(
         'day': '%s'%(theday),
         'time': '%s:00'%(thetime),
     },
-    'ERA-Int_sfc_%s%s.nc'%(thedate,thetime))
+    'ERA5_sfc_%s%s.nc'%(thedate,thetime))
  
 
 c.retrieve(
@@ -80,7 +80,7 @@ c.retrieve(
         'day': '%s'%(theday),
         'time': '%s:00'%(thetime),
     },
-    'ERA-Int_ml_%s%s.nc'%(thedate,thetime))
+    'ERA5_ml_%s%s.nc'%(thedate,thetime))
 
 
 
