@@ -15,8 +15,8 @@
 ### GFS analysis available from 8/2004 onward
 ### CFSR analysis available from 1979 to Mar 2011          
 ### Use NOAAOI unless running real-time
-# 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
-  atmDataType = 3
+# 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR, 4 = ERA5
+  atmDataType = 4
 
 # 1 = GDAS, 2 = ERA, 3 = NOAAOI
   sstDataType = 3
@@ -51,7 +51,8 @@
   casename = F-dev-FC5AV1C 
 
 # Weight file for going from GFS -> VR-SE
-  gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx.CMZ/maps/map_gfs0.50_TO_ne30np4_patc.nc
+#  gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx.CMZ/maps/map_gfs0.50_TO_ne30np4_patc.nc
+  gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx.CMZ/maps/map_era0.25_TO_ne30np4_patc.nc
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = NULL
