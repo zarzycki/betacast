@@ -302,10 +302,15 @@ if [ $debug -ne 1 ] ; then
     echo "Cding to ERA-Interim interpolation directory"
     mkdir -p $era_files_path
     cd $era_files_path
-    python getInterim.py ${yearstr}${monthstr}${daystr} ${cyclestr}
-    ncks -A ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-    mv -v ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-    rm -f ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc
+    LOCALGFSFILE=ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc
+    if [ ! -f ${LOCALGFSFILE} ]; then
+      echo "support broken for auto download ERA, please prestage"
+      exit
+      python getInterim.py ${yearstr}${monthstr}${daystr} ${cyclestr}
+      ncks -A ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc
+      mv -v ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc
+      rm -f ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc
+    fi
   elif [ $atmDataType -eq 3 ] ; then  
     echo "Using CFSR ICs"
     echo "Cding to GFS interpolation directory since they are practically the same thing"
@@ -344,6 +349,17 @@ if [ $debug -ne 1 ] ; then
       tar -xvf $CFSRFILENAME
       mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 ${LOCALCFSRFILE}
       rm pgbhnl.gdas.*
+    fi
+  elif [ $atmDataType -eq 4 ] ; then  
+    echo "Using ERA5 forecast ICs"
+    echo "Cding to ERA5 interpolation directory"
+    mkdir -p $era_files_path
+    cd $era_files_path
+    LOCALGFSFILE=ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc
+    if [ ! -f ${LOCALGFSFILE} ]; then
+      echo "cannot find: ${era_files_path}/${LOCALGFSFILE}"
+      echo "support broken for auto download ERA, please prestage"
+      exit
     fi
   else
     echo "Incorrect model IC entered"
@@ -478,6 +494,17 @@ if [ $debug -ne 1 ] ; then
      'model_topo_file="'${adjust_topo-}'"' \
      'adjust_config="'${adjust_flags-}'"' \
      'se_inic = "'${sePreFilterIC}'"' )
+  elif [ $atmDataType -eq 4 ] ; then
+    echo "CD ing to ERA5 interpolation directory"
+    cd $atm_to_cam_path
+    (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5"'     \
+        numlevels=${numLevels} \
+        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+       'data_filename = "'$era_files_path'/ERA5_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
+       'wgt_filename="'${gfs2seWeights}'"' \
+       'model_topo_file="'${adjust_topo-}'"' \
+       'adjust_config="'${adjust_flags-}'"' \
+       'se_inic = "'${sePreFilterIC}'"' )
   else
     echo "Incorrect model IC entered"
     exit 1
