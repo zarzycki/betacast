@@ -52,11 +52,16 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   rhlev  = grb_file->$rhlevName$
   cldlev = grb_file->$cldlevName$
 end if
-if (datasource .eq. "ERAI") then
-  grblat = grb_file->latitude
-  grblon = grb_file->longitude
-  grblev = grb_file->level
+if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
+  grblat = tofloat(grb_file->latitude)
+  grblon = tofloat(grb_file->longitude)
+  grblev = tofloat(grb_file->level)
+  if (datasource .eq. "ERA5") then
+    grblev = grblev * 100.
+  end if
 end if
+
+print(grblev)
 
 nlat = dimsizes(grblat)
 nlon = dimsizes(grblon)
@@ -101,7 +106,7 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   delete(cldmix_gfs)
   delete(rh_gfs)
 end if
-if (datasource .eq. "ERAI") then
+if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
   p0   = 100000.
   ; We need to use short2flt because ERA-Interim data is stored
   ; in short format and requires scale/offset
@@ -141,10 +146,8 @@ ilev = fC->ilev
 
 
 print("Interpolating to CAM hybrid coordinates")
-if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
+if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5") then
   print("Using pressure to hybrid interpolation")
-  printVarSummary(t_gfs)
-  printVarSummary(u_gfs)
   t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,1)
   u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,1)
   v_cam = pres2hybrid_Wrap(grblev,ps,p0,v_gfs,hya,hyb,1)
@@ -252,11 +255,19 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
   print("tempadjustflag set to: "+tempadjustflag)
 
   ; load additional fields from reanalysis
-  topo_data = grb_file->HGT_P0_L1_GLL0(:,:)    ; gpm
-  sfct_data = grb_file->TMP_P0_L104_GLL0(:,:)  ; 0.995 sigma T in K
-
-  ; correct topo from gpm to m2/s2
-  topo_data = topo_data * grav
+  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
+    topo_data = grb_file->HGT_P0_L1_GLL0(:,:)    ; gpm
+    sfct_data = grb_file->TMP_P0_L104_GLL0(:,:)  ; 0.995 sigma T in K
+    ; correct topo from gpm to m2/s2
+    topo_data = topo_data * grav
+  else if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
+    topo_data = short2flt(grb_file->phis(0,:,:))    ; gpm
+    sfct_data = short2flt(grb_file->t2m(0,:,:))  ; 0.995 sigma T in K
+  else
+    print("no avail reanalysis surface data for corr... exiting...")
+    exit
+  end if
+  end if
 
   ; regrid to model grid
   topo_data_SE = ESMF_regrid_with_weights(topo_data,wgt_filename,Opt)
@@ -538,7 +549,7 @@ else
 
 	;q_fv_dbl_time=0.0
 
-	print("Writing output file")
+	print("Writing output file: "+se_inic)
 	;in->PS=(/ps_fv_dbl_time/)
 	;in->U=(/u_fv_dbl_time/)
 	;in->V=(/v_fv_dbl_time/)
@@ -552,7 +563,7 @@ else
 	other_stuff=True
 	if (other_stuff) then
 	setfileoption("nc","Format","LargeFile")
-        system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
+  system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
 	in2 = addfile(se_inic,"c")  ; open output netCDF file
 
 	;===================================================================
@@ -574,7 +585,9 @@ else
 	; output variables directly; NCL will call appropriate functions
 	; to write the meta data associated with each variable
 	;===================================================================
+  print("writing PS")
 	in2->PS=ps_fv_dbl_time
+  print("writing U + V")
 	if(dycore .eq. "fv") then
 	  in2->US=u_fv_dbl_time
 	  in2->VS=v_fv_dbl_time
@@ -582,10 +595,19 @@ else
 	  in2->U=u_fv_dbl_time
 	  in2->V=v_fv_dbl_time
 	end if
+  print("writing T + Q")
 	in2->T=t_fv_dbl_time
 	in2->Q=q_fv_dbl_time
+  print("writing CLDLIQ + CLDICE")
 	in2->CLDLIQ=cldliq_fv_dbl_time
 	in2->CLDICE=cldice_fv_dbl_time
+  print("writing NUMLIQ + NUMICE")
+	NUMLIQ=cldliq_fv_dbl_time
+	NUMLIQ=0
+	NUMICE=cldice_fv_dbl_time
+	NUMICE=0
+
+  print("writing coords")
 	in2->hyam  = hya
 	in2->hybm  = hyb
 	in2->hyai  = hyai
@@ -602,11 +624,6 @@ else
 	  in2->lat=selat
 	  in2->lon=selon
 	end if
-
-	NUMLIQ=cldliq_fv_dbl_time
-	NUMLIQ=0
-	NUMICE=cldice_fv_dbl_time
-	NUMICE=0
 
 	;in2->NUMICE=NUMICE
 	;in2->NUMLIQ=NUMLIQ
