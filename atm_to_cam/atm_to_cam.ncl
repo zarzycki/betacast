@@ -61,7 +61,10 @@ if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
   end if
 end if
 
-print(grblev)
+print("Level in information")
+print("Number: "+dimsizes(grblev))
+print("Max: "+max(grblev))
+print("Min: "+min(grblev))
 
 nlat = dimsizes(grblat)
 nlon = dimsizes(grblon)
@@ -178,22 +181,19 @@ print("Max Q: "+max(q_cam)+"   min Q: "+min(q_cam))
 print("Max PS: "+max(ps)+"   min PS: "+min(ps))
 print("Max CLDICE: "+max(cldice_cam)+"   min CLDICE: "+min(cldice_cam))
 print("Max CLDLIQ: "+max(cldliq_cam)+"   min CLDLIQ: "+min(cldliq_cam))
-;print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
 print("=================================================================")
 
+print("==CLEAN after vert interp")
+delete([/u_gfs,v_gfs,t_gfs,q_gfs,cldice_gfs,cldliq_gfs/])
 
-copy_VarCoords(t_cam,q_cam)
-copy_VarCoords(t_cam,cldice_cam)
-copy_VarCoords(t_cam,cldliq_cam)
-
+; set var coords
 t_cam!0    = "lev"
 t_cam!1    = "lat"
 t_cam!2    = "lon"
 ps!0 = "lat"
 ps!1 = "lon"
-;pblh!0 = "lat"
-;pblh!1 = "lon"
 
+; copy var coords over to q, cldliq, and clidice
 copy_VarCoords(t_cam,q_cam)
 copy_VarCoords(t_cam,cldice_cam)
 copy_VarCoords(t_cam,cldliq_cam)
@@ -239,6 +239,9 @@ print("Max CLDICE: "+max(cldice_fv)+"   min CLDICE: "+min(cldice_fv))
 print("Max CLDLIQ: "+max(cldliq_fv)+"   min CLDLIQ: "+min(cldliq_fv))
 ;print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
 print("=================================================================")
+
+print("clearing after horiz interp")
+delete([/u_cam,v_cam,t_cam,q_cam,cldice_cam,cldliq_cam,ps/])
 
 sePS = ps_fv
 dim_sePS=dimsizes(sePS)
@@ -308,7 +311,7 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
     beta = exp( tofloat(deltaPhi) / tofloat(Rd) / tofloat(Tlayermean) )
     ps_fv(kk) = ps_fv(kk) * beta
 
-    if (mod(kk,1000) .eq. 0) then
+    if (mod(kk,10000) .eq. 0) then
       print("Correcting PS: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
     end if
 
@@ -319,7 +322,7 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
       t_orig = t_fv(nlev-1,kk)
       delT = Tsfc_fv - sfct_data_SE(kk)
       t_fv(nlev-1,kk) = t_fv(nlev-1,kk) + tofloat(delT)
-      if (mod(kk,1000) .eq. 0) then
+      if (mod(kk,10000) .eq. 0) then
         print("Correcting TBOT: "+kk+" of "+(ncol-1)+"   from "+t_orig+" to "+t_fv(nlev-1,kk))
       end if
     end if
@@ -364,15 +367,7 @@ end if
  copy_VarMeta(cldice_fv,cldice_fv_dbl)
 ; 
 ; ; clean up some stuff
- delete(ps_fv)
- ;delete(pblh_fv)
- delete(t_fv)
- delete(u_fv)
- delete(v_fv)
- delete(q_fv)
- delete(cldliq_fv)
- delete(cldice_fv)
-
+delete([/ps_fv,t_fv,u_fv,v_fv,q_fv,cldliq_fv,cldice_fv/])
 
 if (dycore .eq. "se") then
 
@@ -425,8 +420,15 @@ cldice_fv_dbl_time!0 = "time"
 cldice_fv_dbl_time!1 = "lev"
 cldice_fv_dbl_time!2 = "ncol"
 
+; set coordinates and attributes for se lat/lon arrays
 selat!0 = "ncol"
 selon!0 = "ncol"
+selat@_FillValue = -900.
+selat@long_name = "latitude"
+selat@units = "degrees_north"
+selon@_FillValue = -900.
+selon@long_name = "longitude"
+selon@units = "degrees_east"
 
 else if (dycore .eq. "fv") then
 
@@ -532,109 +534,132 @@ slon&slon=slon
 
 else
   print("unsupported dycore")
-	  exit
-	end if
-	end if
+  exit
+end if
+end if
+
+; clean up more stuff
+delete([/ps_fv_dbl,u_fv_dbl,v_fv_dbl,t_fv_dbl,q_fv_dbl,cldliq_fv_dbl,cldice_fv_dbl/])
+
+; Fix error where Q goes very large (missing values?)
+qthresh=1.0
+q_fv_dbl_time=where(q_fv_dbl_time.gt.qthresh,0.0,q_fv_dbl_time)
+qthresh=1.0e-12
+q_fv_dbl_time=where(q_fv_dbl_time.le.qthresh,0.0,q_fv_dbl_time)
+if(any(ismissing(q_fv_dbl_time))) then
+  print("Q is missing data...")
+end if
+q_fv_dbl_time = where(ismissing(q_fv_dbl_time),0.0,q_fv_dbl_time)
 
 
-	; Fix error where Q goes very large (missing values?)
-	qthresh=1.0
-	q_fv_dbl_time=where(q_fv_dbl_time.gt.qthresh,0.0,q_fv_dbl_time)
-	qthresh=1.0e-12
-	q_fv_dbl_time=where(q_fv_dbl_time.le.qthresh,0.0,q_fv_dbl_time)
-	if(any(ismissing(q_fv_dbl_time))) then
-	  print("Q is missing data...")
-	end if
-	q_fv_dbl_time = where(ismissing(q_fv_dbl_time),0.0,q_fv_dbl_time)
+print("Writing output file: "+se_inic)
+other_stuff=True
+if (other_stuff) then
 
-	;q_fv_dbl_time=0.0
+setfileoption("nc","Format","LargeFile")
+system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
+fout = addfile(se_inic,"c")  ; open output netCDF file   
 
-	print("Writing output file: "+se_inic)
-	;in->PS=(/ps_fv_dbl_time/)
-	;in->U=(/u_fv_dbl_time/)
-	;in->V=(/v_fv_dbl_time/)
-	;in->T=(/t_fv_dbl_time/)
-	;in->Q=(/q_fv_dbl_time/)
-	;in->CLDLIQ=(/cldliq_fv_dbl_time/)
-	;in->CLDICE=(/cldice_fv_dbl_time/)
+;===================================================================
+; explicitly declare file definition mode. Improve efficiency.
+;===================================================================
+setfileoption(fout,"DefineMode",True)
 
-	;  in->PBLH=(/pblh_fv_dbl_time/)
+;===================================================================
+; create global attributes of the file
+;===================================================================
+fAtt               = True            ; assign file attributes
+fAtt@title         = "NCL Efficient Approach to netCDF Creation"  
+fAtt@source_file   =  "original-file.nc"
+fAtt@Conventions   = "None"   
+fAtt@creation_date = systemfunc ("date")        
+fileattdef( fout, fAtt )            ; copy file attributes    
 
-	other_stuff=True
-	if (other_stuff) then
-	setfileoption("nc","Format","LargeFile")
-  system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
-	in2 = addfile(se_inic,"c")  ; open output netCDF file
+;===================================================================
+; predefine the coordinate variables and their dimensionality
+;===================================================================
 
-	;===================================================================
-	; create global attributes of the file (optional)
-	;===================================================================
-	fAtt               = True            ; assign file attributes
-	fAtt@title         = "NCL Simple Approach to netCDF Creation"
-	fAtt@source_file   =  "original-file.nc"
-	fAtt@Conventions   = "None"
-	fAtt@creation_date = systemfunc ("date")
-	fileattdef( in2, fAtt )            ; copy file attributes
+print("predefine the coordinate variables and their dimensionality")
+nlev=dimsizes(lev)
+nilev=nlev+1
+dimNames = (/"time", "ncol", "lev", "ilev"/)  
+dimSizes = (/ -1   ,  ncol,  nlev, nilev /) 
+dimUnlim = (/ True , False, False, False/)   
+filedimdef(fout,dimNames,dimSizes,dimUnlim)
 
-	;===================================================================
-	; make time an UNLIMITED dimension; recommended  for most applications
-	;===================================================================
-	filedimdef(in2,"time",-1,True) 
+;===================================================================
+; predefine the the dimensionality of the variables to be written out
+;===================================================================
+print("predefine the the dimensionality of the variables to be written out")
+filevardef(fout, "lev"   ,typeof(lev),getvardims(lev) )      
+filevardef(fout, "ilev"  ,typeof(ilev),getvardims(ilev) )                           
+filevardef(fout, "lat"  ,typeof(selat),getvardims(selat))                          
+filevardef(fout, "lon"  ,typeof(selon),getvardims(selon))         
+filevardef(fout, "hyam"  ,typeof(hya),getvardims(hya))         
+filevardef(fout, "hybm"  ,typeof(hyb),getvardims(hyb))         
+filevardef(fout, "hyai"  ,typeof(hyai),getvardims(hyai))         
+filevardef(fout, "hybi"  ,typeof(hyb),getvardims(hybi))      
+filevardef(fout, "PS"    ,typeof(ps_fv_dbl_time)  ,getvardims(ps_fv_dbl_time))    
+filevardef(fout, "U"    ,typeof(u_fv_dbl_time)  ,getvardims(u_fv_dbl_time))    
+filevardef(fout, "V"   ,typeof(v_fv_dbl_time) ,getvardims(v_fv_dbl_time))          
+filevardef(fout, "T",typeof(t_fv_dbl_time),getvardims(t_fv_dbl_time))  
+filevardef(fout, "Q",typeof(q_fv_dbl_time),getvardims(q_fv_dbl_time))  
+filevardef(fout, "CLDLIQ",typeof(cldliq_fv_dbl_time),getvardims(cldliq_fv_dbl_time))  
+filevardef(fout, "CLDICE",typeof(cldice_fv_dbl_time),getvardims(cldice_fv_dbl_time))  
 
-	;===================================================================
-	; output variables directly; NCL will call appropriate functions
-	; to write the meta data associated with each variable
-	;===================================================================
-  print("writing PS")
-	in2->PS=ps_fv_dbl_time
-  print("writing U + V")
-	if(dycore .eq. "fv") then
-	  in2->US=u_fv_dbl_time
-	  in2->VS=v_fv_dbl_time
-	else
-	  in2->U=u_fv_dbl_time
-	  in2->V=v_fv_dbl_time
-	end if
-  print("writing T + Q")
-	in2->T=t_fv_dbl_time
-	in2->Q=q_fv_dbl_time
-  print("writing CLDLIQ + CLDICE")
-	in2->CLDLIQ=cldliq_fv_dbl_time
-	in2->CLDICE=cldice_fv_dbl_time
-  print("writing NUMLIQ + NUMICE")
-	NUMLIQ=cldliq_fv_dbl_time
-	NUMLIQ=0
-	NUMICE=cldice_fv_dbl_time
-	NUMICE=0
+;====================================================================
+; Copy attributes associated with each variable to the file
+;====================================================================
+print("Copy attributes associated with each variable to the file")
+filevarattdef(fout,"lev",lev)
+filevarattdef(fout,"ilev",ilev)
+filevarattdef(fout,"lat",selat)
+filevarattdef(fout,"lon",selon)
+filevarattdef(fout,"hyam",hya)
+filevarattdef(fout,"hybm",hyb)
+filevarattdef(fout,"hyai",hyai)
+filevarattdef(fout,"hybi",hybi)
+filevarattdef(fout,"PS" ,ps_fv_dbl_time)
+filevarattdef(fout,"U"  ,u_fv_dbl_time) 
+filevarattdef(fout,"V"  ,v_fv_dbl_time)
+filevarattdef(fout,"T"  ,t_fv_dbl_time) 
+filevarattdef(fout,"Q"   ,q_fv_dbl_time)
+filevarattdef(fout,"CLDLIQ",cldliq_fv_dbl_time)
+filevarattdef(fout,"CLDICE",cldice_fv_dbl_time)
 
-  print("writing coords")
-	in2->hyam  = hya
-	in2->hybm  = hyb
-	in2->hyai  = hyai
-	in2->hybi  = hybi
-	in2->lev = lev
-	in2->ilev = ilev
-	if(dycore .eq. "fv") then
-	  in2->lat=lat
-	  in2->lon=lon
-	  in2->slat=slat
-	  in2->slon=slon
-	  in2->w_stag=w_stag
-	else  ; put lat/lon arrays on SE grid needed as of c2b08
-	  in2->lat=selat
-	  in2->lon=selon
-	end if
+;===================================================================
+; explicitly exit file definition mode. **NOT REQUIRED**
+;===================================================================
+setfileoption(fout,"DefineMode",False)
 
-	;in2->NUMICE=NUMICE
-	;in2->NUMLIQ=NUMLIQ
+;===================================================================
+; output only the data values since the dimensionality and such have
+; been predefined.
+;====================================================================
+print("output the data values")
+fout->PS   = (/ps_fv_dbl_time/)     
+fout->U    = (/u_fv_dbl_time/)
+fout->V    = (/v_fv_dbl_time/)
+fout->T    = (/t_fv_dbl_time/) 
+fout->Q      = (/q_fv_dbl_time/)
+fout->CLDLIQ  = (/cldliq_fv_dbl_time/)
+fout->CLDICE  = (/cldice_fv_dbl_time/)
+fout->hyam   = (/hya/)     
+fout->hybm    = (/hyb/)
+fout->hyai    = (/hyai/)
+fout->hybi    = (/hybi/) 
+fout->lev     = (/lev/)
+fout->ilev  = (/ilev/)
+fout->lat     = (/selat/)
+fout->lon  = (/selon/)
 
-	end if
+end if
 
-	wallClockElapseTime(wcStrt, "Total runtime", 0)
-	print("done")
+wallClockElapseTime(wcStrt, "Total runtime", 0)
+print("done")
 
-	status_exit(9)
-  
+status_exit(9)
+
 end
 
 
