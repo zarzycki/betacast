@@ -5,6 +5,7 @@
 # python getInterim.py 20050825 00
 
 import sys
+import cdsapi
 
 thedate=str(sys.argv[1])
 thetime=str(sys.argv[2])
@@ -18,7 +19,6 @@ thetime=str(sys.argv[2])
 # does it submit to any jurisdiction.
 #
 
-from ecmwfapi import ECMWFDataServer
 
 # To run this example, you need an API key 
 # available from https://api.ecmwf.int/v1/key/

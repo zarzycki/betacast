@@ -5,7 +5,6 @@
 # python getInterim.py 20050825 00
 
 import sys 
-
 import cdsapi
 
 thedate=str(sys.argv[1])
