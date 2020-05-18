@@ -20,15 +20,15 @@
 ;***********************************************
 begin
 
-all_files = systemfunc("ls ~/scratch/forecast_conus_30_x8_CAM5_L30/run/2018122600/*h0*nc")
+all_files = systemfunc("ls ~/scratch/output/forecast_nhemitc_30_x4_CAM5_L30/run/2020051600/*h0*nc")
 fall = addfiles (all_files, "r")
 
 TESTCIT=(/"STATECOLLEGE"/)
 TESTSTR=(/"KUNV"/)
-;TESTLON=(/-77.848611/)
-;TESTLAT=(/ 40.849167/)
-TESTLON=(/-96.7898/)
-TESTLAT=(/ 46.8772/)
+TESTLON=(/-77.848611/)
+TESTLAT=(/ 40.849167/)
+;TESTLON=(/-96.7898/)
+;TESTLAT=(/ 46.8772/)
 
 f1=addfile(all_files(0),"r")
 lat=f1->lat
