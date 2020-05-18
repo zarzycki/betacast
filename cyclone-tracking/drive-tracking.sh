@@ -32,7 +32,7 @@ else
 fi
 
 ### Flag needed if using unstructured data (if not using unstruc data, empty string)
-CONNECTFLAG="--in_connect ./nhemitc30x4.connect.dat"
+CONNECTFLAG="--in_connect ./nhemitc30x4.connect_v2.dat"
 
 ### Path + filelist of data to process
 PATHTOFILES=/storage/home/cmz5202/scratch/output/${2}/run/${1}/
@@ -47,7 +47,7 @@ touch cyc.${UQSTR}
 for f in ${FILES[@]};
 do
   echo "Processing $f..."
-  ${TEMPESTEXTREMESDIR}/bin/DetectCyclonesUnstructured --verbosity 0 --timestride 2 --in_data "${f}" ${CONNECTFLAG} --out cyc_tempest.${UQSTR} --mergedist 3.0 --searchbymin PSL --outputcmd "PSL,min,0;_VECMAG(UBOT,VBOT),max,2"
+  ${TEMPESTEXTREMESDIR}/bin/DetectNodes --verbosity 0 --timestride 2 --in_data "${f}" ${CONNECTFLAG} --out cyc_tempest.${UQSTR} --mergedist 3.0 --searchbymin PSL --outputcmd "PSL,min,0;_VECMAG(UBOT,VBOT),max,2"
   cat cyc_tempest.${UQSTR} >> cyc.${UQSTR}
   rm cyc_tempest.${UQSTR}
 done
