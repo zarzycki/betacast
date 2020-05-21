@@ -140,7 +140,7 @@ then
     exit 1
   fi
 
-####CMZ 
+##CMZ 
 #cyclestr=00
 else     # if not live, draw from head of dates.txt file
   datesfile=dates.${casename}.txt
