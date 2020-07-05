@@ -140,7 +140,7 @@ then
     exit 1
   fi
 
-####CMZ 
+##CMZ 
 #cyclestr=00
 else     # if not live, draw from head of dates.txt file
   datesfile=dates.${casename}.txt
@@ -867,10 +867,10 @@ echo "Renaming tmp archive directory to YYYYMMDDHH"
 mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 
 if $dotracking ; then
-  #yearstr="2019"
-  #monthstr="09"
-  #daystr="26"
-  #cyclestr="12"
+  #yearstr="2020"
+  #monthstr="05"
+  #daystr="16"
+  #cyclestr="00"
   #casename="forecast_nhemitc_30_x4_CAM5_L30"
   #sewxscriptsdir=~/sw/betacast/
   cd ${sewxscriptsdir}/cyclone-tracking/

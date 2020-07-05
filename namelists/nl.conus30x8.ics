@@ -21,8 +21,12 @@
 #forecast length (in days)
   numdays = 7
 
+# Adjustment settings
+  adjust_topo = /gpfs/group/cmz5202/default/ASD2017_files/atm/cam/topo/conus_30_x8_nc3000_Co060_Fi001_MulG_PF_CONUS_Nsw042_20170417.nc
+  adjust_flags = a
+
 #true/false, needs to be lowercase
-  doFilter = true
+  doFilter = false 
 
 #if true, exits after filter (generates init data)
   filterOnly = false
