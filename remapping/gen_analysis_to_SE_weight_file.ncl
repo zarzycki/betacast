@@ -10,6 +10,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
+;dstGridFile="ne30np4_091226_pentagons.nc"
 dstGridFile="ne120np4_SCRIP.nc"
 GFSres="0.25" ;0.50 or 0.25
 gridName="ne120np4"
@@ -24,10 +25,10 @@ end if
 dstGridDir="/glade/work/zarzycki/grids/scrip/"
 
 srcGridDir="/glade/work/zarzycki/grids/scrip/"
-srcGridFile="gfs_"+GFSres+"x"+GFSres+"_scrip.nc"
+srcGridFile="ERA5_SCRIP.nc"
 
 wgtFileDir="/glade/work/zarzycki/maps/gfsmaps/"
-wgtFileName="map_gfs"+GFSres+"_TO_"+gridName+"_"+shortInterpName+".nc"
+wgtFileName="map_era"+GFSres+"_TO_"+gridName+"_"+shortInterpName+".nc"
 
 ;----------------------------------------------------------------------
 
