@@ -23,4 +23,4 @@ upload_ncl_script = ${sewxscriptsdir}/upload_ncl.sh
 
 ### This is only needed to be edited on systems that don't support long job names
 ### in the batch submission process. ___ (the underscores) is converted to a space
-CIMEsubstring = "-N___cesm"
+CIMEsubstring = "--batch-args___-N___cesm"

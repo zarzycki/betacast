@@ -701,7 +701,7 @@ if $doFilter ; then
 
     echo "SUBMITTING FILTER RUN"
     if $usingCIME ; then
-      set +e ; ./case.submit --batch-args "${CIMEsubstring}" ; set -e
+      set +e ; ./case.submit "${CIMEsubstring}" ; set -e
     else
       # needs to be modified for your machine if not using CIME
       bsub < ${casename}.run
@@ -805,7 +805,7 @@ then
 
   echo "SUBMITTING FORECAST RUN"
   if $usingCIME ; then
-    set +e ; ./case.submit --batch-args "${CIMEsubstring}" ; set -e
+    set +e ; ./case.submit "${CIMEsubstring}" ; set -e
   else
     # needs to be modified for your machine if not using CIME
     bsub < ${casename}.run
@@ -914,6 +914,7 @@ if [ $islive -eq 0 ] ; then
   
   AUTORESUB="yes"
   if [ $AUTORESUB == "yes" ]; then
+    echo "*-*-*-* Automatically resubbing next date!" 
     exec ./betacast.sh ${MACHINEFILE} ${NAMELISTFILE} ${OUTPUTSTREAMS}
   fi
 fi
