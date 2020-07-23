@@ -28,6 +28,8 @@
 # doi:10.1175/MWR-D-15-0159.1.
 ###################################################################################
 
+date
+
 set -e
 #set -v
 
@@ -55,9 +57,9 @@ inputstream=`cat ${NAMELISTFILE} ${MACHINEFILE} | grep -v "^#"`
 set -- $inputstream
 while [ $1 ]
  do
-  echo "NAMELIST: setting ${1} to ${3/___/ }"
+  echo "NAMELIST: setting ${1} to ${3//___/ }"
   #eval $1=$3
-  eval $1="${3/___/ }"  
+  eval $1="${3//___/ }"  
   shift 3
  done
 
