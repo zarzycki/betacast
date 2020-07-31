@@ -80,6 +80,9 @@ sst_to_cam_path=${sewxscriptsdir}/sst_to_cam
 filter_path=${sewxscriptsdir}/filter
 ###################################################################################
 
+### setting variables not included in namelist for backwards compat
+if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
+
 # do some stability calcs
 # if USERSTAB is negative, use internal calcs.
 # If positive, use the value in seconds for dt_dyn
@@ -703,7 +706,7 @@ if $doFilter ; then
 
     echo "SUBMITTING FILTER RUN"
     if $usingCIME ; then
-      set +e ; ./case.submit "${CIMEsubstring}" ; set -e
+      set +e ; ./case.submit ${CIMEsubstring} --batch-args "${CIMEbatchargs}" ; set -e
     else
       # needs to be modified for your machine if not using CIME
       bsub < ${casename}.run
@@ -807,7 +810,7 @@ then
 
   echo "SUBMITTING FORECAST RUN"
   if $usingCIME ; then
-    set +e ; ./case.submit "${CIMEsubstring}" ; set -e
+    set +e ; ./case.submit ${CIMEsubstring} --batch-args "${CIMEbatchargs}" ; set -e
   else
     # needs to be modified for your machine if not using CIME
     bsub < ${casename}.run
@@ -870,9 +873,9 @@ mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 
 if $dotracking ; then
   #yearstr="2020"
-  #monthstr="05"
-  #daystr="16"
-  #cyclestr="00"
+  #monthstr="07"
+  #daystr="31"
+  #cyclestr="12"
   #casename="forecast_nhemitc_30_x4_CAM5_L30"
   #sewxscriptsdir=~/sw/betacast/
   cd ${sewxscriptsdir}/cyclone-tracking/
@@ -883,8 +886,9 @@ if $dotracking ; then
   mkdir -p ./fin-atcf/
   ATCFFILE=atcf.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}
   if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
-    wget ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/gfs.t${cyclestr}z.syndata.tcvitals.tm00
-    mv -v gfs.t${cyclestr}z.syndata.tcvitals.tm00 ${TCVITFILE}
+    wget http://hurricanes.ral.ucar.edu/repository/data/tcvitals_open/${yearstr}
+    grep "${yearstr}${monthstr}${daystr} ${cyclestr}00" ${yearstr} > ${TCVITFILE}
+    rm ${yearstr}
   fi
   if [ -f ${TCVITFILE} ]; then  # if file does exist (i.e., it was downloaded), run tracker
     /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} ${casename} ${TCVITFILE} ${ATCFFILE}
