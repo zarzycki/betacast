@@ -7,16 +7,16 @@
 set -e
 
 ### User settings
-FORECASTDATE=20121025
-NMONTHSSPIN=3
-CIMEROOT=~/scream
+FORECASTDATE=19960115
+NMONTHSSPIN=12
+CIMEROOT=~/E3SM-dev
 PATHTOCASE=~/
-CASENAME=ICLM45-ne30np4-scream
+CASENAME=ICLM45-VRNAT-e3smv1.2
 PROJECT=m2637
 MACHINE=cori-knl
-NNODES=4
-COMPSET=ICLM45
-RESOL=ne30_ne30
+NNODES=16
+COMPSET=IELM
+RESOL=ne0vr28natlref_ne0vr28natlref_t12
 RUNQUEUE=premium
 
 ### Do not edit below this line!
@@ -43,11 +43,8 @@ else
   cd ${CIMEROOT}/cime/scripts
   ./create_newcase --case ${PATHTOCASE}/${CASENAME} --compset ${COMPSET} --res ${RESOL} --mach ${MACHINE} --project ${PROJECT}
   cd ${PATHTOCASE}/${CASENAME}
-  ./xmlchange CHARGE_ACCOUNT=${PROJECT}
   ./xmlchange NTASKS=-${NNODES}
   ./xmlchange NTASKS_ESP=1
-  ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
-  ./case.setup
   ./xmlchange DATM_MODE=CLMCRUNCEPv7
   ./xmlchange STOP_N=2
   ./xmlchange STOP_OPTION='nyears'
@@ -57,7 +54,11 @@ else
   ./xmlchange RUN_STARTDATE=${STARTDATE}
   ./xmlchange STOP_DATE=${FORECASTDATE}
   ./xmlchange REST_OPTION='end'
+  ./case.setup
   ./case.build
+  ./xmlchange JOB_WALLCLOCK_TIME="06:15:00"
+  ./xmlchange CHARGE_ACCOUNT=${PROJECT}
+  ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
   ./case.submit
 fi
 
