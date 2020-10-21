@@ -1,9 +1,9 @@
 #!/bin/bash
 #python3 must be loaded with cdsapi package
 
-yearstr=2012
-monthstr=10
-daystr=27
+yearstr=1996
+monthstr=01
+daystr=17
 cyclestr=00
 
 set -e
