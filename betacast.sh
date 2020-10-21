@@ -70,7 +70,7 @@ set -u  # turn on crashes for unbound variables in bash
 path_to_nc_files=${path_to_rundir}              # Path where .nc files are
 outputdir=${path_to_rundir}                     # Path where .nc files are being written
 archivedir=${path_to_rundir}/proc/              # Path to temporarily stage final data
-landdir=${path_to_rundir}/clmstart/             # Path to store CLM restart files
+landdir=${path_to_rundir}/landstart/             # Path to store CLM restart files
 ###################################################################################
 ### THESE COME WITH THE REPO, DO NOT CHANGE #######################################
 gfs_to_cam_path=${sewxscriptsdir}/gfs_to_cam
