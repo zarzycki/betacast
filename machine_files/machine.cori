@@ -1,6 +1,6 @@
 path_to_case = /global/homes/c/czarzyck/${casename}/
-path_to_inputdata = /global/homes/c/czarzyck/scratch/sewx/
-#path_to_rundir = /global/homes/c/czarzyck/scratch/acme_scratch/cori-knl/${casename}/run/
+#path_to_inputdata = /global/homes/c/czarzyck/scratch/sewx/
+path_to_inputdata = /global/cfs/cdirs/m2637/betacast/sewx/
 path_to_rundir = /global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/${casename}/run/
 sewxscriptsdir = ~/betacast/
 
