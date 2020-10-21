@@ -29,7 +29,7 @@ $ ./case.build
 $ ./case.submit
 ```
 
-**E3SM example:**
+**E3SMv2 example:**
 
 ```
 $ cd ~/E3SM/cime/scripts
@@ -49,6 +49,7 @@ Some notes:
 `$ patch lnd_comp_mct.F90 < ${PATCHDIR}/lnd_comp_mct.patch`
 over the top of the file, which injects the correct logic. This needs to be done before the `./case.build` step.
 2. For E3SM, current suggested compsets are: F2010C5-CMIP6-HR (ne120, VR) and F2010C5-CMIP6-LR (ne30). For SCREAM, these are FSCREAM-LR and FSCREAM-HR, respectively.
+3. E3SMv2 (tags from approximately October 2020 onward) are only officially supported. E3SMv1 is effectively supported by choosing modelSystem = 0, although continual updates to support the evolution of EAM and ELM seperately from CAM and CLM/CTSM may eventually break this backwards compatibility.
 
 ### 2. Generate an analysis/reanalysis to CAM weight file
 
@@ -90,6 +91,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | debug | Setting to 1 adds debugging options. Otherwise leave at 0 |
 | islive | if 1 then pull GDAS/GFS from server in real-time, 0 is "hindcast" mode |
 | runmodel | Unused, set to "true" |
+| modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2 (defaults to 0 if empty or not included) |
 | atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR |
 | sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI |
 | numLevels | 72 -> E3SMv1, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 |
