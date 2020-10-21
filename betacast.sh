@@ -614,7 +614,6 @@ echo "Setting input land dataset"
 #sed -i '/finidat/d' user_nl_${lndName}
 sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_${lndName}
 sed -i '/use_init_interp/d' user_nl_${lndName}
-sed -i '/check_finidat_fsurdat_consistency/d' user_nl_${lndName}
 #echo "finidat=''" >> user_nl_${lndName}
 
 # We want to check ${landdir} for land restart files. If so, use those.
@@ -663,8 +662,18 @@ else
 fi
 
 ## Append a check error to ignore inconsistencies in the dataset
-echo "check_finidat_fsurdat_consistency = .false." >> user_nl_${lndName}
-
+if [ $modelSystem -eq 0 ]; then   # CLM/CTSM
+  sed -i '/check_finidat_pct_consistency/d' user_nl_${lndName}
+  sed -i '/check_finidat_year_consistency/d' user_nl_${lndName}
+  echo "check_finidat_pct_consistency = .false." >> user_nl_${lndName}
+  echo "check_finidat_year_consistency = .false." >> user_nl_${lndName}
+elif [ $modelSystem -eq 1 ]; then   # ELM
+  sed -i '/check_finidat_fsurdat_consistency/d' user_nl_${lndName}
+  echo "check_finidat_fsurdat_consistency = .false." >> user_nl_${lndName}
+else
+  echo "Unknown modeling system set for modelSystem: $modelSystem"
+  exit 1
+fi
 
 ############################### GENERIC CAM SETUP ############################### 
 
