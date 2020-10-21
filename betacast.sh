@@ -70,7 +70,7 @@ set -u  # turn on crashes for unbound variables in bash
 path_to_nc_files=${path_to_rundir}              # Path where .nc files are
 outputdir=${path_to_rundir}                     # Path where .nc files are being written
 archivedir=${path_to_rundir}/proc/              # Path to temporarily stage final data
-landdir=${path_to_rundir}/landstart/             # Path to store CLM restart files
+landdir=${path_to_rundir}/landstart/            # Path to store land restart files
 ###################################################################################
 ### THESE COME WITH THE REPO, DO NOT CHANGE #######################################
 gfs_to_cam_path=${sewxscriptsdir}/gfs_to_cam
@@ -82,6 +82,24 @@ filter_path=${sewxscriptsdir}/filter
 
 ### setting variables not included in namelist for backwards compat
 if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
+
+### Set correct E3SM/CESM split
+if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
+if [ $modelSystem -eq 0 ]; then
+  echo "Using CESM"
+  atmName="cam"
+  lndName="clm"
+  lndSpecialName="clm2"
+elif [ $modelSystem -eq 1 ]; then
+  echo "Using E3SM"
+  atmName="eam"
+  lndName="elm"
+  lndSpecialName="elm"
+else
+  echo "Unknown modeling system set for modelSystem: $modelSystem"
+  exit 1
+fi
+
 
 # do some stability calcs
 # if USERSTAB is negative, use internal calcs.
@@ -581,16 +599,26 @@ fi
 
 ############################### CLM SETUP ############################### 
 
+## TEMPORARY CLM -> LAND FIX
+## Check if clmstart exists but landstart doesn't, move if that is the case
+if [[ ! -d ${landdir} ]] && [[ -d ${path_to_rundir}/clmstart/ ]] ; then
+  echo "Moving ${path_to_rundir}/clmstart/ to ${landdir}"
+  mv -v ${path_to_rundir}/clmstart/ ${landdir}
+else
+  echo "No need to modify land directory, either appropriately exists or will be created later"
+fi
+## END TEMP FIX
+
 echo "Setting input land dataset"
 # Clean up file to delete any special interp lines that may be needed later (but aren't needed for native init)
-#sed -i '/finidat/d' user_nl_clm
-sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_clm
-sed -i '/use_init_interp/d' user_nl_clm
-sed -i '/check_finidat_fsurdat_consistency/d' user_nl_clm
-#echo "finidat=''" >> user_nl_clm
+#sed -i '/finidat/d' user_nl_${lndName}
+sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_${lndName}
+sed -i '/use_init_interp/d' user_nl_${lndName}
+sed -i '/check_finidat_fsurdat_consistency/d' user_nl_${lndName}
+#echo "finidat=''" >> user_nl_${lndName}
 
-# We want to check ${landdir} for clm restart files. If so, use those.
-landrestartfile=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+# We want to check ${landdir} for land restart files. If so, use those.
+landrestartfile=${landdir}/${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
 echo $landrestartfile
 
 # Check to see if file exists on native SE land grid
@@ -598,7 +626,7 @@ if [ -f ${landrestartfile} ]; then
    echo "File exists at exact time"
 else
    echo "File does not exist at exact time"
-   landrestartfile=${landdir}/${casename}.clm2.r.${yearstr}-${monthstr}-${daystr}-00000.nc
+   landrestartfile=${landdir}/${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.nc
    if [ -f ${landrestartfile} ]; then
      echo "File exists at 00Z"
    else
@@ -608,34 +636,34 @@ else
 fi
 echo "landrestartfile: ${landrestartfile}"
 
-## Now modify user_nl_clm
+## Now modify user_nl_${lndName}
 if [ ${landrestartfile} ] ; then
-  sed -i '/.*finidat/d' user_nl_clm
-  echo "finidat='${landrestartfile}'" >> user_nl_clm
-  #sed -i 's?.*finidat.*?finidat='"'${landrestartfile}'"'?' user_nl_clm
+  sed -i '/.*finidat/d' user_nl_${lndName}
+  echo "finidat='${landrestartfile}'" >> user_nl_${lndName}
+  #sed -i 's?.*finidat.*?finidat='"'${landrestartfile}'"'?' user_nl_${lndName}
 else
-  rawlandrestartfile=`ls ${landrawdir}/*.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc || true`   # check for file, suppress failed ls error if true
+  rawlandrestartfile=`ls ${landrawdir}/*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc || true`   # check for file, suppress failed ls error if true
   echo "rawlandrestartfile: ${rawlandrestartfile}"
   if [ ! -z ${rawlandrestartfile} ]; then   # if rawlandrestartfile string is NOT empty, add it.
-    sed -i '/.*finidat/d' user_nl_clm
-    echo "finidat='${rawlandrestartfile}'" >> user_nl_clm
-    echo "use_init_interp = .true." >> user_nl_clm
-    echo "init_interp_fill_missing_with_natveg = .true." >> user_nl_clm
+    sed -i '/.*finidat/d' user_nl_${lndName}
+    echo "finidat='${rawlandrestartfile}'" >> user_nl_${lndName}
+    echo "use_init_interp = .true." >> user_nl_${lndName}
+    echo "init_interp_fill_missing_with_natveg = .true." >> user_nl_${lndName}
   else
-    if [ -f user_nl_clm_presave ] ; then
-      echo "Using pre-written user_nl_clm file"
-      cp user_nl_clm_presave user_nl_clm
+    if [ -f user_nl_${lndName}_presave ] ; then
+      echo "Using pre-written user_nl_${lndName} file"
+      cp user_nl_${lndName}_presave user_nl_${lndName}
     else
-      echo "WARNING: Land file DOES NOT EXIST, will use arbitrary user_nl_clm already in folder"
+      echo "WARNING: Land file DOES NOT EXIST, will use arbitrary user_nl_${lndName} already in folder"
       echo "!!!!!!!!!!!!!"
       #exit
-      #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_clm
+      #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_${lndName}
     fi
   fi
 fi
 
 ## Append a check error to ignore inconsistencies in the dataset
-echo "check_finidat_fsurdat_consistency = .false." >> user_nl_clm
+echo "check_finidat_fsurdat_consistency = .false." >> user_nl_${lndName}
 
 
 ############################### GENERIC CAM SETUP ############################### 
@@ -658,7 +686,7 @@ if [ "$land_spinup" = true ] ; then
 fi
 #######
 
-cp user_nl_cam user_nl_cam.BAK
+cp user_nl_${atmName} user_nl_${atmName}.BAK
 
 echo "Update env_run.xml with runtime parameters"
 ./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
@@ -672,8 +700,8 @@ if $doFilter ; then
 
   ./xmlchange STOP_OPTION=nhours,STOP_N=${filterHourLength}
 
-  sed -i '/.*ncdata/d' user_nl_cam
-  echo "ncdata='${SEINIC}'" >> user_nl_cam
+  sed -i '/.*ncdata/d' user_nl_${atmName}
+  echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
 
   # Do filter timestepping stability
   ATM_NCPL=192
@@ -681,24 +709,24 @@ if $doFilter ; then
   echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
   if [[ "$DYCORE" == "se" ]]; then
     echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
-    sed -i '/.*se_nsplit/d' user_nl_cam
-    echo "se_nsplit=${SE_NSPLIT}" >> user_nl_cam
+    sed -i '/.*se_nsplit/d' user_nl_${atmName}
+    echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
   else
     echo "non-SE core, make sure timestepping is happy!"
   fi
   ./xmlchange ATM_NCPL=${ATM_NCPL}
 
   # Set NHTFRQ, MFILT, and FINCL fields
-  sed -i '/.*nhtfrq/d' user_nl_cam
-  sed -i '/.*mfilt/d' user_nl_cam
-  sed -i '/.*fincl/d' user_nl_cam
-  sed -i '/.*empty_htapes/d' user_nl_cam
-  sed -i '/.*inithist/d' user_nl_cam
-  echo "nhtfrq=1" >> user_nl_cam
-  echo "mfilt=200" >> user_nl_cam
-  echo "fincl1='U:I','V:I','T:I','PS:I','Q:I','CLDICE:I','CLDLIQ:I','NUMICE:I','NUMLIQ:I','ICEFRAC:I','SNOWHICE:I'" >> user_nl_cam
-  echo "empty_htapes=.TRUE." >> user_nl_cam
-  echo "inithist='6-HOURLY'" >> user_nl_cam
+  sed -i '/.*nhtfrq/d' user_nl_${atmName}
+  sed -i '/.*mfilt/d' user_nl_${atmName}
+  sed -i '/.*fincl/d' user_nl_${atmName}
+  sed -i '/.*empty_htapes/d' user_nl_${atmName}
+  sed -i '/.*inithist/d' user_nl_${atmName}
+  echo "nhtfrq=1" >> user_nl_${atmName}
+  echo "mfilt=200" >> user_nl_${atmName}
+  echo "fincl1='U:I','V:I','T:I','PS:I','Q:I','CLDICE:I','CLDLIQ:I','NUMICE:I','NUMLIQ:I','ICEFRAC:I','SNOWHICE:I'" >> user_nl_${atmName}
+  echo "empty_htapes=.TRUE." >> user_nl_${atmName}
+  echo "inithist='6-HOURLY'" >> user_nl_${atmName}
 
   ./xmlchange JOB_WALLCLOCK_TIME=${FILTERWALLCLOCK}
   ./xmlchange --force JOB_QUEUE=${FILTERQUEUE}
@@ -730,7 +758,7 @@ if $doFilter ; then
     cd $filter_path
     echo "Running filter"
     cp ${sePreFilterIC} ${sePostFilterIC}
-    filtfile_name=${casename}.cam.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
+    filtfile_name=${casename}.${atmName}.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
     set +e 
     (set -x; ncl lowmemfilter.ncl \
      endhour=${filterHourLength} tcut=${filtTcut} \
@@ -747,10 +775,10 @@ if $doFilter ; then
   mkdir -p $path_to_nc_files/filtered
   mv -v $path_to_nc_files/*.nc $path_to_nc_files/filtered
   ## Delete filter files that aren't h0 since those are the only ones we care about.
-  find $path_to_nc_files/filtered/ -type f -not -name '*.cam.h0.*.nc' | xargs rm
+  find $path_to_nc_files/filtered/ -type f -not -name '*.${atmName}.h0.*.nc' | xargs rm
 
   ## For now, I'm going to go back and delete all the h0 files in filtered
-  rm -v $path_to_nc_files/filtered/*.cam.h0.*.nc
+  rm -v $path_to_nc_files/filtered/*.${atmName}.h0.*.nc
 
   ### Output filter files only, can be used for ensemble or other initialization after the fact
   if ${filterOnly} ; then
@@ -776,16 +804,16 @@ fi
 
 ############################### "ACTUAL" FORECAST RUN ############################### 
 
-sed -i '/.*nhtfrq/d' user_nl_cam
-sed -i '/.*mfilt/d' user_nl_cam
-sed -i '/.*fincl/d' user_nl_cam
-sed -i '/.*empty_htapes/d' user_nl_cam
-sed -i '/.*inithist/d' user_nl_cam
-echo "empty_htapes=.TRUE." >> user_nl_cam
-echo "inithist='NONE'" >> user_nl_cam
+sed -i '/.*nhtfrq/d' user_nl_${atmName}
+sed -i '/.*mfilt/d' user_nl_${atmName}
+sed -i '/.*fincl/d' user_nl_${atmName}
+sed -i '/.*empty_htapes/d' user_nl_${atmName}
+sed -i '/.*inithist/d' user_nl_${atmName}
+echo "empty_htapes=.TRUE." >> user_nl_${atmName}
+echo "inithist='NONE'" >> user_nl_${atmName}
 
-# Concatenate output streams to end of user_nl_cam
-cat ${OUTPUTSTREAMS} >> user_nl_cam
+# Concatenate output streams to end of user_nl_${atmName}
+cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
 
 # Calculate timestep criteria
 ATM_NCPL=`python -c "print(int(86400/${DTIME}))"`
@@ -793,8 +821,8 @@ SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY
 echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
 if [[ "$DYCORE" == "se" ]]; then
   echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
-  sed -i '/.*se_nsplit/d' user_nl_cam
-  echo "se_nsplit=${SE_NSPLIT}" >> user_nl_cam
+  sed -i '/.*se_nsplit/d' user_nl_${atmName}
+  echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
 else
   echo "non-SE core, make sure timestepping is happy!"
 fi
@@ -803,8 +831,8 @@ fi
 ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
 ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
 
-sed -i '/.*ncdata/d' user_nl_cam
-echo "ncdata='${SEINIC}'" >> user_nl_cam
+sed -i '/.*ncdata/d' user_nl_${atmName}
+echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
 
 if [ $debug -ne 1 ]
 then
@@ -846,8 +874,8 @@ mkdir -p $archivedir/logs
 set +e
 
 echo "Moving relevant files to archive folder"
-mv *.cam.h*.nc $archivedir
-mv *.clm2.h*.nc $archivedir
+mv *.${atmName}.h*.nc $archivedir
+mv *.${lndName}*.h*.nc $archivedir
 cp *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $archivedir/nl_files
 mv *.txt $archivedir/text
 mv *.log.* $archivedir/logs
@@ -857,21 +885,21 @@ mv timing/ $archivedir/
 cd $path_to_nc_files
 mkdir $landdir
 echo "Removing 06Z and 18Z land restart files if they exist"
-rm -v *.clm2.r.*32400.nc
-rm -v *.clm2.r.*75600.nc
+rm -v *.${lndName}*.r.*32400.nc
+rm -v *.${lndName}*.r.*75600.nc
 echo "Moving land restart files for future runs"
-mv -v *.clm2.r.*nc $landdir
-rm -v *.clm2.r.*.nc
+mv -v *.${lndName}*.r.*nc $landdir
+rm -v *.${lndName}*.r.*.nc
 
 echo "Deleting boring restart files produced by CESM that aren't needed"
 cd $path_to_nc_files
-rm -v *.clm2.rh0.*.nc
+rm -v *.${lndName}*.rh0.*.nc
 rm -v *.docn.rs1.*.bin
-rm -v *.cam.r.*.nc
-rm -v *.cam.rs.*.nc
+rm -v *.${atmName}.r.*.nc
+rm -v *.${atmName}.rs.*.nc
 rm -v *.cpl.r.*.nc
-rm -v *.clm2.rh0.*.nc
-rm -v *.cam.rh3.*.nc
+rm -v *.${lndName}*.rh0.*.nc
+rm -v *.${atmName}.rh3.*.nc
 rm -v *.cice.r.*.nc
 rm -v rpointer.*
 
