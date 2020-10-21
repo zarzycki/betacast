@@ -586,6 +586,7 @@ echo "Setting input land dataset"
 #sed -i '/finidat/d' user_nl_clm
 sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_clm
 sed -i '/use_init_interp/d' user_nl_clm
+sed -i '/check_finidat_fsurdat_consistency/d' user_nl_clm
 #echo "finidat=''" >> user_nl_clm
 
 # We want to check ${landdir} for clm restart files. If so, use those.
@@ -609,7 +610,9 @@ echo "landrestartfile: ${landrestartfile}"
 
 ## Now modify user_nl_clm
 if [ ${landrestartfile} ] ; then
-  sed -i 's?.*finidat.*?finidat='"'${landrestartfile}'"'?' user_nl_clm
+  sed -i '/.*finidat/d' user_nl_clm
+  echo "finidat='${landrestartfile}'" >> user_nl_clm
+  #sed -i 's?.*finidat.*?finidat='"'${landrestartfile}'"'?' user_nl_clm
 else
   rawlandrestartfile=`ls ${landrawdir}/*.clm2.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc || true`   # check for file, suppress failed ls error if true
   echo "rawlandrestartfile: ${rawlandrestartfile}"
@@ -630,6 +633,10 @@ else
     fi
   fi
 fi
+
+## Append a check error to ignore inconsistencies in the dataset
+echo "check_finidat_fsurdat_consistency = .false." >> user_nl_clm
+
 
 ############################### GENERIC CAM SETUP ############################### 
 
