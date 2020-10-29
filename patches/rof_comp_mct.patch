@@ -1,0 +1,13 @@
+--- /global/homes/c/czarzyck/E3SM-dev//components/mosart/src/cpl//rof_comp_mct.F90	2020-10-20 05:38:15.710320698 -0700
++++ /global/homes/c/czarzyck/v1.2-CONUS-F2010C5-v3/SourceMods/src.mosart/rof_comp_mct.F90	2020-10-28 18:31:11.680798942 -0700
+@@ -347,6 +347,10 @@
+     write(rdate,'(i4.4,"-",i2.2,"-",i2.2,"-",i5.5)') yr_sync,mon_sync,day_sync,tod_sync
+     nlend = seq_timemgr_StopAlarmIsOn( EClock )
+     rstwr = seq_timemgr_RestartAlarmIsOn( EClock )
++    !--CMZ
++    if (tod_sync == 0) rstwr = .true.
++    if (tod_sync == 43200) rstwr = .true.
++    !--CMZ
+     call Rtmrun(rstwr,nlend,rdate)
+ 
+     ! Map roff data to MCT datatype (input is rtmCTL%runoff, output is r2x_r)
