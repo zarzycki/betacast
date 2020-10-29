@@ -198,7 +198,6 @@ fi
 
 ## Figure out the seconds which correspond to the cycle and zero pad if neces
 cyclestrsec=$(($cyclestr*3600))
-echo $cyclestrsec
 while [ ${#cyclestrsec} -lt 5 ];
 do
   cyclestrsec="0"$cyclestrsec
@@ -212,13 +211,10 @@ then
   do
     se_cyclestr="0"$se_cyclestr
   done
-  echo $se_cyclestr
-
   se_monthstr=$monthstr
   se_daystr=$daystr
   se_yearstr=$yearstr
   let se_cyclestrsec=$((10#$se_cyclestr))*3600
-  echo $se_cyclestrsec
   while [ ${#se_cyclestrsec} -lt 5 ];
   do
     se_cyclestrsec="0"$se_cyclestrsec
@@ -278,9 +274,9 @@ yestyearstr=`date --date="yesterday" -u +%Y`
 echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds) for ATM init. data"
 echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST init. data"
 if $doFilter ; then
-  echo "Filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $cyclestr Z ($cyclestrsec seconds)"
+  echo "Filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $se_cyclestr Z ($se_cyclestrsec seconds)"
 else
-  echo "No filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $se_cyclestr Z ($se_cyclestrsec seconds)"
+  echo "No filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $cyclestr Z ($cyclestrsec seconds)"
 fi
 
 if $runmodel ; then
@@ -926,12 +922,13 @@ mkdir -p $archivedir/logs
 set +e
 
 echo "Moving relevant files to archive folder"
-mv *.${atmName}.h*.nc $archivedir
-mv *.${lndName}*.h*.nc $archivedir
-cp *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $archivedir/nl_files
-mv *.txt $archivedir/text
-mv *.log.* $archivedir/logs
-mv timing/ $archivedir/
+mv -v *.${atmName}.h*.nc $archivedir
+mv -v *.${lndName}*.h*.nc $archivedir
+mv -v *.${rofName}*.h*.nc $archivedir
+cp -v *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $archivedir/nl_files
+mv -v *.txt $archivedir/text
+mv -v *.log.* $archivedir/logs
+mv -v timing/ $archivedir/
 
 ## Move land files to new restart location
 cd $path_to_nc_files
@@ -952,17 +949,18 @@ if [ $do_runoff -ne 0 ]; then
   rm -v *.${rofName}*.r.*.nc
 fi
 
-echo "Deleting restart files produced by CESM that aren't needed"
+echo "Deleting restart/misc. files produced by CESM that aren't needed"
 cd $path_to_nc_files
 rm -v *.${lndName}*.rh0.*.nc
 rm -v *.docn.rs1.*.bin
 rm -v *.${atmName}.r.*.nc
 rm -v *.${atmName}.rs.*.nc
 rm -v *.cpl.r.*.nc
-rm -v *.${lndName}*.rh0.*.nc
 rm -v *.${atmName}.rh3.*.nc
+rm -v *.${rofName}.rh0.*.nc
 rm -v *.cice.r.*.nc
 rm -v rpointer.*
+rm -v *.bin
 
 echo "Renaming tmp archive directory to YYYYMMDDHH"
 mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
