@@ -82,6 +82,7 @@ filter_path=${sewxscriptsdir}/filter
 
 ### setting variables not included in namelist for backwards compat
 if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
+if [ -z ${do_runoff+x} ]; then do_runoff=0; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -90,16 +91,19 @@ if [ $modelSystem -eq 0 ]; then
   atmName="cam"
   lndName="clm"
   lndSpecialName="clm2"
+  rofName="mosart"
+  rofSpecialName="mosart"
 elif [ $modelSystem -eq 1 ]; then
   echo "Using E3SM"
   atmName="eam"
   lndName="elm"
   lndSpecialName="elm"
+  rofName="mosart"
+  rofSpecialName="mosart"
 else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
 fi
-
 
 # do some stability calcs
 # if USERSTAB is negative, use internal calcs.
@@ -271,9 +275,13 @@ yestmonthstr=`date --date="yesterday" -u +%m`
 yestdaystr=`date --date="yesterday" -u +%d`
 yestyearstr=`date --date="yesterday" -u +%Y`
 
-echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds) for GFS data"
-echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST data"
-echo "SE initialization will occur at $se_yearstr $se_monthstr $se_daystr $se_cyclestr Z ($se_cyclestrsec seconds)"
+echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds) for ATM init. data"
+echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST init. data"
+if $doFilter ; then
+  echo "Filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $cyclestr Z ($cyclestrsec seconds)"
+else
+  echo "No filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $se_cyclestr Z ($se_cyclestrsec seconds)"
+fi
 
 if $runmodel ; then
 
@@ -547,7 +555,7 @@ if [ $debug -ne 1 ] ; then
 fi #End debug if statement
 
 ############################### #### ############################### 
-##### ADD PERTURBATIONS
+##### ADD WHITE NOISE PERTURBATIONS
 
 if ${add_noise} ; then
   set +e
@@ -673,6 +681,41 @@ elif [ $modelSystem -eq 1 ]; then   # ELM
 else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
+fi
+
+############################### ROF SETUP ############################### 
+
+if [ $do_runoff -ne 0 ]; then
+
+  echo "Setting input rof dataset"
+
+  # Delete any existing input data
+  sed -i '/.*finidat_rtm/d' user_nl_${rofName}
+  
+  # We want to check ${landdir} for land restart files. If so, use those.
+  rofrestartfile=${landdir}/${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+  echo $rofrestartfile
+
+  # Check to see if file exists on native SE land grid
+  if [ -f ${rofrestartfile} ]; then
+     echo "File exists at exact time"
+  else
+     echo "File does not exist at exact time"
+     rofrestartfile=${landdir}/${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.nc
+     if [ -f ${rofrestartfile} ]; then
+       echo "File exists at 00Z"
+     else
+       echo "No restart file exists, setting to empty string."
+       rofrestartfile=
+     fi
+  fi
+  echo "rofrestartfile: ${rofrestartfile}"
+
+  ## Now modify user_nl_${lndName}
+  if [ ${rofrestartfile} ] ; then
+    echo "finidat_rtm='${rofrestartfile}'" >> user_nl_${rofName}
+  fi
+
 fi
 
 ############################### GENERIC CAM SETUP ############################### 
@@ -899,8 +942,17 @@ rm -v *.${lndName}*.r.*75600.nc
 echo "Moving land restart files for future runs"
 mv -v *.${lndName}*.r.*nc $landdir
 rm -v *.${lndName}*.r.*.nc
+## Move runoff files to land dir if doing runoff
+if [ $do_runoff -ne 0 ]; then
+  echo "Removing 06Z and 18Z runoff restart files if they exist"
+  rm -v *.${rofName}*.r.*32400.nc
+  rm -v *.${rofName}*.r.*75600.nc
+  echo "Moving runoff restart files for future runs"
+  mv -v *.${rofName}*.r.*nc $landdir
+  rm -v *.${rofName}*.r.*.nc
+fi
 
-echo "Deleting boring restart files produced by CESM that aren't needed"
+echo "Deleting restart files produced by CESM that aren't needed"
 cd $path_to_nc_files
 rm -v *.${lndName}*.rh0.*.nc
 rm -v *.docn.rs1.*.bin
