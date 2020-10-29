@@ -1,3 +1,6 @@
+!ERA-Int_SCRIP.nc
+!ERA-Interim_coordvars.nc
+atm_to_cam/getECMWFdata/*.nc
 *__pycache__*
 *_SCRIP.nc
 !nl.ne30.cori

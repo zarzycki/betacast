@@ -3,8 +3,8 @@
 
 yearstr=1996
 monthstr=01
-daystr=17
-cyclestr=00
+daystr=15
+cyclestr=12
 
 set -e
 python getERA5.py ${yearstr}${monthstr}${daystr} ${cyclestr}

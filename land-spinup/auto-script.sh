@@ -11,12 +11,12 @@ FORECASTDATE=19960115
 NMONTHSSPIN=12
 CIMEROOT=~/E3SM-dev
 PATHTOCASE=~/
-CASENAME=ICLM45-VRNAT-e3smv1.2
+CASENAME=ICLM45-CONUS-e3smv1.2-v3
 PROJECT=m2637
 MACHINE=cori-knl
-NNODES=16
+NNODES=24
 COMPSET=IELM
-RESOL=ne0vr28natlref_ne0vr28natlref_t12
+RESOL=ne0conus30x8_ne0conus30x8_t12
 RUNQUEUE=premium
 
 ### Do not edit below this line!
@@ -59,7 +59,7 @@ else
   ./xmlchange JOB_WALLCLOCK_TIME="06:15:00"
   ./xmlchange CHARGE_ACCOUNT=${PROJECT}
   ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
-  ./case.submit
+  #./case.submit
 fi
 
 exit
