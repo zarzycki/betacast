@@ -1,10 +1,14 @@
 #!/bin/bash
-#python3 must be loaded with cdsapi package
+# python3 must be loaded with cdsapi package
+# usage: ./prestage-ERA5.sh 1996011800
+# where you want the data file for Jan 18, 1996 at 00Z
 
-yearstr=1996
-monthstr=01
-daystr=15
-cyclestr=12
+DATE=$1
+
+yearstr=${DATE:0:4}
+monthstr=${DATE:4:2}
+daystr=${DATE:6:2}
+cyclestr=${DATE:8:2}
 
 set -e
 python getERA5.py ${yearstr}${monthstr}${daystr} ${cyclestr}
