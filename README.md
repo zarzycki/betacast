@@ -4,16 +4,18 @@
 
 Reference: C. M. Zarzycki and C. Jablonowski. Experimental tropical cyclone forecasts using a variable-resolution global model. *Monthly Weather Review*, 1430 (10):0 4012--4037, 2015. 10.1175/MWR-D-15-0159.1.
 
-### General workflow
+### Workflow
 1. Create a case directory with either a supported or new grid configuration and verify that it is stable/runs given arbitrary inputs.
-2. Build an analysis/reanalysis grid to model grid weight file using ESMF (or TempestRemap).
+2. Build an analysis/reanalysis grid to model grid weight file.
 3. Set up namelist files.
-3a. Edit machine file for your particular system.
-3b. Edit namelist file for your particular use case.
-3c. Edit output streams file.
-4. Set up data folder structure.
-5. If running historical, set dates.txt
-6. Submit driver script.
+    1. Edit/create machine file for your particular system.
+    2. Create namelist file for your particular use case.
+    3. Edit/create output streams file.
+4. Set up Betacast data folder structure.
+5. If running historical simulations, edit dates.txt
+    1. Pre-stage atmospheric data.
+6. Decide how to handle land initialization.
+7. Run Betacast.
 
 The first step is to create a functional F compset. Broadly, this is **active atmosphere, active land, active runoff (optional) and data ocean/ice**. Other configurations may work (e.g., active wave, glacier models) but have not been tested. B compsets (fully coupled) should work, but betacast does not initialize the ocean model at this time, so it would rely on the namelist default provided by the modeling system.
 
@@ -88,7 +90,7 @@ Each VALUE line is read in, splitting on ` = `.
 2. If you want to pass an empty string in, you must define the key as `"___"` (three underscores) since spaces break the splitting.
 3. Namelist files may include comments by specifying `#` as the first character of a line.
 
-### 3a. Edit machine file for your particular system
+### 3.1 Edit machine file for your particular system
 
 In `${BETACAST}/machine_files` there are sample files that define where folders and data files will be stored for your system. There are suggested configurations for Cheyenne and Cori-NERSC, but you may edit these for your workflow or copy/paste for a different system (i.e., university cluster).
 
@@ -99,7 +101,7 @@ In `${BETACAST}/machine_files` there are sample files that define where folders 
 | path_to_rundir | Path (top-level) to directory where CESM actively runs |
 | sewxscriptsdir | Path to betacast repo (i.e., `${BETACAST}`) |
 
-### 3b. Edit namelist file for your particular case
+### 3.2 Edit namelist file for your particular case
 
 In `${BETACAST}/namelist_files` there are sample files that define the forecast configuration. This is the primary location where run settings are specified.
 
@@ -139,7 +141,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) |
 | dotracking | Do online TC tracking and process to ATCF format? |
 
-### 3c. Edit output streams
+### 3.3 Edit output streams
 
 In `output_streams`, you can generate a text file that specifies output streams that are to be appended to the model namelist. Some sample options for CESM are included in the repo.
 
@@ -153,11 +155,11 @@ fincl1='PS:I',U10:I','PRECT:I'
 
 ### 4. Set up data folder structure
 
-Betacast requires a semi-permanent directory structure for which to download analysis data and write forcing data for CESM/E3SM. This does not have to be backed up but may be beneficial to not be truly on scratch space if simulations are to be carried out over a longer period of time.
+Betacast requires a 'permanent' directory structure for which to download analysis data and write forcing data for the model. This does not have to be backed up but may be beneficial to not be truly on scratch space if simulations are to be carried out over a longer period of time.
 
-Directories required are named in the machine namelist file (see 3a below). These can either be created by hand or created by running...
+Directories required are named in the machine namelist file (see 3.1 above). These can either be created by hand or created by running...
 `$ ./tools/setup_data_dirs.sh ../machine_files/machine.MYMACHINEFILE`
-from the top-level directory of betacast.
+from the top-level directory of Betacast. **This only needs to be done once per user per system.**
 
 ### 5. Dates file
 
@@ -194,14 +196,10 @@ cd ~/betacast/atm_to_cam/getECMWFdata
 ./prestage-ERA5.sh /glade/work/${LOGNAME}/sewx/ECMWF/ 2011082512
 ```
 
-### 6. Run model
-
-```$ ./betacast.sh machine_files/machine.cheyenne namelists/nl.conus30x8 output_streams/output.generic```
-
-## SOME NOTES
+### 6. Land initialization specification
 
 (WORK IN PROGRESS!)
 
-#### Land model initialization.
-It is really a much better idea to run
+### 7. Run Betacast
 
+```$ ./betacast.sh machine_files/machine.cheyenne namelists/nl.conus30x8 output_streams/output.generic```
