@@ -10,10 +10,12 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-;dstGridFile="ne30np4_091226_pentagons.nc"
-dstGridFile="ne120np4_SCRIP.nc"
-GFSres="0.25" ;0.50 or 0.25
-gridName="ne120np4"
+anltype="era5"   ; era5 or gfs
+anlres="0.25" ;0.50 or 0.25
+
+dstGridFile="conus_30_x8.g_scrip.nc"
+gridName="conus_30_x8"
+
 InterpMethod="patch"
 
 if (InterpMethod .eq. "patch") then
@@ -24,11 +26,11 @@ end if
 
 dstGridDir="/glade/work/zarzycki/grids/scrip/"
 
-srcGridDir="/glade/work/zarzycki/grids/scrip/"
-srcGridFile="ERA5_SCRIP.nc"
+srcGridDir="./scrip/"
+srcGridFile=anltype+"_"+anlres+"x"+anlres+"_scrip.nc"
 
 wgtFileDir="/glade/work/zarzycki/maps/gfsmaps/"
-wgtFileName="map_era"+GFSres+"_TO_"+gridName+"_"+shortInterpName+".nc"
+wgtFileName="map_"+anltype+anlres+"_TO_"+gridName+"_"+shortInterpName+".nc"
 
 ;----------------------------------------------------------------------
 
@@ -43,6 +45,9 @@ Opt                      = True
 Opt@InterpMethod         = InterpMethod
 Opt@ForceOverwrite       = True
 Opt@PrintTimings         = True
+Opt@NoPETLog             = True
+Opt@RemovePETLog         = True
+Opt@Debug = True
 
 ESMF_regrid_gen_weights(srcGridName,dstGridName,wgtFileDir+"/"+wgtFileName,Opt)
 
