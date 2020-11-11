@@ -12,6 +12,12 @@
 
   runmodel = true
 
+# Modeling system. 0 = CESM, 1 = E3SM. Defaults to zero if unset.
+  modelSystem = 1
+
+# Should we initialize the runoff model? 0 = no, 1 = yes. Defaults to zero if unset.
+  do_runoff = 1
+
 ### GFS analysis available from 8/2004 onward
 ### CFSR analysis available from 1979 to Mar 2011          
 ### Use NOAAOI unless running real-time
@@ -48,27 +54,26 @@
   land_spinup = false
 
 # Case name
-  casename = v1.2-ne30-F2010C5
+  casename = X-ne30-F2010C5
 
 # Weight file for going from GFS -> VR-SE
-#  gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx.CMZ/maps/map_gfs0.50_TO_ne30np4_patc.nc
-  gfs2seWeights = /global/homes/c/czarzyck/scratch/sewx.CMZ/maps/map_era0.25_TO_ne30np4_patc.nc
+  gfs2seWeights = /global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era0.25_TO_ne30np4_patc.nc
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = NULL
 
 # Repo of 1deg CLM inic for "cold starts"
-  landrawdir = /global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/ICLM45-ne30-e3smv1.2/run/
+  landrawdir = NULL
 
 # Timing settings
   PROJECTID = m2637 
   FILTERWALLCLOCK = 00:29:00
   FILTERQUEUE = premium
-  RUNWALLCLOCK = 05:59:00
-  RUNQUEUE = premium
+  RUNWALLCLOCK = 02:59:00
+  RUNQUEUE = regular
 
   usingCIME = true
 
   DTIME = 1800.0
   FINERES = 30
-  USERSTAB = 112.5
+  USERSTAB = 600.0
