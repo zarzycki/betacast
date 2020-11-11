@@ -30,7 +30,7 @@ srcGridDir="./scrip/"
 srcGridFile=anltype+"_"+anlres+"x"+anlres+"_scrip.nc"
 
 wgtFileDir="/glade/work/zarzycki/maps/gfsmaps/"
-wgtFileName="map_"+anltype+anlres+"_TO_"+gridName+"_"+shortInterpName+".nc"
+wgtFileName="map_"+anltype+"-"+anlres+"_TO_"+gridName+"_"+shortInterpName+".nc"
 
 ;----------------------------------------------------------------------
 
