@@ -556,7 +556,16 @@ print("Writing output file: "+se_inic)
 other_stuff=True
 if (other_stuff) then
 
-setfileoption("nc","Format","LargeFile")
+if (isvar("compress_file") .and. compress_file) then
+  compress_level=1
+  print("writing netcdf4 classic with compression level "+compress_level)
+  setfileoption("nc","Format","NetCDF4Classic")
+  setfileoption("nc","CompressionLevel",compress_level)
+else
+  print("writing largefile with default compression settings")
+  setfileoption("nc","Format","LargeFile")
+end if
+
 system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
 fout = addfile(se_inic,"c")  ; open output netCDF file   
 
