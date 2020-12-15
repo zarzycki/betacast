@@ -6,6 +6,9 @@
 
   runmodel = true
 
+# Modeling system. 0 = CESM, 1 = E3SM. Defaults to zero if unset.
+  modelSystem = 0
+
 ### GFS analysis available from 8/2004 onward
 ### CFSR analysis available from 1979 to Mar 2011          
 ### Use NOAAOI unless running real-time
@@ -48,7 +51,7 @@
   gfs2seWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
 
 # Repo of 1deg CLM inic for "cold starts"
-  landrawdir = ~/scratch/output/forecast_nhemitc_30_x4_CAM5_L30.001/run/clmstart/
+  landrawdir = ~/scratch/output/forecast_nhemitc_30_x4_CAM5_L30.001/run/landstart/
 
 # Timing settings
   PROJECTID = cmz5202_a_g_sc_default 

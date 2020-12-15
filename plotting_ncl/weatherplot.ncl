@@ -234,30 +234,30 @@ delete([/f_anom,ANOMTIME,ANOMDATE,TSANOM,TSANOM_CAM,TSANOM_CAM_F/])
 do plotindex = 0,2
 
 ; NORTH ATLANTIC
-if (plotindex .eq. 0)
-  plotname = "natl"
-  maxlat = 55.           ; NATL         
-  minlat = 5.
-  maxlon = -5. 
-  minlon = -100.
 ;if (plotindex .eq. 0)
 ;  plotname = "natl"
-;  maxlat = 53.           ; CONUS         
-;  minlat = 21.
-;  maxlon = 295.-360. 
-;  minlon = 231.-360.
-else if (plotindex .eq. 1)    ; ORIG EPAC
-  plotname = "epac"
-  maxlat = 40.             
-  minlat = 5.
-  maxlon = -90.
-  minlon = -165.
-;else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+;  maxlat = 55.           ; NATL         
+;  minlat = 5.
+;  maxlon = -5. 
+;  minlon = -100.
+if (plotindex .eq. 0)
+  plotname = "natl"
+  maxlat = 53.           ; CONUS         
+  minlat = 21.
+  maxlon = 295.-360. 
+  minlon = 231.-360.
+;else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  plotname = "epac"
-;  maxlat = 49.              
-;  minlat = 37.
-;  maxlon = 295.-360. 
-;  minlon = 275.-360.
+;  maxlat = 40.             
+;  minlat = 5.
+;  maxlon = -90.
+;  minlon = -165.
+else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+  plotname = "epac"
+  maxlat = 49.              
+  minlat = 37.
+  maxlon = 295.-360. 
+  minlon = 275.-360.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
 ;  plotname = "epac"
 ;  maxlat = 30.              
@@ -294,24 +294,24 @@ else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  minlat = 36.5
 ;  maxlon = 258.5-360. 
 ;  minlon = 250.5-360.
-else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
-  plotname = "float1"
-  maxlat = 40.0              
-  minlat = 5.0
-  maxlon = 170.0
-  minlon = 75.0
-;else if (plotindex .eq. 2)     ; Modif GLOB
+;else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
 ;  plotname = "float1"
-;  maxlat = 50.0
-;  minlat = -50.0
-;  maxlon = 360.0
-;  minlon = 0.0
+;  maxlat = 40.0              
+;  minlat = 5.0
+;  maxlon = 170.0
+;  minlon = 75.0
+else if (plotindex .eq. 2)     ; Modif GLOB
+  plotname = "float1"
+  maxlat = 80.0
+  minlat = -80.0
+  maxlon = 180. 
+  minlon = -180.
 else
   plotname = "glob"
   maxlat = 90.           ; choose subregion           
   minlat = -90.
-  maxlon = 360. 
-  minlon = 0.
+  maxlon = 180. 
+  minlon = -180.
 end if
 end if
 end if
@@ -330,6 +330,10 @@ resbase@gsnCenterString=""
 resbase@gsnRightString = ""
 resbase@tiMainString=""
 
+;turn raster smoothing on
+resbase@cnFillMode="RasterFill"
+resbase@cnRasterSmoothingOn = True
+
 res = resbase
 
 res@gsnAddCyclic = False                    ; Don't add a cyclic point.
@@ -347,7 +351,8 @@ res@mpMinLonF = minlon
 res@mpMaxLonF = maxlon 
 res@mpCenterLonF = (res@mpMinLonF+res@mpMaxLonF)/2.
 
-if (plotindex .eq. 2)
+; this adds county level data
+if (plotindex .eq. 9)
   res@mpOutlineBoundarySets = "AllBoundaries"
   res@mpDataBaseVersion         = "mediumres"             ; select database
   res@mpDataSetName             = "Earth..4"
@@ -397,7 +402,11 @@ res_contour@gsnCenterString  = ""
 res_contour@cnInfoLabelOn = False
 
 res_mslp = res_contour
-res_mslp@cnLowLabelsOn = True
+if (plotindex .eq. 0 .or. plotindex .eq. 1)
+  res_mslp@cnLowLabelsOn = True
+else
+  res_mslp@cnLowLabelsOn = False
+end if
 res_mslp@cnLowLabelBackgroundColor = -1
 res_mslp@cnLabelMasking = False
 res_mslp@cnLowLabelFontColor = "red"
@@ -587,11 +596,11 @@ txres@txFont   = "helvetica-bold"
 text = new((/nlat,nlon/),"graphic")
 
 if (plotindex .eq. 0) then
-  stride=19
+  stride=18
 else if (plotindex .eq. 1) then
-  stride=8
+  stride=6
 else
-  stride=3
+  stride=60
 end if
 end if
 
@@ -667,7 +676,17 @@ vecres@tiXAxisString    = ""             ; turn off axis label
 ;vecres@vcRefAnnoOrthogonalPosF = -.535    ; move ref vector into plot
 
 ; this is 8 for 0.25deg data, 16 for 0.125deg data
-plot500winds   = gsn_csm_vector(wks,u500(0,::16,::16),v500(0,::16,::16),vecres)
+
+if (plotindex .eq. 0) then
+  stride=16
+else if (plotindex .eq. 1) then
+  stride=16
+else
+  stride=40
+end if
+end if
+
+plot500winds   = gsn_csm_vector(wks,u500(0,::stride,::stride),v500(0,::stride,::stride),vecres)
 overlay(plot500vort,plotz500)
 overlay(plot500vort,plot500winds)
 
@@ -755,13 +774,13 @@ text = new((/nlat,nlon/),"graphic")
 if (plotindex .eq. 0) then
   stride=25
 else if (plotindex .eq. 1) then
-  stride=10
+  stride=8
 else
-  stride=4
+  stride=120
 end if
 end if
 
-if (plotindex .eq. 0) then
+;if (plotindex .eq. 0) then
 do ii = 0,nlat-1,stride
 do jj = 0,nlon-1,stride
   if (lat(ii) .ge. minlat .and. lat(ii) .le. maxlat .and. lon(jj) .ge. minlon .and. lon(jj) .le. maxlon) then
@@ -771,7 +790,7 @@ do jj = 0,nlon-1,stride
   end if
 end do
 end do
-end if
+;end if
 
 draw(plotts)
 frame(wks)
