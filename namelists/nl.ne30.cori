@@ -31,7 +31,7 @@
   numLevels = 72
 
 #forecast length (in days)
-  numdays = 5
+  numdays = 7
 
 # File for adjusting topography during init. Set to NULL if not desired or file doesn't exist
   adjust_topo = /project/projectdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc
@@ -54,7 +54,7 @@
   land_spinup = false
 
 # Case name
-  casename = X-ne30-F2010C5
+  casename = RoS-F2010C5-ne30-001-control
 
 # Weight file for going from GFS -> VR-SE
   gfs2seWeights = /global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era0.25_TO_ne30np4_patc.nc
@@ -69,7 +69,7 @@
   PROJECTID = m2637 
   FILTERWALLCLOCK = 00:29:00
   FILTERQUEUE = premium
-  RUNWALLCLOCK = 02:59:00
+  RUNWALLCLOCK = 02:19:00
   RUNQUEUE = regular
 
   usingCIME = true

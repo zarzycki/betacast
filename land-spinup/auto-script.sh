@@ -7,11 +7,11 @@
 set -e
 
 ### User settings
-FORECASTDATE=19960115
+FORECASTDATE=19960113
 NMONTHSSPIN=12
 CIMEROOT=~/E3SM-dev
-PATHTOCASE=~/
-CASENAME=ICLM45-ne30-vX
+PATHTOCASE=~/I-compsets
+CASENAME=RoS-ICLM45-ne30
 PROJECT=m2637
 MACHINE=cori-knl
 NNODES=12
@@ -54,6 +54,18 @@ else
   ./xmlchange RUN_STARTDATE=${STARTDATE}
   ./xmlchange STOP_DATE=${FORECASTDATE}
   ./xmlchange REST_OPTION='end'
+  
+  cat > user_nl_elm <<EOF
+  !fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2000_c201027.nc"
+  !finidat=''
+  !do_transient_pfts = .false.
+  !check_finidat_fsurdat_consistency = .false.
+  fsurdat="/global/cfs/cdirs/e3sm/inputdata/lnd/clm2/surfdata_map/surfdata_ne30np4_simyr2000_c190730.nc"
+  finidat=''
+  do_transient_pfts = .false.
+  check_finidat_fsurdat_consistency = .false.
+EOF
+
   ./case.setup
   ./case.build
   ./xmlchange JOB_WALLCLOCK_TIME="06:15:00"

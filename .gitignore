@@ -1,3 +1,4 @@
+log.*.out
 !ERA-Int_SCRIP.nc
 !ERA-Interim_coordvars.nc
 atm_to_cam/getECMWFdata/*.nc
