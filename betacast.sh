@@ -928,6 +928,9 @@ mv -v *.${rofName}*.h*.nc $archivedir
 cp -v *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $archivedir/nl_files
 mv -v *.txt $archivedir/text
 mv -v *.log.* $archivedir/logs
+mv -v timing.*.gz $archivedir/logs
+mv -v atm_chunk_costs*.gz $archivedir/logs
+
 mv -v timing/ $archivedir/
 
 ## Move land files to new restart location
