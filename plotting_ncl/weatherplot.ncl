@@ -13,6 +13,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
+wcStrt = systemfunc("date")
+
 ;ncl weatherplot.ncl inisec=43200 iniday=25 inimon=05 iniyear=2018 'filename="/glade/scratch/zarzycki/forecast_natlantic_30_x4_CAM5_L30/run/2018052512/_forecast_natlantic_30_x4_CAM5_L30.cam.h0.2018-05-27-00000.nc"' 'wgt_file="/glade/p/work/zarzycki/maps/forecast_plot_maps/map_natlantic_30_x4_to_0.25x0.25glob_bilinear.nc"'
 
 ; now read as command line option as of 11/17/17
@@ -25,6 +27,7 @@ inisecstr = sprinti("%05d",inisec)
 inihourstr = sprinti("%02d",toint(inisec)/3600)
 inihoursince = cd_inv_calendar(toint(iniyearstr),toint(inimonstr),toint(inidaystr),toint(inihourstr),0,0,"hours", 0)
 
+do_interp = True
 out_type = "png"
 
 ;datafiledir = "/home/zarzycki/tcforecast_68_x4/run/test/proc/"
@@ -69,9 +72,7 @@ print("Forecast for: "+hourstr+"Z "+monstr+" "+daystr+" "+yearstr)
 print("Initialized at: "+inihourstr+"Z "+inimonstr+" "+inidaystr+" "+iniyearstr)
 
 ;---Get two variables to regrid and the source lat/lon grid
-prect_se = datafile->PRECT            ; time (1) x nlev x ncol
-;u250_se = datafile->U200
-;v250_se = datafile->V200
+prect_se = datafile->PRECT
 u500_se = datafile->U500
 v500_se = datafile->V500
 z500_se = datafile->Z500
@@ -96,54 +97,67 @@ delete(preccav_se)
 print(max(mslp_se))
 print(min(mslp_se))
 
+wallClockElapseTime(wcStrt, "Loading and initial processing", 0)
+
 print("Begin interp")
-Opt         = True
-prect  = ESMF_regrid_with_weights(prect_se,wgt_file,Opt)
-;u250  = ESMF_regrid_with_weights(u250_se,wgt_file,Opt)
-;v250  = ESMF_regrid_with_weights(v250_se,wgt_file,Opt)
-u500  = ESMF_regrid_with_weights(u500_se,wgt_file,Opt)
-v500  = ESMF_regrid_with_weights(v500_se,wgt_file,Opt)
-z500  = ESMF_regrid_with_weights(z500_se,wgt_file,Opt)
-tmq  = ESMF_regrid_with_weights(tmq_se,wgt_file,Opt)
-flut  = ESMF_regrid_with_weights(flut_se,wgt_file,Opt)
-u850  = ESMF_regrid_with_weights(u850_se,wgt_file,Opt)
-v850  = ESMF_regrid_with_weights(v850_se,wgt_file,Opt)
-mslp  = ESMF_regrid_with_weights(mslp_se,wgt_file,Opt)
-prectav= ESMF_regrid_with_weights(prectav_se,wgt_file,Opt)
-precbsn= ESMF_regrid_with_weights(precbsn_se,wgt_file,Opt)
-ts= ESMF_regrid_with_weights(ts_se,wgt_file,Opt)
-ptype= ESMF_regrid_with_weights(ptype_se,wgt_file,Opt)
+
+if (do_interp) then
+  Opt         = True
+  prect  = ESMF_regrid_with_weights(prect_se,wgt_file,Opt)
+  u500  = ESMF_regrid_with_weights(u500_se,wgt_file,Opt)
+  v500  = ESMF_regrid_with_weights(v500_se,wgt_file,Opt)
+  z500  = ESMF_regrid_with_weights(z500_se,wgt_file,Opt)
+  tmq  = ESMF_regrid_with_weights(tmq_se,wgt_file,Opt)
+  flut  = ESMF_regrid_with_weights(flut_se,wgt_file,Opt)
+  u850  = ESMF_regrid_with_weights(u850_se,wgt_file,Opt)
+  v850  = ESMF_regrid_with_weights(v850_se,wgt_file,Opt)
+  mslp  = ESMF_regrid_with_weights(mslp_se,wgt_file,Opt)
+  prectav= ESMF_regrid_with_weights(prectav_se,wgt_file,Opt)
+  precbsn= ESMF_regrid_with_weights(precbsn_se,wgt_file,Opt)
+  ts= ESMF_regrid_with_weights(ts_se,wgt_file,Opt)
+  ptype= ESMF_regrid_with_weights(ptype_se,wgt_file,Opt)
+
+  guess     = 1                ; use zonal means
+  is_cyclic = True             ; cyclic [global]
+  nscan     = 500             ; usually much less than this
+  eps       = 1.e-2            ; variable dependent
+  relc      = 0.5              ; relaxation coefficient
+  opt       = 0                ; not used
+
+  poisson_grid_fill( u500, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( v500, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( prect, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( z500, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( tmq, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( flut, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( u850, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( v850, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( mslp, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( prectav, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( precbsn, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( ts, is_cyclic, guess, nscan, eps, relc, opt)
+  poisson_grid_fill( ptype, is_cyclic, guess, nscan, eps, relc, opt)
+
+  print("end interp")
+else
+  prect  = prect_se
+  u500  = u500_se
+  v500  = v500_se
+  z500  = z500_se
+  tmq  = tmq_se
+  flut  = flut_se
+  u850  = u850_se
+  v850  = v850_se
+  mslp    = mslp_se
+  prectav = prectav_se
+  precbsn = precbsn_se
+  ts = ts_se
+  ptype = ptype_se
+end if
 
 delete([/prect_se,u500_se,v500_se,z500_se,tmq_se,flut_se,u850_se,v850_se,mslp_se,prectav_se,precbsn_se,ts_se,ptype_se/])
 
-
-guess     = 1                ; use zonal means
-is_cyclic = True             ; cyclic [global]
-nscan     = 500             ; usually much less than this
-eps       = 1.e-2            ; variable dependent
-relc      = 0.5              ; relaxation coefficient
-opt       = 0                ; not used
-
-;poisson_grid_fill( u250, is_cyclic, guess, nscan, eps, relc, opt)
-;poisson_grid_fill( v250, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( u500, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( v500, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( prect, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( z500, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( tmq, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( flut, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( u850, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( v850, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( mslp, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( prectav, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( precbsn, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( ts, is_cyclic, guess, nscan, eps, relc, opt)
-poisson_grid_fill( ptype, is_cyclic, guess, nscan, eps, relc, opt)
-
-print(max(mslp))
-print(min(mslp))
-
-print("end interp")
+wallClockElapseTime(wcStrt, "Interpolating", 0)
 
 dims=dimsizes(mslp)
 ntime=dims(0)
@@ -151,6 +165,9 @@ nlat=dims(1)
 nlon=dims(2)
 lat = mslp&lat
 lon = mslp&lon
+
+lat2d=conform(mslp(0,:,:),lat,0)
+lon2d=conform(mslp(0,:,:),lon,1)
 
 ;lat!0 = "lat"
 ;lon!0 = "lon"
@@ -226,6 +243,7 @@ tsf_anom=tsf
 tsf_anom(0,:,:)=tsf(0,:,:)-TSANOM_CAM_F(:,:)
 delete([/f_anom,ANOMTIME,ANOMDATE,TSANOM,TSANOM_CAM,TSANOM_CAM_F/])
 
+wallClockElapseTime(wcStrt, "Var. preparation", 0)
 
 ;*****************************************************
 ; PLOT
@@ -485,6 +503,8 @@ delete(plotmslp)
 delete(cmap)
 delete(cmap_interp)
 
+wallClockElapseTime(wcStrt, "Instant precip "+plotname, 0)
+
 ; =============================================================================================================================================
 
 print("Plotting ptype...")
@@ -532,6 +552,8 @@ delete(cmap)
 delete(plotmslp)
 delete(plotptype2)
 
+wallClockElapseTime(wcStrt, "ptype "+plotname, 0)
+
 ; =============================================================================================================================================
 
 print("Plotting accumulated precip...")
@@ -571,6 +593,9 @@ frame(wks)
 delete(wks)
 delete(cmap)
 delete(cmap_interp)
+delete(plotprecipsum)
+
+wallClockElapseTime(wcStrt, "accumulated precip "+plotname, 0)
 
 ; =============================================================================================================================================
 
@@ -593,7 +618,6 @@ plotsnowsum = gsn_csm_contour_map(wks,precbsn_in(0,:,:),res_sumsnow)
 txres               = True  
 txres@txFontHeightF = 0.011             ; Set the font height
 txres@txFont   = "helvetica-bold"
-text = new((/nlat,nlon/),"graphic")
 
 if (plotindex .eq. 0) then
   stride=18
@@ -604,24 +628,42 @@ else
 end if
 end if
 
+numvars = ceil(nlat/stride)*ceil(nlon/stride)
+text = new(toint(numvars),"graphic")
+iter=0
 do ii = 0,nlat-1,stride
-do jj = 0,nlon-1,stride
-  if (lat(ii) .ge. minlat .and. lat(ii) .le. maxlat .and. lon(jj) .ge. minlon .and. lon(jj) .le. maxlon) then
-    if (.not.ismissing(precbsn_in(0,ii,jj)) .and. precbsn_in(0,ii,jj) .ge. 1.0) then
-      text(ii,jj) = gsn_add_text(wks,plotsnowsum,tostring(toint(precbsn_in(0,ii,jj))),lon(jj),lat(ii),txres)
-    end if
-  end if
+ do jj = 0,nlon-1,stride
+   if (lat(ii) .ge. minlat .and. lat(ii) .le. maxlat .and. lon(jj) .ge. minlon .and. lon(jj) .le. maxlon) then
+     if (.not.ismissing(precbsn_in(0,ii,jj)) .and. precbsn_in(0,ii,jj) .ge. 1.0) then
+       text(iter) = gsn_add_text(wks,plotsnowsum,tostring(toint(precbsn_in(0,ii,jj))),lon(jj),lat(ii),txres)
+       iter=iter+1
+     end if
+   end if
+ end do
 end do
-end do
+
+;onedlat2d=ndtooned(lat2d(::stride,::stride))
+;onedlon2d=ndtooned(lon2d(::stride,::stride))
+;onedprecbsn=tostring(toint(ndtooned(precbsn_in(0,::stride,::stride))))
+;text = gsn_add_text(wks,plotsnowsum,onedprecbsn,onedlon2d,onedlat2d,txres)
 
 draw(plotsnowsum)
 frame(wks)
 delete(wks)
 delete(cmap)
 
+;delete(onedlat2d)
+;delete(onedlon2d)
+;delete(onedprecbsn)
+
 delete(text)
 delete(stride)
+
 delete(txres)
+delete(plotsnowsum)
+
+wallClockElapseTime(wcStrt, "accumulated snowfall "+plotname, 0)
+
 
 
 ; =============================================================================================================================================
@@ -694,6 +736,12 @@ draw(plot500vort)
 frame(wks)
 delete(wks)
 delete(cmap)
+delete(plot500vort)
+delete(plotz500)
+delete(plot500winds)
+
+wallClockElapseTime(wcStrt, "500 mb fields "+plotname, 0)
+
 
 ; ====== Plot Z500 ============
 
@@ -735,6 +783,10 @@ frame(wks)
 
 delete(wks)
 delete(cmap)
+delete(plottmq)
+
+wallClockElapseTime(wcStrt, "TMQ "+plotname, 0)
+
 
 ; ====== Plot TS ============
 
@@ -769,7 +821,6 @@ overlay(plotts,plotzeroline)
 txres               = True  
 txres@txFontHeightF = 0.011             ; Set the font height
 txres@txFont   = "helvetica-bold"
-text = new((/nlat,nlon/),"graphic")
 
 if (plotindex .eq. 0) then
   stride=25
@@ -780,23 +831,40 @@ else
 end if
 end if
 
-;if (plotindex .eq. 0) then
+numvars = ceil(nlat/stride)*ceil(nlon/stride)
+text = new(toint(numvars),"graphic")
+iter=0
 do ii = 0,nlat-1,stride
-do jj = 0,nlon-1,stride
-  if (lat(ii) .ge. minlat .and. lat(ii) .le. maxlat .and. lon(jj) .ge. minlon .and. lon(jj) .le. maxlon) then
-    if (.not.ismissing(tsf(0,ii,jj))) then
-      text(ii,jj) = gsn_add_text(wks,plotts,tostring(toint(tsf(0,ii,jj))),lon(jj),lat(ii),txres)
-    end if
-  end if
+ do jj = 0,nlon-1,stride
+   if (lat(ii) .ge. minlat .and. lat(ii) .le. maxlat .and. lon(jj) .ge. minlon .and. lon(jj) .le. maxlon) then
+     if (.not.ismissing(tsf(0,ii,jj))) then
+       text(iter) = gsn_add_text(wks,plotts,tostring(toint(tsf(0,ii,jj))),lon(jj),lat(ii),txres)
+       iter=iter+1
+     end if
+   end if
+ end do
 end do
-end do
-;end if
+
+;onedlat2d=ndtooned(lat2d(::stride,::stride))
+;onedlon2d=ndtooned(lon2d(::stride,::stride))
+;onedtsf=tostring(toint(ndtooned(tsf(0,::stride,::stride))))
+;text = gsn_add_text(wks,plotts,onedtsf,onedlon2d,onedlat2d,txres)
 
 draw(plotts)
 frame(wks)
 
+;delete(onedlat2d)
+;delete(onedlon2d)
+;delete(onedtsf)
+
+delete(text)
+delete(stride)
+
 delete(wks)
 delete(cmap)
+delete(plotts)
+
+wallClockElapseTime(wcStrt, "TS "+plotname, 0)
 
 ; ====== Plot TS ANOM ============
 
@@ -827,6 +895,9 @@ delete(tsf_tmp)
 
 delete(wks)
 delete(cmap)
+delete(plotts)
+
+wallClockElapseTime(wcStrt, "TS anom "+plotname, 0)
 
 ; ====== Plot FLUT ============
 
@@ -860,6 +931,10 @@ frame(wks)
 delete(wks)
 delete(res_flut)
 delete(cmap)
+delete(plotflut)
+
+wallClockElapseTime(wcStrt, "FLUT "+plotname, 0)
+
 
 ; ====== Plot 850 WIND ============
 
@@ -889,6 +964,11 @@ frame(wks)
 delete(wks)
 delete(res_wind)
 delete(cmap)
+delete(plotwind)
+delete(plotmslp)
+
+wallClockElapseTime(wcStrt, "850mb/MSLP "+plotname, 0)
+
 
 ;system("rm wind_"+plotname+"_"+yearstr+monstr+daystr+hourstr+".000001.png")
 ;system("mv wind_"+plotname+"_"+yearstr+monstr+daystr+hourstr+".000002.png wind_"+plotname+"_"+yearstr+monstr+daystr+hourstr+".png")
