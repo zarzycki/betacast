@@ -15,7 +15,12 @@ gamma_s = 6.5/1000.   ; lapse rate in K/m
 grav = 9.80616
 Rd = 287.058
 
-dycore="se"   ; fv or se
+; dycore options are FV and SE for now
+; reverse compat -- if you don't specify dycore, default to SE
+if (.not. isvar("dycore")) then
+  dycore="se"
+end if
+print("USING DYCORE:  "+dycore)
 
 ; ===== Getting date from YYYYMMDDHH
 dtime_map = (/4,2,2,2/)
@@ -51,14 +56,27 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   grblev = grb_file->lv_ISBL0
   rhlev  = grb_file->$rhlevName$
   cldlev = grb_file->$cldlevName$
-end if
-if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
+else if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
   grblat = tofloat(grb_file->latitude)
   grblon = tofloat(grb_file->longitude)
   grblev = tofloat(grb_file->level)
   if (datasource .eq. "ERA5") then
     grblev = grblev * 100.
   end if
+else if (datasource .eq. "ERA5RDA") then
+  ;use RDA T file to extract dims
+  pl_dir="/glade/collections/rda/data/ds633.0/e5.oper.an.pl/"+yearstr+monthstr
+  sf_dir="/glade/collections/rda/data/ds633.0/e5.oper.an.sfc/"+yearstr+monthstr
+  rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_130_t.ll025sc."+yearstr+monthstr+daystr+"00_*.nc")
+  rda_file     := addfile(rda_find,"r")
+  grblat        = tofloat(rda_file->latitude)
+  grblon        = tofloat(rda_file->longitude)
+  grblev        = tofloat(rda_file->level)
+  grblev        = grblev * 100.
+else
+  exit
+end if
+end if
 end if
 
 print("Level in information")
@@ -123,6 +141,63 @@ if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
   cldliq_gfs = short2flt(grb_file->clwc(0,:,:,:))
 end if
 
+if (datasource .eq. "ERA5RDA") then
+  ; define some stuff that is static
+  p0   = 100000.
+  opt=0
+  opt@return_type = "int"
+
+  ; go through var by var, get relevant file, extract time
+  rda_find     := systemfunc("ls "+sf_dir+"/e5.oper.an.sfc.128_134_sp.ll025sc."+yearstr+monthstr+"0100_*.nc")
+  print(rda_find+"")
+  rda_file     := addfile(rda_find,"r")
+  rda_time     := rda_file->time
+  rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
+  ps            = rda_file->SP(closest_val(rda_thistime,rda_time),:,:)
+
+  rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_130_t.ll025sc."+yearstr+monthstr+daystr+"00_*.nc")
+  print(rda_find+"")
+  rda_file     := addfile(rda_find,"r")
+  rda_time     := rda_file->time
+  rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
+  t_gfs         = rda_file->T(closest_val(rda_thistime,rda_time),:,:,:)
+
+  rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_131_u.ll025uv."+yearstr+monthstr+daystr+"00_*.nc")
+  print(rda_find+"")
+  rda_file     := addfile(rda_find,"r")
+  rda_time     := rda_file->time
+  rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
+  u_gfs         = rda_file->U(closest_val(rda_thistime,rda_time),:,:,:)
+
+  rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_132_v.ll025uv."+yearstr+monthstr+daystr+"00_*.nc")
+  print(rda_find+"")
+  rda_file     := addfile(rda_find,"r")
+  rda_time     := rda_file->time
+  rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
+  v_gfs         = rda_file->V(closest_val(rda_thistime,rda_time),:,:,:)
+
+  rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_133_q.ll025sc."+yearstr+monthstr+daystr+"00_*.nc")
+  print(rda_find+"")
+  rda_file     := addfile(rda_find,"r")
+  rda_time     := rda_file->time
+  rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
+  q_gfs         = rda_file->Q(closest_val(rda_thistime,rda_time),:,:,:)
+
+  rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_246_clwc.ll025sc."+yearstr+monthstr+daystr+"00_*.nc")
+  print(rda_find+"")
+  rda_file     := addfile(rda_find,"r")
+  rda_time     := rda_file->time
+  rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
+  cldliq_gfs    = rda_file->CLWC(closest_val(rda_thistime,rda_time),:,:,:)
+
+  rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_247_ciwc.ll025sc."+yearstr+monthstr+daystr+"00_*.nc")
+  print(rda_find+"")
+  rda_file     := addfile(rda_find,"r")
+  rda_time     := rda_file->time
+  rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
+  cldice_gfs    = rda_file->CIWC(closest_val(rda_thistime,rda_time),:,:,:)
+end if
+
 print("=================================================================")
 print("************ NATIVE DATA")
 print("Max T: "+max(t_gfs)+"   min T: "+min(t_gfs))
@@ -149,7 +224,7 @@ ilev = fC->ilev
 
 
 print("Interpolating to CAM hybrid coordinates")
-if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5") then
+if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA") then
   print("Using pressure to hybrid interpolation")
   t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,1)
   u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,1)
@@ -216,9 +291,11 @@ Opt         = True
 ; Here we need to keep VarCoords on to extract lat/lon
 Opt@CopyVarCoords = True
 ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
-selat=todouble(ps_fv@lat1d)
-selon=todouble(ps_fv@lon1d)
-delete_VarAtts(ps_fv,(/"lat1d","lon1d"/))
+if (dycore .ne. "fv") then
+  selat=todouble(ps_fv@lat1d)
+  selon=todouble(ps_fv@lon1d)
+  delete_VarAtts(ps_fv,(/"lat1d","lon1d"/))
+end if
 Opt@CopyVarCoords = False  ; now we can turn off
 ;pblh_fv  = ESMF_regrid_with_weights(pblh,wgt_filename,Opt)
 t_fv  = ESMF_regrid_with_weights(t_cam,wgt_filename,Opt)
@@ -266,9 +343,17 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
   else if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
     topo_data = short2flt(grb_file->phis(0,:,:))    ; gpm
     sfct_data = short2flt(grb_file->t2m(0,:,:))  ; 0.995 sigma T in K
+  else if (datasource .eq. "ERA5RDA") then
+    topo_data     = grb_file->Z(0,:,:)
+    rda_find     := systemfunc("ls "+sf_dir+"/e5.oper.an.sfc.128_167_2t.ll025sc."+yearstr+monthstr+"0100_*.nc")
+    rda_file     := addfile(rda_find,"r")
+    rda_time     := rda_file->time
+    rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
+    sfct_data     = rda_file->VAR_2T(closest_val(rda_thistime,rda_time),:,:)
   else
     print("no avail reanalysis surface data for corr... exiting...")
     exit
+  end if
   end if
   end if
 
@@ -280,8 +365,18 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
   ttfile = addfile(model_topo_file,"r")
   topo_model_SE = ttfile->PHIS     ;ncol
 
-  ncol=dim_sePS(0)
-
+  ; unpack FV
+  if (dycore .eq. "fv") then
+    print("unpacking fv vars")
+    topo_data_SE := ndtooned(topo_data_SE)
+    sfct_data_SE := ndtooned(sfct_data_SE)
+    topo_model_SE := ndtooned(topo_model_SE)
+    ps_fv := ndtooned(ps_fv)
+    ncol=dim_sePS(0) * dim_sePS(1)
+  else
+    ncol=dim_sePS(0)
+  end if
+  
   do kk = 0,ncol-1
 
     ; get difference in geopotential
@@ -316,14 +411,20 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
     end if
 
     ; correct T by shifting Tbot "down" the same delta
-    if (tempadjustflag .eq. "a")
-
-      nlev=dimsizes(lev)
-      t_orig = t_fv(nlev-1,kk)
-      delT = Tsfc_fv - sfct_data_SE(kk)
-      t_fv(nlev-1,kk) = t_fv(nlev-1,kk) + tofloat(delT)
-      if (mod(kk,10000) .eq. 0) then
-        print("Correcting TBOT: "+kk+" of "+(ncol-1)+"   from "+t_orig+" to "+t_fv(nlev-1,kk))
+    if (tempadjustflag .eq. "a")    
+      if (dycore .eq. "fv")
+        if (mod(kk,10000) .eq. 0) then
+          print("WARNING: tempadjust not supported for FV")
+          print("WARNING: continuing!")
+        end if
+      else
+        nlev=dimsizes(lev)
+        t_orig = t_fv(nlev-1,kk)
+        delT = Tsfc_fv - sfct_data_SE(kk)
+        t_fv(nlev-1,kk) = t_fv(nlev-1,kk) + tofloat(delT)
+        if (mod(kk,10000) .eq. 0) then
+          print("Correcting TBOT: "+kk+" of "+(ncol-1)+"   from "+t_orig+" to "+t_fv(nlev-1,kk))
+        end if
       end if
     end if
 
@@ -344,6 +445,12 @@ else
   print("continuing...")
 end if
 end if
+end if
+
+; repack
+if (dycore .eq. "fv") then
+  print("repacking fv vars")
+  ps_fv := onedtond(ps_fv,(/dim_sePS(0),dim_sePS(1)/))
 end if
 
  print("Converting floats to doubles")
@@ -464,11 +571,17 @@ v_fv_dbl_slon = linint2(lon,lat,v_fv_dbl,True,slon,lat,0)
  ;pblh_fv_dbl_time = new((/1,ncol/),double)
  ;pblh_fv_dbl_time(0,:) = pblh_fv_dbl
 
- u_fv_dbl_time = new((/1,numlevels,nslat,nlon/),double)
- u_fv_dbl_time(0,:,:,:) = u_fv_dbl_slat
+u_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
+u_fv_dbl_time(0,:,:,:) = u_fv_dbl
  
- v_fv_dbl_time = new((/1,numlevels,nlat,nslon/),double)
- v_fv_dbl_time(0,:,:,:) = v_fv_dbl_slon
+v_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
+v_fv_dbl_time(0,:,:,:) = v_fv_dbl
+ 
+us_fv_dbl_time = new((/1,numlevels,nslat,nlon/),double)
+us_fv_dbl_time(0,:,:,:) = u_fv_dbl_slat
+ 
+vs_fv_dbl_time = new((/1,numlevels,nlat,nslon/),double)
+vs_fv_dbl_time(0,:,:,:) = v_fv_dbl_slon
 
 t_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
 t_fv_dbl_time(0,:,:,:) = t_fv_dbl
@@ -486,15 +599,25 @@ ps_fv_dbl_time!0 = "time"
 ps_fv_dbl_time!1 = "lat"
 ps_fv_dbl_time!2 = "lon"
 
+us_fv_dbl_time!0 = "time"
+us_fv_dbl_time!1 = "lev"
+us_fv_dbl_time!2 = "slat"
+us_fv_dbl_time!3 = "lon"
+
+vs_fv_dbl_time!0 = "time"
+vs_fv_dbl_time!1 = "lev"
+vs_fv_dbl_time!2 = "lat"
+vs_fv_dbl_time!3 = "slon"
+
 u_fv_dbl_time!0 = "time"
 u_fv_dbl_time!1 = "lev"
-u_fv_dbl_time!2 = "slat"
+u_fv_dbl_time!2 = "lat"
 u_fv_dbl_time!3 = "lon"
 
 v_fv_dbl_time!0 = "time"
 v_fv_dbl_time!1 = "lev"
 v_fv_dbl_time!2 = "lat"
-v_fv_dbl_time!3 = "slon"
+v_fv_dbl_time!3 = "lon"
 
 t_fv_dbl_time!0 = "time"
 t_fv_dbl_time!1 = "lev"
@@ -522,15 +645,19 @@ q_fv_dbl_time@units="kg/kg"
 
 lat!0="lat"
 lat&lat=lat
+lat@units="degrees_north"
 
 lon!0="lon"
 lon&lon=lon
+lon@units="degrees_east"
 
 slat!0="slat"
 slat&slat=slat
+slat@units="degrees_north"
 
 slon!0="slon"
 slon&slon=slon
+slon@units="degrees_east"
 
 else
   print("unsupported dycore")
@@ -540,6 +667,9 @@ end if
 
 ; clean up more stuff
 delete([/ps_fv_dbl,u_fv_dbl,v_fv_dbl,t_fv_dbl,q_fv_dbl,cldliq_fv_dbl,cldice_fv_dbl/])
+if (dycore .eq. "fv")
+  delete([/v_fv_dbl_slon,v_fv_dbl_slon/])
+end if
 
 ; Fix error where Q goes very large (missing values?)
 qthresh=1.0
@@ -591,9 +721,15 @@ fileattdef( fout, fAtt )            ; copy file attributes
 print("predefine the coordinate variables and their dimensionality")
 nlev=dimsizes(lev)
 nilev=nlev+1
-dimNames = (/"time", "ncol", "lev", "ilev"/)  
-dimSizes = (/ -1   ,  ncol,  nlev, nilev /) 
-dimUnlim = (/ True , False, False, False/)   
+if (dycore .eq. "fv") then
+  dimNames = (/"time", "lat", "slat", "lon", "slon", "lev", "ilev"/)  
+  dimSizes = (/ -1   ,  dimsizes(lat),dimsizes(slat),dimsizes(lon),dimsizes(slon), nlev, nilev /) 
+  dimUnlim = (/ True , False, False, False, False, False, False/)
+else
+  dimNames = (/"time", "ncol", "lev", "ilev"/)  
+  dimSizes = (/ -1   ,  ncol,  nlev, nilev /) 
+  dimUnlim = (/ True , False, False, False/)
+end if
 filedimdef(fout,dimNames,dimSizes,dimUnlim)
 
 ;===================================================================
@@ -601,16 +737,27 @@ filedimdef(fout,dimNames,dimSizes,dimUnlim)
 ;===================================================================
 print("predefine the the dimensionality of the variables to be written out")
 filevardef(fout, "lev"   ,typeof(lev),getvardims(lev) )      
-filevardef(fout, "ilev"  ,typeof(ilev),getvardims(ilev) )                           
-filevardef(fout, "lat"  ,typeof(selat),getvardims(selat))                          
-filevardef(fout, "lon"  ,typeof(selon),getvardims(selon))         
+filevardef(fout, "ilev"  ,typeof(ilev),getvardims(ilev) )    
+if (dycore .eq. "fv") then
+  filevardef(fout, "lat"  ,typeof(lat),getvardims(lat))                          
+  filevardef(fout, "lon"  ,typeof(lon),getvardims(lon))
+  filevardef(fout, "slat" ,typeof(slat),getvardims(slat))                          
+  filevardef(fout, "slon" ,typeof(slon),getvardims(slon))
+else                       
+  filevardef(fout, "lat"  ,typeof(selat),getvardims(selat))                          
+  filevardef(fout, "lon"  ,typeof(selon),getvardims(selon))
+end if
 filevardef(fout, "hyam"  ,typeof(hya),getvardims(hya))         
 filevardef(fout, "hybm"  ,typeof(hyb),getvardims(hyb))         
 filevardef(fout, "hyai"  ,typeof(hyai),getvardims(hyai))         
 filevardef(fout, "hybi"  ,typeof(hyb),getvardims(hybi))      
-filevardef(fout, "PS"    ,typeof(ps_fv_dbl_time)  ,getvardims(ps_fv_dbl_time))    
+filevardef(fout, "PS"    ,typeof(ps_fv_dbl_time)  ,getvardims(ps_fv_dbl_time))
+if (dycore .eq. "fv") then
+  filevardef(fout, "US"    ,typeof(us_fv_dbl_time)  ,getvardims(us_fv_dbl_time))    
+  filevardef(fout, "VS"   ,typeof(vs_fv_dbl_time) ,getvardims(vs_fv_dbl_time))  
+end if
 filevardef(fout, "U"    ,typeof(u_fv_dbl_time)  ,getvardims(u_fv_dbl_time))    
-filevardef(fout, "V"   ,typeof(v_fv_dbl_time) ,getvardims(v_fv_dbl_time))          
+filevardef(fout, "V"   ,typeof(v_fv_dbl_time) ,getvardims(v_fv_dbl_time))  
 filevardef(fout, "T",typeof(t_fv_dbl_time),getvardims(t_fv_dbl_time))  
 filevardef(fout, "Q",typeof(q_fv_dbl_time),getvardims(q_fv_dbl_time))  
 filevardef(fout, "CLDLIQ",typeof(cldliq_fv_dbl_time),getvardims(cldliq_fv_dbl_time))  
@@ -622,13 +769,25 @@ filevardef(fout, "CLDICE",typeof(cldice_fv_dbl_time),getvardims(cldice_fv_dbl_ti
 print("Copy attributes associated with each variable to the file")
 filevarattdef(fout,"lev",lev)
 filevarattdef(fout,"ilev",ilev)
-filevarattdef(fout,"lat",selat)
-filevarattdef(fout,"lon",selon)
+
+if (dycore .eq. "fv") then
+  filevarattdef(fout,"lat",lat)
+  filevarattdef(fout,"lon",lon)
+  filevarattdef(fout,"slat",slat)
+  filevarattdef(fout,"slon",slon)
+else                       
+  filevarattdef(fout,"lat",selat)
+  filevarattdef(fout,"lon",selon)
+end if
 filevarattdef(fout,"hyam",hya)
 filevarattdef(fout,"hybm",hyb)
 filevarattdef(fout,"hyai",hyai)
 filevarattdef(fout,"hybi",hybi)
 filevarattdef(fout,"PS" ,ps_fv_dbl_time)
+if (dycore .eq. "fv") then
+  filevarattdef(fout,"US"  ,us_fv_dbl_time) 
+  filevarattdef(fout,"VS"  ,vs_fv_dbl_time)
+end if
 filevarattdef(fout,"U"  ,u_fv_dbl_time) 
 filevarattdef(fout,"V"  ,v_fv_dbl_time)
 filevarattdef(fout,"T"  ,t_fv_dbl_time) 
@@ -646,7 +805,11 @@ setfileoption(fout,"DefineMode",False)
 ; been predefined.
 ;====================================================================
 print("output the data values")
-fout->PS   = (/ps_fv_dbl_time/)     
+fout->PS   = (/ps_fv_dbl_time/)  
+if (dycore .eq. "fv") then 
+  fout->US    = (/us_fv_dbl_time/)
+  fout->VS    = (/vs_fv_dbl_time/)
+end if
 fout->U    = (/u_fv_dbl_time/)
 fout->V    = (/v_fv_dbl_time/)
 fout->T    = (/t_fv_dbl_time/) 
@@ -658,9 +821,17 @@ fout->hybm    = (/hyb/)
 fout->hyai    = (/hyai/)
 fout->hybi    = (/hybi/) 
 fout->lev     = (/lev/)
-fout->ilev  = (/ilev/)
-fout->lat     = (/selat/)
-fout->lon  = (/selon/)
+fout->ilev    = (/ilev/)
+if (dycore .eq. "fv") then
+  fout->lat   = (/lat/)
+  fout->lon   = (/lon/)
+  fout->slat  = (/slat/)
+  fout->slon  = (/slon/)
+else                       
+  fout->lat   = (/selat/)
+  fout->lon   = (/selon/)
+end if
+
 
 end if
 
