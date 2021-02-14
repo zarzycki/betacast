@@ -10,8 +10,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-anltype="era5"   ; era5 or gfs
-anlres="0.25" ;0.50 or 0.25
+anltype="gfs"   ; era5 or gfs
+anlres="0.50" ;0.50 or 0.25
 
 dstGridFile="conus_30_x8.g_scrip.nc"
 gridName="conus_30_x8"
