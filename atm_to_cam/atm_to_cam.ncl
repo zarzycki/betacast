@@ -11,7 +11,7 @@ wcStrt = systemfunc("date")
 ;model_topo_file="/project/projectdirs/acme/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc"
 
 ; Constants
-gamma_s = 6.5/1000.   ; lapse rate in K/m
+gamma_s = 5.0/1000.   ; lapse rate in K/m
 grav = 9.80616
 Rd = 287.058
 
@@ -377,6 +377,10 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
     ncol=dim_sePS(0)
   end if
   
+  ; check number of columns corrected
+  vert_corrs = 0
+  tcorriter=0
+      
   do kk = 0,ncol-1
 
     ; get difference in geopotential
@@ -386,10 +390,14 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
     Tsfc_fv = sfct_data_SE(kk) + gamma_s * (deltaPhi / grav)
 
     ; calculate layer mean temperature for use in hydrostatic
-    Tlayermean = (Tsfc_fv + sfct_data_SE(kk)) / 2.
-
+    lwr_coef = 0.5   ; use 0.5 for straight average
+    if (Tsfc_fv .ge. sfct_data_SE(kk)) then
+      Tlayermean = ( lwr_coef*Tsfc_fv + (1.-lwr_coef)*sfct_data_SE(kk) )
+    else
+      Tlayermean = ( (1.-lwr_coef)*Tsfc_fv + lwr_coef*sfct_data_SE(kk) )
+    end if
+    
     ; correct very warm and very cold layer means based on Trenberth 1993
-    tcorriter=0
     if (Tlayermean .lt. 255.0) then
       Tlayermean = (255.0 + Tlayermean)/2.
       tcorriter=tcorriter+1
@@ -409,7 +417,7 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
     if (mod(kk,10000) .eq. 0) then
       print("Correcting PS: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
     end if
-
+    
     ; correct T by shifting Tbot "down" the same delta
     if (tempadjustflag .eq. "a")    
       if (dycore .eq. "fv")
@@ -427,8 +435,53 @@ if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
         end if
       end if
     end if
+    
+    
+    
+    ; correct other state variables!
+    vert_interp_thresh = 0.1   ; maximum ps corr diff (Pa) to interp vert profiles
+    extrap_threshold = 5000.   ; maximum ps corr diff (Pa) to allow xtrp
+    if ( abs(ps_orig-ps_fv(kk)) .gt. vert_interp_thresh) then
+      pm_orig = hya*p0 + hyb*ps_orig
+      pm_corr = hya*p0 + hyb*ps_fv(kk)
+      
+      if ( abs(ps_orig-ps_fv(kk)) .gt. extrap_threshold) then
+        linlog = 2    ; no extrapolation outside of orig levs
+      else
+        linlog = -2   ; allow extrapolation
+      end if
+      
+      tmp := int2p(pm_orig,t_fv(:,kk),pm_corr,linlog)
+      t_fv(:,kk) = where(ismissing(tmp),t_fv(:,kk),tmp)
+
+      tmp := int2p(pm_orig,q_fv(:,kk),pm_corr,linlog)
+      q_fv(:,kk) = where(ismissing(tmp),q_fv(:,kk),tmp)
+
+      tmp := int2p(pm_orig,u_fv(:,kk),pm_corr,linlog)
+      u_fv(:,kk) = where(ismissing(tmp),u_fv(:,kk),tmp)
+      
+      tmp := int2p(pm_orig,v_fv(:,kk),pm_corr,linlog)
+      v_fv(:,kk) = where(ismissing(tmp),v_fv(:,kk),tmp)
+      
+      tmp := int2p(pm_orig,cldice_fv(:,kk),pm_corr,linlog)
+      cldice_fv(:,kk) = where(ismissing(tmp),cldice_fv(:,kk),tmp)
+      
+      tmp := int2p(pm_orig,cldliq_fv(:,kk),pm_corr,linlog)
+      cldliq_fv(:,kk) = where(ismissing(tmp),cldliq_fv(:,kk),tmp)
+            
+      ;q_fv(:,kk) = int2p(pm_orig,q_fv(:,kk),pm_corr,linlog)
+      ;u_fv(:,kk) = int2p(pm_orig,u_fv(:,kk),pm_corr,linlog)
+      ;v_fv(:,kk) = int2p(pm_orig,v_fv(:,kk),pm_corr,linlog)
+      ;cldice_fv(:,kk) = int2p(pm_orig,cldice_fv(:,kk),pm_corr,linlog)
+      ;cldliq_fv(:,kk) = int2p(pm_orig,cldliq_fv(:,kk),pm_corr,linlog)
+      vert_corrs = vert_corrs+1
+      delete(tmp)
+    end if
+
+    
 
   end do
+  print("needed to correct "+vert_corrs+" vertical profiles for updated PS")
   print("needed to correct "+tcorriter+" temps for being too cold or too hot")
   delete([/beta,ps_orig,tcorriter,Tlayermean,Tsfc_fv,deltaPhi/])
   delete([/ttfile,topo_model_SE,topo_data_SE,sfct_data_SE,topo_data,sfct_data/])
