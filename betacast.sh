@@ -301,7 +301,7 @@ if [ $debug -ne 1 ] ; then
       echo "Getting Atmo file"
       if [ $islive -ne 0 ] ; then
         rm -f gfs.t*pgrb2f00*
-        gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/
+        gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/atmos/
         #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
         gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p25.anl'
         #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p50.anl'

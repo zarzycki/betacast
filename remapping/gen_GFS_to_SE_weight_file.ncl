@@ -10,9 +10,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-dstGridFile="ne120np4_SCRIP.nc"
-GFSres="0.25" ;0.50 or 0.25
-gridName="ne120np4"
+gridName="ecsnow_30_x0"
 InterpMethod="patch"
 
 if (InterpMethod .eq. "patch") then
@@ -21,13 +19,14 @@ else
   shortInterpName=InterpMethod
 end if
 
-dstGridDir="/glade/work/zarzycki/grids/scrip/"
+dstGridDir="/glade/p/work/zarzycki/grids/scrip/"
+dstGridFile=gridName+".g_scrip.nc"
 
-srcGridDir="/glade/work/zarzycki/grids/scrip/"
-srcGridFile="gfs_"+GFSres+"x"+GFSres+"_scrip.nc"
+srcGridDir="/glade/p/work/zarzycki/grids/scrip/"
+srcGridFile="gfs_0.50x0.50_scrip.nc"
 
-wgtFileDir="/glade/work/zarzycki/maps/gfsmaps/"
-wgtFileName="map_gfs"+GFSres+"_TO_"+gridName+"_"+shortInterpName+".nc"
+wgtFileDir="/glade/p/work/zarzycki/maps/gfsmaps/"
+wgtFileName="map_gfs0.50_TO_"+gridName+"_"+shortInterpName+".nc"
 
 ;----------------------------------------------------------------------
 
