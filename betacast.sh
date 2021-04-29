@@ -83,6 +83,7 @@ filter_path=${sewxscriptsdir}/filter
 ### setting variables not included in namelist for backwards compat
 if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
 if [ -z ${do_runoff+x} ]; then do_runoff=0; fi
+if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=1; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -935,21 +936,32 @@ mv -v timing/ $archivedir/
 
 ## Move land files to new restart location
 cd $path_to_nc_files
-mkdir $landdir
-echo "Removing 06Z and 18Z land restart files if they exist"
-rm -v *.${lndName}*.r.*32400.nc
-rm -v *.${lndName}*.r.*75600.nc
-echo "Moving land restart files for future runs"
-mv -v *.${lndName}*.r.*nc $landdir
-rm -v *.${lndName}*.r.*.nc
-## Move runoff files to land dir if doing runoff
-if [ $do_runoff -ne 0 ]; then
-  echo "Removing 06Z and 18Z runoff restart files if they exist"
-  rm -v *.${rofName}*.r.*32400.nc
-  rm -v *.${rofName}*.r.*75600.nc
-  echo "Moving runoff restart files for future runs"
-  mv -v *.${rofName}*.r.*nc $landdir
-  rm -v *.${rofName}*.r.*.nc
+if [ $keep_land_restarts -eq 1 ]; then
+  echo "Archiving land restart files"
+  mkdir $landdir
+  echo "Removing 06Z and 18Z land restart files if they exist"
+  rm -v *.${lndName}*.r.*32400.nc
+  rm -v *.${lndName}*.r.*75600.nc
+  echo "Moving land restart files for future runs"
+  mv -v *.${lndName}*.r.*nc $landdir
+  rm -v *.${lndName}*.r.*.nc
+  ## Move runoff files to land dir if doing runoff
+  if [ $do_runoff -ne 0 ]; then
+    echo "Removing 06Z and 18Z runoff restart files if they exist"
+    rm -v *.${rofName}*.r.*32400.nc
+    rm -v *.${rofName}*.r.*75600.nc
+    echo "Moving runoff restart files for future runs"
+    mv -v *.${rofName}*.r.*nc $landdir
+    rm -v *.${rofName}*.r.*.nc
+  fi
+else
+  echo "Removing all land restart files!"
+  rm -v *.${lndName}*.r.*.nc
+  rm -v *.${lndName}*.r.*.nc
+  if [ $do_runoff -ne 0 ]; then
+    rm -v *.${rofName}*.r.*.nc
+    rm -v *.${rofName}*.r.*.nc
+  fi
 fi
 
 echo "Deleting restart/misc. files produced by CESM that aren't needed"
