@@ -214,7 +214,7 @@ print("=================================================================")
 print("---------------------------------------------------------")
 print("Loading CAM levels")
 print("Loading "+numlevels+" level data")
-fC   = addfile ("./L"+numlevels+"template.nc", "r")
+fC   = addfile ("./templates/L"+numlevels+"template.nc", "r")
 hya  = fC->hyam
 hyb  = fC->hybm
 hyai  = fC->hyai

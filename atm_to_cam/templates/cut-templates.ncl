@@ -1,15 +1,6 @@
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
-
 begin
 
-keeplowestlevel=False
-
-top_template="./L32template.nc"
-bot_template="./L120template.nc"
-splitlev=830.
+top_template="./L56template.nc"
 
 tfile=addfile(top_template,"r")
 thyam  = tfile->hyam
@@ -19,59 +10,33 @@ thybi  = tfile->hybi
 tlev  = tfile->lev
 tilev = tfile->ilev
 
-bfile=addfile(bot_template,"r")
-bhyam  = bfile->hyam
-bhybm  = bfile->hybm
-bhyai  = bfile->hyai
-bhybi  = bfile->hybi
-blev  = bfile->lev
-bilev = bfile->ilev
-
 tnlev = dimsizes(tlev)
 tnint = dimsizes(tilev)
-bnlev = dimsizes(blev)
-bnint = dimsizes(bilev)
 
-onlev = max((/bnlev,tnlev/))
-onint = max((/bnint,tnint/))
+keeplev = new(tnlev,"logical")
+keepilev = new(tnint,"logical")
 
-print("Number of input levels = "+tnlev)
-print("Number of input interfaces = "+tnint)
-print("Number of input levels = "+bnlev)
-print("Number of input interfaces = "+bnint)
-print("Number of output levels = "+onlev)
-print("Number of output interfaces = "+onint)
+keepilev = True
 
-tilev = where(tilev .lt. splitlev,tilev,-1)
-bilev = where(bilev .ge. splitlev,bilev,-1)
+;delLevs = (/tnint-2,tnint-3,tnint-5,tnint-6,tnint-8/)
+delLevs = (/tnint-2/)
 
-indtopi = ind(tilev .gt. 0)
-indboti = ind(bilev .gt. 0)
+do ii = 0,tnint-1
+  if (any(delLevs.eq.ii)) then
+    keepilev(ii)=False
+  end if
+end do
 
-print(indtopi)
-print(indboti)
+ohyai = thyai(ind(keepilev))
+ohybi = thybi(ind(keepilev))
+oilev = tilev(ind(keepilev))
 
-numtopi = dimsizes(indtopi)
-numboti = dimsizes(indboti)
-
-onint = numtopi + numboti
-onlev = onint - 1
+onint = dimsizes(ohyai)
+onlev = onint-1
 
 ohyam  = new(onlev,typeof(thyam))
 ohybm  = new(onlev,typeof(thybm))
-ohyai  = new(onint,typeof(thyai))
-ohybi  = new(onint,typeof(thybi))
 olev   = new(onlev,typeof(tlev))
-oilev  = new(onint,typeof(tilev))
-
-oilev(0:numtopi-1) = tilev(indtopi)
-oilev(numtopi:onint-1) = bilev(indboti)
-
-ohyai(0:numtopi-1) = thyai(indtopi)
-ohyai(numtopi:onint-1) = bhyai(indboti)
-
-ohybi(0:numtopi-1) = thybi(indtopi)
-ohybi(numtopi:onint-1) = bhybi(indboti)
 
 ; now calculate midpoints, which are just literally the midpoints
 
@@ -90,7 +55,7 @@ copy_VarMeta(olev,ohybm)
 ;===================================================================
 ; write output template
 ;===================================================================
-out_template="./L"+onlev+"template.nc"
+out_template="./Z_L"+onlev+"template.nc"
 system("/bin/rm -f "+out_template)   ; remove any pre-existing file
 ofile = addfile(out_template ,"c")  ; open output netCDF file
 

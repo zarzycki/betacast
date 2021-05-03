@@ -95,6 +95,8 @@ else if (case .eq. "CESMLENS") ; Can be used for attribution and future projecti
 end if
 end if
 
+print(deltaT_in&time)
+
 print("filling in deltas...")
 deltaT  = where(ismissing(deltaT),0,deltaT)
 deltaQ  = where(ismissing(deltaQ),0,deltaQ)

@@ -5,64 +5,73 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-inttype="double" ; double, quadruple
 keeplowestlevel=False
 
-in_template="./L120template.nc"
-ifile=addfile(in_template,"r")
+top_template="./L30template.nc"
+bot_template="./L59template.nc"
+splitlev=600.
 
-ihyam  = ifile->hyam
-ihybm  = ifile->hybm
-ihyai  = ifile->hyai
-ihybi  = ifile->hybi
-ilev = ifile->lev
-iilev = ifile->ilev
+tfile=addfile(top_template,"r")
+thyam  = tfile->hyam
+thybm  = tfile->hybm
+thyai  = tfile->hyai
+thybi  = tfile->hybi
+tlev  = tfile->lev
+tilev = tfile->ilev
 
-inlev = dimsizes(ilev)
-inint = dimsizes(iilev)
-onlev = 2*inlev
-onint = onlev+1
+bfile=addfile(bot_template,"r")
+bhyam  = bfile->hyam
+bhybm  = bfile->hybm
+bhyai  = bfile->hyai
+bhybi  = bfile->hybi
+blev  = bfile->lev
+bilev = bfile->ilev
 
-if (keeplowestlevel) then
-  onlev = onlev-1
-  onint = onint-1
-end if
+tnlev = dimsizes(tlev)
+tnint = dimsizes(tilev)
+bnlev = dimsizes(blev)
+bnint = dimsizes(bilev)
 
-print("Number of input levels = "+inlev)
-print("Number of input interfaces = "+inint)
+onlev = max((/bnlev,tnlev/))
+onint = max((/bnint,tnint/))
+
+print("Number of input levels = "+tnlev)
+print("Number of input interfaces = "+tnint)
+print("Number of input levels = "+bnlev)
+print("Number of input interfaces = "+bnint)
 print("Number of output levels = "+onlev)
 print("Number of output interfaces = "+onint)
 
-ohyam  = new(onlev,typeof(ihyam))
-ohybm  = new(onlev,typeof(ihybm))
-ohyai  = new(onint,typeof(ihyai))
-ohybi  = new(onint,typeof(ihybi))
-olev   = new(onlev,typeof(ilev))
-oilev  = new(onint,typeof(iilev))
+tilev = where(tilev .lt. splitlev,tilev,-1)
+bilev = where(bilev .ge. splitlev,bilev,-1)
 
-do ii = 0,onint-1
-  if (ii .eq. 0) then
-    ohyai(0) = ihyai(0)
-    ohybi(0) = ihybi(0)
-    oilev(0) = iilev(0)
-  else if (ii .eq. onint-1) then
-    ohyai(ii) = ihyai(inint-1)
-    ohybi(ii) = ihybi(inint-1)
-    oilev(ii) = iilev(inint-1)
-  else
-    if (mod(ii,2) .eq. 0) then
-      ohyai(ii) = ihyai(ii/2)
-      ohybi(ii) = ihybi(ii/2)
-      oilev(ii) = iilev(ii/2)
-    else
-      ohyai(ii) = ( ihyai((ii+1)/2) + ihyai((ii-1)/2) ) / 2.
-      ohybi(ii) = ( ihybi((ii+1)/2) + ihybi((ii-1)/2) ) / 2.
-      oilev(ii) = ( iilev((ii+1)/2) + iilev((ii-1)/2) ) / 2.
-      print(ii+" "+oilev(ii))
-    end if
-  end if
-  end if
-end do
+indtopi = ind(tilev .gt. 0)
+indboti = ind(bilev .gt. 0)
+
+print(indtopi)
+print(indboti)
+
+numtopi = dimsizes(indtopi)
+numboti = dimsizes(indboti)
+
+onint = numtopi + numboti
+onlev = onint - 1
+
+ohyam  = new(onlev,typeof(thyam))
+ohybm  = new(onlev,typeof(thybm))
+ohyai  = new(onint,typeof(thyai))
+ohybi  = new(onint,typeof(thybi))
+olev   = new(onlev,typeof(tlev))
+oilev  = new(onint,typeof(tilev))
+
+oilev(0:numtopi-1) = tilev(indtopi)
+oilev(numtopi:onint-1) = bilev(indboti)
+
+ohyai(0:numtopi-1) = thyai(indtopi)
+ohyai(numtopi:onint-1) = bhyai(indboti)
+
+ohybi(0:numtopi-1) = thybi(indtopi)
+ohybi(numtopi:onint-1) = bhybi(indboti)
 
 ; now calculate midpoints, which are just literally the midpoints
 
@@ -81,7 +90,7 @@ copy_VarMeta(olev,ohybm)
 ;===================================================================
 ; write output template
 ;===================================================================
-out_template="./L"+onlev+"template.nc"
+out_template="./_L"+onlev+"template.nc"
 system("/bin/rm -f "+out_template)   ; remove any pre-existing file
 ofile = addfile(out_template ,"c")  ; open output netCDF file
 
