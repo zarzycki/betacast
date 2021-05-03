@@ -17,13 +17,17 @@
 
 # Should we initialize the runoff model? 0 = no, 1 = yes. Defaults to zero if unset.
   do_runoff = 1
+  
+# Should we keep the land (and rof) restart files? 0 = no, 1 = yes.
+# **NOTE: if 0, you better have your own restart files already archived!
+  keep_land_restarts = 0
 
 ### GFS analysis available from 8/2004 onward
 ### CFSR analysis available from 1979 to Mar 2011          
-### Use NOAAOI unless running real-time
 # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR, 4 = ERA5
   atmDataType = 4
 
+### Use NOAAOI unless running real-time
 # 1 = GDAS, 2 = ERA, 3 = NOAAOI
   sstDataType = 3
 
@@ -70,7 +74,7 @@
   FILTERWALLCLOCK = 00:29:00
   FILTERQUEUE = premium
   RUNWALLCLOCK = 02:19:00
-  RUNQUEUE = regular
+  RUNQUEUE = premium
 
   usingCIME = true
 
