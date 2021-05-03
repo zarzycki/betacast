@@ -9,14 +9,14 @@ set -e
 ### User settings
 FORECASTDATE=19960113
 NMONTHSSPIN=12
-CIMEROOT=~/E3SM-dev
+CIMEROOT=~/work/cesm2_2_0
 PATHTOCASE=~/I-compsets
-CASENAME=RoS-ICLM45-ne30
-PROJECT=m2637
-MACHINE=cori-knl
-NNODES=12
-COMPSET=IELM
-RESOL=ne30_ne30
+CASENAME=RoS-ICLM45-f09
+PROJECT=UPSU0032
+MACHINE=cheyenne
+NNODES=4
+COMPSET=I2000Clm50Sp   #IELM
+RESOL=f09_g16
 RUNQUEUE=premium
 
 ### Do not edit below this line!
@@ -41,11 +41,11 @@ elif [ ${#FORECASTDATE} -ne 8 ]; then
   echo "STOP"
 else
   cd ${CIMEROOT}/cime/scripts
-  ./create_newcase --case ${PATHTOCASE}/${CASENAME} --compset ${COMPSET} --res ${RESOL} --mach ${MACHINE} --project ${PROJECT}
+  ./create_newcase --case ${PATHTOCASE}/${CASENAME} --compset ${COMPSET} --res ${RESOL} --mach ${MACHINE} --project ${PROJECT} --run-unsupported
   cd ${PATHTOCASE}/${CASENAME}
-  ./xmlchange NTASKS=-${NNODES}
-  ./xmlchange NTASKS_ESP=1
-  ./xmlchange DATM_MODE=CLMCRUNCEPv7
+#  ./xmlchange NTASKS=-${NNODES}
+#  ./xmlchange NTASKS_ESP=1
+#  ./xmlchange DATM_MODE=CLMCRUNCEPv7
   ./xmlchange STOP_N=2
   ./xmlchange STOP_OPTION='nyears'
   ./xmlchange DATM_CLMNCEP_YR_START=${FORECASTYEARM1}
@@ -66,6 +66,7 @@ else
   check_finidat_fsurdat_consistency = .false.
 EOF
 
+exit
   ./case.setup
   ./case.build
   ./xmlchange JOB_WALLCLOCK_TIME="06:15:00"

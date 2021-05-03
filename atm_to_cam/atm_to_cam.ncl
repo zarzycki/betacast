@@ -235,7 +235,7 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5
 end if
 if (datasource .eq. "ERAI") then
   print("Using hybrid to hybrid interpolation")
-  eraVertFile = addfile("./ERA-Interim_coordvars.nc","r")
+  eraVertFile = addfile("./templates/ERA-Interim_coordvars.nc","r")
   hya_era = eraVertFile->a_model_ave
   hyb_era = eraVertFile->b_model_ave
   hya_era = hya_era/p0

@@ -1,5 +1,9 @@
-f=addfile("/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.cruncep_qianFill.0.5d.v7.c160715/domain.lnd.360x720_cruncep.130305.nc","r")
-g = addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_165_10u.ll025sc.1986080100_1986083123.nc","r")
+load "functions.ncl"
+
+g=addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_165_10u.ll025sc.1986080100_1986083123.nc","r")
+
+;f=addfile("/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.GSWP3.0.5d.v1.c170516/domain.lnd.360x720_gswp3.0v1.c170606.nc","r")
+;print(sum(f->area))
 
 ;netcdf domain.CRUJRAV1.1.0.5x0.5.c190606 {
 ;dimensions:
@@ -32,26 +36,52 @@ g = addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an
 ;		area:long_name = "area of grid cell in radians squared" ;
 ;		area:mode = "time-invariant" ;
 
-xc = f->xc
-xv = f->xv
-yc = f->yc
-yv = f->yv
 
-nj=14
-ni=24
+lat = tofloat(g->latitude(::-1))
+lon = tofloat(g->longitude)
 
-print(xc(nj,ni))
-;print(xv(nj,ni,:))
+nlat = dimsizes(lat)
+nlon = dimsizes(lon)
 
-print(yc(nj,ni))
-;print(yv(:,nj,ni))
+xc = conform_dims((/nlat,nlon/),lon,1)
+yc = conform_dims((/nlat,nlon/),lat,0)
 
-;print(xc(0,0))
+opt=True
+opt@rearth=1.0
+area = tofloat(area_global_rectilinear_grid(lat,lon,opt))
 
+xc!0="nj"
+xc!1="ni"
 
-print("xc: "+min(f->xc)+" "+max(f->xc))
-print("yc: "+min(f->yc)+" "+max(f->yc))
-print("mask: "+min(f->mask)+" "+max(f->mask))
-print("frac: "+min(f->frac)+" "+max(f->frac))
-print("area: "+min(f->area)+" "+max(f->area))
+yc!0="nj"
+yc!1="ni"
 
+area!0="nj"
+area!1="ni"
+
+thismask=area
+thismask=1.0
+
+fullfilename="era5-domain.nc"
+
+system("/bin/rm -f "+fullfilename)   ; remove any pre-existing file
+ncdf = addfile(fullfilename ,"c")  ; open output netCDF file
+
+;===================================================================
+; create global attributes of the file (optional)
+;===================================================================
+fAtt               = True            ; assign file attributes
+fAtt@title         = "NCL Simple Approach to netCDF Creation"
+fAtt@source_file   =  "original-file.nc"
+fAtt@Conventions   = "None"
+fAtt@creation_date = systemfunc ("date")
+fileattdef( ncdf, fAtt )            ; copy file attributes
+
+;===================================================================
+; output variables directly; NCL will call appropriate functions
+; to write the meta data associated with each variable
+;===================================================================
+ncdf->xc = xc
+ncdf->yc = yc
+ncdf->area = area
+ncdf->mask = thismask

@@ -1,14 +1,19 @@
-d=addfile("/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.cruncep_qianFill.0.5d.v7.c160715/domain.lnd.360x720_cruncep.130305.nc","r")
-timestride=6
+;d=addfile("/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.cruncep_qianFill.0.5d.v7.c160715/domain.lnd.360x720_cruncep.130305.nc","r")
+;d=addfile("/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.GSWP3.0.5d.v1.c170516/domain.lnd.360x720_gswp3.0v1.c170606.nc","r")
+d=addfile("era5-domain.nc","r")
+timestride=3
+STIX=0
 do_q=True
+outdirbase="/glade/scratch/zarzycki/ERA5-DATM/DATM/"
+datafilename="CMZERA5.v0.c2021.0.5d"
+;YYYY="1995"
+;MM="09"
+newgrid=False
+wgt_filename="/glade/u/home/zarzycki/scratch/map_era5_0.25_TO_360x720_cruncep_patc.210315.nc"
 ;/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.cruncep_qianFill.0.5d.v7.c160715/TPHWL6Hrly/clmforc.cruncep.V7.c2016.0.5d.TPQWL.1986-08.nc
 
 print("Adding files...")
-ubot_era5_f=addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_165_10u.ll025sc.1986080100_1986083123.nc","r")
-vbot_era5_f=addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_166_10v.ll025sc.1986080100_1986083123.nc","r")
-ps_era5_f=addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_134_sp.ll025sc.1986080100_1986083123.nc","r")
-tbot_era5_f=addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_167_2t.ll025sc.1986080100_1986083123.nc","r")
-tdew_era5_f=addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_168_2d.ll025sc.1986080100_1986083123.nc","r")
+f=addfile("/glade/u/home/zarzycki/scratch/ERA5-DATM/out."+YYYY+"."+MM+".nc","r")
 
 ;mixhum_ptd
 ;"/glade/u/home/zarzycki/rda/ds633.0/e5.oper.fc.sfc.meanflux/198608/e5.oper.fc.sfc.meanflux.235_058_msdrswrf.ll025sc.1986080106_1986081606.nc"
@@ -25,17 +30,20 @@ lon_datm = lon_datm_2D(0,:)
 lat_datm = lat_datm_2D(:,0)
 
 print("Reading relevant coordinates from reanalysis...")
-lon_era5=tbot_era5_f->longitude
-lat_era5=tbot_era5_f->latitude(::-1)
-time_era5=tbot_era5_f->time(3::timestride)
+lon_era5=f->longitude
+lat_era5=f->latitude(::-1)
+time_era5=f->time(STIX::timestride)
 
 print("Pull required variables off files...")
 ; get ERA5 data
-u10_era5 = ubot_era5_f->VAR_10U(3::timestride,::-1,:)
-v10_era5 = vbot_era5_f->VAR_10V(3::timestride,::-1,:)
-tbot_era5 = tbot_era5_f->VAR_2T(3::timestride,::-1,:)
-tdew_era5 = tdew_era5_f->VAR_2D(3::timestride,::-1,:)
-psrf_era5 = ps_era5_f->SP(3::timestride,::-1,:)
+u10_era5 = short2flt( f->u10(STIX::timestride,::-1,:) )
+v10_era5 = short2flt( f->v10(STIX::timestride,::-1,:) )
+tbot_era5 = short2flt( f->t2m(STIX::timestride,::-1,:) )
+tdew_era5 = short2flt( f->d2m(STIX::timestride,::-1,:) )
+psrf_era5 = short2flt( f->sp(STIX::timestride,::-1,:) )
+prec_era5 = short2flt( f->mtpr(STIX::timestride,::-1,:) )
+fsds_era5 = short2flt( f->ssrd(STIX::timestride,::-1,:) )
+flds_era5 = short2flt( f->strd(STIX::timestride,::-1,:) )
 
 print("Processing wind...")
 wind_era5 = u10_era5
@@ -44,21 +52,75 @@ wind_era5 = sqrt(u10_era5^2. + v10_era5^2.)
 if (do_q) then
   print("Processing Q...")
   qbot_era5 = mixhum_ptd(psrf_era5, tdew_era5, 2)
+  copy_VarCoords(tdew_era5,qbot_era5)
 end if
 
-print("Bilinear interpolation")
-tbot_datm = linint2(lon_era5,lat_era5,tbot_era5,True,lon_datm,lat_datm, 0)
-if (do_q) then
-  qbot_datm = linint2(lon_era5,lat_era5,qbot_era5,True,lon_datm,lat_datm, 0)
+if (newgrid) then
+  if (wgt_filename .ne. "") then
+    print("Using ESMF mapping")
+    Opt = True
+    Opt@CopyVarCoords = False  ; turn this off to allow overwrite of coord types
+    tbot_datm  = ESMF_regrid_with_weights(tbot_era5(:,::-1,:),wgt_filename,Opt)
+    if (do_q) then
+      qbot_datm = ESMF_regrid_with_weights(qbot_era5(:,::-1,:),wgt_filename,Opt)
+    else
+      qbot_datm = ESMF_regrid_with_weights(tdew_era5(:,::-1,:),wgt_filename,Opt)
+    end if
+    wind_datm  = ESMF_regrid_with_weights(wind_era5(:,::-1,:),wgt_filename,Opt)
+    psrf_datm  = ESMF_regrid_with_weights(psrf_era5(:,::-1,:),wgt_filename,Opt)
+    prec_datm  = ESMF_regrid_with_weights(prec_era5(:,::-1,:),wgt_filename,Opt)
+    fsds_datm  = ESMF_regrid_with_weights(fsds_era5(:,::-1,:),wgt_filename,Opt)
+    flds_datm  = ESMF_regrid_with_weights(flds_era5(:,::-1,:),wgt_filename,Opt)
+  else
+    print("Bilinear interpolation")
+    tbot_datm = linint2(lon_era5,lat_era5,tbot_era5,True,lon_datm,lat_datm, 0)
+    if (do_q) then
+      qbot_datm = linint2(lon_era5,lat_era5,qbot_era5,True,lon_datm,lat_datm, 0)
+    else
+      qbot_datm = linint2(lon_era5,lat_era5,tdew_era5,True,lon_datm,lat_datm, 0)
+    end if
+    wind_datm = linint2(lon_era5,lat_era5,wind_era5,True,lon_datm,lat_datm, 0)
+    psrf_datm = linint2(lon_era5,lat_era5,psrf_era5,True,lon_datm,lat_datm, 0)
+    prec_datm = linint2(lon_era5,lat_era5,prec_era5,True,lon_datm,lat_datm, 0)
+    fsds_datm = linint2(lon_era5,lat_era5,fsds_era5,True,lon_datm,lat_datm, 0)
+    flds_datm = linint2(lon_era5,lat_era5,flds_era5,True,lon_datm,lat_datm, 0)
+  end if
 else
-  qbot_datm = linint2(lon_era5,lat_era5,tdew_era5,True,lon_datm,lat_datm, 0)
+  print("Copying vars")
+  tbot_datm  = tbot_era5
+  delete(tbot_era5)
+  if (do_q) then
+    qbot_datm = qbot_era5
+  else
+    qbot_datm = tdew_era5
+  end if
+  wind_datm  = wind_era5
+  delete(wind_era5)
+  psrf_datm  = psrf_era5
+  delete(psrf_era5)
+  prec_datm  = prec_era5
+  delete(prec_era5)
+  fsds_datm  = fsds_era5
+  delete(fsds_era5)
+  flds_datm  = flds_era5
+  delete(flds_era5)
 end if
-wind_datm = linint2(lon_era5,lat_era5,wind_era5,True,lon_datm,lat_datm, 0)
-psrf_datm = linint2(lon_era5,lat_era5,psrf_era5,True,lon_datm,lat_datm, 0)
+
+print("Enforce zero checks")
+eps = 1.0e-8
+prec_datm = where(prec_datm .lt. 0.0, 0.0, prec_datm)
+fsds_datm = where(fsds_datm .le. 0.0, eps, fsds_datm)
+flds_datm = where(flds_datm .le. 0.0, eps, flds_datm)
 
 print("Dummy variables")
 zbot_datm = tbot_datm
 zbot_datm = 10.
+zbot_datm@long_name = "reference height"
+
+print("Convert units")
+; convert from J/s to W/m2 (over 1 hour)
+fsds_datm = fsds_datm / 3600.
+flds_datm = flds_datm / 3600.
 
 print("Set metadata")
 tbot_datm!0="time"
@@ -105,15 +167,25 @@ lon_datm_2D_float@units = "degrees_east"
 lon_datm_2D_float@mode = "time-invariant"
 
 print("Assigning coordinates to time-varying fields")
-tbot_datm&lat = lat_datm_float
-tbot_datm&lon = lon_datm_float
-tbot_datm&time = time_datm
+tbot_datm&lat  := lat_datm_float
+tbot_datm&lon  := lon_datm_float
+tbot_datm&time := time_datm
 
 print("Copying var coords")
+delete(wind_datm&time)
 copy_VarCoords(tbot_datm,wind_datm)
+delete(psrf_datm&time)
 copy_VarCoords(tbot_datm,psrf_datm)
+delete(qbot_datm&time)
 copy_VarCoords(tbot_datm,qbot_datm)
+delete(zbot_datm&time)
 copy_VarCoords(tbot_datm,zbot_datm)
+delete(prec_datm&time)
+copy_VarCoords(tbot_datm,prec_datm)
+delete(fsds_datm&time)
+copy_VarCoords(tbot_datm,fsds_datm)
+delete(flds_datm&time)
+copy_VarCoords(tbot_datm,flds_datm)
 
 print("Assigning units and other metadata for time-dependent variables")
 tbot_datm@mode = "time-dependent"
@@ -130,6 +202,13 @@ else
 end if
 zbot_datm@mode = "time-dependent"
 zbot_datm@units = "m"
+prec_datm@mode = "time-dependent"
+prec_datm@units = "mm H2O / sec"
+prec_datm@long_name = "PRECTmms total precipitation"
+fsds_datm@mode = "time-dependent"
+fsds_datm@units = "W/m**2"
+flds_datm@mode = "time-dependent"
+flds_datm@units = "W/m**2"
 
 print("Set edge vars...")
 EDGEW =   0.
@@ -151,42 +230,187 @@ EDGEN@mode = "time-invariant"
 
 
 ;======= OUTPUT FILE
-print("Writing output!")
-system("/bin/rm -f simple.nc")   ; remove any pre-existing file
-ncdf = addfile("simple.nc" ,"c")  ; open output netCDF file
+filenames = (/"TPQWL","Solar","Prec"/)
+outfolders = (/"TPHWL6Hrly","Solr","Precip6Hrly"/)
 
-;===================================================================
-; create global attributes of the file (optional)
-;===================================================================
-fAtt               = True            ; assign file attributes
-fAtt@title         = "NCL Simple Approach to netCDF Creation"
-fAtt@source_file   =  "original-file.nc"
-fAtt@Conventions   = "None"
-fAtt@creation_date = systemfunc ("date")
-fileattdef( ncdf, fAtt )            ; copy file attributes
+do ii = 0,dimsizes(filenames)-1
 
-;===================================================================
-; make time an UNLIMITED dimension; recommended  for most applications
-;===================================================================
-filedimdef(ncdf,"time",-1,True) 
+  fullfilename=outdirbase+"/"+outfolders(ii)+"/"+datafilename+"."+filenames(ii)+"."+tostring(YYYY)+"-"+tostring(MM)+".nc"
+  
+  print("Writing "+fullfilename+" output!")
 
-;===================================================================
-; output variables directly; NCL will call appropriate functions
-; to write the meta data associated with each variable
-;===================================================================
-ncdf->LONGXY = lon_datm_2D_float
-ncdf->LATIXY = lat_datm_2D_float
-ncdf->TBOT  = tbot_datm
-ncdf->WIND  = wind_datm
-ncdf->PSRF  = psrf_datm
-if (do_q) then
-  ncdf->QBOT  = qbot_datm
-else
-  ncdf->TDEW  = qbot_datm
-end if
-ncdf->ZBOT  = zbot_datm
+  system("mkdir -p "+outdirbase+"/"+outfolders(ii))
 
-ncdf->EDGEW  = EDGEW
-ncdf->EDGEE  = EDGEE
-ncdf->EDGES  = EDGES
-ncdf->EDGEN  = EDGEN
+  system("/bin/rm -f "+fullfilename)   ; remove any pre-existing file
+  
+  ;setfileoption("nc","format","netcdf4")
+   
+;!  ncdf = addfile(fullfilename ,"c")  ; open output netCDF file
+;!
+;!  ;===================================================================
+;!  ; create global attributes of the file (optional)
+;!  ;===================================================================
+;!  fAtt               = True            ; assign file attributes
+;!  fAtt@title         = "NCL Simple Approach to netCDF Creation"
+;!  fAtt@source_file   =  "original-file.nc"
+;!  fAtt@Conventions   = "None"
+;!  fAtt@creation_date = systemfunc ("date")
+;!  fileattdef( ncdf, fAtt )            ; copy file attributes
+;!
+;!  ;===================================================================
+;!  ; make time an UNLIMITED dimension; recommended  for most applications
+;!  ;===================================================================
+;!  filedimdef(ncdf,"time",-1,True) 
+;!
+;!  ;===================================================================
+;!  ; output variables directly; NCL will call appropriate functions
+;!  ; to write the meta data associated with each variable
+;!  ;===================================================================
+;!  ncdf->LONGXY = lon_datm_2D_float
+;!  ncdf->LATIXY = lat_datm_2D_float
+;!  ncdf->EDGEW  = EDGEW
+;!  ncdf->EDGEE  = EDGEE
+;!  ncdf->EDGES  = EDGES
+;!  ncdf->EDGEN  = EDGEN
+;!
+;!  if (ii .eq. 0) then
+;!    ncdf->TBOT  = tbot_datm
+;!    ncdf->WIND  = wind_datm
+;!    ncdf->PSRF  = psrf_datm
+;!    if (do_q) then
+;!     ncdf->QBOT  = qbot_datm
+;!    else
+;!     ncdf->TDEW  = qbot_datm
+;!    end if
+;!    ncdf->ZBOT  = zbot_datm
+;!    ncdf->FLDS  = flds_datm
+;!  else if (ii .eq. 2) then
+;!    ncdf->PRECTmms  = prec_datm
+;!  else
+;!    ncdf->FSDS  = fsds_datm
+;!  end if
+;!  end if
+
+;===================================================================  
+    ; Assume variables T, PS and ORO exist and that they have 
+    ; associated meta data: (a) coordinate variables time, lev, lat, lon       
+    ; and (b) attributes
+    ;===================================================================  
+
+  thesedims = dimsizes(tbot_datm)
+  ntim  = thesedims(0)
+	nlat  = thesedims(1)
+	nlon  = thesedims(2)
+
+  ncdf = addfile(fullfilename ,"c")  ; open output netCDF file
+
+
+    ;===================================================================
+    ; explicitly declare file definition mode. Improve efficiency.
+    ;===================================================================
+        setfileoption(ncdf,"DefineMode",True)
+
+    ;===================================================================
+    ; create global attributes of the file
+    ;===================================================================
+        fAtt               = True            ; assign file attributes
+	fAtt@title         = "NCL Efficient Approach to netCDF Creation"  
+	fAtt@source_file   =  "original-file.nc"
+	fAtt@Conventions   = "None"   
+	fAtt@creation_date = systemfunc ("date")        
+	fileattdef( ncdf, fAtt )            ; copy file attributes    
+
+    ;===================================================================
+    ; predefine the coordinate variables and their dimensionality
+    ; Note: to get an UNLIMITED record dimension, we set the dimensionality
+    ; to -1 (or the actual size) and set the dimension name to True.
+    ;===================================================================
+        dimNames = (/"time", "lat", "lon", "scalar"/)  
+	dimSizes = (/ -1   ,  nlat,  nlon , 1 /) 
+	dimUnlim = (/ True , False, False, False/)   
+	filedimdef(ncdf,dimNames,dimSizes,dimUnlim)
+
+
+       filevardef(ncdf, "time" ,typeof(time_datm),getvardims(time_datm))                          
+       filevardef(ncdf, "LONGXY"  ,typeof(lon_datm_2D_float),getvardims(lon_datm_2D_float))                          
+       filevardef(ncdf, "LATIXY"  ,typeof(lat_datm_2D_float),getvardims(lat_datm_2D_float))       
+       filevardef(ncdf, "EDGEW"  ,typeof(EDGEW),getvardims(EDGEW))       
+       filevardef(ncdf, "EDGEE"  ,typeof(EDGEE),getvardims(EDGEE))       
+       filevardef(ncdf, "EDGES"  ,typeof(EDGES),getvardims(EDGES))       
+       filevardef(ncdf, "EDGEN"  ,typeof(EDGEN),getvardims(EDGEN))
+       
+       if (ii .eq. 0) then
+         filevardef(ncdf, "TBOT"  ,typeof(tbot_datm),getvardims(tbot_datm))
+         filevardef(ncdf, "WIND"  ,typeof(wind_datm),getvardims(wind_datm))
+         filevardef(ncdf, "PSRF"  ,typeof(psrf_datm),getvardims(psrf_datm))
+         filevardef(ncdf, "QBOT"  ,typeof(qbot_datm),getvardims(qbot_datm))
+         filevardef(ncdf, "ZBOT"  ,typeof(zbot_datm),getvardims(zbot_datm))
+         filevardef(ncdf, "FLDS"  ,typeof(flds_datm),getvardims(flds_datm))
+       else if (ii .eq. 2) then
+         filevardef(ncdf, "PRECTmms"  ,typeof(prec_datm),getvardims(prec_datm))
+       else
+         filevardef(ncdf, "FSDS"  ,typeof(fsds_datm),getvardims(fsds_datm))
+       end if
+       end if
+                          
+
+    ;===================================================================
+    ; Copy attributes associated with each variable to the file
+    ; All attributes associated with each variable will be copied.
+    ;====================================================================
+    
+       filevarattdef(ncdf,"time",time_datm)
+       filevarattdef(ncdf,"LONGXY",lon_datm_2D_float)
+       filevarattdef(ncdf,"LATIXY",lat_datm_2D_float)
+       filevarattdef(ncdf,"EDGEW",EDGEW)
+       filevarattdef(ncdf,"EDGEE",EDGEE)
+       filevarattdef(ncdf,"EDGES",EDGES)
+       filevarattdef(ncdf,"EDGEN",EDGEN)
+
+       if (ii .eq. 0) then
+         filevarattdef(ncdf, "TBOT"  , tbot_datm)
+         filevarattdef(ncdf, "WIND"  , wind_datm)
+         filevarattdef(ncdf, "PSRF"  ,psrf_datm)
+         filevarattdef(ncdf, "QBOT"  ,qbot_datm)
+         filevarattdef(ncdf, "ZBOT"  ,zbot_datm)
+         filevarattdef(ncdf, "FLDS"  ,flds_datm)
+       else if (ii .eq. 2) then
+         filevarattdef(ncdf, "PRECTmms"  ,prec_datm)
+       else
+         filevarattdef(ncdf, "FSDS"  ,fsds_datm)
+       end if
+       end if
+    
+    ;===================================================================
+    ; explicitly exit file definition mode. **NOT REQUIRED**
+    ;===================================================================
+        setfileoption(ncdf,"DefineMode",False)
+
+    ;===================================================================
+    ; output only the data values since the dimensionality and such have
+    ; been predefined. The "(/", "/)" syntax tells NCL to only output the
+    ; data values to the predefined locations on the file.
+    ;====================================================================
+       ncdf->time   = (/time_datm/)     
+       ncdf->LONGXY    = (/lon_datm_2D_float/)
+       ncdf->LATIXY    = (/lat_datm_2D_float/)
+       ncdf->EDGEW    = (/EDGEW/) 
+       ncdf->EDGEE      = (/EDGEE/)
+       ncdf->EDGES      = (/EDGES/)
+       ncdf->EDGEN  = (/EDGEN/)
+       
+       if (ii .eq. 0) then
+         ncdf->TBOT   = (/tbot_datm/)     
+         ncdf->WIND   = (/wind_datm/)     
+         ncdf->PSRF   = (/psrf_datm/)     
+         ncdf->QBOT   = (/qbot_datm/)     
+         ncdf->ZBOT   = (/zbot_datm/)     
+         ncdf->FLDS   = (/flds_datm/)     
+       else if (ii .eq. 2) then
+         ncdf->PRECTmms   = (/prec_datm/)     
+       else
+         ncdf->FSDS   = (/fsds_datm/)     
+       end if
+       end if
+
+end do
