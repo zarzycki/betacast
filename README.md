@@ -116,15 +116,15 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI |
 | numLevels | 72 -> E3SMv1, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 |
 | numdays | How long for forecast to run (in days) |
-| adjust_topo | Full path to a *model* topography file. If valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. |
+| adjust_topo | Full path to a *model* (i.e., bnd_topo) topography file. If a valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. |
 | adjust_flags | Hydrostatic adjustment options. Currently "a" (include TBOT adjustment) and "-" (PS adjustment only) are supported. Only applied with valid adjust_topo file. |
-| doFilter | Should we apply offline forward DFI? Generally "false" for diffusive dycores and/or SE with hydrostatic adjustment. Set to "true" if using SE with no adjustment to minimize GW noise during first ~72 hours. |
+| doFilter | Should we apply offline forward DFI? Generally "false" for diffusive dycores and/or SE/HOMME with hydrostatic adjustment. Set to "true" if using SE with no adjustment (or unbalanced IC from another source) to minimize GW noise during first ~72 hours. |
 | filterOnly | Exit code after the filter run if doFilter=true (useful for producing ncdata for ensembles) |
-| numHoursSEStart | Centerpoint of filter duration (leave at 3)|
-| filterHourLength | Filter duration (leave at 6)|
-| filtTcut | Cut setting for filter (leave at 6) |
+| numHoursSEStart | Centerpoint of filter duration (leave at 3), only used if doFilter |
+| filterHourLength | Filter duration (leave at 6), only used if doFilter |
+| filtTcut | Cut setting for filter (leave at 6), only used if doFilter |
 | add_perturbs | Add PGW perturbations for counterfactual runs (leave at false) |
-| add_noise | Add white noise to ncdata for ensemble (leave at false) |
+| add_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) |
 | land_spinup | Cycle land spinup only (unsupported currently, leave false) |
 | gfs2seWeights | Path to file allowing for GFS -> ATM regridding |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
