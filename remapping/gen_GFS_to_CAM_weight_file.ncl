@@ -23,7 +23,7 @@ end if
 dstGridDir="./fv_scrip/"
 dstGridFile="SCRIPgrid_0.9x1.25_nomask_c191014.nc"
 
-srcGridDir="/glade/u/home/zarzycki/betacast/remapping/scrip/"
+srcGridDir="/glade/u/home/zarzycki/betacast/remapping/scrip/anl_scrip/"
 srcGridFile="era5_0.25x0.25_scrip.nc"
 
 wgtFileDir="./"
