@@ -20,7 +20,7 @@ else
   shortInterpName=InterpMethod
 end if
 
-dstGridDir="./fv_scrip/"
+dstGridDir="./model_scrip/"
 dstGridFile="SCRIPgrid_0.9x1.25_nomask_c191014.nc"
 
 srcGridDir="/glade/u/home/zarzycki/betacast/remapping/scrip/anl_scrip/"
