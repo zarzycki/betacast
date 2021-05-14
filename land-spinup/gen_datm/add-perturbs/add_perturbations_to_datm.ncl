@@ -9,7 +9,7 @@ case         ="CESMLENS" ; CAMC20C or CESMLENS
 start_month  = 1 ;6
 end_month    = 12 ;11
 current_year = 1996 ; CESMLENS only
-comp_year    = 2018 
+comp_year    = 2081 
 correct_sfc=False
 plevs=False
 update_pressure=False
@@ -18,29 +18,9 @@ do_ps_corr=True
 esmf_remap = True
 smooth_deltas = False
 smooth_delta_iter = 10
-output_diag=True 
+output_diag=False 
 keep_esmf=False
 extra_diags=True
-
-system("cp" + " " + BEFOREPERTFILE + " " + AFTERPERTFILE)
-fileName=AFTERPERTFILE
-camFile=addfile(fileName,"w")
-T=camFile->T
-Q=camFile->Q
-U=camFile->U
-V=camFile->V
-lat=camFile->lat
-lon=camFile->lon
-camlev=camFile->lev
-hyam=camFile->hyam
-hybm=camFile->hybm
-hyai=camFile->hyai
-hybi=camFile->hybi
-P0 = 100000.
-P0@units="Pa"
-PS=camFile->PS
-ncol = dimsizes(lat)
-nlev = dimsizes(hyam)
 
 if (case .eq. "CAMC20C") ; Can only by used for attribution
   deltaFilePS = addfile("/glade/work/alyssas/deltas/delta_ps_CAM5-1-1degree_All-Hist_est1_v2.0_1996-2016.nc_Climatology_2016-1996.nc","r")
@@ -109,30 +89,37 @@ time_deltas_doy(12) = 366
 print(time_deltas_doy)
 
 ; what is our datm file?
+;datm_file_name="/glade/u/home/zarzycki/scratch/ERA5-DATM/DATM_perturb/TPHWL6Hrly/CMZERA5.v0.c2021.0.5d.TPQWL.1995-01.nc"
+;datm2_file_name="/glade/u/home/zarzycki/scratch/ERA5-DATM/DATM_perturb/Precip6Hrly/CMZERA5.v0.c2021.0.5d.Prec.1995-01.nc"
 
-datm_file_name="/glade/u/home/zarzycki/scratch/ERA5-DATM/DATM/TPHWL6Hrly/CMZERA5.v0.c2021.0.5d.TPQWL.1995-01.nc"
-datm_file=addfile(datm_file_name,"r")
-print(datm_file->time@units)
+print(datm_file_name+"")
+print(datm2_file_name+"")
+datm_file=addfile(datm_file_name,"w")
+datm2_file=addfile(datm2_file_name,"w")
+
+;print(datm_file->time@units)
 datm_deltas = cd_calendar(datm_file->time,0)
 datm_deltas_doy = day_of_year(toint(datm_deltas(:,0)),toint(datm_deltas(:,1)),toint(datm_deltas(:,2)))
 
 datm_deltas_doy := tofloat(datm_deltas_doy) + tofloat(datm_deltas(:,3))/24.
-print(datm_deltas_doy)
+;print(datm_deltas_doy)
 
+print("Time interpolation")
 ; interp LENS to time deltas in DATM
-interp_T  = linint1_n_Wrap (time_deltas_doy, deltaT_in(:,29,:,:), False, datm_deltas_doy, 0, 0)
-interp_Q  = linint1_n_Wrap (time_deltas_doy, deltaQ_in(:,29,:,:), False, datm_deltas_doy, 0, 0)
+interp_T     = linint1_n_Wrap (time_deltas_doy, deltaT_in(:,29,:,:), False, datm_deltas_doy, 0, 0)
+interp_Q     = linint1_n_Wrap (time_deltas_doy, deltaQ_in(:,29,:,:), False, datm_deltas_doy, 0, 0)
 interp_PRECT = interp_T
 interp_PRECT = 1.0 + (0.03 * interp_T)
 
+print("Spatial interpolation output")
 ; now interp the time interpolated data to the DATM grid
 datm_lat = datm_file->LATIXY(:,0)
 datm_lon = datm_file->LONGXY(0,:)
-interp_T_DATM = linint2_Wrap (interp_T&lon,interp_T&lat,interp_T,True,datm_lon,datm_lat, 0)
-interp_Q_DATM = linint2_Wrap (interp_Q&lon,interp_Q&lat,interp_Q,True,datm_lon,datm_lat, 0)
+interp_T_DATM     = linint2_Wrap (interp_T&lon,interp_T&lat,interp_T,True,datm_lon,datm_lat, 0)
+interp_Q_DATM     = linint2_Wrap (interp_Q&lon,interp_Q&lat,interp_Q,True,datm_lon,datm_lat, 0)
+interp_PRECT_DATM = linint2_Wrap (interp_PRECT&lon,interp_PRECT&lat,interp_PRECT,True,datm_lon,datm_lat, 0)
 
-datm_file_new=addfile("/glade/u/home/zarzycki/scratch/ERA5-DATM/DATM_perturb/TPHWL6Hrly/CMZERA5.v0.c2021.0.5d.TPQWL.1995-01.nc","w")
-
+print("Read and update DATM data")
 TBOT = datm_file->TBOT
 TBOT_orig = TBOT
 TBOT = TBOT + totype(interp_T_DATM, typeof(TBOT))
@@ -140,11 +127,21 @@ TBOT = TBOT + totype(interp_T_DATM, typeof(TBOT))
 QBOT = datm_file->QBOT
 QBOT_orig = QBOT
 QBOT = QBOT + totype(interp_Q_DATM, typeof(QBOT)) 
-;  ncdf->interp_T     = interp_T
+
+PRECTmms = datm2_file->PRECTmms
+PRECTmms_orig = PRECTmms
+PRECTmms = PRECTmms * totype(interp_PRECT_DATM, typeof(PRECTmms)) 
 
 ; write new fields to perturbation file
-datm_file_new->TBOT = TBOT
-datm_file_new->QBOT = QBOT
+print("Writing output")
+datm_file->TBOT      = TBOT
+datm_file->QBOT      = QBOT
+datm2_file->PRECTmms = PRECTmms
+
+
+
+
+
 
 
 if (output_diag) then

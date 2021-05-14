@@ -1,10 +1,12 @@
 ;d=addfile("/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.cruncep_qianFill.0.5d.v7.c160715/domain.lnd.360x720_cruncep.130305.nc","r")
 ;d=addfile("/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.GSWP3.0.5d.v1.c170516/domain.lnd.360x720_gswp3.0v1.c170606.nc","r")
 d=addfile("era5-domain.nc","r")
-timestride=3
+timestride=1
 STIX=0
 do_q=True
+do_flds=False
 outdirbase="/glade/scratch/zarzycki/ERA5-DATM/DATM/"
+pathtorawera5="/glade/u/home/zarzycki/scratch/ERA5-DATM/"
 datafilename="CMZERA5.v0.c2021.0.5d"
 ;YYYY="1995"
 ;MM="09"
@@ -12,8 +14,15 @@ newgrid=False
 wgt_filename="/glade/u/home/zarzycki/scratch/map_era5_0.25_TO_360x720_cruncep_patc.210315.nc"
 ;/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.cruncep_qianFill.0.5d.v7.c160715/TPHWL6Hrly/clmforc.cruncep.V7.c2016.0.5d.TPQWL.1986-08.nc
 
+
+; ----- internal settings
+filenames = (/"TPQWL","Solar","Prec"/)
+outfolders = (/"TPHWL6Hrly","Solr","Precip6Hrly"/)
+
+;==============================================================
+
 print("Adding files...")
-f=addfile("/glade/u/home/zarzycki/scratch/ERA5-DATM/out."+YYYY+"."+MM+".nc","r")
+f=addfile(pathtorawera5+"out."+YYYY+"."+MM+".nc","r")
 
 ;mixhum_ptd
 ;"/glade/u/home/zarzycki/rda/ds633.0/e5.oper.fc.sfc.meanflux/198608/e5.oper.fc.sfc.meanflux.235_058_msdrswrf.ll025sc.1986080106_1986081606.nc"
@@ -43,7 +52,9 @@ tdew_era5 = short2flt( f->d2m(STIX::timestride,::-1,:) )
 psrf_era5 = short2flt( f->sp(STIX::timestride,::-1,:) )
 prec_era5 = short2flt( f->mtpr(STIX::timestride,::-1,:) )
 fsds_era5 = short2flt( f->ssrd(STIX::timestride,::-1,:) )
-flds_era5 = short2flt( f->strd(STIX::timestride,::-1,:) )
+if (do_flds) then
+  flds_era5 = short2flt( f->strd(STIX::timestride,::-1,:) )
+end if
 
 print("Processing wind...")
 wind_era5 = u10_era5
@@ -70,7 +81,9 @@ if (newgrid) then
     psrf_datm  = ESMF_regrid_with_weights(psrf_era5(:,::-1,:),wgt_filename,Opt)
     prec_datm  = ESMF_regrid_with_weights(prec_era5(:,::-1,:),wgt_filename,Opt)
     fsds_datm  = ESMF_regrid_with_weights(fsds_era5(:,::-1,:),wgt_filename,Opt)
-    flds_datm  = ESMF_regrid_with_weights(flds_era5(:,::-1,:),wgt_filename,Opt)
+    if (do_flds) then
+      flds_datm  = ESMF_regrid_with_weights(flds_era5(:,::-1,:),wgt_filename,Opt)
+    end if
   else
     print("Bilinear interpolation")
     tbot_datm = linint2(lon_era5,lat_era5,tbot_era5,True,lon_datm,lat_datm, 0)
@@ -83,7 +96,9 @@ if (newgrid) then
     psrf_datm = linint2(lon_era5,lat_era5,psrf_era5,True,lon_datm,lat_datm, 0)
     prec_datm = linint2(lon_era5,lat_era5,prec_era5,True,lon_datm,lat_datm, 0)
     fsds_datm = linint2(lon_era5,lat_era5,fsds_era5,True,lon_datm,lat_datm, 0)
-    flds_datm = linint2(lon_era5,lat_era5,flds_era5,True,lon_datm,lat_datm, 0)
+    if (do_flds) then
+      flds_datm = linint2(lon_era5,lat_era5,flds_era5,True,lon_datm,lat_datm, 0)
+    end if
   end if
 else
   print("Copying vars")
@@ -102,15 +117,19 @@ else
   delete(prec_era5)
   fsds_datm  = fsds_era5
   delete(fsds_era5)
-  flds_datm  = flds_era5
-  delete(flds_era5)
+  if (do_flds) then
+    flds_datm  = flds_era5
+    delete(flds_era5)
+  end if
 end if
 
 print("Enforce zero checks")
 eps = 1.0e-8
 prec_datm = where(prec_datm .lt. 0.0, 0.0, prec_datm)
 fsds_datm = where(fsds_datm .le. 0.0, eps, fsds_datm)
-flds_datm = where(flds_datm .le. 0.0, eps, flds_datm)
+if (do_flds) then
+  flds_datm = where(flds_datm .le. 0.0, eps, flds_datm)
+end if
 
 print("Dummy variables")
 zbot_datm = tbot_datm
@@ -120,7 +139,9 @@ zbot_datm@long_name = "reference height"
 print("Convert units")
 ; convert from J/s to W/m2 (over 1 hour)
 fsds_datm = fsds_datm / 3600.
-flds_datm = flds_datm / 3600.
+if (do_flds) then
+  flds_datm = flds_datm / 3600.
+end if
 
 print("Set metadata")
 tbot_datm!0="time"
@@ -184,8 +205,10 @@ delete(prec_datm&time)
 copy_VarCoords(tbot_datm,prec_datm)
 delete(fsds_datm&time)
 copy_VarCoords(tbot_datm,fsds_datm)
-delete(flds_datm&time)
-copy_VarCoords(tbot_datm,flds_datm)
+if (do_flds) then
+  delete(flds_datm&time)
+  copy_VarCoords(tbot_datm,flds_datm)
+end if
 
 print("Assigning units and other metadata for time-dependent variables")
 tbot_datm@mode = "time-dependent"
@@ -207,8 +230,10 @@ prec_datm@units = "mm H2O / sec"
 prec_datm@long_name = "PRECTmms total precipitation"
 fsds_datm@mode = "time-dependent"
 fsds_datm@units = "W/m**2"
-flds_datm@mode = "time-dependent"
-flds_datm@units = "W/m**2"
+if (do_flds) then
+  flds_datm@mode = "time-dependent"
+  flds_datm@units = "W/m**2"
+end if
 
 print("Set edge vars...")
 EDGEW =   0.
@@ -230,8 +255,7 @@ EDGEN@mode = "time-invariant"
 
 
 ;======= OUTPUT FILE
-filenames = (/"TPQWL","Solar","Prec"/)
-outfolders = (/"TPHWL6Hrly","Solr","Precip6Hrly"/)
+
 
 do ii = 0,dimsizes(filenames)-1
 
@@ -345,7 +369,9 @@ do ii = 0,dimsizes(filenames)-1
          filevardef(ncdf, "PSRF"  ,typeof(psrf_datm),getvardims(psrf_datm))
          filevardef(ncdf, "QBOT"  ,typeof(qbot_datm),getvardims(qbot_datm))
          filevardef(ncdf, "ZBOT"  ,typeof(zbot_datm),getvardims(zbot_datm))
-         filevardef(ncdf, "FLDS"  ,typeof(flds_datm),getvardims(flds_datm))
+         if (do_flds) then
+           filevardef(ncdf, "FLDS"  ,typeof(flds_datm),getvardims(flds_datm))
+         end if
        else if (ii .eq. 2) then
          filevardef(ncdf, "PRECTmms"  ,typeof(prec_datm),getvardims(prec_datm))
        else
@@ -373,7 +399,9 @@ do ii = 0,dimsizes(filenames)-1
          filevarattdef(ncdf, "PSRF"  ,psrf_datm)
          filevarattdef(ncdf, "QBOT"  ,qbot_datm)
          filevarattdef(ncdf, "ZBOT"  ,zbot_datm)
-         filevarattdef(ncdf, "FLDS"  ,flds_datm)
+         if (do_flds) then
+           filevarattdef(ncdf, "FLDS"  ,flds_datm)
+         end if
        else if (ii .eq. 2) then
          filevarattdef(ncdf, "PRECTmms"  ,prec_datm)
        else
@@ -404,8 +432,10 @@ do ii = 0,dimsizes(filenames)-1
          ncdf->WIND   = (/wind_datm/)     
          ncdf->PSRF   = (/psrf_datm/)     
          ncdf->QBOT   = (/qbot_datm/)     
-         ncdf->ZBOT   = (/zbot_datm/)     
-         ncdf->FLDS   = (/flds_datm/)     
+         ncdf->ZBOT   = (/zbot_datm/)
+         if (do_flds) then
+           ncdf->FLDS   = (/flds_datm/)
+         end if
        else if (ii .eq. 2) then
          ncdf->PRECTmms   = (/prec_datm/)     
        else
@@ -414,3 +444,5 @@ do ii = 0,dimsizes(filenames)-1
        end if
 
 end do
+
+status_exit(9)
