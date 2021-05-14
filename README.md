@@ -23,6 +23,8 @@ The first step is to create a functional F compset. Broadly, this is **active at
 
 This step just requires a built and tested case of CESM. Any source mods or other specific namelist settings should be applied directly to this case. It is only necessary to show the model is stable for a few hours.
 
+🔴 **IMPORTANT NOTE**: The resolution defined in this step *must* be the resolution you are using for your experiments since CESM determines atmospheric resolution at build time. For example, if you set up 1deg CESM configuration and then use 0.25deg grids/initial conditions the model will crash!
+
 **CESM example:**
 
 ```
@@ -73,6 +75,8 @@ Betacast needs a file (ESMF format) that provides high-order weights to take the
 This can be done with `${BETACAST}/remapping/gen_GFS_to_SE_weight_file.ncl`. This script requires two inputs that are directly modified in the script body, `srcGridFile` (a SCRIP grid file defining the analysis regular lat-lon grid) and `dstGridFile` (a SCRIP grid file defining the destination CAM grid).
 
 Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS post-2017). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/remapping/scrip/`.
+
+🔴 **IMPORTANT NOTE**: The CAM weight file needs to be the model grid read during initialization. This is particularly important to note for grids like FV (which has staggered winds) and SE/HOMME (which has dual grids for the dynamics and physics). In the case of SE/HOMME runs, the grid is defined by the *physics* grid.
 
 ### 3. Edit namelists
 
