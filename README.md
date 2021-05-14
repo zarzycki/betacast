@@ -53,7 +53,7 @@ $ ./case.submit
 Some notes:
 
 1. In the "### patch" step, a small modification is made to the land model to enforce restart files to be printed every 12 hours. This is done since the land model is initialized via nudging with the atmosphere in this framework. This patch can be applied by copying CESM or E3SM's `lnd_comp_mct.F90` (from the land model source code) into `$CASEDIR/SourceMods/src.clm` (or equivalent) and running
-`$ patch lnd_comp_mct.F90 < ${PATCHDIR}/lnd_comp_mct.patch`
+`$ patch lnd_comp_mct.F90 < ${BETACAST}/patches/lnd_comp_mct.patch`
 over the top of the file, which injects the correct logic. A similar procedure is used if you want runoff model restart files using `rof_comp_mct.patch`. **This needs to be done before the `./case.build` step.**
 2. For E3SM, current suggested compsets are: F2010C5-CMIP6-HR (ne120, VR) and F2010C5-CMIP6-LR (ne30). For SCREAM, these are FSCREAM-LR and FSCREAM-HR, respectively.
 3. E3SMv2 (tags from approximately October 2020 onward) are only officially supported. E3SMv1 is effectively supported by choosing modelSystem = 0, although continual updates to support the evolution of EAM and ELM seperately from CAM and CLM/CTSM may eventually break this backwards compatibility.
