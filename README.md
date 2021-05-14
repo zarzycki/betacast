@@ -4,6 +4,8 @@
 
 Reference: C. M. Zarzycki and C. Jablonowski. Experimental tropical cyclone forecasts using a variable-resolution global model. *Monthly Weather Review*, 1430 (10):0 4012--4037, 2015. 10.1175/MWR-D-15-0159.1.
 
+🔴 **IMPORTANT NOTE**: This README assumes some level of familiarity with CESM and/or E3SM. If a user has not used either model before, they are encouraged to view available tutorial materials before proceeding with Betacast.
+
 ### Workflow
 1. Create a case directory with either a supported or new grid configuration and verify that it is stable/runs given arbitrary inputs.
 2. Build an analysis/reanalysis grid to model grid weight file.
@@ -23,7 +25,7 @@ The first step is to create a functional F compset. Broadly, this is **active at
 
 This step just requires a built and tested case of CESM. Any source mods or other specific namelist settings should be applied directly to this case. It is only necessary to show the model is stable for a few hours.
 
-🔴 **IMPORTANT NOTE**: The resolution defined in this step *must* be the resolution you are using for your experiments since CESM determines atmospheric resolution at build time. For example, if you set up 1deg CESM configuration and then use 0.25deg grids/initial conditions the model will crash!
+🔴 **IMPORTANT NOTE**: The resolution defined in this step *must* be the resolution you are using for your experiments since CESM determines atmospheric resolution at build time. For example, if you set up 1deg CESM configuration and then use 0.25deg grids/initial conditions the model will crash! See the `--res` flag and associated CESM documentation for more information about supported resolutions.
 
 **CESM example:**
 
@@ -70,11 +72,11 @@ over the top of the file, which injects the correct logic. A similar procedure i
 
 ### 2. Generate an analysis/reanalysis to CAM weight file
 
-Betacast needs a file (ESMF format) that provides high-order weights to take the analysis data and horizontally remap it to the target grid.
+Betacast needs a file (ESMF format) that provides high-order weights to take the analysis data (e.g., ERA5, GFS) and horizontally remap it to the target grid (e.g., CAM, EAM).
 
-This can be done with `${BETACAST}/remapping/gen_GFS_to_SE_weight_file.ncl`. This script requires two inputs that are directly modified in the script body, `srcGridFile` (a SCRIP grid file defining the analysis regular lat-lon grid) and `dstGridFile` (a SCRIP grid file defining the destination CAM grid).
+This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`. This script requires **four** inputs that are directly modified in the script body, `dstGridName` (a shortname describing the model grid for naming purposes) and `dstGridFile` (a full path to a SCRIP grid file defining the destination model grid). `anlgrid` is the type of analysis and corresponding grid resolution (three are supported). `wgtFileDir` is the directory where the weight file should be saved after being generated.
 
-Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS post-2017). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/remapping/scrip/`.
+Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS post-2017). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/remapping/anl_scrip/`.
 
 🔴 **IMPORTANT NOTE**: The CAM weight file needs to be the model grid read during initialization. This is particularly important to note for grids like FV (which has staggered winds) and SE/HOMME (which has dual grids for the dynamics and physics). In the case of SE/HOMME runs, the grid is defined by the *physics* grid.
 
@@ -207,3 +209,101 @@ cd ~/betacast/atm_to_cam/getECMWFdata
 ### 7. Run Betacast
 
 ```$ ./betacast.sh machine_files/machine.cheyenne namelists/nl.conus30x8 output_streams/output.generic```
+
+This ends the betacast workflow.
+
+## Generating DATM files
+
+When nudging the land model to initialize CLM/ELM, we need 'forcing' files for DATM. While we can use some existing forcing files in the CESM/E3SM repo, it may be beneficial to initialize using ERA5 forcing. To do so, we need to generate the ERA5 forcing files and data streams for running with an I compset.
+
+The process is pretty straightforward.
+
+1. Download files from ERA5 repository.
+2. Gen DATM files using this raw ERA5 data.
+3. (optional) add climate deltas for counterfactual runs.
+4. Add `user_datm_` files to your `I` case directory.
+
+### 1. Download files
+
+```
+cd ${BETACAST}/land-spinup/gen_datm/get-era5
+## Need to have cdsapi Python library loaded -- on NCAR see next line
+ncar_pylib
+## Edit ./driver-get-era5.sh for years + local location for download
+nohup ./driver-get-era5.sh &
+```
+
+### 2. Generate DATM files
+
+```
+cd ${BETACAST}/land-spinup/gen_datm/get-era5
+## Set years etc.
+qsubcasper driver-gen-datm.sh
+```
+
+### 3. (optional) add climate deltas
+
+NOTE: This code will create a duplicate directory of the DATM stream and add perturbations to every file! It would be smart to first set up a control DATM folder with the only forcing files needed (e.g., two years instead of twenty).
+
+```
+cd ${BETACAST}/land-spinup/gen_datm/add-perturbs
+## Edit driver-perturb-datm.sh
+## Edit add_perturbations_to_DATM.ncl
+qsubcasper driver-perturb-datm.sh
+```
+
+### 4. Add `user_datm` files.
+
+```
+## Currently, we cheat and overwrite CRUNCEP with ERA5 until I learn how to create our own stream.
+./xmlchange DATM_MODE=CLMCRUNCEPv7
+cd ${MYCASEDIR}
+cp user_datm .
+## edit paths in user_datm files
+## in user_nl_datm
+## tintalgo = "coszen", "linear", "linear", "linear", "lower"
+```
+
+---
+
+### Testing different offsets
+
+For `coszen` it seems like ERA5 likes -10800s for an offset. This number matches the diurnal SWdown solar cycle when comparing a DATM run to an F compset run for an equivalent calendar day.
+
+An example is shown below. This is 12Z averaged over past 6 hours (SWdown:A) on Jan 16th. Left is from an ne30 F compset run, right is from an I compset f09 run. Moving to higher negative offsets shifts the bullseye to the left (west) at a given time. Zero offset would shift the I compset SWdown to the right by 45deg.
+
+/Screen Shot 2021-05-13 at 5.59.57 PM.png
+
+For `linear`, the offset seems best to be 0. This creates a "centering" of the state variables (e.g., T, etc.) on the instantaneous synoptic field produced by ERA5. When doing an ncdiff of the model produced TS and comparing to ERA5, there is very little red/blue shift noted in the diff field compared to other offsets.
+
+Some code:
+
+```
+ncks -d time,0,7,2 out.1992.08.nc tmp.nc
+ncremap --alg_typ=neareststod --esmf_typ=neareststod -i tmp.nc -o tmp_regrid.nc -d ~/scratch/RoS-ICLM45-f09/run/RoS-ICLM45-f09.clm2.h0.1992-08-01-00000.nc
+ncrename -v ssrd,SWdown tmp_regrid.nc
+ncrename -v t2m,Tair tmp_regrid.nc
+ncrename -v mtpr,RAIN tmp_regrid.nc
+ncks -v SWdown,Tair,RAIN tmp_regrid.nc tmp_date.nc
+ncrename -d latitude,lat -d longitude,lon tmp_date.nc
+ncdiff tmp_date.nc ~/scratch/RoS-ICLM45-f09/run/RoS-ICLM45-f09.clm2.h0.1992-08-01-00000.nc diff.nc
+```
+
+---
+
+### Some notes on user_nl_datm from the CLM documentation.
+
+##### offset (in the stream file)
+
+offset is the time offset in seconds to give to each stream of data. Normally it is NOT used because the time-stamps for data is set correctly for each stream of data. Note, the offset may NEED to be adjusted depending on the taxmode described above, or it may need to be adjusted to account for data that is time-stamped at the END of an interval rather than the middle or beginning of interval. The offset can is set in the stream file rather than on the stream namelist. For data with a taxmode method of coszen the time-stamp needs to be for the beginning of the interval, while for other data it should be the midpoint. The offset can be used to adjust the time-stamps to get the data to line up correctly. 
+    
+##### tintalgo
+
+tintalgo is the time interpolation algorithm. For CLM we usually use one of three modes: coszen, nearest, or linear. We use coszen for solar data, nearest for precipitation data, and linear for everything else. If your data is half-hourly or hourly, nearest will work fine for everything. The coszen scaling is useful for longer periods (three hours or more) to try to get the solar to match the cosine of the solar zenith angle over that longer period of time. If you use linear for longer intervals, the solar will cut out at night-time anyway, and the straight line will be a poor approximation of the cosine of the solar zenith angle of actual solar data. nearest likewise would be bad for longer periods where it would be much higher than the actual values.
+
+- Note: For coszen the time-stamps of the data should correspond to the beginning of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it. 
+- Note: For nearest and linear the time-stamps of the data should correspond to the middle of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it. 
+
+## Generating 'deltas' for counterfactual simulations
+
+Todo
