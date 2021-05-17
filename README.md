@@ -74,11 +74,18 @@ over the top of the file, which injects the correct logic. A similar procedure i
 
 Betacast needs a file (ESMF format) that provides high-order weights to take the analysis data (e.g., ERA5, GFS) and horizontally remap it to the target grid (e.g., CAM, EAM).
 
-This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`. This script requires **four** inputs that are directly modified in the script body, `dstGridName` (a shortname describing the model grid for naming purposes) and `dstGridFile` (a full path to a SCRIP grid file defining the destination model grid). `anlgrid` is the type of analysis and corresponding grid resolution (three are supported). `wgtFileDir` is the directory where the weight file should be saved after being generated.
+This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`. This script requires **four** inputs that are directly modified in the script body.
+
+- `dstGridName` a shortname describing the model grid for naming purposes.
+- `dstGridFile` a full path to a file defining the destination model grid.
+- `anlgrid` is the type of analysis and corresponding grid resolution (three are supported).
+- `wgtFileDir` is the directory where the weight file should be saved after being generated.
+
+`dstGridFile` can be one of *three* formats. It can be a **SCRIP grid file** (contains variables like grid_corner_lat), an **ESMF grid file** (contains variables like nodeCoords), and an **SE/HOMME model output file**. The script will automatically attempt to determine the type of file and create remapping weights accordingly.
 
 Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS post-2017). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/remapping/anl_scrip/`.
 
-🔴 **IMPORTANT NOTE**: The CAM weight file needs to be the model grid read during initialization. This is particularly important to note for grids like FV (which has staggered winds) and SE/HOMME (which has dual grids for the dynamics and physics). In the case of SE/HOMME runs, the grid is defined by the *physics* grid.
+🔴 **IMPORTANT NOTE**: The CAM weight file needs to be the model grid read during initialization. This is particularly important to note for grids like FV (which has staggered winds) and SE/HOMME (which has dual grids for the dynamics and physics). In the case of SE/HOMME runs, the destination grid is defined by the *physics* grid.
 
 ### 3. Edit namelists
 
