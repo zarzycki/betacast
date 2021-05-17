@@ -76,14 +76,14 @@ Betacast needs a file (ESMF format) that provides high-order weights to take the
 
 This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`. This script requires **four** inputs that are directly modified in the script body.
 
-- `dstGridName` a shortname describing the model grid for naming purposes.
+- `dstGridName` a shortname describing the model grid (for naming purposes only).
 - `dstGridFile` a full path to a file defining the destination model grid.
-- `anlgrid` is the type of analysis and corresponding grid resolution (three are supported).
-- `wgtFileDir` is the directory where the weight file should be saved after being generated.
+- `anlgrid` is the type of analysis and corresponding grid resolution (*three* are supported, see below).
+- `wgtFileDir` is the directory where the weight file should be saved after being generated (this will dictate the path + file used in `gfs2seWeights` in the next section.
 
 `dstGridFile` can be one of *three* formats. It can be a **SCRIP grid file** (contains variables like grid_corner_lat), an **ESMF grid file** (contains variables like nodeCoords), or an **SE/HOMME model output file** (contains dimension ncol). The script will automatically attempt to determine the type of file and create remapping weights accordingly.
 
-Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS post-2017). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/remapping/anl_scrip/`.
+Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS 2017-). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/remapping/anl_scrip/`.
 
 🔴 **IMPORTANT NOTE**: The CAM weight file needs to be the model grid read during initialization. This is particularly important to note for grids like FV (which has staggered winds) and SE/HOMME (which has dual grids for the dynamics and physics). In the case of SE/HOMME runs, the destination grid is defined by the *physics* grid.
 
@@ -139,7 +139,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | add_perturbs | Add PGW perturbations for counterfactual runs (leave at false) |
 | add_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) |
 | land_spinup | Cycle land spinup only (unsupported currently, leave false) |
-| gfs2seWeights | Path to file allowing for GFS -> ATM regridding |
+| gfs2seWeights | Full path name of weights file for analysis -> model regridding (see previous section) |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
 | PROJECTID | Project ID for run submissions |
 | FILTERWALLCLOCK | Wall clock time for filter run |
