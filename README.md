@@ -81,7 +81,7 @@ This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`
 - `anlgrid` is the type of analysis and corresponding grid resolution (three are supported).
 - `wgtFileDir` is the directory where the weight file should be saved after being generated.
 
-`dstGridFile` can be one of *three* formats. It can be a **SCRIP grid file** (contains variables like grid_corner_lat), an **ESMF grid file** (contains variables like nodeCoords), and an **SE/HOMME model output file**. The script will automatically attempt to determine the type of file and create remapping weights accordingly.
+`dstGridFile` can be one of *three* formats. It can be a **SCRIP grid file** (contains variables like grid_corner_lat), an **ESMF grid file** (contains variables like nodeCoords), or an **SE/HOMME model output file** (contains dimension ncol). The script will automatically attempt to determine the type of file and create remapping weights accordingly.
 
 Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS post-2017). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/remapping/anl_scrip/`.
 
