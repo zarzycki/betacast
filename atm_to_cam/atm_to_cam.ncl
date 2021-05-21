@@ -1,3 +1,6 @@
+;Not needed NCL v6.5+
+load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
+
 begin
 
 wcStrt = systemfunc("date")
