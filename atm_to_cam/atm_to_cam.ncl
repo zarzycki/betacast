@@ -734,6 +734,11 @@ if(any(ismissing(q_fv_dbl_time))) then
 end if
 q_fv_dbl_time = where(ismissing(q_fv_dbl_time),0.0,q_fv_dbl_time)
 
+; create time array
+timeunits  = "days since 1850-01-01 00:00:00"
+time   = cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,timeunits,0)
+time!0 = "time"
+delete(timeunits)
 
 print("Writing output file: "+se_inic)
 other_stuff=True
@@ -790,7 +795,8 @@ filedimdef(fout,dimNames,dimSizes,dimUnlim)
 ;===================================================================
 print("predefine the the dimensionality of the variables to be written out")
 filevardef(fout, "lev"   ,typeof(lev),getvardims(lev) )      
-filevardef(fout, "ilev"  ,typeof(ilev),getvardims(ilev) )    
+filevardef(fout, "ilev"  ,typeof(ilev),getvardims(ilev) )
+filevardef(fout, "time"  ,typeof(time),getvardims(time) )    
 if (dycore .eq. "fv") then
   filevardef(fout, "lat"  ,typeof(lat),getvardims(lat))                          
   filevardef(fout, "lon"  ,typeof(lon),getvardims(lon))
@@ -822,7 +828,7 @@ filevardef(fout, "CLDICE",typeof(cldice_fv_dbl_time),getvardims(cldice_fv_dbl_ti
 print("Copy attributes associated with each variable to the file")
 filevarattdef(fout,"lev",lev)
 filevarattdef(fout,"ilev",ilev)
-
+filevarattdef(fout,"time",time)
 if (dycore .eq. "fv") then
   filevarattdef(fout,"lat",lat)
   filevarattdef(fout,"lon",lon)
@@ -875,6 +881,7 @@ fout->hyai    = (/hyai/)
 fout->hybi    = (/hybi/) 
 fout->lev     = (/lev/)
 fout->ilev    = (/ilev/)
+fout->time    = (/time/)
 if (dycore .eq. "fv") then
   fout->lat   = (/lat/)
   fout->lon   = (/lon/)
