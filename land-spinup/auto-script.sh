@@ -7,17 +7,37 @@
 set -e
 
 ### User settings
+# FORECASTDATE=19960113
+# NMONTHSSPIN=12
+# CIMEROOT=~/work/cesm2_2_0
+# PATHTOCASE=~/I-compsets
+# ICASENAME=RoS-ICLM45-f09
+# PROJECT=UPSU0032
+# MACHINE=cheyenne
+# NNODES=4
+# COMPSET=I2000Clm50Sp   #IELM
+# RESOL=f09_g16
+# RUNQUEUE=premium
+
 FORECASTDATE=19960113
 NMONTHSSPIN=12
-CIMEROOT=~/work/cesm2_2_0
+CIMEROOT=~/E3SM-dev
 PATHTOCASE=~/I-compsets
-CASENAME=RoS-ICLM45-f09
-PROJECT=UPSU0032
-MACHINE=cheyenne
-NNODES=4
-COMPSET=I2000Clm50Sp   #IELM
-RESOL=f09_g16
-RUNQUEUE=premium
+ICASENAME=TEST-ICLM45-ne30
+PROJECT=m2637
+MACHINE=cori-knl
+NNODES=12
+COMPSET=IELM
+RESOL=ne30_ne30
+RUNQUEUE=debug
+WALLCLOCK="00:29:00"
+
+#IF CESM
+#EXTRAFLAGS="--run-unsupported"
+#COMPSET=I2000Clm50Sp
+
+EXTRAFLAGS=""
+COMPSET=IELM
 
 ### Do not edit below this line!
 
@@ -30,6 +50,7 @@ echo "Year plus one equals: "${FORECASTYEARP1}
 echo "Year minus one equals: "${FORECASTYEARM1}
 
 STARTDATE=`date -d "${FORECASTDATE} - ${NMONTHSSPIN} months" "+%Y-%m-%d"`
+echo "Starting at: "${STARTDATE}
 
 ### Configure, build, run land model w/ DATM
 if (( FORECASTYEAR > 2016 )); then
@@ -41,11 +62,11 @@ elif [ ${#FORECASTDATE} -ne 8 ]; then
   echo "STOP"
 else
   cd ${CIMEROOT}/cime/scripts
-  ./create_newcase --case ${PATHTOCASE}/${CASENAME} --compset ${COMPSET} --res ${RESOL} --mach ${MACHINE} --project ${PROJECT} --run-unsupported
-  cd ${PATHTOCASE}/${CASENAME}
+  ./create_newcase --case ${PATHTOCASE}/${ICASENAME} --compset ${COMPSET} --res ${RESOL} --mach ${MACHINE} --project ${PROJECT} ${EXTRAFLAGS}
+  cd ${PATHTOCASE}/${ICASENAME}
 #  ./xmlchange NTASKS=-${NNODES}
 #  ./xmlchange NTASKS_ESP=1
-#  ./xmlchange DATM_MODE=CLMCRUNCEPv7
+  ./xmlchange DATM_MODE=CLMCRUNCEPv7
   ./xmlchange STOP_N=2
   ./xmlchange STOP_OPTION='nyears'
   ./xmlchange DATM_CLMNCEP_YR_START=${FORECASTYEARM1}
@@ -66,10 +87,9 @@ else
   check_finidat_fsurdat_consistency = .false.
 EOF
 
-exit
   ./case.setup
   ./case.build
-  ./xmlchange JOB_WALLCLOCK_TIME="06:15:00"
+  ./xmlchange JOB_WALLCLOCK_TIME=${WALLCLOCK}
   ./xmlchange CHARGE_ACCOUNT=${PROJECT}
   ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
   ./case.submit
