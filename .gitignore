@@ -1,3 +1,4 @@
+deltas_*.nc
 map_*patc.nc
 forcing-gen.*
 grid_deltas.nc
