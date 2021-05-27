@@ -566,27 +566,61 @@ fi
 ##### ADD PERTURBATIONS
 
 if [ "${add_perturbs}" = true ] ; then
-  echo "Adding perturbations from Michael Wehner"
+  echo "Adding perturbations"
 
-  cp /glade/scratch/zarzycki/apply-haiyan-perturb/sst_1x1_Nat-Hist-CMIP5-est1-v1-0.nc ${sstFileIC}
-
-  cd $atm_to_cam_path
-
-  sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
-
+#   cp /glade/scratch/zarzycki/apply-haiyan-perturb/sst_1x1_Nat-Hist-CMIP5-est1-v1-0.nc ${sstFileIC}
+# 
+#   cd $atm_to_cam_path
+# 
+#   sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
+# 
+#   set +e
+#   ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
+#     'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"'
+#   if [[ $? -ne 9 ]]
+#   then
+#     echo "NCL exited with non-9 error code"
+#     exit 240
+#   fi
+#   echo "ATM NCL completed successfully"
+#   set -e # Turn error checking back on
+# 
+#   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
+  
+  cd $atm_to_cam_path/perturb
   set +e
-  ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
-    'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"'
+  
+  ## Add perturbations to SST file
+  sstFileIC_WPERT=${sstFileIC}_PERT.nc
+  ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"'  \
+    'AFTERPERTFILE = "'${sstFileIC_WPERT}'"'
+  (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
+     'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' )
+
   if [[ $? -ne 9 ]]
   then
     echo "NCL exited with non-9 error code"
     exit 240
   fi
+  echo "SST perturbations added successfully"
+
+  ## Add perturbations to ATM file
+  sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
+  (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
+      'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' )
+     
+  if [[ $? -ne 9 ]]
+  then
+   echo "NCL exited with non-9 error code"
+   exit 240
+  fi
   echo "ATM NCL completed successfully"
+
   set -e # Turn error checking back on
-
+ 
+  # move temp perturb files to overwrite unperturbed files 
+  mv ${sstFileIC_WPERT} ${sstFileIC}
   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
-
 fi
 
 ############################### SETUP AND QUERY ############################### 
