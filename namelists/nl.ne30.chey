@@ -51,7 +51,7 @@
   casename = F-betacast-F2000climo
 
 # Weight file for going from GFS -> VR-SE
-  gfs2seWeights = /glade/work/zarzycki/maps/gfsmaps/map_gfs0.25_TO_ne30np4_patc.nc
+  gfs2seWeights = /glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_ne30_patc.nc
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = NULL
