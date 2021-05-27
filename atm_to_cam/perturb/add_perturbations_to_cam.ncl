@@ -1,23 +1,56 @@
+load "../../functions/namelist.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-case         ="CESMLENS" ; CAMC20C or CESMLENS
-start_month  = 1 ;6
-end_month    = 1 ;11
-current_year = 1996 ; CESMLENS only
-comp_year    = 2081 
-correct_sfc  = False    ; shift entire T/Q vertical profiles based on surface anoms (generally False)
-plevs        = False    ; are we on pressure levels? (if false, means hybrid model levels)
-update_pressure=False   ; do we want to update PS based on some PS deltas (generally false)
-update_winds=False      ; do we want to update winds based on some wind deltas or thermal wind (generally false)
-do_ps_corr=True         ; do we want to apply simple linear PS correction to minimize geostrophic shock? (generally true)
-esmf_remap = True       ; do we want to use ESMF remapping instead of NCL internal (generally true)
-smooth_deltas = False   ; do we want to smooth the deltas using a 9-point smoother? (generally false unless big res mismatch)
-smooth_delta_iter = 10  ; if smooth_deltas, how many iterations do we want (higher numbers mean more smoothing)
-output_diag=True        ; do we want to output a separate diagnostics file with deltas and other info?
-keep_esmf=False         ; do we want to keep the esmf files between calls to add_perturbations to CAM?
-extra_diags=False       ; do we want additional diags (currently just precipitable water)
+case  = keyword_values( pthi, "case", "string")
+start_month = keyword_values( pthi, "start_month", "integer") 
+end_month = keyword_values( pthi, "end_month", "integer") 
+current_year = keyword_values( pthi, "current_year", "integer") 
+comp_year = keyword_values( pthi, "comp_year", "integer") 
+
+correct_sfc  = keyword_values( pthi, "correct_sfc", "logical")
+plevs  = keyword_values( pthi, "plevs", "logical")
+update_pressure  = keyword_values( pthi, "update_pressure", "logical")
+update_winds  = keyword_values( pthi, "update_winds", "logical")
+do_ps_corr  = keyword_values( pthi, "do_ps_corr", "logical")
+esmf_remap  = keyword_values( pthi, "esmf_remap", "logical")
+smooth_deltas  = keyword_values( pthi, "smooth_deltas", "logical")
+if (smooth_deltas) then   ; only read iter if smooth_deltas is true!
+  smooth_delta_iter  = keyword_values( pthi, "smooth_delta_iter", "integer")
+end if
+output_atm_diag  = keyword_values( pthi, "output_atm_diag", "logical")
+keep_esmf  = keyword_values( pthi, "keep_esmf", "logical")
+extra_diags_atm  = keyword_values( pthi, "extra_diags_atm", "logical")
+
+; print configurations
+print("************* Running ATM perturbation code *************")
+print("Case: "+case)
+print("start_month: "+start_month)
+print("end_month: "+end_month)
+print("current_year: "+current_year)
+print("comp_year: "+comp_year)
+print("BEFOREPERTFILE: "+BEFOREPERTFILE)
+print("AFTERPERTFILE: "+AFTERPERTFILE)
+
+print("plevs: "+plevs)
+print("correct_sfc: "+correct_sfc)
+print("update_pressure: "+update_pressure)
+print("update_winds: "+update_winds)
+print("do_ps_corr: "+do_ps_corr)
+
+print("esmf_remap: "+esmf_remap)
+print("keep_esmf: "+keep_esmf)
+
+print("smooth_deltas: "+smooth_deltas)
+if (smooth_deltas) then
+  print("smooth_delta_iter: "+smooth_delta_iter)
+end if
+
+print("output_atm_diag: "+output_atm_diag)
+print("extra_diags_atm: "+extra_diags_atm)
+
+print("****************************************************")
 
 system("cp" + " " + BEFOREPERTFILE + " " + AFTERPERTFILE)
 fileName=AFTERPERTFILE
@@ -58,9 +91,8 @@ else if (case .eq. "CESMLENS") ; Can be used for attribution and future projecti
     deltaFilePS     = addfile("/global/cfs/cdirs/m2637/betacast/deltas/PS/ens_PS_anom.nc","r")
     deltaFileT      = addfile("/global/cfs/cdirs/m2637/betacast/deltas/T/ens_T_anom.nc","r")
     deltaFileQ      = addfile("/global/cfs/cdirs/m2637/betacast/deltas/Q/ens_Q_anom.nc","r")
-    deltaFileT_2    = addfile("/global/cfs/cdirs/m2637/betacast/deltas/T/ens_012.nc","r")
-    hyam_in=deltaFileT_2->hyam
-    hybm_in=deltaFileT_2->hybm
+    hyam_in=deltaFileT->hyam
+    hybm_in=deltaFileT->hybm
   end if
   deltaPS_in      = flt2dble(deltaFilePS->PS(current_year*12-1920*12+start_month-1:current_year*12-1920*12+end_month-1,:,:))
   deltaT_in       = flt2dble(deltaFileT->T(current_year*12-1920*12+start_month-1:current_year*12-1920*12+end_month-1,:,:,:))
@@ -178,7 +210,7 @@ if (smooth_deltas) then
   end do
 end if
   
-if (extra_diags) then
+if (extra_diags_atm) then
   dp = dpres_hybrid_ccm(PS_deltaGrid,P0,hyai,hybi)   ; dp(ntime,klevi-1,nlat,nlon)
   copy_VarCoords(deltaQCAM,dp)    ; dp(time,lev,lat,lon)
   pw = prcwater_dp(deltaQCAM(lat|:,lon|:,lev|:),dp(lat|:,lon|:,lev|:))    
@@ -357,7 +389,7 @@ if (update_pressure .or. do_ps_corr) then
   camFile->PS = PS
 end if
 
-if (output_diag) then
+if (output_atm_diag) then
   diag_filename="deltas_atm.nc"
   print("outputting diags to "+diag_filename)
   
@@ -375,7 +407,7 @@ if (output_diag) then
   ncdf->deltaTCAM=deltaTCAM
   ncdf->deltaQCAM=deltaQCAM
 
-  if (extra_diags) then
+  if (extra_diags_atm) then
     ncdf->pw=pw
   end if
   

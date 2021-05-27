@@ -1,14 +1,29 @@
+load "../../functions/namelist.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-case         ="CESMLENS" ; CAMC20C or CESMLENS
-start_month  = 1 ;6 
-end_month    = 1 ;11 
-current_year = 1996 ; CESMLENS only
-comp_year    = 2081 ; CESMLENS only enter 1850 or 1920-2100
-output_diag  = True ; do we want to output a separate diagnostics file with deltas and other info?
-adjust_ice   = True ; do we want to melt/freeze sea ice in data stream based on deltas?
+case  = keyword_values( pthi, "case", "string")
+adjust_ice  = keyword_values( pthi, "adjust_ice", "logical")
+output_sst_diag  = keyword_values( pthi, "output_sst_diag", "logical")
+
+start_month = keyword_values( pthi, "start_month", "integer") 
+end_month = keyword_values( pthi, "end_month", "integer") 
+current_year = keyword_values( pthi, "current_year", "integer") 
+comp_year = keyword_values( pthi, "comp_year", "integer") 
+
+; print configurations
+print("************* Running SST perturbation code *************")
+print("Case: "+case)
+print("adjust_ice: "+adjust_ice)
+print("output_sst_diag: "+output_sst_diag)
+print("start_month: "+start_month)
+print("end_month: "+end_month)
+print("current_year: "+current_year)
+print("comp_year: "+comp_year)
+print("BEFOREPERTFILE: "+BEFOREPERTFILE)
+print("AFTERPERTFILE: "+AFTERPERTFILE)
+print("****************************************************")
 
 system("cp "+BEFOREPERTFILE+" "+AFTERPERTFILE)
 fileName=AFTERPERTFILE
@@ -64,7 +79,7 @@ if (adjust_ice) then
 end if
 
 ; diagnostics
-if (output_diag) then
+if (output_sst_diag) then
   diag_filename="deltas_sst.nc"
   print("outputting diags to "+diag_filename)
   
