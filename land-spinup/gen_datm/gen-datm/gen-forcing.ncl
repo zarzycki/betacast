@@ -4,9 +4,9 @@ d=addfile("era5-domain.nc","r")
 timestride=1
 STIX=0
 do_q=True
-do_flds=False
-outdirbase="/glade/scratch/zarzycki/ERA5-DATM/DATM/"
-pathtorawera5="/glade/u/home/zarzycki/scratch/ERA5-DATM/"
+do_flds=True
+outdirbase="/glade/scratch/zarzycki/ERA5-DATM/DATM_FLDS/"
+;pathtorawera5="/glade/u/home/zarzycki/scratch/ERA5-DATM/"
 datafilename="CMZERA5.v0.c2021.0.5d"
 ;YYYY="1995"
 ;MM="09"
@@ -21,8 +21,9 @@ outfolders = (/"TPHWL6Hrly","Solr","Precip6Hrly"/)
 
 ;==============================================================
 
-print("Adding files...")
-f=addfile(pathtorawera5+"out."+YYYY+"."+MM+".nc","r")
+print("Adding "+RAWERA5FILE+" ...")
+;f=addfile(pathtorawera5+"out."+YYYY+"."+MM+".nc","r")
+f=addfile(RAWERA5FILE,"r")
 
 ;mixhum_ptd
 ;"/glade/u/home/zarzycki/rda/ds633.0/e5.oper.fc.sfc.meanflux/198608/e5.oper.fc.sfc.meanflux.235_058_msdrswrf.ll025sc.1986080106_1986081606.nc"
