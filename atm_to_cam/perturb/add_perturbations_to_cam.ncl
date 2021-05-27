@@ -1,6 +1,3 @@
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
@@ -10,17 +7,17 @@ start_month  = 1 ;6
 end_month    = 1 ;11
 current_year = 1996 ; CESMLENS only
 comp_year    = 2081 
-correct_sfc=False
-plevs=False
-update_pressure=False
-update_winds=False
-do_ps_corr=True
-esmf_remap = True
-smooth_deltas = False
-smooth_delta_iter = 10
-output_diag=True 
-keep_esmf=False
-extra_diags=True
+correct_sfc  = False    ; shift entire T/Q vertical profiles based on surface anoms (generally False)
+plevs        = False    ; are we on pressure levels? (if false, means hybrid model levels)
+update_pressure=False   ; do we want to update PS based on some PS deltas (generally false)
+update_winds=False      ; do we want to update winds based on some wind deltas or thermal wind (generally false)
+do_ps_corr=True         ; do we want to apply simple linear PS correction to minimize geostrophic shock? (generally true)
+esmf_remap = True       ; do we want to use ESMF remapping instead of NCL internal (generally true)
+smooth_deltas = False   ; do we want to smooth the deltas using a 9-point smoother? (generally false unless big res mismatch)
+smooth_delta_iter = 10  ; if smooth_deltas, how many iterations do we want (higher numbers mean more smoothing)
+output_diag=True        ; do we want to output a separate diagnostics file with deltas and other info?
+keep_esmf=False         ; do we want to keep the esmf files between calls to add_perturbations to CAM?
+extra_diags=False       ; do we want additional diags (currently just precipitable water)
 
 system("cp" + " " + BEFOREPERTFILE + " " + AFTERPERTFILE)
 fileName=AFTERPERTFILE

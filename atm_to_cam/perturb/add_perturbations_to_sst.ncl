@@ -10,8 +10,8 @@ start_month  = 1 ;6
 end_month    = 1 ;11 
 current_year = 1996 ; CESMLENS only
 comp_year    = 2081 ; CESMLENS only enter 1850 or 1920-2100
-output_diag  = True
-adjust_ice = True
+output_diag  = True ; do we want to output a separate diagnostics file with deltas and other info?
+adjust_ice   = True ; do we want to melt/freeze sea ice in data stream based on deltas?
 
 system("cp "+BEFOREPERTFILE+" "+AFTERPERTFILE)
 fileName=AFTERPERTFILE
