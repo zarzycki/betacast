@@ -6,8 +6,8 @@
 #PBS -l walltime=24:00:00
 #PBS -q casper
 
-ORIGPATH=/glade/u/home/zarzycki/scratch/ERA5-DATM/DATM_FLDS/
-PERTURBPATH=/glade/u/home/zarzycki/scratch/ERA5-DATM/DATM-perturb3/
+ORIGPATH=/glade/u/home/zarzycki/scratch/ERA5-DATM/DATM-perturb3/
+PERTURBPATH=/glade/u/home/zarzycki/scratch/ERA5-DATM/DATM-perturb4/
 DIRTOSCRIPTS=./
 
 NUMCORES=4
@@ -38,6 +38,8 @@ do
   LINECOMMAND="ncl ${DIRTOSCRIPTS}/add_perturbations_to_datm.ncl 'datm_file_name=\"'${TPQWLf}'\"' 'datm2_file_name=\"'${Precf}'\"' 'datm3_file_name=\"'${Solarf}'\"'    "
   echo ${LINECOMMAND} >> ${COMMANDFILE}
 done
+
+exit
 
 parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
 
