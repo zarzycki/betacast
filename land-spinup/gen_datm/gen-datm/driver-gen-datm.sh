@@ -9,8 +9,8 @@
 module load parallel
 module load ncl
 
-STYR=2015
-ENYR=2020
+STYR=2005
+ENYR=2014
 NUMCORES=4
 TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt

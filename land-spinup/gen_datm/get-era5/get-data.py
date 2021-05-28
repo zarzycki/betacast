@@ -8,8 +8,8 @@ print ("The arguments are: " , str(sys.argv))
 
 c = cdsapi.Client()
 
-#OUTDIR="/glade/scratch/zarzycki/ERA5-DATM/"
-OUTDIR="/global/homes/c/czarzyck/scratch/ERA5-DATM/"
+OUTDIR="/glade/scratch/zarzycki/ERA5-DATM/"
+#OUTDIR="/global/homes/c/czarzyck/scratch/ERA5-DATM/"
 OUTYEAR=sys.argv[1]
 OUTMONTH=sys.argv[2]
 
