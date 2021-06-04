@@ -9,18 +9,19 @@
 ################################################################
 
 YYYY=2018
-OUTDIR=/glade/u/home/zarzycki/scratch/gen-nudge/
+OUTDIR=/glade/u/home/zarzycki/scratch/nudge-E3SM/
 BETACASTDIR=/glade/u/home/zarzycki/betacast/
 
-#DYCORE="se"
-#GRIDSTR=ne30
-#BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc
-#WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5-0.25_TO_ne30np4_patc.nc
+DYCORE="se"
+GRIDSTR=ne30
+BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc
+WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5-0.25_TO_ne30np4_patc.nc
+NUMLEVS=72
 
-DYCORE="fv"
-GRIDSTR=f09
-BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/fv_0.9x1.25_nc3000_Nsw042_Nrs008_Co060_Fi001_ZR_sgh30_24km_GRNL_c170103.nc
-WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5_0.25_TO_fv0.9x1.25_patc.nc
+#DYCORE="fv"
+#GRIDSTR=f09
+#BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/fv_0.9x1.25_nc3000_Nsw042_Nrs008_Co060_Fi001_ZR_sgh30_24km_GRNL_c170103.nc
+#WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5_0.25_TO_fv0.9x1.25_patc.nc
 
 #------------------------------------------------------
 # DO NOT EDIT BELOW THIS LINE  
@@ -30,7 +31,7 @@ THISDIR=${PWD}
 
 # GNUPARALLEL SETTINGS
 module load parallel
-NUMCORES=36
+NUMCORES=12
 TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt
 
@@ -40,10 +41,10 @@ mkdir -p $OUTDIR
 
 #### Get dates
 start=$(date -u --date '1 jan '${YYYY}' 0:00' +%s)
-stop=$(date -u --date '31 dec '${YYYY}' 23:00' +%s)
+stop=$(date -u --date '31 dec '${YYYY}' 18:00' +%s)
 
 shopt -s nullglob
-for t in $(seq ${start} 3600 ${stop})
+for t in $(seq ${start} 21600 ${stop})
 do
   start=`date +%s`
   f=`date -u --date @${t} +'%Y%m%d%H'`
@@ -61,9 +62,9 @@ do
   
   RDADIR=/glade/collections/rda/data/
   INFILE=${RDADIR}/ds633.0/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc
-  OUTFILE=${OUTDIR}/ndg.ERA5.${GRIDSTR}.L32.cam2.i.$YYYY-$MM-$DD-$SSSSS.nc
+  OUTFILE=${OUTDIR}/ndg.ERA5.${GRIDSTR}.L${NUMLEVS}.cam2.i.$YYYY-$MM-$DD-$SSSSS.nc
       
-  NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; ncl -n atm_to_cam.ncl 'datasource=\"ERA5RDA\"' compress_file=True numlevels=32 YYYYMMDDHH=${YYYYMMDDHH} 'dycore = \"'${DYCORE}'\"' 'data_filename = \"'${INFILE}'\"' 'wgt_filename=\"'${WGTNAME}'\"' 'model_topo_file=\"'${BNDTOPO}'\"' 'adjust_config=\"a\"' 'se_inic = \"'${OUTFILE}'\"'     "
+  NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; ncl -n atm_to_cam.ncl 'datasource=\"ERA5RDA\"' compress_file=True numlevels=${NUMLEVS} YYYYMMDDHH=${YYYYMMDDHH} 'dycore = \"'${DYCORE}'\"' 'data_filename = \"'${INFILE}'\"' 'wgt_filename=\"'${WGTNAME}'\"' 'model_topo_file=\"'${BNDTOPO}'\"' 'adjust_config=\"-\"' 'se_inic = \"'${OUTFILE}'\"'     "
 
   echo ${NCLCOMMAND} >> ${COMMANDFILE}
   

@@ -1,3 +1,5 @@
+# IGNORE BELOW FOR THE TIME BEING! -cmz on 5/27/21
+
 ## Generating a CLM initial condition for a CESM forecast
 
 | Namelist Variable | Description |

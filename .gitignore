@@ -1,3 +1,8 @@
+commands*.txt
+perturb.*.nl
+deltas_*.nc
+map_*patc.nc
+forcing-gen.*
 grid_deltas.nc
 grid_se.nc
 map_ll_to_se.nc

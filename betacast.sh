@@ -84,6 +84,7 @@ filter_path=${sewxscriptsdir}/filter
 if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
 if [ -z ${do_runoff+x} ]; then do_runoff=0; fi
 if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=1; fi
+if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -105,6 +106,15 @@ else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
 fi
+
+### ERROR CHECKING BLOCK! #########################################################
+
+if [ "${add_perturbs}" = true ] && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
+  echo "add_perturbs is true but can't find namelist: "$perturb_namelist
+  exit 1
+fi
+
+###################################################################################
 
 # do some stability calcs
 # if USERSTAB is negative, use internal calcs.
@@ -566,27 +576,61 @@ fi
 ##### ADD PERTURBATIONS
 
 if [ "${add_perturbs}" = true ] ; then
-  echo "Adding perturbations from Michael Wehner"
+  echo "Adding perturbations"
 
-  cp /glade/scratch/zarzycki/apply-haiyan-perturb/sst_1x1_Nat-Hist-CMIP5-est1-v1-0.nc ${sstFileIC}
-
-  cd $atm_to_cam_path
-
-  sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
-
+#   cp /glade/scratch/zarzycki/apply-haiyan-perturb/sst_1x1_Nat-Hist-CMIP5-est1-v1-0.nc ${sstFileIC}
+# 
+#   cd $atm_to_cam_path
+# 
+#   sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
+# 
+#   set +e
+#   ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
+#     'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"'
+#   if [[ $? -ne 9 ]]
+#   then
+#     echo "NCL exited with non-9 error code"
+#     exit 240
+#   fi
+#   echo "ATM NCL completed successfully"
+#   set -e # Turn error checking back on
+# 
+#   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
+  
+  cd $atm_to_cam_path/perturb
   set +e
-  ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
-    'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"'
+  
+  ## Add perturbations to SST file
+  sstFileIC_WPERT=${sstFileIC}_PERT.nc
+  (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
+     'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' \
+     'pthi="'${perturb_namelist}'"' )
+
   if [[ $? -ne 9 ]]
   then
     echo "NCL exited with non-9 error code"
     exit 240
   fi
+  echo "SST perturbations added successfully"
+
+  ## Add perturbations to ATM file
+  sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
+  (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
+     'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
+     'pthi="'${perturb_namelist}'"' )
+     
+  if [[ $? -ne 9 ]]
+  then
+   echo "NCL exited with non-9 error code"
+   exit 240
+  fi
   echo "ATM NCL completed successfully"
+
   set -e # Turn error checking back on
-
+ 
+  # move temp perturb files to overwrite unperturbed files 
+  mv ${sstFileIC_WPERT} ${sstFileIC}
   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
-
 fi
 
 ############################### SETUP AND QUERY ############################### 

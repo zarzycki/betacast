@@ -9,6 +9,7 @@ print ("The arguments are: " , str(sys.argv))
 c = cdsapi.Client()
 
 OUTDIR="/glade/scratch/zarzycki/ERA5-DATM/"
+#OUTDIR="/global/homes/c/czarzyck/scratch/ERA5-DATM/"
 OUTYEAR=sys.argv[1]
 OUTMONTH=sys.argv[2]
 
@@ -22,8 +23,8 @@ c.retrieve(
         'variable': [
             '10m_u_component_of_wind', '10m_v_component_of_wind', '2m_dewpoint_temperature',
             '2m_temperature', 'mean_total_precipitation_rate', 'surface_pressure',
-#            'surface_solar_radiation_downwards', 'surface_thermal_radiation_downwards',
-            'surface_solar_radiation_downwards',
+            'surface_solar_radiation_downwards', 'surface_thermal_radiation_downwards',
+#            'surface_solar_radiation_downwards',
         ],
         'year': OUTYEAR,
         'month': OUTMONTH,

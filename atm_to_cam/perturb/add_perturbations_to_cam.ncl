@@ -1,26 +1,56 @@
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+load "../../functions/namelist.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-case         ="CESMLENS" ; CAMC20C or CESMLENS
-start_month  = 9 ;6
-end_month    = 9 ;11
-current_year = 2017 ; CESMLENS only
-comp_year    = 2091 
-correct_sfc=False
-plevs=False
-update_pressure=False
-update_winds=False
-do_ps_corr=True
-esmf_remap = True
-smooth_deltas = False
-smooth_delta_iter = 10
-output_diag=True 
-keep_esmf=False
-extra_diags=True
+case  = keyword_values( pthi, "case", "string")
+start_month = keyword_values( pthi, "start_month", "integer") 
+end_month = keyword_values( pthi, "end_month", "integer") 
+current_year = keyword_values( pthi, "current_year", "integer") 
+comp_year = keyword_values( pthi, "comp_year", "integer") 
+
+correct_sfc  = keyword_values( pthi, "correct_sfc", "logical")
+plevs  = keyword_values( pthi, "plevs", "logical")
+update_pressure  = keyword_values( pthi, "update_pressure", "logical")
+update_winds  = keyword_values( pthi, "update_winds", "logical")
+do_ps_corr  = keyword_values( pthi, "do_ps_corr", "logical")
+esmf_remap  = keyword_values( pthi, "esmf_remap", "logical")
+smooth_deltas  = keyword_values( pthi, "smooth_deltas", "logical")
+if (smooth_deltas) then   ; only read iter if smooth_deltas is true!
+  smooth_delta_iter  = keyword_values( pthi, "smooth_delta_iter", "integer")
+end if
+output_atm_diag  = keyword_values( pthi, "output_atm_diag", "logical")
+keep_esmf  = keyword_values( pthi, "keep_esmf", "logical")
+extra_diags_atm  = keyword_values( pthi, "extra_diags_atm", "logical")
+
+; print configurations
+print("************* Running ATM perturbation code *************")
+print("Case: "+case)
+print("start_month: "+start_month)
+print("end_month: "+end_month)
+print("current_year: "+current_year)
+print("comp_year: "+comp_year)
+print("BEFOREPERTFILE: "+BEFOREPERTFILE)
+print("AFTERPERTFILE: "+AFTERPERTFILE)
+
+print("plevs: "+plevs)
+print("correct_sfc: "+correct_sfc)
+print("update_pressure: "+update_pressure)
+print("update_winds: "+update_winds)
+print("do_ps_corr: "+do_ps_corr)
+
+print("esmf_remap: "+esmf_remap)
+print("keep_esmf: "+keep_esmf)
+
+print("smooth_deltas: "+smooth_deltas)
+if (smooth_deltas) then
+  print("smooth_delta_iter: "+smooth_delta_iter)
+end if
+
+print("output_atm_diag: "+output_atm_diag)
+print("extra_diags_atm: "+extra_diags_atm)
+
+print("****************************************************")
 
 system("cp" + " " + BEFOREPERTFILE + " " + AFTERPERTFILE)
 fileName=AFTERPERTFILE
@@ -58,12 +88,11 @@ else if (case .eq. "CESMLENS") ; Can be used for attribution and future projecti
     deltaFileT      = addfile("/glade/work/kareed/CESM_LENS_deltas/ens_T_anom.nc","r")
     deltaFileQ      = addfile("/glade/work/kareed/CESM_LENS_deltas/ens_Q_anom.nc","r") 
   else
-    deltaFilePS     = addfile("/glade/work/kareed/CESM_LENS_deltas/ens_PS_anom.nc","r")
-    deltaFileT      = addfile("/glade/u/home/zarzycki/scratch/CESM_LENS_temp/T/ens_T_anom.nc","r")
-    deltaFileQ      = addfile("/glade/u/home/zarzycki/scratch/CESM_LENS_temp/Q/ens_Q_anom.nc","r")
-    deltaFileT_2    = addfile("/glade/scratch/zarzycki/CESM_LENS_temp/T/ens_012.nc","r")
-    hyam_in=deltaFileT_2->hyam
-    hybm_in=deltaFileT_2->hybm
+    deltaFilePS     = addfile("/global/cfs/cdirs/m2637/betacast/deltas/PS/ens_PS_anom.nc","r")
+    deltaFileT      = addfile("/global/cfs/cdirs/m2637/betacast/deltas/T/ens_T_anom.nc","r")
+    deltaFileQ      = addfile("/global/cfs/cdirs/m2637/betacast/deltas/Q/ens_Q_anom.nc","r")
+    hyam_in=deltaFileT->hyam
+    hybm_in=deltaFileT->hybm
   end if
   deltaPS_in      = flt2dble(deltaFilePS->PS(current_year*12-1920*12+start_month-1:current_year*12-1920*12+end_month-1,:,:))
   deltaT_in       = flt2dble(deltaFileT->T(current_year*12-1920*12+start_month-1:current_year*12-1920*12+end_month-1,:,:,:))
@@ -120,6 +149,10 @@ if (esmf_remap) then
   llGridName="grid_deltas.nc"
   if (.not. keep_esmf) then rectilinear_to_SCRIP(llGridName,deltaT&lat,deltaT&lon,Opt_ll) end if
 
+    system ("echo $PATH")
+    system ("echo $ESMFBINDIR")
+    system ("which ESMF_RegridWeightGen")
+
   Opt                      = True
   Opt@InterpMethod         = "patch"
   Opt@ForceOverwrite       = True
@@ -146,9 +179,6 @@ else
   PS_deltaGrid=dsgrid2(lat,lon,PS(0,:),deltaT&lat,deltaT&lon)
 end if
 PS_deltaGrid@units="Pa"
-lat_deltaGrid = PS_deltaGrid&lat
-lon_deltaGrid = PS_deltaGrid&lon
-  
 
 print("Beginning vertical interp interp")
 if (case .eq. "CAMC20C")
@@ -180,7 +210,7 @@ if (smooth_deltas) then
   end do
 end if
   
-if (extra_diags) then
+if (extra_diags_atm) then
   dp = dpres_hybrid_ccm(PS_deltaGrid,P0,hyai,hybi)   ; dp(ntime,klevi-1,nlat,nlon)
   copy_VarCoords(deltaQCAM,dp)    ; dp(time,lev,lat,lon)
   pw = prcwater_dp(deltaQCAM(lat|:,lon|:,lev|:),dp(lat|:,lon|:,lev|:))    
@@ -214,35 +244,97 @@ if (do_ps_corr) then
   anom_scaling=3.0   ; vertical average reference Tanom for scaling (Tanom/anom_scaling)
   print("Doing empirical ps_corr with anom_scaling: "+anom_scaling)
   
+  print("Calculate pint and dpint")
   ; do weighted integral of deltaTCAM_interp
   dpint = deltaTCAM_interp
   dpint = 0.
-  do ii = 0,ncol-1
-    pint = hyai*P0 + hybi*PS(0,ii)
-    dpint(:,ii) = pint(1:nlev) - pint(0:nlev-1)
-  end do
+  pint = new((/nlev+1,ncol/),typeof(hyai))
+  pint = 0.
+  
+  pint = conform(pint,hyai,0)*P0 + conform(pint,hybi,0)*conform(pint,PS(0,:),1)
+  ;pint = hyai*P0 + hybi*PS(0,ii)
+  dpint = pint(1:nlev,:) - pint(0:nlev-1,:)
+  ;do ii = 0,ncol-1
+  ;  pint = hyai*P0 + hybi*PS(0,ii)
+  ;  dpint(:,ii) = pint(1:nlev) - pint(0:nlev-1)
+  ;end do
+  
+  print("Calculate weighted T anomaly and sign")
   Tanom = wgt_vertical_n(deltaTCAM_interp, dpint, 0, 0)
   ; Find where column is warmer and where is colder
   Tsign = where(Tanom .ge. 0.0, 1.0, -1.0)
+  
   ; Map native -> RLL to smooth
-  Tsign_deltaGrid=ESMF_regrid_with_weights(Tsign,wgtFileName1,False)
+  printVarSummary(Tsign)
+  printVarSummary(deltaPSCAM)
+  
+  print("Remap to RLL")
+  if (esmf_remap) then
+    Tsign_deltaGrid=ESMF_regrid_with_weights(Tsign,wgtFileName1,False)
+  else
+    Tsign_deltaGrid=dsgrid2(lat,lon,Tsign,deltaPSCAM&lat,deltaPSCAM&lon)
+  end if
+  print("Smooth")
   ; smooth to not have step function flips from + to -
   smoothiter=50
   do ii = 0,smoothiter-1
     Tsign_deltaGrid := smth9(Tsign_deltaGrid, 0.50, 0.25, True)
   end do
+  
+  print(num(ismissing(Tsign_deltaGrid)))
+  
+  print("Remap to SE")
   ; back to native
-  Tsign=ESMF_regrid_with_weights(Tsign_deltaGrid,wgtFileName2,False)
+  if (esmf_remap) then
+    Tsign = ESMF_regrid_with_weights(Tsign_deltaGrid,wgtFileName2,False)
+  else
+    Tsign = linint2_points_Wrap(deltaPSCAM&lon,deltaPSCAM&lat,Tsign_deltaGrid,True,lon,lat,0)
+  end if
+
+  print("before "+num(ismissing(Tsign)))
+
+
+  if (any(ismissing(Tsign))) then
+    print("Found some missing Tsign data")
+    print(num(ismissing(Tsign)))
+    Tsignorig=Tsign
+    do ii = 0,ncol-1
+      if (ismissing(Tsign(ii))) then
+        thisLat=lat(ii)
+        thisLon=lon(ii)
+        gcdist = gc_latlon(thisLat,thisLon,lat,lon,2,2)
+        ; set the point where gc dist = 0 (i.e., this point) to a huge number
+        ; so it isn't flagged as minix (which doesn't help us!)
+        gcdist = where(ismissing(Tsignorig), 999999., gcdist)
+        Tsign(ii) = Tsign(minind(gcdist))
+        print("Replacing Tsign at "+ii+" with "+minind(gcdist))
+        print("this lat/lon "+lat(ii)+" "+lon(ii)+"   nearest: "+lat(minind(gcdist))+" "+lon(minind(gcdist)))
+      end if
+    end do
+    delete(Tsignorig)
+  end if
+  
+  print("after "+num(ismissing(Tsign)))
+  
   ; scale the multiplier based on the magnitude of the column anomaly.
   Tsign = Tsign * (abs(tofloat(Tanom))/anom_scaling)
+  
+  print(num(ismissing(Tsign)))
+
   ; correction coefficients derived from ne30 run
   rc=-0.007590353
   rc_intercept=771.9941
   print("CORR: using dPSL = "+rc+"*PS + "+rc_intercept)
   ; generate PS corr based on PS and constants
   PScorr = PS(0,:)*rc+rc_intercept
+  
+  print(num(ismissing(PScorr)))
+
   ; Scale correction by Tanom + heating/cooling
   PScorr = PScorr * Tsign
+  
+  print(num(ismissing(PScorr)))
+
   PS(0,:)  = PS(0,:)  + PScorr
 end if
 
@@ -297,8 +389,8 @@ if (update_pressure .or. do_ps_corr) then
   camFile->PS = PS
 end if
 
-if (output_diag) then
-  diag_filename="deltas.nc"
+if (output_atm_diag) then
+  diag_filename="deltas_atm.nc"
   print("outputting diags to "+diag_filename)
   
   system("/bin/rm -f "+diag_filename)   ; remove any pre-existing file
@@ -315,16 +407,22 @@ if (output_diag) then
   ncdf->deltaTCAM=deltaTCAM
   ncdf->deltaQCAM=deltaQCAM
 
-  if (extra_diags) then
+  if (extra_diags_atm) then
     ncdf->pw=pw
   end if
   
   if (do_ps_corr) then
     Opt=True
-    ncdf->Tanom  = ESMF_regrid_with_weights(Tanom,wgtFileName1,Opt)
-    ncdf->Tsign  = ESMF_regrid_with_weights(Tsign,wgtFileName1,Opt)
-    ncdf->PScorr = ESMF_regrid_with_weights(PScorr,wgtFileName1,Opt)
-    delete(Opt)
+    if (esmf_remap) then
+      ncdf->Tanom  = ESMF_regrid_with_weights(Tanom,wgtFileName1,Opt)
+      ncdf->Tsign  = ESMF_regrid_with_weights(Tsign,wgtFileName1,Opt)
+      ncdf->PScorr = ESMF_regrid_with_weights(PScorr,wgtFileName1,Opt)
+      delete(Opt)
+    else
+      ncdf->Tanom   = dsgrid2(lat,lon,Tanom, deltaPSCAM&lat,deltaPSCAM&lon)
+      ncdf->Tsign   = dsgrid2(lat,lon,Tsign, deltaPSCAM&lat,deltaPSCAM&lon)
+      ncdf->PScorr  = dsgrid2(lat,lon,PScorr,deltaPSCAM&lat,deltaPSCAM&lon)
+    end if
   end if
 
 end if
