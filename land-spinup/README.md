@@ -16,7 +16,20 @@
 
 
 
+```
+CASENAME=RoS-F2010C5-ne0conus30x8-001-PI
+ICASENAME=RoS-ICLM45-ne0conus30x8-ERA5
 
+# Set variables
+LANDFILEDIR=/global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/${CASENAME}/run/landstart/
+
+# Move things
+mkdir -p ${LANDFILEDIR}
+cp -v ${ICASENAME}.elm.r.*.nc ${LANDFILEDIR}
+cp -v ${ICASENAME}.mosart.r.*.nc ${LANDFILEDIR}
+cd ${LANDFILEDIR}
+rename ${ICASENAME} ${CASENAME} *.nc
+```
 
 OLD --->
 
