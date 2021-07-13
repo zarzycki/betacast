@@ -169,6 +169,11 @@ lon = mslp&lon
 lat2d=conform(mslp(0,:,:),lat,0)
 lon2d=conform(mslp(0,:,:),lon,1)
 
+dlat = lat(1)-lat(0)
+dlon = lon(1)-lon(0)
+
+print("dlat: "+dlat+" dlon: "+dlon)
+
 ;lat!0 = "lat"
 ;lon!0 = "lon"
 ;lat&lat = lat
@@ -251,31 +256,47 @@ wallClockElapseTime(wcStrt, "Var. preparation", 0)
 
 do plotindex = 0,2
 
+snowstride=toint(360.0/dlat)
+tsstride=toint(360.0/dlat)
+windstride=toint(360.0/dlat)
+  
 ; NORTH ATLANTIC
-;if (plotindex .eq. 0)
-;  plotname = "natl"
-;  maxlat = 55.           ; NATL         
-;  minlat = 5.
-;  maxlon = -5. 
-;  minlon = -100.
 if (plotindex .eq. 0)
   plotname = "natl"
-  maxlat = 53.           ; CONUS         
-  minlat = 21.
-  maxlon = 295.-360. 
-  minlon = 231.-360.
-;else if (plotindex .eq. 1)    ; ORIG EPAC
-;  plotname = "epac"
-;  maxlat = 40.             
-;  minlat = 5.
-;  maxlon = -90.
-;  minlon = -165.
-else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+  maxlat = 55.           ; NATL         
+  minlat = 5.
+  maxlon = -5. 
+  minlon = -100.
+  snowstride=toint(4.5/dlat)
+  tsstride=toint(6.0/dlat)
+  windstride=toint(4.0/dlat)
+;if (plotindex .eq. 0)
+;  plotname = "natl"
+;  maxlat = 53.           ; CONUS         
+;  minlat = 21.
+;  maxlon = 295.-360. 
+;  minlon = 231.-360.
+;  snowstride=toint(2.25/dlat)
+;  tsstride=toint(3.125/dlat)
+;  windstride=toint(2.0/dlat)
+else if (plotindex .eq. 1)    ; ORIG EPAC
   plotname = "epac"
-  maxlat = 49.              
-  minlat = 37.
-  maxlon = 295.-360. 
-  minlon = 275.-360.
+  maxlat = 40.             
+  minlat = 5.
+  maxlon = -90.
+  minlon = -165.
+  snowstride=toint(4.5/dlat)
+  tsstride=toint(6.0/dlat)
+  windstride=toint(4.0/dlat)
+;else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+;  plotname = "epac"
+;  maxlat = 49.              
+;  minlat = 37.
+;  maxlon = 295.-360. 
+;  minlon = 275.-360.
+;  snowstride=toint(0.75/dlat)
+;  tsstride=toint(1.0/dlat)
+;  windstride=toint(2.0/dlat)
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
 ;  plotname = "epac"
 ;  maxlat = 30.              
@@ -312,18 +333,24 @@ else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
 ;  minlat = 36.5
 ;  maxlon = 258.5-360. 
 ;  minlon = 250.5-360.
-;else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
-;  plotname = "float1"
-;  maxlat = 40.0              
-;  minlat = 5.0
-;  maxlon = 170.0
-;  minlon = 75.0
-else if (plotindex .eq. 2)     ; Modif GLOB
+else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
   plotname = "float1"
-  maxlat = 80.0
-  minlat = -80.0
-  maxlon = 180. 
-  minlon = -180.
+  maxlat = 40.0              
+  minlat = 5.0
+  maxlon = 170.0
+  minlon = 75.0
+  snowstride=toint(4.5/dlat)
+  tsstride=toint(6.0/dlat)
+  windstride=toint(4.0/dlat)
+;else if (plotindex .eq. 2)     ; Modif GLOB
+;  plotname = "float1"
+;  maxlat = 80.0
+;  minlat = -80.0
+;  maxlon = 180. 
+;  minlon = -180.
+;  snowstride=toint(7.5/dlat)
+;  tsstride=toint(15.0/dlat)
+;  windstride=toint(5.0/dlat)
 else
   plotname = "glob"
   maxlat = 90.           ; choose subregion           
@@ -334,6 +361,12 @@ end if
 end if
 end if
 
+print("********* DOING: "+plotname)
+print("Using strides...")
+print("snowstride: "+snowstride)
+print("tsstride: "+tsstride)
+print("windstride: "+windstride)
+print("------------------------------")
 print("Plotting: "+plotname)
 
 
@@ -560,7 +593,8 @@ print("Plotting accumulated precip...")
 wks = gsn_open_wks(out_type,"sumprect_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 res_sumprecip                    = res
 
-cmap = read_colormap_file("precip2_17lev")
+cmap = read_colormap_file("prcp_1")
+;cmap = read_colormap_file("precip2_17lev")
 cmap_dims = dimsizes(cmap)
 ncolors = cmap_dims(0)
 npairs = cmap_dims(1)
@@ -619,14 +653,7 @@ txres               = True
 txres@txFontHeightF = 0.011             ; Set the font height
 txres@txFont   = "helvetica-bold"
 
-if (plotindex .eq. 0) then
-  stride=18
-else if (plotindex .eq. 1) then
-  stride=6
-else
-  stride=60
-end if
-end if
+stride=snowstride
 
 numvars = ceil(nlat/stride)*ceil(nlon/stride)
 text = new(toint(numvars),"graphic")
@@ -718,15 +745,7 @@ vecres@tiXAxisString    = ""             ; turn off axis label
 ;vecres@vcRefAnnoOrthogonalPosF = -.535    ; move ref vector into plot
 
 ; this is 8 for 0.25deg data, 16 for 0.125deg data
-
-if (plotindex .eq. 0) then
-  stride=16
-else if (plotindex .eq. 1) then
-  stride=16
-else
-  stride=40
-end if
-end if
+stride=windstride
 
 plot500winds   = gsn_csm_vector(wks,u500(0,::stride,::stride),v500(0,::stride,::stride),vecres)
 overlay(plot500vort,plotz500)
@@ -767,7 +786,8 @@ wks = gsn_open_wks(out_type,"tmq_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 
 res_tmq = res
 
-cmap = read_colormap_file("nice_gfdl")
+cmap = read_colormap_file("WhiteBlueGreenYellowRed")
+;cmap = read_colormap_file("nice_gfdl")
 res_tmq@cnFillPalette=cmap
 
 res_tmq@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
@@ -822,14 +842,7 @@ txres               = True
 txres@txFontHeightF = 0.011             ; Set the font height
 txres@txFont   = "helvetica-bold"
 
-if (plotindex .eq. 0) then
-  stride=25
-else if (plotindex .eq. 1) then
-  stride=8
-else
-  stride=120
-end if
-end if
+stride=tsstride
 
 numvars = ceil(nlat/stride)*ceil(nlon/stride)
 text = new(toint(numvars),"graphic")
