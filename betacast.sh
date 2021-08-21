@@ -1078,4 +1078,6 @@ if [ $islive -eq 0 ] ; then
   fi
 fi
 
+echo "DONE"
+
 exit 0
