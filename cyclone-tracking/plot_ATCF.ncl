@@ -3,20 +3,21 @@
 ; output
 ; Colin Zarzycki (czarzycki@psu.edu)
 ;========================================================
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
-;========================================================
+
 begin
 
-filename=getenv("ATCFFILEMERGE")
 yyyymmddhh=getenv("YYYYMMDDHH")
+filename=getenv("ATCFFILEMERGE")
+out_type="png"
 
-;filename="./fin-atcf/atcf.tempest.2018091000"
-;yyyymmddhh="2018091000"
+; DEBUG CONFIG
+;yyyymmddhh="2021082000"
+;filename="./fin-atcf/atcf.tempest."+yyyymmddhh
+;out_type="x11"
 
+color_pw=False
 cutwind=0.0
+
 ;---Read in file as array of strings so we can parse each line
   lines = asciiread(filename,-1,"string")
 
@@ -104,7 +105,7 @@ end do
 nstorms = nstorms*nmodels
 
 print("Beginning plot sequence")
-wks  = gsn_open_wks("png","enstraj."+yyyymmddhh)
+wks  = gsn_open_wks(out_type,"enstraj."+yyyymmddhh)
 
 numpanels=4
 map = new(numpanels,graphic)
@@ -159,63 +160,69 @@ gsn_define_colormap(wks,"rainbow+white+gray")
   polyres               = True          ; poly marker mods desired 
   polyres@gsMarkerIndex = 1            ; choose circle as polymarker
   lineres = True
+  
+SSthresh_wind = (/17.,33.,43.,49.,58./)
+
+if (color_pw) then
+  ; NOTE, these are negative pressures
+  SSthresh_wind := ((SSthresh_wind/4.4/0.514444)^(1/0.76) - 1010)
+end if
+
+linethicknesses = (/0.5,1.0,1.0,1.0,1.0,1.0/)
+linethicknesses = linethicknesses*4.5
+
+allcolors = (/ "red",     "darkorange3",   "orange",  "yellow",   "green",    "blue"    /)
 
 do i = 0,nstorms-1
 do j = 0,ntimes-1
 
-thisWind=wind(i,j)
-
-;lineres@gsLineThicknessF = 8.0
-; We need to use thinner lines for the global map
-  ;linethicknesses = (/0.5,1.0,1.3,1.9,2.3,2.6/)
-  linethicknesses = (/0.5,1.0,1.0,1.0,1.0,1.0/)
-  linethicknesses = linethicknesses*4.5
-
-if (.not.ismissing(thisWind))
-
-;  polyres@gsMarkerSizeF = 2.0           ; select size to avoid streaking
-  if (thisWind .lt. 17)
-    polyres@gsMarkerColor = (/"lightblue"/)
-    lineres@gsLineColor = (/"lightblue"/)
-    lineres@gsLineThicknessF = linethicknesses(0)
-  else if (thisWind .ge. 17 .and. thisWind .lt. 33)
-    polyres@gsMarkerColor = (/"green3"/)
-    lineres@gsLineColor = (/"green3"/)
-    lineres@gsLineThicknessF = linethicknesses(1)
-  else if (thisWind .ge. 33 .and. thisWind .lt. 43)
-    polyres@gsMarkerColor = (/"yellow2"/)
-    lineres@gsLineColor = (/"yellow2"/)
-    lineres@gsLineThicknessF = linethicknesses(2)
-  else if (thisWind .ge. 43 .and. thisWind .lt. 49)
-    polyres@gsMarkerColor = (/"orange"/)
-    lineres@gsLineColor = (/"orange"/)
-    lineres@gsLineThicknessF = linethicknesses(3)
-  else if (thisWind .ge. 49 .and. thisWind .lt. 58)
-    polyres@gsMarkerColor = (/"darkorange3"/)
-    lineres@gsLineColor = (/"darkorange3"/)
-    lineres@gsLineThicknessF  = linethicknesses(4)
+  if (color_pw) then
+   thisWind=-pres(i,j)
   else
-    polyres@gsMarkerColor = (/"red"/) 
-    lineres@gsLineColor = (/"red"/)
-    lineres@gsLineThicknessF  = linethicknesses(5)
-  end if
-  end if
-  end if
-  end if
+   thisWind=wind(i,j)
   end if
   
-  if (j .ne. 0) then
-    if(thisWind .ge. cutwind) then
-      dum(zz,i,j) = gsn_add_polyline(wks,map(zz),(/lon(i,j),lon(i,j-1)/),(/lat(i,j),lat(i,j-1)/),lineres)
-    end if
+  if (.not.ismissing(thisWind))
+  ;  polyres@gsMarkerSizeF = 2.0           ; select size to avoid streaking
+   if (thisWind .lt. SSthresh_wind(0))
+     polyres@gsMarkerColor = allcolors(5)
+     lineres@gsLineColor = allcolors(5)
+     lineres@gsLineThicknessF = linethicknesses(0)
+   else if (thisWind .ge. SSthresh_wind(0) .and. thisWind .lt. SSthresh_wind(1))
+     polyres@gsMarkerColor = allcolors(4)
+     lineres@gsLineColor = allcolors(4)
+     lineres@gsLineThicknessF = linethicknesses(1)
+   else if (thisWind .ge. SSthresh_wind(1) .and. thisWind .lt. SSthresh_wind(2))
+     polyres@gsMarkerColor = allcolors(3)
+     lineres@gsLineColor = allcolors(3)
+     lineres@gsLineThicknessF = linethicknesses(2)
+   else if (thisWind .ge. SSthresh_wind(2) .and. thisWind .lt. SSthresh_wind(3))
+     polyres@gsMarkerColor = allcolors(2)
+     lineres@gsLineColor = allcolors(2)
+     lineres@gsLineThicknessF = linethicknesses(3)
+   else if (thisWind .ge. SSthresh_wind(3) .and. thisWind .lt. SSthresh_wind(4))
+     polyres@gsMarkerColor = allcolors(1)
+     lineres@gsLineColor = allcolors(1)
+     lineres@gsLineThicknessF  = linethicknesses(4)
+   else
+     polyres@gsMarkerColor = allcolors(0)
+     lineres@gsLineColor = allcolors(0)
+     lineres@gsLineThicknessF  = linethicknesses(5)
+   end if
+   end if
+   end if
+   end if
+   end if
+ 
+   if (j .ne. 0) then
+     ;if(thisWind .ge. cutwind) then
+       dum(zz,i,j) = gsn_add_polyline(wks,map(zz),(/lon(i,j),lon(i,j-1)/),(/lat(i,j),lat(i,j-1)/),lineres)
+     ;end if
+   end if
+ 
   end if
-  
-end if
 
 end do
-
-
-
 end do
 
 do jj = 0,dimsizes(uniqNums)-1
