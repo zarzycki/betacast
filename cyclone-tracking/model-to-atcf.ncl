@@ -27,7 +27,7 @@ print(TECH)
 ;--------------------------------------------------------
 
 TIMETHRESH=12.  ; max number of hours init in tempest can be off from vitals
-DISTTHRESH=3.0   ; max horiz distance (GC deg) init in tempest can be off from vitals
+DISTTHRESH=5.0   ; max horiz distance (GC deg) init in tempest can be off from vitals
 
 output_type="png"
 cutwind=0.0

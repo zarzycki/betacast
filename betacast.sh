@@ -1061,9 +1061,9 @@ if $dotracking ; then
   mkdir -p ./fin-atcf/
   ATCFFILE=atcf.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}
   if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
-    wget http://hurricanes.ral.ucar.edu/repository/data/tcvitals_open/${yearstr}
-    grep "${yearstr}${monthstr}${daystr} ${cyclestr}00" ${yearstr} > ${TCVITFILE}
-    rm ${yearstr}
+    wget http://hurricanes.ral.ucar.edu/repository/data/tcvitals_open/combined_tcvitals.${yearstr}.dat
+    grep "${yearstr}${monthstr}${daystr} ${cyclestr}00" combined_tcvitals.${yearstr}.dat > ${TCVITFILE}
+    rm combined_tcvitals.${yearstr}.dat 
   fi
   if [ -f ${TCVITFILE} ]; then  # if file does exist (i.e., it was downloaded), run tracker
     /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} ${casename} ${TCVITFILE} ${ATCFFILE}
@@ -1099,5 +1099,7 @@ if [ $islive -eq 0 ] ; then
     exec ./betacast.sh ${MACHINEFILE} ${NAMELISTFILE} ${OUTPUTSTREAMS}
   fi
 fi
+
+echo "DONE"
 
 exit 0

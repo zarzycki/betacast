@@ -47,7 +47,7 @@ touch cyc.${UQSTR}
 for f in ${FILES[@]};
 do
   echo "Processing $f..."
-  ${TEMPESTEXTREMESDIR}/bin/DetectNodes --verbosity 0 --timestride 2 --in_data "${f}" ${CONNECTFLAG} --out cyc_tempest.${UQSTR} --mergedist 3.0 --searchbymin PSL --outputcmd "PSL,min,0;_VECMAG(UBOT,VBOT),max,2"
+  ${TEMPESTEXTREMESDIR}/bin/DetectNodes --verbosity 0 --timestride 2 --in_data "${f}" ${CONNECTFLAG} --out cyc_tempest.${UQSTR} --mergedist 5.0 --searchbymin PSL --outputcmd "PSL,min,0;_VECMAG(UBOT,VBOT),max,2"
   cat cyc_tempest.${UQSTR} >> cyc.${UQSTR}
   rm cyc_tempest.${UQSTR}
 done
@@ -55,7 +55,7 @@ done
 # Stitch candidate cyclones together
 # Using range = 3.0 for 3hr, use 5.0 for 6hr.
 # Using minlength = 5 = 12 hrs for 3hrly; minlength = 3 = 12 hrs for 6hrly
-${TEMPESTEXTREMESDIR}/bin/StitchNodes --format "ncol,lon,lat,slp,wind" --range 3.0 --minlength 5 --maxgap 0 --in cyc.${UQSTR} --out ${TRAJFILE} --threshold "lat,<=,55.0,4;lat,>=,-55.0,4"
+${TEMPESTEXTREMESDIR}/bin/StitchNodes --format "ncol,lon,lat,slp,wind" --range 5.0 --minlength 5 --maxgap 0 --in cyc.${UQSTR} --out ${TRAJFILE} --threshold "lat,<=,55.0,4;lat,>=,-55.0,4"
 
 sleep 5 #brief delay to nip any small I/O issues in the bud
 

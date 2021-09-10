@@ -26,7 +26,7 @@
 
 # Adjustment settings
   adjust_topo = /gpfs/group/cmz5202/default/ASD2017_files/atm/cam/topo/conus_30_x8_nc3000_Co060_Fi001_MulG_PF_CONUS_Nsw042_20170417.nc
-  adjust_flags = a
+  adjust_flags = 0
 
 #true/false, needs to be lowercase
   doFilter = false 
@@ -45,7 +45,8 @@
   land_spinup = false
 
 # Case name
-  casename = forecast_conus_30_x8_CAM5_L30
+#  casename = forecast_conus_30_x8_CAM5_L30
+  casename = RHEL7_forecast_conus_30_x8_CAM5_L30
 
 # Weight file for going from GFS -> VR-SE
   gfs2seWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
