@@ -394,10 +394,16 @@ if [ $debug -ne 1 ] ; then
     mkdir -p $era_files_path
     cd $era_files_path
     LOCALGFSFILE=ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc
+    ERA5RDA=0  # Set whether or not ERA5 is local (0 = local, 1 = RDA)
     if [ ! -f ${LOCALGFSFILE} ]; then
       echo "cannot find: ${era_files_path}/${LOCALGFSFILE}"
-      echo "support broken for auto download ERA, please prestage"
-      exit
+      if [[ "$MACHINEFILE" != *cheyenne* ]]; then
+        echo "support broken for auto download ERA, please prestage!"
+        exit
+      else
+        echo "We are on Cheyenne, so even though we lack a local file, we can use RDA"
+        ERA5RDA=1
+      fi
     fi
   else
     echo "Incorrect model IC entered"
@@ -535,14 +541,26 @@ if [ $debug -ne 1 ] ; then
   elif [ $atmDataType -eq 4 ] ; then
     echo "CD ing to ERA5 interpolation directory"
     cd $atm_to_cam_path
-    (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5"'     \
-        numlevels=${numLevels} \
-        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-       'data_filename = "'$era_files_path'/ERA5_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
-       'wgt_filename="'${gfs2seWeights}'"' \
-       'model_topo_file="'${adjust_topo-}'"' \
-       'adjust_config="'${adjust_flags-}'"' \
-       'se_inic = "'${sePreFilterIC}'"' )
+    if [ $ERA5RDA -eq 1 ] ; then
+      RDADIR=/glade/collections/rda/data/
+      (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5RDA"'     \
+          numlevels=${numLevels} \
+          YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+         'data_filename = "'${RDADIR}'/ds633.0/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"'  \
+         'wgt_filename="'${gfs2seWeights}'"' \
+         'model_topo_file="'${adjust_topo-}'"' \
+         'adjust_config="'${adjust_flags-}'"' \
+         'se_inic = "'${sePreFilterIC}'"' )
+    else
+      (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5"'     \
+          numlevels=${numLevels} \
+          YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+         'data_filename = "'$era_files_path'/ERA5_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
+         'wgt_filename="'${gfs2seWeights}'"' \
+         'model_topo_file="'${adjust_topo-}'"' \
+         'adjust_config="'${adjust_flags-}'"' \
+         'se_inic = "'${sePreFilterIC}'"' )
+    fi
   else
     echo "Incorrect model IC entered"
     exit 1
@@ -704,6 +722,8 @@ else
     else
       echo "WARNING: Land file DOES NOT EXIST, will use arbitrary user_nl_${lndName} already in folder"
       echo "!!!!!!!!!!!!!"
+      sed -i '/.*finidat/d' user_nl_${lndName}
+      ./xmlchange CLM_FORCE_COLDSTART=on
       #exit
       #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_${lndName}
     fi
@@ -1020,6 +1040,8 @@ rm -v *.${rofName}.rh0.*.nc
 rm -v *.cice.r.*.nc
 rm -v rpointer.*
 rm -v *.bin
+rm -v *.h.*.nc
+rm -v *initial_hist*.nc
 
 echo "Renaming tmp archive directory to YYYYMMDDHH"
 mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
