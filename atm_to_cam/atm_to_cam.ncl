@@ -354,16 +354,6 @@ if (dycore .ne. "mpas") then
   copy_VarCoords(t_cam,v_cam)
 
   print("Interpolating horizontal to CAM")
-  ;fV   = addfile ("./L26template.nc", "r")
-  ;fvlat  = fV->lat
-  ;fvlon  = fV->lon
-  ;fvslat = fV->slat
-  ;fvslon = fV->slon
-
-  ;dstFileName = se_inic
-  ;dfile       = addfile(dstFileName,"r")
-  ;lonCell     = dfile->lon
-  ;latCell     = dfile->lat
   Opt         = True
 
   ; Here we need to keep VarCoords on to extract lat/lon
@@ -392,7 +382,6 @@ if (dycore .ne. "mpas") then
   print("Max PS: "+max(ps)+"   min PS: "+min(ps))
   print("Max CLDICE: "+max(cldice_fv)+"   min CLDICE: "+min(cldice_fv))
   print("Max CLDLIQ: "+max(cldliq_fv)+"   min CLDLIQ: "+min(cldliq_fv))
-  ;print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
   print("=================================================================")
 
   print("clearing after horiz interp")
@@ -741,9 +730,6 @@ ncol=dim_sePS(0)
 ; ; Add time record
  ps_fv_dbl_time = new((/1,ncol/),double)
  ps_fv_dbl_time(0,:) = ps_fv_dbl
- 
- ;pblh_fv_dbl_time = new((/1,ncol/),double)
- ;pblh_fv_dbl_time(0,:) = pblh_fv_dbl
 
  u_fv_dbl_time = new((/1,numlevels,ncol/),double)
  u_fv_dbl_time(0,:,:) = u_fv_dbl
@@ -822,11 +808,8 @@ v_fv_dbl_slon = linint2(lon,lat,v_fv_dbl,True,slon,lat,0)
 
  print("Correcting time records")
 ; ; Add time record
- ps_fv_dbl_time = new((/1,nlat,nlon/),double)
- ps_fv_dbl_time(0,:,:) = ps_fv_dbl
- 
- ;pblh_fv_dbl_time = new((/1,ncol/),double)
- ;pblh_fv_dbl_time(0,:) = pblh_fv_dbl
+ps_fv_dbl_time = new((/1,nlat,nlon/),double)
+ps_fv_dbl_time(0,:,:) = ps_fv_dbl
 
 u_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
 u_fv_dbl_time(0,:,:,:) = u_fv_dbl
@@ -945,8 +928,6 @@ time!0 = "time"
 delete(timeunits)
 
 print("Writing output file: "+se_inic)
-other_stuff=True
-if (other_stuff) then
 
 if (isvar("compress_file") .and. compress_file) then
   compress_level=1
@@ -1094,9 +1075,6 @@ if (dycore .eq. "fv") then
 else                       
   fout->lat   = (/selat/)
   fout->lon   = (/selon/)
-end if
-
-
 end if
 
 wallClockElapseTime(wcStrt, "Total runtime", 0)
