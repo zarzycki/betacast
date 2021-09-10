@@ -1,5 +1,6 @@
 ;Not needed NCL v6.5+
 load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
+load "helpers.ncl"
 
 begin
 
@@ -17,6 +18,13 @@ wcStrt = systemfunc("date")
 gamma_s = 5.0/1000.   ; lapse rate in K/m
 grav = 9.80616
 Rd = 287.058
+Rv = 461.6
+Rv_over_Rd = Rv / Rd
+
+; Internal settings
+debug=False
+rho_d_algo = 2  ; 1 or 2
+damp_upper_winds_mpas=False
 
 ; dycore options are FV and SE for now
 ; reverse compat -- if you don't specify dycore, default to SE
@@ -24,6 +32,13 @@ if (.not. isvar("dycore")) then
   dycore="se"
 end if
 print("USING DYCORE:  "+dycore)
+
+; check if we are using MPAS if dycore has been passed in
+if (.not. isvar("mpasfile") .and. dycore .eq. "mpas") then
+  print("No mpasfile passed in but mpas dycore selected.")
+  print("MPAS init file is needed to mimic + get zcoord from.  exiting...")
+  exit
+end if
 
 ; ===== Getting date from YYYYMMDDHH
 dtime_map = (/4,2,2,2/)
@@ -199,6 +214,24 @@ if (datasource .eq. "ERA5RDA") then
   rda_time     := rda_file->time
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   cldice_gfs    = rda_file->CIWC(closest_val(rda_thistime,rda_time),:,:,:)
+  
+  if (dycore .eq. "mpas") then
+    rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_135_w.ll025sc."+yearstr+monthstr+daystr+"00_*.nc")
+    print(rda_find+"")
+    rda_file     := addfile(rda_find,"r")
+    rda_time     := rda_file->time
+    rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
+    w_gfs         = rda_file->W(closest_val(rda_thistime,rda_time),:,:,:)
+    w_is_omega    = True
+  
+    rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_129_z.ll025sc."+yearstr+monthstr+daystr+"00_*.nc")
+    print(rda_find+"")
+    rda_file     := addfile(rda_find,"r")
+    rda_time     := rda_file->time
+    rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
+    z_gfs         = rda_file->Z(closest_val(rda_thistime,rda_time),:,:,:)
+    z_is_phi      = True
+  end if
 end if
 
 print("=================================================================")
@@ -210,124 +243,292 @@ print("Max Q: "+max(q_gfs)+"   min Q: "+min(q_gfs))
 print("Max PS: "+max(ps)+"   min PS: "+min(ps))
 print("Max CLDICE: "+max(cldice_gfs)+"   min CLDICE: "+min(cldice_gfs))
 print("Max CLDLIQ: "+max(cldliq_gfs)+"   min CLDLIQ: "+min(cldliq_gfs))
-;print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
-print("=================================================================")
 
+if (dycore .eq. "mpas") then
+  print("Max Z: "+max(z_gfs)+"   min Z: "+min(z_gfs))
+  print("------------Deriving variables----------------")
 
-print("---------------------------------------------------------")
-print("Loading CAM levels")
-print("Loading "+numlevels+" level data")
-fC   = addfile ("./templates/L"+numlevels+"template.nc", "r")
-hya  = fC->hyam
-hyb  = fC->hybm
-hyai  = fC->hyai
-hybi  = fC->hybi
-lev = fC->lev
-ilev = fC->ilev
+  ; initialize variables
+  theta_gfs = t_gfs
+  rho_gfs = t_gfs
 
+  ; create a 3-D pressure field from constant pressure surfaces
+  pres_gfs = conform(t_gfs,grblev,0)
 
-print("Interpolating to CAM hybrid coordinates")
-if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA") then
-  print("Using pressure to hybrid interpolation")
-  t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,1)
-  u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,1)
-  v_cam = pres2hybrid_Wrap(grblev,ps,p0,v_gfs,hya,hyb,1)
-  q_cam = pres2hybrid_Wrap(grblev,ps,p0,q_gfs,hya,hyb,1)
-  cldice_cam = pres2hybrid_Wrap(grblev,ps,p0,cldice_gfs,hya,hyb,1)
-  cldliq_cam = pres2hybrid_Wrap(grblev,ps,p0,cldliq_gfs,hya,hyb,1)
+  ; if w is omega (Pa/s), convert to vertical velocity in m/s
+  if (w_is_omega) then
+    w_gfs := omega_to_w(w_gfs, pres_gfs, t_gfs)
+  end if
+
+  ; if z is reported in geopotential, convert to geometric height
+  if (z_is_phi) then
+    ;phis_sfc = grb_file->Z(0,:,:)
+    ;z_gfs = z_gfs - conform(z_gfs,phis_sfc,(/1,2/))
+    z_gfs = z_gfs / grav  
+  end if
+
+  ; potential temperature is calculated using full pressure and actual T
+  theta_gfs = pot_temp(pres_gfs, t_gfs, -1, False)
+
+  ; rho we need to calculate with *dry* air
+  if (rho_d_algo .eq. 1) then
+    presdry_gfs = pres_gfs
+    presdry_gfs = pres_gfs/(1.+q_gfs)
+    ;presdry_gfs = presdry_gfs*0.995
+    rho_gfs = presdry_gfs / Rd / t_gfs
+  else
+    print("using rho_d calculation from internal CAM/MPAS code")
+    rho_gfs = pres_gfs / Rd / t_gfs / (1. + Rv_over_Rd * q_gfs)
+  end if
+
+  print("Max RHO_DRY: "+max(rho_gfs)+"   min RHO_DRY: "+min(rho_gfs))
+  print("Max THETA: "+max(theta_gfs)+"   min THETA: "+min(theta_gfs))
+  print("Max PRES: "+max(pres_gfs)+"   min PRES: "+min(pres_gfs))
+  print("Max W: "+max(w_gfs)+"   min W: "+min(w_gfs))
 end if
-if (datasource .eq. "ERAI") then
-  print("Using hybrid to hybrid interpolation")
-  eraVertFile = addfile("./templates/ERA-Interim_coordvars.nc","r")
-  hya_era = eraVertFile->a_model_ave
-  hyb_era = eraVertFile->b_model_ave
-  hya_era = hya_era/p0
-  t_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,t_gfs,hya,hyb,1)
-  u_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,u_gfs,hya,hyb,1)
-  v_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,v_gfs,hya,hyb,1)
-  q_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,q_gfs,hya,hyb,1)
-  cldice_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,cldice_gfs,hya,hyb,1)
-  cldliq_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,cldliq_gfs,hya,hyb,1)
-end if
 
 print("=================================================================")
-print("************ AFTER VERTICAL INTERP")
-print("Max T: "+max(t_cam)+"   min T: "+min(t_cam))
-print("Max U: "+max(u_cam)+"   min U: "+min(u_cam))
-print("Max V: "+max(v_cam)+"   min V: "+min(v_cam))
-print("Max Q: "+max(q_cam)+"   min Q: "+min(q_cam))
-print("Max PS: "+max(ps)+"   min PS: "+min(ps))
-print("Max CLDICE: "+max(cldice_cam)+"   min CLDICE: "+min(cldice_cam))
-print("Max CLDLIQ: "+max(cldliq_cam)+"   min CLDLIQ: "+min(cldliq_cam))
-print("=================================================================")
 
-print("==CLEAN after vert interp")
-delete([/u_gfs,v_gfs,t_gfs,q_gfs,cldice_gfs,cldliq_gfs/])
+if (dycore .ne. "mpas") then
+  print("---------------------------------------------------------")
+  print("Loading CAM levels")
+  print("Loading "+numlevels+" level data")
+  fC   = addfile ("./templates/L"+numlevels+"template.nc", "r")
+  hya  = fC->hyam
+  hyb  = fC->hybm
+  hyai  = fC->hyai
+  hybi  = fC->hybi
+  lev = fC->lev
+  ilev = fC->ilev
 
-; set var coords
-t_cam!0    = "lev"
-t_cam!1    = "lat"
-t_cam!2    = "lon"
-ps!0 = "lat"
-ps!1 = "lon"
+  print("Interpolating to CAM hybrid coordinates")
+  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA") then
+    print("Using pressure to hybrid interpolation")
+    t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,1)
+    u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,1)
+    v_cam = pres2hybrid_Wrap(grblev,ps,p0,v_gfs,hya,hyb,1)
+    q_cam = pres2hybrid_Wrap(grblev,ps,p0,q_gfs,hya,hyb,1)
+    cldice_cam = pres2hybrid_Wrap(grblev,ps,p0,cldice_gfs,hya,hyb,1)
+    cldliq_cam = pres2hybrid_Wrap(grblev,ps,p0,cldliq_gfs,hya,hyb,1)
+  end if
+  if (datasource .eq. "ERAI") then
+    print("Using hybrid to hybrid interpolation")
+    eraVertFile = addfile("./templates/ERA-Interim_coordvars.nc","r")
+    hya_era = eraVertFile->a_model_ave
+    hyb_era = eraVertFile->b_model_ave
+    hya_era = hya_era/p0
+    t_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,t_gfs,hya,hyb,1)
+    u_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,u_gfs,hya,hyb,1)
+    v_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,v_gfs,hya,hyb,1)
+    q_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,q_gfs,hya,hyb,1)
+    cldice_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,cldice_gfs,hya,hyb,1)
+    cldliq_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,cldliq_gfs,hya,hyb,1)
+  end if
 
-; copy var coords over to q, cldliq, and clidice
-copy_VarCoords(t_cam,q_cam)
-copy_VarCoords(t_cam,cldice_cam)
-copy_VarCoords(t_cam,cldliq_cam)
-copy_VarCoords(t_cam,u_cam)
-copy_VarCoords(t_cam,v_cam)
+  print("=================================================================")
+  print("************ AFTER VERTICAL INTERP")
+  print("Max T: "+max(t_cam)+"   min T: "+min(t_cam))
+  print("Max U: "+max(u_cam)+"   min U: "+min(u_cam))
+  print("Max V: "+max(v_cam)+"   min V: "+min(v_cam))
+  print("Max Q: "+max(q_cam)+"   min Q: "+min(q_cam))
+  print("Max PS: "+max(ps)+"   min PS: "+min(ps))
+  print("Max CLDICE: "+max(cldice_cam)+"   min CLDICE: "+min(cldice_cam))
+  print("Max CLDLIQ: "+max(cldliq_cam)+"   min CLDLIQ: "+min(cldliq_cam))
+  print("=================================================================")
 
-print("Interpolating horizontal to CAM")
-;fV   = addfile ("./L26template.nc", "r")
-;fvlat  = fV->lat
-;fvlon  = fV->lon
-;fvslat = fV->slat
-;fvslon = fV->slon
+  print("==CLEAN after vert interp")
+  delete([/u_gfs,v_gfs,t_gfs,q_gfs,cldice_gfs,cldliq_gfs/])
 
-;dstFileName = se_inic
-;dfile       = addfile(dstFileName,"r")
-;lonCell     = dfile->lon
-;latCell     = dfile->lat
-Opt         = True
+  ; set var coords
+  t_cam!0    = "lev"
+  t_cam!1    = "lat"
+  t_cam!2    = "lon"
+  ps!0 = "lat"
+  ps!1 = "lon"
 
-; Here we need to keep VarCoords on to extract lat/lon
-Opt@CopyVarCoords = True
-ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
-if (dycore .ne. "fv") then
+  ; copy var coords over to q, cldliq, and clidice
+  copy_VarCoords(t_cam,q_cam)
+  copy_VarCoords(t_cam,cldice_cam)
+  copy_VarCoords(t_cam,cldliq_cam)
+  copy_VarCoords(t_cam,u_cam)
+  copy_VarCoords(t_cam,v_cam)
+
+  print("Interpolating horizontal to CAM")
+  ;fV   = addfile ("./L26template.nc", "r")
+  ;fvlat  = fV->lat
+  ;fvlon  = fV->lon
+  ;fvslat = fV->slat
+  ;fvslon = fV->slon
+
+  ;dstFileName = se_inic
+  ;dfile       = addfile(dstFileName,"r")
+  ;lonCell     = dfile->lon
+  ;latCell     = dfile->lat
+  Opt         = True
+
+  ; Here we need to keep VarCoords on to extract lat/lon
+  Opt@CopyVarCoords = True
+  ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
+  if (dycore .ne. "fv") then
+    selat=todouble(ps_fv@lat1d)
+    selon=todouble(ps_fv@lon1d)
+    delete_VarAtts(ps_fv,(/"lat1d","lon1d"/))
+  end if
+  Opt@CopyVarCoords = False  ; now we can turn off
+  ;pblh_fv  = ESMF_regrid_with_weights(pblh,wgt_filename,Opt)
+  t_fv  = ESMF_regrid_with_weights(t_cam,wgt_filename,Opt)
+  u_fv  = ESMF_regrid_with_weights(u_cam,wgt_filename,Opt)
+  v_fv  = ESMF_regrid_with_weights(v_cam,wgt_filename,Opt)
+  q_fv  = ESMF_regrid_with_weights(q_cam,wgt_filename,Opt)
+  cldice_fv  = ESMF_regrid_with_weights(cldice_cam,wgt_filename,Opt)
+  cldliq_fv  = ESMF_regrid_with_weights(cldliq_cam,wgt_filename,Opt)
+
+  print("=================================================================")
+  print("************ AFTER HORIZONTAL INTERP")
+  print("Max T: "+max(t_fv)+"   min T: "+min(t_fv))
+  print("Max U: "+max(u_fv)+"   min U: "+min(u_fv))
+  print("Max V: "+max(v_fv)+"   min V: "+min(v_fv))
+  print("Max Q: "+max(q_fv)+"   min Q: "+min(q_fv))
+  print("Max PS: "+max(ps)+"   min PS: "+min(ps))
+  print("Max CLDICE: "+max(cldice_fv)+"   min CLDICE: "+min(cldice_fv))
+  print("Max CLDLIQ: "+max(cldliq_fv)+"   min CLDLIQ: "+min(cldliq_fv))
+  ;print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
+  print("=================================================================")
+
+  print("clearing after horiz interp")
+  delete([/u_cam,v_cam,t_cam,q_cam,cldice_cam,cldliq_cam,ps/])
+
+else   ; if mpas
+  print("We are doing MPAS!")
+  
+  ; First, we have to load the MPAS init file and get the zgrid.
+  mpasf=addfile(mpasfile,"r")
+  mpas_z = mpasf->zgrid
+  mpas_dims = dimsizes(mpas_z)
+  mpas_ncell = mpas_dims(0)
+  mpas_nlevi = mpas_dims(1)
+  mpas_nlev = mpas_nlevi - 1
+  print("MPAS GRID: nlev: "+mpas_nlev+"    nlevi: "+mpas_nlevi+"     ncell: "+mpas_ncell)
+  ; Let's just set up some dummy arrays since we aren't going to vert interp first
+  t_cam = t_gfs
+  u_cam = u_gfs
+  v_cam = v_gfs
+  q_cam = q_gfs
+  z_cam = z_gfs
+  cldice_cam = cldice_gfs
+  cldliq_cam = cldliq_gfs
+  theta_cam = theta_gfs
+  rho_cam = rho_gfs
+  w_cam = w_gfs
+
+  print("Interpolating horizontal to "+dycore)
+  Opt         = True
+  ; Here we need to keep VarCoords on to extract lat/lon
+  Opt@CopyVarCoords = True
+  ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
   selat=todouble(ps_fv@lat1d)
   selon=todouble(ps_fv@lon1d)
   delete_VarAtts(ps_fv,(/"lat1d","lon1d"/))
+  Opt@CopyVarCoords = False  ; now we can turn off
+  t_fv  = ESMF_regrid_with_weights(t_cam,wgt_filename,Opt)
+  u_fv  = ESMF_regrid_with_weights(u_cam,wgt_filename,Opt)
+  v_fv  = ESMF_regrid_with_weights(v_cam,wgt_filename,Opt)
+  q_fv  = ESMF_regrid_with_weights(q_cam,wgt_filename,Opt)
+  cldice_fv  = ESMF_regrid_with_weights(cldice_cam,wgt_filename,Opt)
+  cldliq_fv  = ESMF_regrid_with_weights(cldliq_cam,wgt_filename,Opt)
+  z_fv  = ESMF_regrid_with_weights(z_cam,wgt_filename,Opt)
+  theta_fv  = ESMF_regrid_with_weights(theta_cam,wgt_filename,Opt)
+  rho_fv  = ESMF_regrid_with_weights(rho_cam,wgt_filename,Opt)
+  w_fv  = ESMF_regrid_with_weights(w_cam,wgt_filename,Opt)
+
+  ; now vertical interpolation
+  t_wrf = new((/mpas_nlev,mpas_ncell/),"double")
+  rho_wrf = new((/mpas_nlev,mpas_ncell/),"double")
+  theta_wrf = new((/mpas_nlev,mpas_ncell/),"double")
+  w_wrf = new((/mpas_nlevi,mpas_ncell/),"double")
+  q_wrf = new((/mpas_nlev,mpas_ncell/),"double")
+  u_wrf = new((/mpas_nlev,mpas_ncell/),"double")
+  v_wrf = new((/mpas_nlev,mpas_ncell/),"double")
+
+  print("Performing vertical interpolation at each MPAS column")
+  do ix = 0,mpas_ncell-1
+    if (mod(ix,10000) .eq. 0) then
+      print("... on iter number "+ix+" of "+(mpas_ncell-1))
+    end if
+    zmid = (mpas_z(ix,1:mpas_nlevi-1) + mpas_z(ix,0:mpas_nlevi-2)) / 2.
+    zint = mpas_z(ix,:)
+    theta_wrf(:,ix) = z_to_z_interp(theta_fv(::-1,ix),z_fv(::-1,ix),zmid,True,True)
+    rho_wrf(:,ix)   = z_to_z_interp(rho_fv(::-1,ix),z_fv(::-1,ix),zmid,True,True)
+    w_wrf(:,ix)     = z_to_z_interp(w_fv(::-1,ix),z_fv(::-1,ix),zint,True,True)
+    q_wrf(:,ix)     = z_to_z_interp(q_fv(::-1,ix),z_fv(::-1,ix),zmid,True,True)
+    ; u and v we don't extrapolate aloft to prevent wind speeds from getting too high
+    u_wrf(:,ix)     = z_to_z_interp(u_fv(::-1,ix),z_fv(::-1,ix),zmid,True,False)
+    v_wrf(:,ix)     = z_to_z_interp(v_fv(::-1,ix),z_fv(::-1,ix),zmid,True,False)
+  end do
+
+  ; set lower BC for W so flow can't go through surface
+  w_wrf(:,0) = 0.0
+
+  if (damp_upper_winds_mpas) then
+    print("Damping upper level MPAS winds")
+    u_wrf(:,mpas_nlev-1) = u_wrf(:,mpas_nlev-1)*0.90
+    u_wrf(:,mpas_nlev-2) = u_wrf(:,mpas_nlev-2)*0.95
+    u_wrf(:,mpas_nlev-3) = u_wrf(:,mpas_nlev-3)*0.98
+    v_wrf(:,mpas_nlev-1) = v_wrf(:,mpas_nlev-1)*0.90
+    v_wrf(:,mpas_nlev-2) = v_wrf(:,mpas_nlev-2)*0.95
+    v_wrf(:,mpas_nlev-3) = v_wrf(:,mpas_nlev-3)*0.98
+  end if
+
+  ; put u + v on cell edges...
+  print("putting u + v on cell edges")
+  uNorm_wrf = uv_cell_to_edge(u_wrf,v_wrf,32,mpasf->lonEdge,mpasf->latEdge,mpasf->lonCell,mpasf->latCell,mpasf->edgeNormalVectors,mpasf->cellsOnEdge)
+
+  theta_wrf!0 = "lev"
+  theta_wrf!1 = "ncol"
+  rho_wrf!0 = "lev"
+  rho_wrf!1 = "ncol"
+  w_wrf!0 = "ilev"
+  w_wrf!1 = "ncol"
+  q_wrf!0 = "lev"
+  q_wrf!1 = "ncol"
+  uNorm_wrf!0 = "lev"
+  uNorm_wrf!1 = "nEdges"
+
+  if (debug) then
+    system("/bin/rm -f mpas_debug.nc")   ; remove any pre-existing file
+    ncdf = addfile("mpas_debug.nc" ,"c")  ; open output netCDF file
+    fAtt               = True            ; assign file attributes
+    fAtt@creation_date = systemfunc ("date")
+    fileattdef( ncdf, fAtt )            ; copy file attributes
+    filedimdef(ncdf,"time",-1,True) 
+    ncdf->theta_wrf = theta_wrf
+    ncdf->rho_wrf = rho_wrf
+    ncdf->w_wrf = w_wrf
+    ncdf->q_wrf = q_wrf
+    ncdf->uNorm_wrf = uNorm_wrf
+  end if
+  
+  print("Writing MPAS fields to a copy of existing init file")
+  system("/bin/rm -f -v "+se_inic)   ; remove any pre-existing file
+  system("cp -v "+mpasfile+" "+se_inic)   ; remove any pre-existing file
+  nc = addfile(se_inic ,"w")  ; open output netCDF file
+  nc->u(0,:,:)     = (/ uNorm_wrf(nEdges|:,lev|:) /)
+  nc->qv(0,:,:)    = (/ q_wrf(ncol|:,lev|:) /)
+  nc->rho(0,:,:)   = (/ rho_wrf(ncol|:,lev|:) /)
+  nc->theta(0,:,:) = (/ theta_wrf(ncol|:,lev|:) /)
+  nc->w(0,:,:)     = (/ w_wrf(ncol|:,ilev|:) /)
+  
+  wallClockElapseTime(wcStrt, "Total runtime", 0)
+  print("done with MPAS, now exiting gracefully...")
+  status_exit(9)
+  
 end if
-Opt@CopyVarCoords = False  ; now we can turn off
-;pblh_fv  = ESMF_regrid_with_weights(pblh,wgt_filename,Opt)
-t_fv  = ESMF_regrid_with_weights(t_cam,wgt_filename,Opt)
-u_fv  = ESMF_regrid_with_weights(u_cam,wgt_filename,Opt)
-v_fv  = ESMF_regrid_with_weights(v_cam,wgt_filename,Opt)
-q_fv  = ESMF_regrid_with_weights(q_cam,wgt_filename,Opt)
-cldice_fv  = ESMF_regrid_with_weights(cldice_cam,wgt_filename,Opt)
-cldliq_fv  = ESMF_regrid_with_weights(cldliq_cam,wgt_filename,Opt)
-
-print("=================================================================")
-print("************ AFTER HORIZONTAL INTERP")
-print("Max T: "+max(t_fv)+"   min T: "+min(t_fv))
-print("Max U: "+max(u_fv)+"   min U: "+min(u_fv))
-print("Max V: "+max(v_fv)+"   min V: "+min(v_fv))
-print("Max Q: "+max(q_fv)+"   min Q: "+min(q_fv))
-print("Max PS: "+max(ps)+"   min PS: "+min(ps))
-print("Max CLDICE: "+max(cldice_fv)+"   min CLDICE: "+min(cldice_fv))
-print("Max CLDLIQ: "+max(cldliq_fv)+"   min CLDLIQ: "+min(cldliq_fv))
-;print("Max PBLH: "+max(pblh)+"   min PBLH: "+min(pblh))
-print("=================================================================")
-
-print("clearing after horiz interp")
-delete([/u_cam,v_cam,t_cam,q_cam,cldice_cam,cldliq_cam,ps/])
 
 sePS = ps_fv
 dim_sePS=dimsizes(sePS)
 ;printVarSummary(ps_fv)
 
-if (isvar("model_topo_file") .and. fileexists(model_topo_file)) then
+if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_topo_file)) then
   print("Performing hydrostatic correction for surface pressure using "+model_topo_file)
 
   ; set flags for config
@@ -757,7 +958,7 @@ else
   setfileoption("nc","Format","LargeFile")
 end if
 
-system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
+system("/bin/rm -f -v "+se_inic)   ; remove any pre-existing file
 fout = addfile(se_inic,"c")  ; open output netCDF file   
 
 ;===================================================================
