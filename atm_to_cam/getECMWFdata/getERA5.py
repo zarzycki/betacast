@@ -39,7 +39,7 @@ c.retrieve(
         'format': 'netcdf',
         'variable': [
             'mean_sea_level_pressure', 'sea_ice_cover', 'sea_surface_temperature',
-            'surface_pressure','2m_temperature','orography',
+            'surface_pressure','2m_temperature','geopotential',
             ],
         'year': '%s'%(theyear),
         'month': '%s'%(themonth),

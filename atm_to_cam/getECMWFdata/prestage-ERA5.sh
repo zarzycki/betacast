@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 # python3 must be loaded with cdsapi package
 # on cheyenne...
 # $> module load python
@@ -6,6 +6,8 @@
 #
 # usage: ./prestage-ERA5.sh /glade/work/${LOGNAME}/sewx/ECMWF/ 1996011800
 # where you want the data file for Jan 18, 1996 at 00Z
+
+conda activate meteo
 
 DATE=$2
 DIR=$1

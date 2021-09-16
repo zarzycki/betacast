@@ -149,9 +149,9 @@ if (esmf_remap) then
   llGridName="grid_deltas.nc"
   if (.not. keep_esmf) then rectilinear_to_SCRIP(llGridName,deltaT&lat,deltaT&lon,Opt_ll) end if
 
-    system ("echo $PATH")
-    system ("echo $ESMFBINDIR")
-    system ("which ESMF_RegridWeightGen")
+  system ("echo $PATH")
+  system ("echo $ESMFBINDIR")
+  system ("which ESMF_RegridWeightGen")
 
   Opt                      = True
   Opt@InterpMethod         = "patch"
