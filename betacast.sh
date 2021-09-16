@@ -1062,6 +1062,7 @@ if $dotracking ; then
   ATCFFILE=atcf.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}
   if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
     wget http://hurricanes.ral.ucar.edu/repository/data/tcvitals_open/combined_tcvitals.${yearstr}.dat
+    sed -i $'s/\t/  /g' combined_tcvitals.${yearstr}.dat
     grep "${yearstr}${monthstr}${daystr} ${cyclestr}00" combined_tcvitals.${yearstr}.dat > ${TCVITFILE}
     rm combined_tcvitals.${yearstr}.dat 
   fi
