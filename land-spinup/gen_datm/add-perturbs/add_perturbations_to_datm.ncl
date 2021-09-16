@@ -4,7 +4,7 @@ begin
 
 case         ="CESMLENS" ; CAMC20C or CESMLENS
 current_year = 1996
-comp_year    = 2019    ;2019 (+1), 2044 (+2), 2064 (+3), 2081/2082 (+4)   ; valid 1921-onwards
+comp_year    = 2099    ;2019 (+1), 2044 (+2), 2064 (+3), 2081/2082 (+4)   ; valid 1921-onwards
 plevs        = False
 output_diag  = False 
 do_sw_fluxes = False
