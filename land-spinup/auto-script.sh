@@ -9,6 +9,7 @@ set -e
 ### User settings
 modelSystem=0          # 0 = CESM/E3SMv1, 1 = E3SMv2
 doERA5=0               # Use ERA5 DATM? 0 = yes, 1 = no (internal CRUNCEP)
+addDeltas=0            # 0 = yes, 1 = no
 FORECASTDATE=20200821  # What is the date you want to spin up for (00Z)
 NMONTHSSPIN=12         # Duration of spinup (somewhere b/w 3-12 months seems reasonable)
 
@@ -17,10 +18,16 @@ BETACAST=/glade/u/home/zarzycki/betacast
 BETACAST_STREAMBASE=/glade/u/home/zarzycki/scratch/ERA5-DATM/DATM_FLDS/
 BETACAST_DATMDOMAIN=${BETACAST}/land-spinup/gen_datm/gen-datm/
 
+### Only required if addDeltas = 0
+BETACAST_ANOMBASE=/glade/u/home/zarzycki/scratch/CESM_LENS_temp/DATM_ANOM/
+BETACAST_DATMDOMAIN=${BETACAST}/land-spinup/gen_datm/gen-datm/
+BETACAST_ANOMYEAR=1996
+BETACAST_ANOMALIGN=1920
+
 ### CLM on Cheyenne
 CIMEROOT=~/work/cesm2_2_0
 PATHTOCASE=~/I-compsets
-ICASENAME=TEST3-ICLM45-f09
+ICASENAME=TEST4-ICLM45-f09
 PROJECT=UPSU0032
 MACHINE=cheyenne
 NNODES=12
@@ -67,7 +74,7 @@ STARTDATE=`date -d "${FORECASTDATE} - ${NMONTHSSPIN} months" "+%Y-%m-%d"`
 echo "Starting at: "${STARTDATE}
 if [ $doERA5 -eq 0 ]; then
   echo "Using ERA5 DATM"
-  ERA5STYR=2015
+  ERA5STYR=1995
   ERA5ENYR=2020
 else
   echo "Using CRUNCEP DATM"
@@ -116,7 +123,7 @@ cd ${PATHTOCASE}/${ICASENAME}
 ### If using ERA5, add the stream files and reset DATM_CLMNCEP_YR_START, etc.
 if [ $doERA5 -eq 0 ]; then
   echo "Injecting ERA5 DATM streams"
-  cp ${BETACAST}/land-spinup/streams/* .
+  cp ${BETACAST}/land-spinup/streams/user_datm.streams.txt.CLMCRUNCEPv7* .
   #REPLACEDIR
   sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_STREAMBASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.Solar 
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.Solar 
@@ -127,6 +134,29 @@ if [ $doERA5 -eq 0 ]; then
   ./xmlchange DATM_CLMNCEP_YR_ALIGN=${ERA5STYR}
   ./xmlchange DATM_CLMNCEP_YR_START=${ERA5STYR}
   ./xmlchange DATM_CLMNCEP_YR_END=${ERA5ENYR}
+  # Update general vars in case needed for anom stream overwrite
+  FORECASTYEARM1=${ERA5STYR}
+  FORECASTYEAR=${ERA5ENYR}
+fi
+
+if [ $addDeltas -eq 0 ]; then
+  echo "Injecting anomaly DATM streams"
+  cp ${BETACAST}/land-spinup/streams/user_datm.streams.txt.Anomaly.* .
+  #REPLACEDIR
+  sed -i "s?\${BETACAST_ANOMBASE}?${BETACAST_ANOMBASE}?g" user_datm.streams.txt.Anomaly.Forcing.Humidity
+  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Humidity 
+  sed -i "s?\${BETACAST_ANOMBASE}?${BETACAST_ANOMBASE}?g" user_datm.streams.txt.Anomaly.Forcing.Temperature
+  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Temperature
+  sed -i "s?\${BETACAST_ANOMBASE}?${BETACAST_ANOMBASE}?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
+  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
+  sed -i "s?\${BETACAST_ANOMBASE}?${BETACAST_ANOMBASE}?g" user_datm.streams.txt.Anomaly.Forcing.Precip
+  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Precip
+  
+  cp ${BETACAST}/land-spinup/streams/user_nl_datm .
+  sed -i "s?\${FORECASTYEARM1}?${FORECASTYEARM1}?g" user_nl_datm
+  sed -i "s?\${FORECASTYEAR}?${FORECASTYEAR}?g" user_nl_datm
+  sed -i "s?\${BETACAST_ANOMALIGN}?${BETACAST_ANOMALIGN}?g" user_nl_datm
+  sed -i "s?\${BETACAST_ANOMYEAR}?${BETACAST_ANOMYEAR}?g" user_nl_datm
 fi
 
 ### USER! Edit this block if using ELM and need to inject any ELM specific mods (e.g., fsurdat, etc.)

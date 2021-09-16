@@ -1,6 +1,5 @@
 load "functions.ncl"
 
-g=addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_165_10u.ll025sc.1986080100_1986083123.nc","r")
 
 ;f=addfile("/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.GSWP3.0.5d.v1.c170516/domain.lnd.360x720_gswp3.0v1.c170606.nc","r")
 ;print(sum(f->area))
@@ -36,9 +35,14 @@ g=addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.s
 ;		area:long_name = "area of grid cell in radians squared" ;
 ;		area:mode = "time-invariant" ;
 
-
-lat = tofloat(g->latitude(::-1))
-lon = tofloat(g->longitude)
+; LENS
+g=addfile("/glade/u/home/zarzycki/scratch/CESM_LENS_temp/TREFHT/ens_TREFHT_anom.nc","r")
+lat=tofloat(g->lat)
+lon=tofloat(g->lon)
+; ERA5
+;g=addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_165_10u.ll025sc.1986080100_1986083123.nc","r")
+;lat = tofloat(g->latitude(::-1))
+;lon = tofloat(g->longitude)
 
 nlat = dimsizes(lat)
 nlon = dimsizes(lon)
@@ -62,7 +66,7 @@ area!1="ni"
 thismask=area
 thismask=1.0
 
-fullfilename="era5-domain.nc"
+fullfilename="lens-domain.nc"
 
 system("/bin/rm -f "+fullfilename)   ; remove any pre-existing file
 ncdf = addfile(fullfilename ,"c")  ; open output netCDF file

@@ -1,0 +1,75 @@
+--- /storage/home/c/cmz5202/cesm-clubb//components/cam/src/physics/cam/cam_diagnostics.F90	2019-07-31 17:25:07.774833138 -0400
++++ cam_diagnostics.F90	2021-09-03 12:10:28.243547509 -0400
+@@ -181,6 +181,12 @@
+     integer :: k, m
+     integer :: ierr
+ 
++!++CMZ
++    ! outfld calls in diag_phys_writeout
++    call addfld ('PRESSURE',   (/ 'lev' /), 'A','Pa',         'Pressure')
++    call addfld ('PRESSUREi',  (/ 'ilev' /),'A','Pa',         'Pressure')
++!--CMZ
++
+     ! outfld calls in diag_phys_writeout
+     call addfld (cnst_name(1), (/ 'lev' /), 'A', 'kg/kg',    cnst_longname(1))
+     call addfld ('NSTEP',      horiz_only,  'A', 'timestep', 'Model timestep')
+@@ -302,6 +308,10 @@
+       call add_default ('UU      ', 1, ' ')
+       call add_default ('OMEGAT  ', 1, ' ')
+       call add_default ('PSL     ', 1, ' ')
++!++CMZ
++      call add_default ('PRESSURE', 1, ' ')
++      call add_default ('PRESSUREi', 1, ' ')
++!--CMZ
+     end if
+ 
+     if (history_vdiag) then
+@@ -342,6 +352,10 @@
+       if ( dycore_is('LR') .or. dycore_is('SE') ) then
+         call add_default ('TFIX    '    , history_budget_histfile_num, ' ')
+       end if
++!++CMZ
++      call add_default ('PRESSURE'    , history_budget_histfile_num, ' ')
++      call add_default ('PRESSUREi'   , history_budget_histfile_num, ' ')
++!--CMZ
+     end if
+ 
+     if (history_waccm) then
+@@ -453,6 +467,7 @@
+     call addfld ('Q925',       horiz_only,  'A', 'kg/kg','Specific Humidity at 925 mbar pressure surface')
+     call addfld ('Q850',       horiz_only,  'A', 'kg/kg','Specific Humidity at 850 mbar pressure surface')
+     call addfld ('Q200',       horiz_only,  'A', 'kg/kg','Specific Humidity at 700 mbar pressure surface')
++    call addfld ('Q500',       horiz_only,  'A', 'kg/kg','Specific Humidity at 500 mbar pressure surface')
+     call addfld ('QBOT',       horiz_only,  'A', 'kg/kg','Lowest model level water vapor mixing ratio')
+ 
+     call addfld ('PSDRY',      horiz_only,  'A', 'Pa', 'Dry surface pressure')
+@@ -480,6 +495,17 @@
+     call addfld ('PRECCav',  horiz_only, 'A', 'm/s','Average large-scale precipitation (liq + ice)'                      )
+     call addfld ('PRECLav',  horiz_only, 'A', 'm/s','Average convective precipitation  (liq + ice)'                      )
+ 
++!++cmz
++    call addfld ('PTYPE',     horiz_only, 'A','int','Precipitation type flag'                    )
++    call addfld ('SNOWRATIO', horiz_only, 'A','m/m','Snow LWE ratio from Cobb'                   )
++    call addfld ('SNOWFALL',  horiz_only, 'A','m/s','Snowfall (non-LWE) using Cobb+Bourgouin'    )
++    call addfld ('PRECBSN',   horiz_only, 'A','m/s','Snowfall (LWE) from Bourgouin scheme'       )
++!    call addfld ('PRECBMX',  horiz_only, 'A','m/s','Mix precip from Bourgouin scheme'           )
++    call addfld ('PRECBRA',   horiz_only, 'A','m/s','rain from Bourgouin scheme'                 )
++    call addfld ('PRECBIP',   horiz_only, 'A','m/s','ice pellets from Bourgouin scheme'          )
++    call addfld ('PRECBFZ',   horiz_only, 'A','m/s','freezing rain from Bourgouin scheme'        )
++!--cmz
++
+     ! outfld calls in diag_surf
+ 
+     call addfld ('SHFLX',    horiz_only, 'A', 'W/m2','Surface sensible heat flux')
+@@ -941,6 +967,11 @@
+     timestep(:ncol) = nstep
+     call outfld ('NSTEP   ',timestep, pcols, lchnk)
+ 
++!++CMZ
++    call outfld('PRESSURE',state%pmid, pcols, lchnk )
++    call outfld('PRESSUREi',state%pint, pcols, lchnk )
++!--CMZ
++
+     call outfld('T       ',state%t , pcols   ,lchnk   )
+     call outfld('PS      ',state%ps, pcols   ,lchnk   )
+     call outfld('U       ',state%u , pcols   ,lchnk   )
