@@ -1,0 +1,24 @@
+--- /storage/home/c/cmz5202/cesm-clubb//components/cam/src/physics/cam/physpkg.F90	2019-07-31 17:25:07.041976317 -0400
++++ physpkg.F90	2021-07-03 19:51:06.080596491 -0400
+@@ -958,6 +958,9 @@
+ #if ( defined OFFLINE_DYN )
+      use metdata,       only: get_met_srf1
+ #endif
++!++cmz
++    use ptype_calc
++!--cmz
+     !
+     ! Input arguments
+     !
+@@ -1071,6 +1074,11 @@
+     call gmean_mass ('between DRY', phys_state)
+ #endif
+ 
++!++cmz
++! Call precipitation type diag
++    call snow_calcs_driver(phys_state, cam_out)
++!--cmz
++
+   end subroutine phys_run1
+ 
+   !
