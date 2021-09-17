@@ -151,7 +151,11 @@ if [ $addDeltas -eq 0 ]; then
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
   sed -i "s?\${BETACAST_ANOMBASE}?${BETACAST_ANOMBASE}?g" user_datm.streams.txt.Anomaly.Forcing.Precip
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Precip
-  
+
+  # Need to replace pres aero stream in some cases where it is transient
+  cp ${BETACAST}/land-spinup/streams/datm.streams.txt.presaero.clim_2000 .
+  sed -i "s?\${BETACAST}?${BETACAST}?g" datm.streams.txt.presaero.clim_2000
+
   cp ${BETACAST}/land-spinup/streams/user_nl_datm .
   sed -i "s?\${FORECASTYEARM1}?${FORECASTYEARM1}?g" user_nl_datm
   sed -i "s?\${FORECASTYEAR}?${FORECASTYEAR}?g" user_nl_datm
