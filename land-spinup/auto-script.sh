@@ -6,45 +6,67 @@
 # Turn on error checking
 set -e
 
+# Usage:
+#./auto-script.sh MODELSYSTEM DOERA5 DATE_YYYYMMDD NMONTHS ANOMYEAR
+#./auto-script.sh 0 0 20200821 12 2081
+
 ### User settings
-modelSystem=0          # 0 = CESM/E3SMv1, 1 = E3SMv2
-doERA5=0               # Use ERA5 DATM? 0 = yes, 1 = no (internal CRUNCEP)
-addDeltas=0            # 0 = yes, 1 = no
-FORECASTDATE=20200821  # What is the date you want to spin up for (00Z)
-NMONTHSSPIN=12         # Duration of spinup (somewhere b/w 3-12 months seems reasonable)
+modelSystem=${1}         # 0 = CESM/E3SMv1, 1 = E3SMv2
+doERA5=${2}               # Use ERA5 DATM? 0 = yes, 1 = no (internal CRUNCEP)
+FORECASTDATE=${3}  #What is the date you want to spin up for (00Z)
+NMONTHSSPIN=${4}      # Duration of spinup (somewhere b/w 3-12 months seems reasonable)
+BETACAST_ANOMYEAR=${5}
 
-### Only required if doERA5 = 0
-BETACAST=/glade/u/home/zarzycki/betacast
-BETACAST_STREAMBASE=/glade/u/home/zarzycki/scratch/ERA5-DATM/DATM_FLDS/
-BETACAST_DATMDOMAIN=${BETACAST}/land-spinup/gen_datm/gen-datm/
+### Check if BETACAST_ANOMYEAR is positive integer -- if yes, add deltas, if no, nothing
+if [ $BETACAST_ANOMYEAR -lt 1 ]; then
+  addDeltas=1
+else
+  addDeltas=0
+fi
 
-### Only required if addDeltas = 0
-BETACAST_ANOMBASE=/glade/u/home/zarzycki/scratch/CESM_LENS_temp/DATM_ANOM/
+if [[ $HOSTNAME = cheyenne* ]]; then
+  ### CLM on Cheyenne
+  ### REQUIRED
+  CIMEROOT=~/work/cesm2_2_0
+  PATHTOCASE=~/I-compsets
+  ICASENAME=TEST6-ICLM45-f09
+  PROJECT=UPSU0032
+  MACHINE=cheyenne
+  NNODES=12
+  RESOL=f09_g16
+  RUNQUEUE=premium
+  WALLCLOCK="00:29:00"
+  
+  ### Only required if doERA5 = 0
+  BETACAST=/glade/u/home/zarzycki/betacast
+  BETACAST_DATM_FORCING_BASE=/glade/scratch/zarzycki/ERA5-DATM/DATM_FORCING/
+  
+elif [[ $HOSTNAME = cori* ]]; then
+  ### ELM on Cori
+  CIMEROOT=~/E3SM-dev
+  PATHTOCASE=~/I-compsets
+  ICASENAME=TEST-ICLM45-ne30
+  PROJECT=m2637
+  MACHINE=cori-knl
+  NNODES=12
+  RESOL=ne30_ne30
+  RUNQUEUE=debug
+  WALLCLOCK="00:29:00"
+  
+  ### Only required if doERA5 = 0
+  BETACAST=/glade/u/home/zarzycki/betacast
+  BETACAST_DATM_FORCING_BASE=/glade/scratch/zarzycki/ERA5-DATM/DATM_FORCING/
+  
+else
+  echo "Can't figure out hostname, need to add new host and config. Exiting for now..."
+  exit
+fi
+
+# Derived settings that should be same between all machines
 BETACAST_DATMDOMAIN=${BETACAST}/land-spinup/gen_datm/gen-datm/
-BETACAST_ANOMYEAR=1996
 BETACAST_ANOMALIGN=1920
-
-### CLM on Cheyenne
-CIMEROOT=~/work/cesm2_2_0
-PATHTOCASE=~/I-compsets
-ICASENAME=TEST4-ICLM45-f09
-PROJECT=UPSU0032
-MACHINE=cheyenne
-NNODES=12
-RESOL=f09_g16
-RUNQUEUE=premium
-WALLCLOCK="00:29:00"
-
-### ELM on Cori-KNL
-# CIMEROOT=~/E3SM-dev
-# PATHTOCASE=~/I-compsets
-# ICASENAME=TEST-ICLM45-ne30
-# PROJECT=m2637
-# MACHINE=cori-knl
-# NNODES=12
-# RESOL=ne30_ne30
-# RUNQUEUE=debug
-# WALLCLOCK="00:29:00"
+BETACAST_STREAMBASE=${BETACAST_DATM_FORCING_BASE}/ERA5/
+BETACAST_ANOMBASE=${BETACAST_DATM_FORCING_BASE}/ANOM_LENS/
 
 if [ $modelSystem -eq 0 ]; then
   echo "Using CESM"
@@ -60,7 +82,6 @@ else
 fi
 
 ### Do not edit below this line!
-
 ### Date logic
 FORECASTYEAR="${FORECASTDATE:0:4}"
 FORECASTYEARM1=$((FORECASTYEAR-1))
@@ -101,6 +122,21 @@ elif [ ${#FORECASTDATE} -ne 8 ]; then
   echo "STOP"
   exit 1
 fi
+
+### Put a block to check everything here?
+echo "--------------------------------------------"
+echo "addDeltas: "${addDeltas}
+echo "modelSystem: "${modelSystem}
+echo "FORECASTDATE: "${FORECASTDATE}
+echo "NMONTHSSPIN: "${NMONTHSSPIN}
+echo "addDeltas: "${addDeltas}
+echo "BETACAST_ANOMYEAR: "${BETACAST_ANOMYEAR}
+echo "BETACAST_ANOMALIGN: "${BETACAST_ANOMALIGN}
+echo "BETACAST_DATMDOMAIN: "${BETACAST_DATMDOMAIN}
+echo "BETACAST_STREAMBASE: "${BETACAST_STREAMBASE}
+echo "BETACAST_ANOMBASE: "${BETACAST_ANOMBASE}
+echo "--------------------------------------------"
+sleep 8
 
 cd ${CIMEROOT}/cime/scripts
 ./create_newcase --case ${PATHTOCASE}/${ICASENAME} --compset ${COMPSET} --res ${RESOL} --mach ${MACHINE} --project ${PROJECT} ${EXTRAFLAGS}
@@ -153,8 +189,8 @@ if [ $addDeltas -eq 0 ]; then
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Precip
 
   # Need to replace pres aero stream in some cases where it is transient
-  cp ${BETACAST}/land-spinup/streams/datm.streams.txt.presaero.clim_2000 .
-  sed -i "s?\${BETACAST}?${BETACAST}?g" datm.streams.txt.presaero.clim_2000
+  cp ${BETACAST}/land-spinup/streams/user_datm.streams.txt.presaero.clim_2000 .
+  sed -i "s?\${BETACAST}?${BETACAST}?g" user_datm.streams.txt.presaero.clim_2000
 
   cp ${BETACAST}/land-spinup/streams/user_nl_datm .
   sed -i "s?\${FORECASTYEARM1}?${FORECASTYEARM1}?g" user_nl_datm
@@ -169,8 +205,10 @@ cat > user_nl_elm <<EOF
 !finidat=''
 !do_transient_pfts = .false.
 !check_finidat_fsurdat_consistency = .false.
-fsurdat="/global/cfs/cdirs/e3sm/inputdata/lnd/clm2/surfdata_map/surfdata_ne30np4_simyr2000_c190730.nc"
-finidat=''
+!fsurdat="/global/cfs/cdirs/e3sm/inputdata/lnd/clm2/surfdata_map/surfdata_ne30np4_simyr2000_c190730.nc"
+fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2000_c201027.nc"
+finidat="/global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/RoS-F2010C5-ne0conus30x8-001-control/run//landstart//RoS-F2010C5-ne0conus30x8-001-control.elm.r.1996-01-15-00000.nc"
+!finidat=''
 do_transient_pfts = .false.
 check_finidat_fsurdat_consistency = .false.
 EOF
