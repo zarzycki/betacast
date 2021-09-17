@@ -54,7 +54,7 @@ elif [[ $HOSTNAME = cori* ]]; then
   NNODES=12
   RESOL=ne0conus30x8_ne0conus30x8_t12
   RUNQUEUE=regular
-  WALLCLOCK="02:59:00"
+  WALLCLOCK="02:57:00"
   
   ### Only required if doERA5 = 0
   BETACAST=/global/homes/c/czarzyck/betacast/
@@ -128,7 +128,6 @@ fi
 
 ### Put a block to check everything here?
 echo "--------------------------------------------"
-echo "addDeltas: "${addDeltas}
 echo "modelSystem: "${modelSystem}
 echo "FORECASTDATE: "${FORECASTDATE}
 echo "NMONTHSSPIN: "${NMONTHSSPIN}
