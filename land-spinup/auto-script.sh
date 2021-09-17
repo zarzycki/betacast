@@ -8,7 +8,10 @@ set -e
 
 # Usage:
 #./auto-script.sh MODELSYSTEM DOERA5 DATE_YYYYMMDD NMONTHS ANOMYEAR
+# CESM
 #./auto-script.sh 0 0 20200821 12 2081
+# E3SM
+#./auto-script.sh 1 0 19960113 12 2081
 
 ### User settings
 modelSystem=${1}         # 0 = CESM/E3SMv1, 1 = E3SMv2
@@ -43,19 +46,19 @@ if [[ $HOSTNAME = cheyenne* ]]; then
   
 elif [[ $HOSTNAME = cori* ]]; then
   ### ELM on Cori
-  CIMEROOT=~/E3SM-dev
+  CIMEROOT=~/clean/E3SM-20210824/
   PATHTOCASE=~/I-compsets
-  ICASENAME=TEST-ICLM45-ne30
+  ICASENAME=TEST2-ICLM45-ne0conus30x8
   PROJECT=m2637
   MACHINE=cori-knl
   NNODES=12
-  RESOL=ne30_ne30
-  RUNQUEUE=debug
-  WALLCLOCK="00:29:00"
+  RESOL=ne0conus30x8_ne0conus30x8_t12
+  RUNQUEUE=regular
+  WALLCLOCK="02:59:00"
   
   ### Only required if doERA5 = 0
-  BETACAST=/glade/u/home/zarzycki/betacast
-  BETACAST_DATM_FORCING_BASE=/glade/scratch/zarzycki/ERA5-DATM/DATM_FORCING/
+  BETACAST=/global/homes/c/czarzyck/betacast/
+  BETACAST_DATM_FORCING_BASE=/global/homes/c/czarzyck/scratch/DATM_FORCING/
   
 else
   echo "Can't figure out hostname, need to add new host and config. Exiting for now..."
@@ -135,8 +138,17 @@ echo "BETACAST_ANOMALIGN: "${BETACAST_ANOMALIGN}
 echo "BETACAST_DATMDOMAIN: "${BETACAST_DATMDOMAIN}
 echo "BETACAST_STREAMBASE: "${BETACAST_STREAMBASE}
 echo "BETACAST_ANOMBASE: "${BETACAST_ANOMBASE}
+echo "CIMEROOT: "${CIMEROOT}
+echo "PATHTOCASE: "${PATHTOCASE}
+echo "ICASENAME: "${ICASENAME}
+echo "PROJECT: "${PROJECT}
+echo "MACHINE: "${MACHINE}
+echo "NNODES: "${NNODES}
+echo "RESOL: "${RESOL}
+echo "RUNQUEUE: "${RUNQUEUE}
+echo "WALLCLOCK: "${WALLCLOCK}
 echo "--------------------------------------------"
-sleep 8
+sleep 10  # sleep to hold this on the interactive window for 10 sec
 
 cd ${CIMEROOT}/cime/scripts
 ./create_newcase --case ${PATHTOCASE}/${ICASENAME} --compset ${COMPSET} --res ${RESOL} --mach ${MACHINE} --project ${PROJECT} ${EXTRAFLAGS}
