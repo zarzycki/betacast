@@ -1,0 +1,8 @@
+nhtfrq=0,-24,-3,1,-12
+fincl2='PS','U','V','OMEGA','T','Q','PSL','U10'
+fincl3='PRECL','PRECC','PRECT','TMQ','FLUT'
+fincl4='T','U','V','Q','PS','TS','TREFHT','U10','TAUX','TAUY','QREFHT','USTAR','PBLH','SHFLX','LHFLX','TAUBLJX','TAUBLJY','TAUGWX','TAUGWY','PRECC','PRECL','PRECSC','PRECSL','KVH','KVM','CLDLIQ','CLDICE','FLDS','FLNS','FLNSC','FSNS','FSDS','FSDSC','TTGWORO','VTGWORO','UTGWORO','Lscale','em','Kh_zt','Kh_zm','upwp','vpwp'
+fincl4lonlat='97.49w_36.61n','4.927e_51.971n','156.61w_71.32n','149.89w_70.50n','26.63e_67.37n','11.92e_78.92n','135.07w_60.71n','68.51w_63.74n','38.42w_72.58n','39.18e_88.75n'
+mfilt=1,1,8,48,2
+fincl5='PS','U','V','T','Q','Z3','TREFHT','QREFHT','U10','PHIS','PSL','PBLH'
+avgflag_pertape='A','I','I','I','I'
