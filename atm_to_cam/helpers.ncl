@@ -8,6 +8,7 @@ begin
     nlev = dimsizes(thisCol)
     
     t_wrf = wrf_interp_1d (theta_fv,z_fv,thisCol)
+    ;t_wrf = todouble(linint1(z_fv,theta_fv,False,thisCol,0))
     
     ; if we have any missing values, we need to extrapolate
     if any(ismissing(t_wrf)) then
@@ -83,6 +84,9 @@ begin
     uNormal = new((/nlev,nEdges/),typeof(uZonal))
 
      do iEdge = 0, nEdges - 1
+        if (mod(iEdge,10000) .eq. 0) then
+          print("... UV_CELL_TO_EDGE: "+(100.*iEdge/(nEdges-1))+"%")
+        end if
         cell1 = cellsOnEdge(iEdge,0)-1
         cell2 = cellsOnEdge(iEdge,1)-1
 

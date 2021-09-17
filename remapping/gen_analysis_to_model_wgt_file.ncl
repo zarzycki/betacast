@@ -9,9 +9,9 @@ begin
 anlgrid="gfs_0.25x0.25" 
 
 ; shortname for grid (for naming purposes)
-dstGridName="ne30"
+dstGridName="mpasa15"
 ; full path to model SCRIP file
-dstGridFile="/glade/u/home/zarzycki/scratch/F-betacast-F2000climo/run/scrip/F-betacast-F2000climo.cam.h0.2017-09-07-00000.nc"
+dstGridFile="/glade/u/home/zarzycki/work/grids/scrip/mpasa15_scrip.nc"
 
 ; where to save the map file?
 wgtFileDir="./"

@@ -15,7 +15,8 @@ wcStrt = systemfunc("date")
 ;model_topo_file="/project/projectdirs/acme/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc"
 
 ; Constants
-gamma_s = 5.0/1000.   ; lapse rate in K/m
+gamma_s = 5.0/1000.   ; env. lapse rate in K/m
+gamma_d = 9.8/1000.   ; adiabatic lapse rate in K/m
 grav = 9.80616
 Rd = 287.058
 Rv = 461.6
@@ -110,20 +111,33 @@ print("Loading variables")
 if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   ps = grb_file->PRES_P0_L1_GLL0(:,:)
   p0   = 100000.
-  ;pblh = grb_file->HPBL_P0_L1_GLL0(:,:)
   t_gfs = grb_file->TMP_P0_L100_GLL0(:,:,:)
   u_gfs = grb_file->UGRD_P0_L100_GLL0(:,:,:)
-
-  v_gfs = grb_file->VGRD_P0_L100_GLL0(:,:,:)
-
+  v_gfs = grb_file->VGRD_P0_L100_GLL0(:,:,:)  
+  if (dycore .eq. "mpas") then
+    w_gfs = grb_file->VVEL_P0_L100_GLL0(:,:,:)
+    w_is_omega    = True
+    z_gfs = grb_file->HGT_P0_L100_GLL0(:,:,:)
+    z_is_phi      = False
+  end if
+  
+  ; interpolate u, v, and w to t levels
   dNames:=getfilevardims(grb_file,"TMP_P0_L100_GLL0")
   templevName=dNames(0)
   dNames:=getfilevardims(grb_file,"UGRD_P0_L100_GLL0")
   windlevName=dNames(0)
-  if ( "templevName" .ne. "windlevName" ) then
+  if ( templevName .ne. windlevName ) then
+    print("interpolating u + v wind from "+dimsizes(grb_file->$windlevName$)+" to "+dimsizes(grblev)+" levels")
     u_gfs := int2p_n(grb_file->$windlevName$,u_gfs,grblev,2,0)
     v_gfs := int2p_n(grb_file->$windlevName$,v_gfs,grblev,2,0)
   end if
+  dNames:=getfilevardims(grb_file,"VVEL_P0_L100_GLL0")
+  windlevName=dNames(0)
+  if ( templevName .ne. windlevName ) then
+    print("interpolating w wind from "+dimsizes(grb_file->$windlevName$)+" to "+dimsizes(grblev)+" levels")
+    w_gfs := int2p_n(grb_file->$windlevName$,w_gfs,grblev,2,0)
+  end if
+    
   rh_gfs_native = grb_file->RH_P0_L100_GLL0(:,:,:)
   cldmix_gfs_native = grb_file->CLWMR_P0_L100_GLL0(:,:,:)
   print("Interpolating GRIB to uniform vertical levels")
@@ -429,7 +443,7 @@ else   ; if mpas
   theta_fv  = ESMF_regrid_with_weights(theta_cam,wgt_filename,Opt)
   rho_fv  = ESMF_regrid_with_weights(rho_cam,wgt_filename,Opt)
   w_fv  = ESMF_regrid_with_weights(w_cam,wgt_filename,Opt)
-
+  
   ; now vertical interpolation
   t_wrf = new((/mpas_nlev,mpas_ncell/),"double")
   rho_wrf = new((/mpas_nlev,mpas_ncell/),"double")
@@ -442,7 +456,7 @@ else   ; if mpas
   print("Performing vertical interpolation at each MPAS column")
   do ix = 0,mpas_ncell-1
     if (mod(ix,10000) .eq. 0) then
-      print("... on iter number "+ix+" of "+(mpas_ncell-1))
+      print("... MPAS_VERT_INTERP: "+(100.*ix/(mpas_ncell-1))+"%")
     end if
     zmid = (mpas_z(ix,1:mpas_nlevi-1) + mpas_z(ix,0:mpas_nlevi-2)) / 2.
     zint = mpas_z(ix,:)
@@ -455,7 +469,10 @@ else   ; if mpas
     v_wrf(:,ix)     = z_to_z_interp(v_fv(::-1,ix),z_fv(::-1,ix),zmid,True,False)
   end do
 
-  ; set lower BC for W so flow can't go through surface
+  ; delete the analysis data that is on the MPAS grid since we now have interpolated MPAS + vert
+  delete([/theta_fv,rho_fv,w_fv,q_fv,u_fv,v_fv/])
+ 
+  print("Setting lower BC for W so flow can't go through surface")
   w_wrf(:,0) = 0.0
 
   if (damp_upper_winds_mpas) then
@@ -467,10 +484,13 @@ else   ; if mpas
     v_wrf(:,mpas_nlev-2) = v_wrf(:,mpas_nlev-2)*0.95
     v_wrf(:,mpas_nlev-3) = v_wrf(:,mpas_nlev-3)*0.98
   end if
-
+  
   ; put u + v on cell edges...
-  print("putting u + v on cell edges")
-  uNorm_wrf = uv_cell_to_edge(u_wrf,v_wrf,32,mpasf->lonEdge,mpasf->latEdge,mpasf->lonCell,mpasf->latCell,mpasf->edgeNormalVectors,mpasf->cellsOnEdge)
+  print("Projecting u + v to velocity normal to edge")
+  uNorm_wrf = uv_cell_to_edge(u_wrf,v_wrf,mpas_nlev,mpasf->lonEdge,mpasf->latEdge,mpasf->lonCell,mpasf->latCell,mpasf->edgeNormalVectors,mpasf->cellsOnEdge)
+
+  ; delete u and v components since we have mapped to edge normals
+  delete([/u_wrf,v_wrf/])
 
   theta_wrf!0 = "lev"
   theta_wrf!1 = "ncol"
@@ -515,7 +535,6 @@ end if
 
 sePS = ps_fv
 dim_sePS=dimsizes(sePS)
-;printVarSummary(ps_fv)
 
 if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_topo_file)) then
   print("Performing hydrostatic correction for surface pressure using "+model_topo_file)
@@ -629,8 +648,6 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
       end if
     end if
     
-    
-    
     ; correct other state variables!
     vert_interp_thresh = 0.1   ; maximum ps corr diff (Pa) to interp vert profiles
     extrap_threshold = 5000.   ; maximum ps corr diff (Pa) to allow xtrp
@@ -661,18 +678,10 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
       
       tmp := int2p(pm_orig,cldliq_fv(:,kk),pm_corr,linlog)
       cldliq_fv(:,kk) = where(ismissing(tmp),cldliq_fv(:,kk),tmp)
-            
-      ;q_fv(:,kk) = int2p(pm_orig,q_fv(:,kk),pm_corr,linlog)
-      ;u_fv(:,kk) = int2p(pm_orig,u_fv(:,kk),pm_corr,linlog)
-      ;v_fv(:,kk) = int2p(pm_orig,v_fv(:,kk),pm_corr,linlog)
-      ;cldice_fv(:,kk) = int2p(pm_orig,cldice_fv(:,kk),pm_corr,linlog)
-      ;cldliq_fv(:,kk) = int2p(pm_orig,cldliq_fv(:,kk),pm_corr,linlog)
+
       vert_corrs = vert_corrs+1
       delete(tmp)
     end if
-
-    
-
   end do
   print("needed to correct "+vert_corrs+" vertical profiles for updated PS")
   print("needed to correct "+tcorriter+" temps for being too cold or too hot")
