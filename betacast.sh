@@ -675,19 +675,6 @@ fi
 cd $path_to_case
 ############################### SETUP AND QUERY ############################### 
 
-# do some stability calcs
-if [[ "$DYCORE" == "se" ]]; then
-  # if USERSTAB is negative, use internal calcs.
-  # If positive, use the value in seconds for dt_dyn
-  USERSTABTF=`python -c "print('TRUE' if ${USERSTAB} > 0 else 'FALSE')"`
-  if [ ${USERSTABTF} == 'FALSE' ] ; then
-    STABILITY=`python -c "print(30./${FINERES}*450.)"`
-  else
-    STABILITY=${USERSTAB}
-  fi
-  echo "Dynamic stability for ne${FINERES} to be ${STABILITY} seconds"
-fi
-
 ############################### CISM SETUP ############################### 
 
 if [ -f user_nl_cism ]; then
