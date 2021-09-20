@@ -44,11 +44,11 @@ if [[ $HOSTNAME = cheyenne* ]]; then
   BETACAST=/glade/u/home/zarzycki/betacast
   BETACAST_DATM_FORCING_BASE=/glade/scratch/zarzycki/ERA5-DATM/DATM_FORCING/
   
-elif [[ $HOSTNAME = cori* ]]; then
+elif [[ $HOSTNAME = cori* || $HOSTNAME = nid* ]]; then
   ### ELM on Cori
   CIMEROOT=~/clean/E3SM-20210824/
   PATHTOCASE=~/I-compsets
-  ICASENAME=TEST2-ICLM45-ne0conus30x8
+  ICASENAME=RoS-ICLM45-ne0conus30x8-002
   PROJECT=m2637
   MACHINE=cori-knl
   NNODES=12
@@ -63,6 +63,10 @@ elif [[ $HOSTNAME = cori* ]]; then
 else
   echo "Can't figure out hostname, need to add new host and config. Exiting for now..."
   exit
+fi
+
+if [ $addDeltas -eq 0 ]; then
+  ICASENAME=${ICASENAME}_${BETACAST_ANOMYEAR}
 fi
 
 # Derived settings that should be same between all machines
@@ -146,6 +150,7 @@ echo "NNODES: "${NNODES}
 echo "RESOL: "${RESOL}
 echo "RUNQUEUE: "${RUNQUEUE}
 echo "WALLCLOCK: "${WALLCLOCK}
+echo "ICASENAME: "${ICASENAME}
 echo "--------------------------------------------"
 sleep 10  # sleep to hold this on the interactive window for 10 sec
 
