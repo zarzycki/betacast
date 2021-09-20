@@ -27,7 +27,7 @@ debug=False
 rho_d_algo = 2  ; 1 or 2
 damp_upper_winds_mpas=False
 
-; dycore options are FV and SE for now
+; dycore options are FV, MPAS, and SE for now
 ; reverse compat -- if you don't specify dycore, default to SE
 if (.not. isvar("dycore")) then
   dycore="se"
@@ -35,6 +35,10 @@ end if
 print("USING DYCORE:  "+dycore)
 
 ; check if we are using MPAS if dycore has been passed in
+if (isvar("model_topo_file") .and. isfilepresent(model_topo_file) .and. dycore .eq. "mpas" ) then
+  print("Setting mpasfile to "+model_topo_file)
+  mpasfile=model_topo_file
+end if
 if (.not. isvar("mpasfile") .and. dycore .eq. "mpas") then
   print("No mpasfile passed in but mpas dycore selected.")
   print("MPAS init file is needed to mimic + get zcoord from.  exiting...")

@@ -116,17 +116,6 @@ fi
 
 ###################################################################################
 
-# do some stability calcs
-# if USERSTAB is negative, use internal calcs.
-# If positive, use the value in seconds for dt_dyn
-USERSTABTF=`python -c "print('TRUE' if ${USERSTAB} > 0 else 'FALSE')"`
-if [ ${USERSTABTF} == 'FALSE' ] ; then
-  STABILITY=`python -c "print(30./${FINERES}*450.)"`
-else
-  STABILITY=${USERSTAB}
-fi
-echo "Dynamic stability for ne${FINERES} to be ${STABILITY} seconds"
-
 ## Create paths to generate initial files if they don't exist...
 mkdir -p ${pathToINICfiles}
 mkdir -p ${pathToSSTfiles}
@@ -292,8 +281,13 @@ fi
 
 if $runmodel ; then
 
-if [ $debug -ne 1 ] ; then
+############################### GET DYCORE INFO ############################### 
 
+cd $path_to_case
+DYCORE=`./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs`
+echo "DYCORE: "$DYCORE
+
+if [ $debug -ne 1 ] ; then
 ############################### GET ATM DATA ############################### 
 
   if [ $atmDataType -eq 1 ] ; then
@@ -513,6 +507,7 @@ if [ $debug -ne 1 ] ; then
     (set -x; ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
         numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+         'dycore="'${DYCORE}'"' \
        'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
        'wgt_filename="'${gfs2seWeights}'"' \
        'model_topo_file="'${adjust_topo-}'"' \
@@ -524,6 +519,7 @@ if [ $debug -ne 1 ] ; then
     (set -x; ncl -n atm_to_cam.ncl 'datasource="ERAI"'     \
         numlevels=${numLevels} \
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+         'dycore="'${DYCORE}'"' \
        'data_filename = "/glade/p/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
        'wgt_filename="/glade/p/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
        'se_inic = "'${sePreFilterIC}'"' )
@@ -533,6 +529,7 @@ if [ $debug -ne 1 ] ; then
     (set -x; ncl -n atm_to_cam.ncl 'datasource="CFSR"'     \
       numlevels=${numLevels} \
       YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+     'dycore="'${DYCORE}'"' \
      'data_filename = "'$gfs_files_path'/cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
      'wgt_filename="'${gfs2seWeights}'"' \
      'model_topo_file="'${adjust_topo-}'"' \
@@ -546,6 +543,7 @@ if [ $debug -ne 1 ] ; then
       (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5RDA"'     \
           numlevels=${numLevels} \
           YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+         'dycore="'${DYCORE}'"' \
          'data_filename = "'${RDADIR}'/ds633.0/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"'  \
          'wgt_filename="'${gfs2seWeights}'"' \
          'model_topo_file="'${adjust_topo-}'"' \
@@ -555,6 +553,7 @@ if [ $debug -ne 1 ] ; then
       (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5"'     \
           numlevels=${numLevels} \
           YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+         'dycore="'${DYCORE}'"' \
          'data_filename = "'$era_files_path'/ERA5_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
          'wgt_filename="'${gfs2seWeights}'"' \
          'model_topo_file="'${adjust_topo-}'"' \
@@ -651,11 +650,21 @@ if [ "${add_perturbs}" = true ] ; then
   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
 fi
 
+cd $path_to_case
 ############################### SETUP AND QUERY ############################### 
 
-cd $path_to_case
-DYCORE=`./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs`
-echo "DYCORE: "$DYCORE
+# do some stability calcs
+if [[ "$DYCORE" == "se" ]]; then
+  # if USERSTAB is negative, use internal calcs.
+  # If positive, use the value in seconds for dt_dyn
+  USERSTABTF=`python -c "print('TRUE' if ${USERSTAB} > 0 else 'FALSE')"`
+  if [ ${USERSTABTF} == 'FALSE' ] ; then
+    STABILITY=`python -c "print(30./${FINERES}*450.)"`
+  else
+    STABILITY=${USERSTAB}
+  fi
+  echo "Dynamic stability for ne${FINERES} to be ${STABILITY} seconds"
+fi
 
 ############################### CISM SETUP ############################### 
 
@@ -922,17 +931,18 @@ sed -i '/.*mfilt/d' user_nl_${atmName}
 sed -i '/.*fincl/d' user_nl_${atmName}
 sed -i '/.*empty_htapes/d' user_nl_${atmName}
 sed -i '/.*inithist/d' user_nl_${atmName}
+sed -i '/.*avgflag_pertape/d' user_nl_${atmName}  # Note, we delete this and user either specifies as :A, :I for each var or as a sep var
 echo "empty_htapes=.TRUE." >> user_nl_${atmName}
 echo "inithist='NONE'" >> user_nl_${atmName}
 
 # Concatenate output streams to end of user_nl_${atmName}
 cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
 
-# Calculate timestep criteria
 ATM_NCPL=`python -c "print(int(86400/${DTIME}))"`
-SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))"`
-echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
+# Calculate timestep stability criteria
 if [[ "$DYCORE" == "se" ]]; then
+  SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))"`
+  echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
   echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
   sed -i '/.*se_nsplit/d' user_nl_${atmName}
   echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
