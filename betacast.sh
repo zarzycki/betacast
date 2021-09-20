@@ -116,6 +116,28 @@ fi
 
 ###################################################################################
 
+# do some stability calcs
+# if USERSTAB is 0, use internal calcs.
+# if USERSTAB is <0, use se_nsplit=-1
+# If USERSTAB >0, use the value in seconds for dt_dyn and calculate nsplit accordingly from DTIME
+USERSTABTF=`python -c "print('TRUE' if ${USERSTAB} > 0 else 'FALSE')"`
+if [ ${USERSTABTF} == 'FALSE' ] ; then
+  if [ `python -c "print('TRUE' if ${USERSTAB} < -0.001 else 'FALSE')"` == 'FALSE' ]; then
+    STABILITY=`python -c "print(30./${FINERES}*450.)"`
+    VALIDSTABVAL=true
+    echo "Dynamic stability for ne${FINERES} to be ${STABILITY} seconds"
+  else
+    STABILITY=-1
+    VALIDSTABVAL=false   # Setting to false means we won't calculate nsplit for SE/HOMME later
+    echo "Dynamic stability for ne${FINERES} to be ${STABILITY} and internal STABILITY setting"
+  fi
+else
+  STABILITY=${USERSTAB}
+  VALIDSTABVAL=true
+  echo "User defined stability set to ${STABILITY}"
+fi
+echo "VALIDSTABVAL is set to "${VALIDSTABVAL}
+
 ## Create paths to generate initial files if they don't exist...
 mkdir -p ${pathToINICfiles}
 mkdir -p ${pathToSSTfiles}
@@ -832,7 +854,13 @@ if $doFilter ; then
   if [[ "$DYCORE" == "se" ]]; then
     echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
     sed -i '/.*se_nsplit/d' user_nl_${atmName}
-    echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
+    if [ "$VALIDSTABVAL" = false ]; then
+      # Use se_nsplit = -1, which is internal
+      echo "se_nsplit=-1" >> user_nl_${atmName}
+    else
+      # Add se_nsplit based off of dtime=450 and stability
+      echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
+    fi
   else
     echo "non-SE core, make sure timestepping is happy!"
   fi
@@ -945,7 +973,12 @@ if [[ "$DYCORE" == "se" ]]; then
   echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
   echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
   sed -i '/.*se_nsplit/d' user_nl_${atmName}
-  echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
+  if [ "$VALIDSTABVAL" = false ]; then
+    echo "se_nsplit=-1" >> user_nl_${atmName}
+  else
+    # Add se_nsplit based off of dtime and stability
+    echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
+  fi
 else
   echo "non-SE core, make sure timestepping is happy!"
 fi
