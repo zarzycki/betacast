@@ -836,16 +836,17 @@ if $doFilter ; then
 
   # Do filter timestepping stability
   ATM_NCPL=192
-  SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(450/${STABILITY})))"`
   echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
   if [[ "$DYCORE" == "se" ]]; then
-    echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
     sed -i '/.*se_nsplit/d' user_nl_${atmName}
     if [ "$VALIDSTABVAL" = false ]; then
       # Use se_nsplit = -1, which is internal
+      echo "SE_NSPLIT: -1"
       echo "se_nsplit=-1" >> user_nl_${atmName}
     else
       # Add se_nsplit based off of dtime=450 and stability
+      SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(450/${STABILITY})))"`
+      echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
       echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
     fi
   else
@@ -884,9 +885,12 @@ if $doFilter ; then
       bsub < ${casename}.run
     fi
 
+    if [ -f "${path_to_rundir}/NUKE" ] ; then rm -v ${path_to_rundir}/NUKE ; sleep 5 ; fi
+    echo "To NUKE, run \"touch ${path_to_rundir}/NUKE\" "
     ## Hold script while log files from filter run haven't been archived yet
     while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
     do
+      if [ -f "${path_to_rundir}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
       sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
     done
     echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved" ; sleep 40
@@ -953,17 +957,18 @@ echo "inithist='NONE'" >> user_nl_${atmName}
 # Concatenate output streams to end of user_nl_${atmName}
 cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
 
-ATM_NCPL=`python -c "print(int(86400/${DTIME}))"`
 # Calculate timestep stability criteria
+ATM_NCPL=`python -c "print(int(86400/${DTIME}))"`
+echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
 if [[ "$DYCORE" == "se" ]]; then
-  SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))"`
-  echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
-  echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
   sed -i '/.*se_nsplit/d' user_nl_${atmName}
   if [ "$VALIDSTABVAL" = false ]; then
+    echo "SE_NSPLIT: -1 "
     echo "se_nsplit=-1" >> user_nl_${atmName}
   else
     # Add se_nsplit based off of dtime and stability
+    SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))"`
+    echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
     echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
   fi
 else
@@ -994,9 +999,12 @@ then
     bsub < ${casename}.run
   fi
   
+  if [ -f "${path_to_rundir}/NUKE" ] ; then rm -v ${path_to_rundir}/NUKE ; sleep 5 ; fi
+  echo "To NUKE, run \"touch ${path_to_rundir}/NUKE\" "
   ## Hold script while log files from filter run haven't been archived yet
   while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
   do
+    if [ -f "${path_to_rundir}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
     sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
   done
   echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved"
