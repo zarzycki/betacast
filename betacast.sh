@@ -1085,29 +1085,28 @@ echo "Renaming tmp archive directory to YYYYMMDDHH"
 mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 
 if $dotracking ; then
-  #yearstr="2020"
-  #monthstr="07"
-  #daystr="31"
-  #cyclestr="12"
-  #casename="forecast_nhemitc_30_x4_CAM5_L30"
-  #sewxscriptsdir=~/sw/betacast/
+  track_connectfile="/global/homes/c/czarzyck/betacast/cyclone-tracking/ne0np4natlanticref.ne30x4.connect_v2.dat"
+  track_sendhtml=true
+  track_hstream="h0"
+  
+  # Go to cyclone tracking folder...
   cd ${sewxscriptsdir}/cyclone-tracking/
+  
+  # Set a few things that are hardcoded
   TCVITFOLDER=./fin-tcvitals/
   TCVITFILE=${TCVITFOLDER}/tcvitals.${yearstr}${monthstr}${daystr}${cyclestr}
-  mkdir -p ${TCVITFOLDER}
-  mkdir -p ./fin-figs/
-  mkdir -p ./fin-atcf/
   ATCFFILE=atcf.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}
-  if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
-    wget http://hurricanes.ral.ucar.edu/repository/data/tcvitals_open/combined_tcvitals.${yearstr}.dat
-    sed -i $'s/\t/  /g' combined_tcvitals.${yearstr}.dat
-    grep "${yearstr}${monthstr}${daystr} ${cyclestr}00" combined_tcvitals.${yearstr}.dat > ${TCVITFILE}
-    rm combined_tcvitals.${yearstr}.dat 
-  fi
+
+  ### Get TC vitals for YYYYMMDDHH and store in $TCVITFOLDER
+  /bin/bash ./get-vitals.sh ${yearstr}${monthstr}${daystr}${cyclestr} ${TCVITFOLDER}
+  
+  ### If we have vitals, run tracking
   if [ -f ${TCVITFILE} ]; then  # if file does exist (i.e., it was downloaded), run tracker
-    /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} ${casename} ${TCVITFILE} ${ATCFFILE}
+    /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} ${casename} ${TCVITFILE} ${ATCFFILE} ${track_connectfile} ${path_to_rundir} ${track_sendhtml} ${track_hstream}
     cp trajs.trajectories.txt.${casename}.png ./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png
   fi
+  
+  # Return to where we were...
   cd $path_to_nc_files
 fi
 
