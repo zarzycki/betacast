@@ -12,15 +12,25 @@
 # $2 -- Casename (ex: conus_30_x8_forecast
 # $3 -- Path to TCVitals file (input)
 # $4 -- Path to ATCF file (output)
+# $5 -- connectivity file (full path)
+# $6 -- output base
+# $7 -- send HTML (usually false)
 ############ USER OPTIONS #####################
 
 ## Path to serial TempestExtremes binaries
-TEMPESTEXTREMESDIR=/storage/home/cmz5202/sw/tempestextremes_noMPI/
-
+YYYYMMDDHH=${1}
 TCVITFILE=${3}
 UQSTR=${2}
 ATCFFILE=${4}
+SENDHTML=${7}
+CONNECTFILE=${5}
+OUTPUTBASE=${6}
+
 TRAJFILE=trajectories.txt.${UQSTR}
+TEMPESTEXTREMESDIR=/global/homes/c/czarzyck/software/tempestextremes_noMPI/
+TIMESTRIDE=2         # should be 2 for 3-hourly data, 1 for 6-hourly data
+OVERWRITE_ATCF=true  #CMZ need to build logic that checks if ATCF file has TECH already on it, then overwrite
+
 if [ ${UQSTR:(-3)} == "001" ]; then
   ATCFTECH="C501"
 elif [ ${UQSTR:(-3)} == "002" ]; then
@@ -32,11 +42,11 @@ else
 fi
 
 ### Flag needed if using unstructured data (if not using unstruc data, empty string)
-CONNECTFLAG="--in_connect ./nhemitc30x4.connect_v2.dat"
+CONNECTFLAG="--in_connect ${CONNECTFILE}"
 
 ### Path + filelist of data to process
-PATHTOFILES=/storage/home/cmz5202/scratch/output/${2}/run/${1}/
-FILES=`ls ${PATHTOFILES}/*.cam.h0.*.nc`
+PATHTOFILES=${OUTPUTBASE}/${2}/run/${1}/
+FILES=`ls ${PATHTOFILES}/*.?am.h1.*.nc`
 
 ############ TRACKER MECHANICS #####################
 
@@ -47,7 +57,7 @@ touch cyc.${UQSTR}
 for f in ${FILES[@]};
 do
   echo "Processing $f..."
-  ${TEMPESTEXTREMESDIR}/bin/DetectNodes --verbosity 0 --timestride 2 --in_data "${f}" ${CONNECTFLAG} --out cyc_tempest.${UQSTR} --mergedist 5.0 --searchbymin PSL --outputcmd "PSL,min,0;_VECMAG(UBOT,VBOT),max,2"
+  ${TEMPESTEXTREMESDIR}/bin/DetectNodes --verbosity 0 --timestride ${TIMESTRIDE} --in_data "${f}" ${CONNECTFLAG} --out cyc_tempest.${UQSTR} --mergedist 5.0 --searchbymin PSL --outputcmd "PSL,min,0;_VECMAG(UBOT,VBOT),max,2"
   cat cyc_tempest.${UQSTR} >> cyc.${UQSTR}
   rm cyc_tempest.${UQSTR}
 done
@@ -69,11 +79,17 @@ if [ -f ${TCVITFILE} ]; then
   ncl model-to-atcf.ncl
   export YYYYMMDDHH="${ATCFFILE:(-10)}"
   export ATCFFILEMERGE="./fin-atcf/atcf.tempest.${YYYYMMDDHH}"
-  cat ${ATCFFILE} >> ${ATCFFILEMERGE}
+  if [ "$OVERWRITE_ATCF" = true ]; then
+    cp ${ATCFFILE} ${ATCFFILEMERGE}  
+  else
+    cat ${ATCFFILE} >> ${ATCFFILEMERGE}  
+  fi
   ncl plot_ATCF.ncl
-  echo "SSHings..."
-  ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${YYYYMMDDHH} "
-  scp enstraj.${YYYYMMDDHH}.png colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/${YYYYMMDDHH}/ens_traj.png
+  if [ "$SENDHTML" = true ]; then
+    echo "SSHings..."
+    ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${YYYYMMDDHH} "
+    scp enstraj.${YYYYMMDDHH}.png colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/${YYYYMMDDHH}/ens_traj.png
+  fi
   rm ${ATCFFILE}
 fi
 
