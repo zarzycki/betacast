@@ -13,7 +13,7 @@
 # $3 -- Path to TCVitals file (input)
 # $4 -- Path to ATCF file (output)
 # $5 -- connectivity file (full path)
-# $6 -- output base
+# $6 -- output base (everything before date)
 # $7 -- send HTML (usually false)
 # $8 -- which h stream are we tracking on? (ex: h1)
 ############ USER OPTIONS #####################
@@ -47,7 +47,7 @@ fi
 CONNECTFLAG="--in_connect ${CONNECTFILE}"
 
 ### Path + filelist of data to process
-PATHTOFILES=${OUTPUTBASE}/${2}/run/${1}/
+PATHTOFILES=${OUTPUTBASE}/${1}/
 FILES=`ls ${PATHTOFILES}/*.?am.${HSTREAMTRACK}.*.nc`
 
 ############ TRACKER MECHANICS #####################

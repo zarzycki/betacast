@@ -5,7 +5,7 @@ casename=t35_v1.2-NATL-F2010C5-v2_L71
 YYYYMMDDHH=2011082512
 betacastdir=~/betacast/
 connectfile="/global/homes/c/czarzyck/betacast/cyclone-tracking/ne0np4natlanticref.ne30x4.connect_v2.dat"
-OUTPUTBASE="/global/cscratch1/sd/jjbenedi/e3sm_scratch/cori-knl/"
+OUTPUTBASE="/global/cscratch1/sd/jjbenedi/e3sm_scratch/cori-knl/${casename}/run/"
 sendHTML=false
 hstream="h1"
 
