@@ -9,11 +9,9 @@
 
 ############ USER OPTIONS #####################
 
-sewxscriptsdir=${3}
 TCVITFOLDER=${2}
 YYYYMMDDHH=${1}
 
-echo "Using betacast in: ${sewxscriptsdir}"
 echo "Getting TC vitals for ${YYYYMMDDHH} and putting them in ${TCVITFOLDER}"
 
 # Split YYYYMMDDHH into components
@@ -22,7 +20,6 @@ monthstr=${YYYYMMDDHH:4:2}
 daystr=${YYYYMMDDHH:6:2}
 cyclestr=${YYYYMMDDHH:8:2}
 
-cd ${sewxscriptsdir}/cyclone-tracking/
 TCVITFILE=${TCVITFOLDER}/tcvitals.${yearstr}${monthstr}${daystr}${cyclestr}
 mkdir -p ${TCVITFOLDER}
 mkdir -p ./fin-figs/
@@ -39,8 +36,8 @@ if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
       wget http://hurricanes.ral.ucar.edu/repository/data/tcvitals_open/${COMBINEDVITFILE}
       CLEARCOMBINEDVIT=true
     else
-      echo "Year $yearstr is 2018 or earlier, try to get from NOAA NHC arcives"
-      wget -nd -r --no-parent -P ./ -A dat "https://ftp.nhc.noaa.gov/atcf/archive/${yearstr}/tcvitals/"
+      echo "Year $yearstr is 2018 or earlier, try to get from NOAA NHC archives"
+      wget -q -nd -r --no-parent -P ./ -A dat "https://ftp.nhc.noaa.gov/atcf/archive/${yearstr}/tcvitals/"
       rm *tcvitals.dat
       cat *tcvitals-arch.dat > ${COMBINEDVITFILE}
       rm *-tcvitals-arch.dat
