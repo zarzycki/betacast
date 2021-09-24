@@ -15,6 +15,7 @@
 # $5 -- connectivity file (full path)
 # $6 -- output base
 # $7 -- send HTML (usually false)
+# $8 -- which h stream are we tracking on? (ex: h1)
 ############ USER OPTIONS #####################
 
 ## Path to serial TempestExtremes binaries
@@ -25,6 +26,7 @@ ATCFFILE=${4}
 SENDHTML=${7}
 CONNECTFILE=${5}
 OUTPUTBASE=${6}
+HSTREAMTRACK=${8}
 
 TRAJFILE=trajectories.txt.${UQSTR}
 TEMPESTEXTREMESDIR=/global/homes/c/czarzyck/software/tempestextremes_noMPI/
@@ -46,7 +48,7 @@ CONNECTFLAG="--in_connect ${CONNECTFILE}"
 
 ### Path + filelist of data to process
 PATHTOFILES=${OUTPUTBASE}/${2}/run/${1}/
-FILES=`ls ${PATHTOFILES}/*.?am.h1.*.nc`
+FILES=`ls ${PATHTOFILES}/*.?am.${HSTREAMTRACK}.*.nc`
 
 ############ TRACKER MECHANICS #####################
 
