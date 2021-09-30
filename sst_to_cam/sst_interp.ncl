@@ -27,6 +27,8 @@ begin
 print("copying SST file from repo to "+SST_write_file)
 system("cp ./sst_1x1.nc "+SST_write_file)
 
+do_anom=False  ; this superimposes the observed SST + ice onto the climatological seasonal cycle
+
 print("running date "+initdate)
 KtoC=273.15
 
@@ -130,10 +132,42 @@ print("Correcting SST time records")
 ; Add time record
 sst_fv_dbl_time = new((/12,numfvlat,numfvlon/),float)
 
-do i = 0,11
-    sst_fv_dbl_time(i,:,:) = sst_fv_dbl
-end do
 
+if (do_anom) then
+
+  print("SST_TO_CAM: Creating observationally-consistent seasonal cycle")
+  ; create daily time array
+  daily_time = fspan (0.0, 364.0, 365)
+  daily_time@units = "days since 0000-01-01 00:00:00"
+  daily_time@calendar = "365_day"
+  
+  ; read monthly climo SST and interp to daily SST
+  climo_SST = in->SST_cpl
+  climo_SST_daily = linint1_n_Wrap (climo_SST&time, climo_SST, True, daily_time, 0, 0)
+
+  ; get DoY for the forecast day
+  yyyy@calendar = "noleap"           ; also "365"
+  doy = day_of_year(yyyy,mm,dd)  ; doy = (/61,60,60/)
+  doyint = toint(doy) - 1
+
+  ; calculate sst_anom as observed SST - that day's climo
+  sst_anom = sst_fv_dbl
+  sst_anom = sst_fv_dbl - climo_SST_daily(doyint,:,:)
+  
+  ; project that anomaly onto the monthly values
+  do i = 0,11
+    sst_fv_dbl_time(i,:,:) = climo_SST(i,:,:) + sst_anom(:,:)
+  end do
+  
+else
+
+  print("SST_TO_CAM: Creating time-invariant SST forcing")
+
+  do i = 0,11
+    sst_fv_dbl_time(i,:,:) = sst_fv_dbl
+  end do
+  
+end if
 
 if (do_ice) then
   ;ice_fv = linmsg(ice_fv,-1)
@@ -161,9 +195,34 @@ if (do_ice) then
   print("Correcting ICE time records")
   ice_fv_dbl_time = new((/12,numfvlat,numfvlon/),float)
   
+
+
+if (do_anom) then
+  
+  climo_ice = in->ice_cov
+  climo_ice_daily = linint1_n_Wrap (climo_ice&time, climo_ice, True, daily_time, 0, 0)
+
+  ice_anom = ice_fv_dbl
+  ice_anom = ice_fv_dbl - climo_ice_daily(doyint,:,:)
+  
+  do i = 0,11
+    ice_fv_dbl_time(i,:,:) = climo_ice(i,:,:) + ice_anom(:,:)
+  end do
+  
+  ; clip ice cover frac to values between 0 and 1
+  ice_fv_dbl_time = where(ice_fv_dbl_time .gt. 1.0,1.0,ice_fv_dbl_time)
+  ice_fv_dbl_time = where(ice_fv_dbl_time .lt. 0.0,0.0,ice_fv_dbl_time)
+  
+else
+
   do i = 0,11
     ice_fv_dbl_time(i,:,:) = ice_fv_dbl
   end do
+  
+end if
+
+
+
 
 end if
 
@@ -184,12 +243,25 @@ print("Convert to float")
 ; Write to NetCDF
   print("Writing file...")
   
+  ; write the sst and ice streams to be read in CIME
   in->SST_cpl = (/sst_fv_dbl_time/)
   if (do_ice) then
     in->ice_cov = (/ice_fv_dbl_time/)
   end if
+  
+  ; print snapshot of interpolated data from obs
+  in->sst_snapshot = sst_fv_dbl
+  in->ice_snapshot = ice_fv_dbl
 
-  print("done")
+; for debugging 
+;system("/bin/rm -f simple.nc")   ; remove any pre-existing file
+;ncdf = addfile("simple.nc" ,"c")  ; open output netCDF file
+;filedimdef(ncdf,"time",-1,True) 
+;ncdf->climo_SST_daily = climo_SST_daily
+;ncdf->sst_snapshot = sst_fv_dbl
+;ncdf->ice_snapshot = ice_fv_dbl
+
+print("done")
   
 delete(fvlat)
 delete(fvlon)
@@ -201,6 +273,15 @@ end if
 delete(sst_fv_dbl_time)
 delete(numfvlat)
 delete(numfvlon)
+
+if (do_anom) then
+  delete(climo_SST)
+  delete(climo_SST_daily)
+  delete(sst_anom)
+  delete(climo_ice)
+  delete(climo_ice_daily)
+  delete(ice_anom)
+end if
 
 end do ; End multiple file loop
 
