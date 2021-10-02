@@ -85,6 +85,7 @@ if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
 if [ -z ${do_runoff+x} ]; then do_runoff=0; fi
 if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=1; fi
 if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
+if [ -z ${predict_docn+x} ]; then predict_docn=1; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -505,6 +506,7 @@ if [ $debug -ne 1 ] ; then
   set +e
   cd ${sst_to_cam_path}
   (set -x; ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
+    predict_docn=${predict_docn} \
     'datasource="'${SSTTYPE}'"' \
     'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
     'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
@@ -736,7 +738,7 @@ else
   else
     if [ -f user_nl_${lndName}_presave ] ; then
       echo "Using pre-written user_nl_${lndName} file"
-      cp user_nl_${lndName}_presave user_nl_${lndName}
+      cp -v user_nl_${lndName}_presave user_nl_${lndName}
     else
       echo "WARNING: Land file DOES NOT EXIST, will use arbitrary user_nl_${lndName} already in folder"
       echo "!!!!!!!!!!!!!"
