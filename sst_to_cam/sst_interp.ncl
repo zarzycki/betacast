@@ -27,7 +27,21 @@ begin
 print("copying SST file from repo to "+SST_write_file)
 system("cp ./sst_1x1.nc "+SST_write_file)
 
-do_anom=False  ; this superimposes the observed SST + ice onto the climatological seasonal cycle
+
+if (.not. isvar("predict_docn")) then
+  do_anom=False  
+else
+  if (toint(predict_docn) .eq. 0) then
+    do_anom=True ; this superimposes the observed SST + ice onto the climatological seasonal cycle
+  else if (toint(predict_docn) .eq. 1) then
+    do_anom=False
+  else
+    print("unknown predict_docn option passed in, must be 0 (true) or 1 (false).")
+    exit
+  end if
+  end if
+end if
+print("do_anom set to: "+do_anom)
 
 print("running date "+initdate)
 KtoC=273.15
