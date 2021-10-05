@@ -1023,6 +1023,7 @@ mkdir -p $archivedir/images
 mkdir -p $archivedir/text
 mkdir -p $archivedir/nl_files
 mkdir -p $archivedir/logs
+mkdir -p $archivedir/betacast
 
 set +e
 
@@ -1037,6 +1038,9 @@ mv -v timing.*.gz $archivedir/logs
 mv -v atm_chunk_costs*.gz $archivedir/logs
 
 mv -v timing/ $archivedir/
+
+# Copy betacast configs to archive directory for posterity
+cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $archivedir/betacast
 
 ## Move land files to new restart location
 cd $path_to_nc_files
