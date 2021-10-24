@@ -1040,7 +1040,7 @@ mv -v atm_chunk_costs*.gz $archivedir/logs
 mv -v timing/ $archivedir/
 
 # Copy betacast configs to archive directory for posterity
-cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $archivedir/betacast
+cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $perturb_namelist $archivedir/betacast
 
 ## Move land files to new restart location
 cd $path_to_nc_files
