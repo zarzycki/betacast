@@ -7,18 +7,19 @@
 set -e
 
 # Usage:
-#./auto-script.sh MODELSYSTEM DOERA5 DATE_YYYYMMDD NMONTHS ANOMYEAR
+#./auto-script.sh MODELSYSTEM DOERA5 DATE_YYYYMMDD NMONTHS NCYCLES ANOMYEAR
 # CESM
-#./auto-script.sh 0 0 20200821 12 2081
+#./auto-script.sh 0 0 20200821 12 1 2081
 # E3SM
-#./auto-script.sh 1 0 19960113 12 2081
+#./auto-script.sh 1 0 19960113 12 1 2080
 
 ### User settings
 modelSystem=${1}         # 0 = CESM/E3SMv1, 1 = E3SMv2
-doERA5=${2}               # Use ERA5 DATM? 0 = yes, 1 = no (internal CRUNCEP)
-FORECASTDATE=${3}  #What is the date you want to spin up for (00Z)
-NMONTHSSPIN=${4}      # Duration of spinup (somewhere b/w 3-12 months seems reasonable)
-BETACAST_ANOMYEAR=${5}
+doERA5=${2}              # Use ERA5 DATM? 0 = yes, 1 = no (internal CRUNCEP)
+FORECASTDATE=${3}        # What is the date you want to spin up for (00Z)
+NMONTHSSPIN=${4}         # Duration of spinup (somewhere b/w 3-12 months seems reasonable)
+NCYCLES=${5} 
+BETACAST_ANOMYEAR=${6}
 
 ### Check if BETACAST_ANOMYEAR is positive integer -- if yes, add deltas, if no, nothing
 if [ $BETACAST_ANOMYEAR -lt 1 ]; then
@@ -46,14 +47,16 @@ if [[ $HOSTNAME = cheyenne* ]]; then
   
 elif [[ $HOSTNAME = cori* || $HOSTNAME = nid* ]]; then
   ### ELM on Cori
-  CIMEROOT=~/clean/E3SM-20210824/
+  #CIMEROOT=~/clean/E3SM-20210824/
+  CIMEROOT=~/E3SM-dev/
   PATHTOCASE=~/I-compsets
-  ICASENAME=RoS-ICLM45-ne0conus30x8-002
+  ICASENAME=RoS-ICLM45-ne0conus30x8-006
   PROJECT=m2637
   MACHINE=cori-knl
   NNODES=12
+  #RESOL=ne30_ne30
   RESOL=ne0conus30x8_ne0conus30x8_t12
-  RUNQUEUE=regular
+  RUNQUEUE=low
   WALLCLOCK="02:57:00"
   
   ### Only required if doERA5 = 0
@@ -63,10 +66,6 @@ elif [[ $HOSTNAME = cori* || $HOSTNAME = nid* ]]; then
 else
   echo "Can't figure out hostname, need to add new host and config. Exiting for now..."
   exit
-fi
-
-if [ $addDeltas -eq 0 ]; then
-  ICASENAME=${ICASENAME}_${BETACAST_ANOMYEAR}
 fi
 
 # Derived settings that should be same between all machines
@@ -97,12 +96,22 @@ echo "Trying to get CLM restart for "${FORECASTDATE}
 echo "Year plus one equals: "${FORECASTYEARP1}
 echo "Year minus one equals: "${FORECASTYEARM1}
 
+if [ $NCYCLES -lt 2 ]; then
+  ### NO CYCLE
+  echo "CYCLE: no cycle since NCYCLES = ${NCYCLES}"
+else
+  ### CYCLE
+  echo "CYCLE: since NCYCLES = ${NCYCLES}, update NMONTHSSPIN from: ${NMONTHSSPIN} to..."
+  NMONTHSSPIN=$((NMONTHSSPIN*NCYCLES))
+  echo "....... ${NMONTHSSPIN}"
+fi
+
 ### Print diagnostics
 STARTDATE=`date -d "${FORECASTDATE} - ${NMONTHSSPIN} months" "+%Y-%m-%d"`
 echo "Starting at: "${STARTDATE}
 if [ $doERA5 -eq 0 ]; then
   echo "Using ERA5 DATM"
-  ERA5STYR=1995
+  ERA5STYR=1990
   ERA5ENYR=2020
 else
   echo "Using CRUNCEP DATM"
@@ -130,11 +139,19 @@ elif [ ${#FORECASTDATE} -ne 8 ]; then
   exit 1
 fi
 
+ICASENAME=${ICASENAME}_${FORECASTDATE}_$(printf "%04d\n" $NMONTHSSPIN)
+if [ $addDeltas -eq 0 ]; then
+  ICASENAME=${ICASENAME}_${BETACAST_ANOMYEAR}
+fi
+
+
 ### Put a block to check everything here?
 echo "--------------------------------------------"
 echo "modelSystem: "${modelSystem}
 echo "FORECASTDATE: "${FORECASTDATE}
 echo "NMONTHSSPIN: "${NMONTHSSPIN}
+echo "NCYCLES: "${NCYCLES}
+echo "STARTDATE: "${STARTDATE}
 echo "addDeltas: "${addDeltas}
 echo "BETACAST_ANOMYEAR: "${BETACAST_ANOMYEAR}
 echo "BETACAST_ANOMALIGN: "${BETACAST_ANOMALIGN}
@@ -162,7 +179,7 @@ cd ${PATHTOCASE}/${ICASENAME}
 ./xmlchange NTASKS_ESP=1
 ./xmlchange NTASKS_IAC=1
 ./xmlchange DATM_MODE=CLMCRUNCEPv7
-./xmlchange STOP_N=2
+./xmlchange STOP_N=10
 ./xmlchange STOP_OPTION='nyears'
 ./xmlchange DATM_CLMNCEP_YR_START=${FORECASTYEARM1}
 ./xmlchange DATM_CLMNCEP_YR_END=${FORECASTYEAR}
@@ -184,11 +201,16 @@ if [ $doERA5 -eq 0 ]; then
   sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_STREAMBASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW 
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW  
   ./xmlchange DATM_CLMNCEP_YR_ALIGN=${ERA5STYR}
-  ./xmlchange DATM_CLMNCEP_YR_START=${ERA5STYR}
-  ./xmlchange DATM_CLMNCEP_YR_END=${ERA5ENYR}
-  # Update general vars in case needed for anom stream overwrite
-  FORECASTYEARM1=${ERA5STYR}
-  FORECASTYEAR=${ERA5ENYR}
+  
+  if [ $NCYCLES -lt 2 ]; then
+    ### NO CYCLE
+    ./xmlchange DATM_CLMNCEP_YR_START=${ERA5STYR}
+    ./xmlchange DATM_CLMNCEP_YR_END=${ERA5ENYR}
+    # Update general vars in case needed for anom stream overwrite
+    FORECASTYEARM1=${ERA5STYR}
+    FORECASTYEAR=${ERA5ENYR}
+  fi
+  
 fi
 
 if [ $addDeltas -eq 0 ]; then
@@ -217,16 +239,17 @@ fi
 
 ### USER! Edit this block if using ELM and need to inject any ELM specific mods (e.g., fsurdat, etc.)
 cat > user_nl_elm <<EOF
-!fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2000_c201027.nc"
-!finidat=''
-!do_transient_pfts = .false.
-!check_finidat_fsurdat_consistency = .false.
 !fsurdat="/global/cfs/cdirs/e3sm/inputdata/lnd/clm2/surfdata_map/surfdata_ne30np4_simyr2000_c190730.nc"
 fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2000_c201027.nc"
 finidat="/global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/RoS-F2010C5-ne0conus30x8-001-control/run//landstart//RoS-F2010C5-ne0conus30x8-001-control.elm.r.1996-01-15-00000.nc"
 !finidat=''
 do_transient_pfts = .false.
 check_finidat_fsurdat_consistency = .false.
+!
+hist_avgflag_pertape='A','I'
+hist_nhtfrq = 0,0
+hist_mfilt = 1,1
+hist_fincl2 = 'FSNO','H2OSNO','H2OSNO_TOP','QSNOMELT','QSNOFRZ','SNOW','SNOWDP','SNOWLIQ','SNOTTOPL','ERRH2OSNO','QSNWCPICE','FGR','FSM','QDRIP','ZBOT','TG','TV','TSA','SWup','SWdown','FIRA','FIRE','LWdown','LWup','TREFMNAV','TREFMXAV','Q2M','FPSN','FSH','Rnet','TLAI','FCTR','QOVER','RH','RH2M','SOILWATER_10CM','ZWT','TSOI_10CM','QSOIL','QVEGE','QVEGT','QTOPSOIL','Qstor','H2OCAN','H2OSFC','QH2OSFC','TWS','HC','SNOdTdzL','SNOW_SINKS','SNOW_SOURCES','SNOLIQFL','TH2OSFC','U10','QFLOOD','QRUNOFF','Qle','Qh','Qair','Tair','RAIN','SNO_Z','SNO_T'
 EOF
 
 ### USER! Edit this block if using CLM and need to inject any CLM specific mods (e.g., fsurdat, etc.)
