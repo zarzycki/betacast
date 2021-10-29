@@ -73,12 +73,21 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   dNames=getfilevardims(grb_file,"RH_P0_L100_GLL0")
   rhlevName=dNames(0)
   delete(dNames)
-  print("rhlev varname: "+cldlevName)
+  print("rhlev varname: "+rhlevName)
   grblat = grb_file->lat_0
   grblon = grb_file->lon_0
   grblev = grb_file->lv_ISBL0
   rhlev  = grb_file->$rhlevName$
   cldlev = grb_file->$cldlevName$
+else if (datasource .eq. "RAP") then
+  dNames=getfilevardims(grb_file,"RH_P0_L100_GLC0")
+  rhlevName=dNames(0)
+  delete(dNames)
+  print("rhlev varname: "+rhlevName)
+  grblat = grb_file->gridlat_0
+  grblon = grb_file->gridlon_0
+  grblev = grb_file->lv_ISBL0
+  rhlev  = grb_file->$rhlevName$
 else if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
   grblat = tofloat(grb_file->latitude)
   grblon = tofloat(grb_file->longitude)
@@ -98,6 +107,7 @@ else if (datasource .eq. "ERA5RDA") then
   grblev        = grblev * 100.
 else
   exit
+end if
 end if
 end if
 end if
@@ -142,7 +152,7 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
     w_gfs := int2p_n(grb_file->$windlevName$,w_gfs,grblev,2,0)
   end if
     
-  rh_gfs_native = grb_file->RH_P0_L100_GLL0(:,:,:)
+  rh_gfs_native = grb_file->RH_P0_L100_GLC0(:,:,:)
   cldmix_gfs_native = grb_file->CLWMR_P0_L100_GLL0(:,:,:)
   print("Interpolating GRIB to uniform vertical levels")
   rh_gfs = int2p_n(rhlev,rh_gfs_native,grblev,2,0)
@@ -163,6 +173,63 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   delete(cldmix_gfs)
   delete(rh_gfs)
 end if
+
+
+
+if (datasource .eq. "RAP") then
+  ps = grb_file->PRES_P0_L1_GLC0(:,:)
+  p0   = 100000.
+  t_gfs = grb_file->TMP_P0_L100_GLC0(:,:,:)
+  u_gfs = grb_file->UGRD_P0_L100_GLC0(:,:,:)
+  v_gfs = grb_file->VGRD_P0_L100_GLC0(:,:,:)  
+  if (dycore .eq. "mpas") then
+    w_gfs = grb_file->VVEL_P0_L100_GLC0(:,:,:)
+    w_is_omega    = True
+    z_gfs = grb_file->HGT_P0_L100_GLC0(:,:,:)
+    z_is_phi      = False
+  end if
+  
+  ; interpolate u, v, and w to t levels
+  dNames:=getfilevardims(grb_file,"TMP_P0_L100_GLC0")
+  templevName=dNames(0)
+  dNames:=getfilevardims(grb_file,"UGRD_P0_L100_GLC0")
+  windlevName=dNames(0)
+  if ( templevName .ne. windlevName ) then
+    print("interpolating u + v wind from "+dimsizes(grb_file->$windlevName$)+" to "+dimsizes(grblev)+" levels")
+    u_gfs := int2p_n(grb_file->$windlevName$,u_gfs,grblev,2,0)
+    v_gfs := int2p_n(grb_file->$windlevName$,v_gfs,grblev,2,0)
+  end if
+  dNames:=getfilevardims(grb_file,"VVEL_P0_L100_GLC0")
+  windlevName=dNames(0)
+  if ( templevName .ne. windlevName ) then
+    print("interpolating w wind from "+dimsizes(grb_file->$windlevName$)+" to "+dimsizes(grblev)+" levels")
+    w_gfs := int2p_n(grb_file->$windlevName$,w_gfs,grblev,2,0)
+  end if
+    
+  rh_gfs_native = grb_file->RH_P0_L100_GLC0(:,:,:)
+  cldmix_gfs_native = grb_file->RH_P0_L100_GLC0(:,:,:)
+  cldmix_gfs_native = 0.0
+  print("Interpolating GRIB to uniform vertical levels")
+  rh_gfs = int2p_n(rhlev,rh_gfs_native,grblev,2,0)
+  cldmix_gfs = cldmix_gfs_native
+  delete(rh_gfs_native)
+  delete(cldmix_gfs_native)
+  print("Calculating q from RH")
+  q_gfs = mixhum_ptrh(conform(t_gfs,grblev,0)*0.01, t_gfs , rh_gfs, 2 ) ; specific humidity (g/kg)  
+  print("Sorting bad values")
+  cldmix_gfs = where(ismissing(cldmix_gfs),0,cldmix_gfs) 
+  cldmix_gfs = where(cldmix_gfs.gt.0.01,0,cldmix_gfs)    
+  print("seperating cloud ice and water")
+  cldice_gfs = cldmix_gfs
+  cldliq_gfs = cldmix_gfs
+  cldice_gfs = 0.0
+  cldliq_gfs = 0.0
+  delete(cldmix_gfs)
+  delete(rh_gfs)
+end if
+
+
+
 if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
   p0   = 100000.
   ; We need to use short2flt because ERA-Interim data is stored
@@ -320,7 +387,7 @@ if (dycore .ne. "mpas") then
   ilev = fC->ilev
 
   print("Interpolating to CAM hybrid coordinates")
-  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA") then
+  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA" .or. datasource .eq. "RAP") then
     print("Using pressure to hybrid interpolation")
     t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,1)
     u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,1)
@@ -556,6 +623,11 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
     sfct_data = grb_file->TMP_P0_L104_GLL0(:,:)  ; 0.995 sigma T in K
     ; correct topo from gpm to m2/s2
     topo_data = topo_data * grav
+  else if (datasource .eq. "RAP") then
+    topo_data = grb_file->HGT_P0_L1_GLC0(:,:)    ; gpm
+    sfct_data = grb_file->TMP_P0_L1_GLC0(:,:)  ; TS
+    ; correct topo from gpm to m2/s2
+    topo_data = topo_data * grav
   else if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
     topo_data = short2flt(grb_file->phis(0,:,:))    ; gpm
     sfct_data = short2flt(grb_file->t2m(0,:,:))  ; 0.995 sigma T in K
@@ -572,15 +644,34 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
   end if
   end if
   end if
-
+  end if
+  
   ; regrid to model grid
   topo_data_SE = ESMF_regrid_with_weights(topo_data,wgt_filename,Opt)
   sfct_data_SE = ESMF_regrid_with_weights(sfct_data,wgt_filename,Opt)
 
   ; load model orography
   ttfile = addfile(model_topo_file,"r")
-  topo_model_SE = ttfile->PHIS     ;ncol
-
+  
+  if (dycore .eq. "se") then
+    ; if SE, the PHIS field that matches ncol can live in either PHIS or PHIS_d
+    if (isfilevar(ttfile, "PHIS") .and. dimsizes(ttfile->PHIS) .eq. dim_sePS(0)) then
+      print("SE: Using PHIS for topo adjustment")
+      topo_model_SE = ttfile->PHIS     ;ncol  
+    else if (isfilevar(ttfile, "PHIS_d") .and. dimsizes(ttfile->PHIS_d) .eq. dim_sePS(0)) then
+      print("SE: Using PHIS_d for topo adjustment")
+      topo_model_SE = ttfile->PHIS_d     ;ncol
+    else
+      print("SE: Cannot find valid PHIS or PHIS_d with dimensions that match ncol: "+ncol)
+      exit
+    end if
+    end if
+  else
+    ; if not SE, we just assume user is smart and gave PHIS in correct dims
+    print("Using PHIS for topo adjustment")
+    topo_model_SE = ttfile->PHIS
+  end if
+  
   ; unpack FV
   if (dycore .eq. "fv") then
     print("unpacking fv vars")
@@ -598,93 +689,94 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
   tcorriter=0
       
   do kk = 0,ncol-1
-
-    ; get difference in geopotential
-    deltaPhi = topo_data_SE(kk) - topo_model_SE(kk)
+    if (.not.ismissing(sfct_data_SE(kk)))  ; check if missing (useful for regional data)
+      ; get difference in geopotential
+      deltaPhi = topo_data_SE(kk) - topo_model_SE(kk)
     
-    ; estimate "model's" surface temperature
-    Tsfc_fv = sfct_data_SE(kk) + gamma_s * (deltaPhi / grav)
+      ; estimate "model's" surface temperature
+      Tsfc_fv = sfct_data_SE(kk) + gamma_s * (deltaPhi / grav)
 
-    ; calculate layer mean temperature for use in hydrostatic
-    lwr_coef = 0.5   ; use 0.5 for straight average
-    if (Tsfc_fv .ge. sfct_data_SE(kk)) then
-      Tlayermean = ( lwr_coef*Tsfc_fv + (1.-lwr_coef)*sfct_data_SE(kk) )
-    else
-      Tlayermean = ( (1.-lwr_coef)*Tsfc_fv + lwr_coef*sfct_data_SE(kk) )
-    end if
-    
-    ; correct very warm and very cold layer means based on Trenberth 1993
-    if (Tlayermean .lt. 255.0) then
-      Tlayermean = (255.0 + Tlayermean)/2.
-      tcorriter=tcorriter+1
-    else if (Tlayermean .gt. 290.5) then
-      Tlayermean = (290.5 + Tlayermean)/2.
-      tcorriter=tcorriter+1
-    else
-      ; no correction
-    end if
-    end if
-
-    ; correct
-    ps_orig = ps_fv(kk)
-    beta = exp( tofloat(deltaPhi) / tofloat(Rd) / tofloat(Tlayermean) )
-    ps_fv(kk) = ps_fv(kk) * beta
-
-    if (mod(kk,10000) .eq. 0) then
-      print("Correcting PS: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
-    end if
-    
-    ; correct T by shifting Tbot "down" the same delta
-    if (tempadjustflag .eq. "a")    
-      if (dycore .eq. "fv")
-        if (mod(kk,10000) .eq. 0) then
-          print("WARNING: tempadjust not supported for FV")
-          print("WARNING: continuing!")
-        end if
+      ; calculate layer mean temperature for use in hydrostatic
+      lwr_coef = 0.5   ; use 0.5 for straight average
+      if (Tsfc_fv .ge. sfct_data_SE(kk)) then
+        Tlayermean = ( lwr_coef*Tsfc_fv + (1.-lwr_coef)*sfct_data_SE(kk) )
       else
-        nlev=dimsizes(lev)
-        t_orig = t_fv(nlev-1,kk)
-        delT = Tsfc_fv - sfct_data_SE(kk)
-        t_fv(nlev-1,kk) = t_fv(nlev-1,kk) + tofloat(delT)
-        if (mod(kk,10000) .eq. 0) then
-          print("Correcting TBOT: "+kk+" of "+(ncol-1)+"   from "+t_orig+" to "+t_fv(nlev-1,kk))
+        Tlayermean = ( (1.-lwr_coef)*Tsfc_fv + lwr_coef*sfct_data_SE(kk) )
+      end if
+    
+      ; correct very warm and very cold layer means based on Trenberth 1993
+      if (Tlayermean .lt. 255.0) then
+        Tlayermean = (255.0 + Tlayermean)/2.
+        tcorriter=tcorriter+1
+      else if (Tlayermean .gt. 290.5) then
+        Tlayermean = (290.5 + Tlayermean)/2.
+        tcorriter=tcorriter+1
+      else
+        ; no correction
+      end if
+      end if
+
+      ; correct
+      ps_orig = ps_fv(kk)
+      beta = exp( tofloat(deltaPhi) / tofloat(Rd) / tofloat(Tlayermean) )
+      ps_fv(kk) = ps_fv(kk) * beta
+
+      if (mod(kk,10000) .eq. 0) then
+        print("Correcting PS: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
+      end if
+    
+      ; correct T by shifting Tbot "down" the same delta
+      if (tempadjustflag .eq. "a")    
+        if (dycore .eq. "fv")
+          if (mod(kk,10000) .eq. 0) then
+            print("WARNING: tempadjust not supported for FV")
+            print("WARNING: continuing!")
+          end if
+        else
+          nlev=dimsizes(lev)
+          t_orig = t_fv(nlev-1,kk)
+          delT = Tsfc_fv - sfct_data_SE(kk)
+          t_fv(nlev-1,kk) = t_fv(nlev-1,kk) + tofloat(delT)
+          if (mod(kk,10000) .eq. 0) then
+            print("Correcting TBOT: "+kk+" of "+(ncol-1)+"   from "+t_orig+" to "+t_fv(nlev-1,kk))
+          end if
         end if
       end if
-    end if
     
-    ; correct other state variables!
-    vert_interp_thresh = 0.1   ; maximum ps corr diff (Pa) to interp vert profiles
-    extrap_threshold = 5000.   ; maximum ps corr diff (Pa) to allow xtrp
-    if ( abs(ps_orig-ps_fv(kk)) .gt. vert_interp_thresh) then
-      pm_orig = hya*p0 + hyb*ps_orig
-      pm_corr = hya*p0 + hyb*ps_fv(kk)
+      ; correct other state variables!
+      vert_interp_thresh = 0.1   ; maximum ps corr diff (Pa) to interp vert profiles
+      extrap_threshold = 5000.   ; maximum ps corr diff (Pa) to allow xtrp
+      if ( abs(ps_orig-ps_fv(kk)) .gt. vert_interp_thresh) then
+        pm_orig = hya*p0 + hyb*ps_orig
+        pm_corr = hya*p0 + hyb*ps_fv(kk)
       
-      if ( abs(ps_orig-ps_fv(kk)) .gt. extrap_threshold) then
-        linlog = 2    ; no extrapolation outside of orig levs
-      else
-        linlog = -2   ; allow extrapolation
+        if ( abs(ps_orig-ps_fv(kk)) .gt. extrap_threshold) then
+          linlog = 2    ; no extrapolation outside of orig levs
+        else
+          linlog = -2   ; allow extrapolation
+        end if
+      
+        tmp := int2p(pm_orig,t_fv(:,kk),pm_corr,linlog)
+        t_fv(:,kk) = where(ismissing(tmp),t_fv(:,kk),tmp)
+
+        tmp := int2p(pm_orig,q_fv(:,kk),pm_corr,linlog)
+        q_fv(:,kk) = where(ismissing(tmp),q_fv(:,kk),tmp)
+
+        tmp := int2p(pm_orig,u_fv(:,kk),pm_corr,linlog)
+        u_fv(:,kk) = where(ismissing(tmp),u_fv(:,kk),tmp)
+      
+        tmp := int2p(pm_orig,v_fv(:,kk),pm_corr,linlog)
+        v_fv(:,kk) = where(ismissing(tmp),v_fv(:,kk),tmp)
+      
+        tmp := int2p(pm_orig,cldice_fv(:,kk),pm_corr,linlog)
+        cldice_fv(:,kk) = where(ismissing(tmp),cldice_fv(:,kk),tmp)
+      
+        tmp := int2p(pm_orig,cldliq_fv(:,kk),pm_corr,linlog)
+        cldliq_fv(:,kk) = where(ismissing(tmp),cldliq_fv(:,kk),tmp)
+
+        vert_corrs = vert_corrs+1
+        delete(tmp)
       end if
-      
-      tmp := int2p(pm_orig,t_fv(:,kk),pm_corr,linlog)
-      t_fv(:,kk) = where(ismissing(tmp),t_fv(:,kk),tmp)
-
-      tmp := int2p(pm_orig,q_fv(:,kk),pm_corr,linlog)
-      q_fv(:,kk) = where(ismissing(tmp),q_fv(:,kk),tmp)
-
-      tmp := int2p(pm_orig,u_fv(:,kk),pm_corr,linlog)
-      u_fv(:,kk) = where(ismissing(tmp),u_fv(:,kk),tmp)
-      
-      tmp := int2p(pm_orig,v_fv(:,kk),pm_corr,linlog)
-      v_fv(:,kk) = where(ismissing(tmp),v_fv(:,kk),tmp)
-      
-      tmp := int2p(pm_orig,cldice_fv(:,kk),pm_corr,linlog)
-      cldice_fv(:,kk) = where(ismissing(tmp),cldice_fv(:,kk),tmp)
-      
-      tmp := int2p(pm_orig,cldliq_fv(:,kk),pm_corr,linlog)
-      cldliq_fv(:,kk) = where(ismissing(tmp),cldliq_fv(:,kk),tmp)
-
-      vert_corrs = vert_corrs+1
-      delete(tmp)
     end if
   end do
   print("needed to correct "+vert_corrs+" vertical profiles for updated PS")
@@ -932,7 +1024,10 @@ q_fv_dbl_time=where(q_fv_dbl_time.le.qthresh,0.0,q_fv_dbl_time)
 if(any(ismissing(q_fv_dbl_time))) then
   print("Q is missing data...")
 end if
-q_fv_dbl_time = where(ismissing(q_fv_dbl_time),0.0,q_fv_dbl_time)
+if (datasource .ne. "RAP") then
+  print("Filling q in global dataset")
+  q_fv_dbl_time = where(ismissing(q_fv_dbl_time),0.0,q_fv_dbl_time)
+end if
 
 ; create time array
 timeunits  = "days since 1850-01-01 00:00:00"
