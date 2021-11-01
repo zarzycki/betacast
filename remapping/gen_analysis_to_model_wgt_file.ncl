@@ -5,8 +5,8 @@ begin
 ; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 ; ============= User settings
 
-; era5_0.25x0.25, gfs_0.50x0.50, gfs_0.25x0.25, 
-anlgrid="era5_0.25x0.25" 
+; hrrr_3km_scrip.nc, era5_0.25x0.25, gfs_0.50x0.50, gfs_0.25x0.25, rap_13km, hrrr_3km
+anlgrid="hrrr_3km" 
 
 ; shortname for grid (for naming purposes)
 dstGridName="rrm.x4_ESMF.nc"
@@ -20,7 +20,7 @@ wgtFileDir="./"
 ; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 ; ============= do not edit below this line
 
-if (anlgrid .ne. "era5_0.25x0.25" .and. anlgrid .ne. "gfs_0.25x0.25" .and. anlgrid .ne. "gfs_0.50x0.50" .and. anlgrid .ne. "rap_13km") then
+if (anlgrid .ne. "era5_0.25x0.25" .and. anlgrid .ne. "gfs_0.25x0.25" .and. anlgrid .ne. "gfs_0.50x0.50" .and. anlgrid .ne. "rap_13km" .and. anlgrid .ne. "hrrr_3km") then
   print("unsupported analysis grid!   : "+anlgrid)
   exit
 end if
@@ -28,7 +28,7 @@ srcGridFile="./anl_scrip/"+anlgrid+"_scrip.nc"
 
 ; if using a regional grid, ensure that ESMF knows that...
 regionalGrid=False
-if (anlgrid .eq. "rap_13km") then
+if (anlgrid .eq. "rap_13km" .or. anlgrid .eq. "hrrr_3km") then
   regionalGrid=True
 end if
 
