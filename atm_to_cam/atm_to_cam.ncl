@@ -45,6 +45,11 @@ if (.not. isvar("mpasfile") .and. dycore .eq. "mpas") then
   exit
 end if
 
+if (.not. isvar("RDADIR")) then
+  print("setting RDADIR to empty")
+  RDADIR=""
+end if
+
 ; ===== Getting date from YYYYMMDDHH
 dtime_map = (/4,2,2,2/)
 splitDate = str_split_by_length(tostring(YYYYMMDDHH),dtime_map)
@@ -97,8 +102,8 @@ else if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
   end if
 else if (datasource .eq. "ERA5RDA") then
   ;use RDA T file to extract dims
-  pl_dir="/glade/collections/rda/data/ds633.0/e5.oper.an.pl/"+yearstr+monthstr
-  sf_dir="/glade/collections/rda/data/ds633.0/e5.oper.an.sfc/"+yearstr+monthstr
+  pl_dir=RDADIR+"/e5.oper.an.pl/"+yearstr+monthstr
+  sf_dir=RDADIR+"/e5.oper.an.sfc/"+yearstr+monthstr
   rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_130_t.ll025sc."+yearstr+monthstr+daystr+"00_*.nc")
   rda_file     := addfile(rda_find,"r")
   grblat        = tofloat(rda_file->latitude)
