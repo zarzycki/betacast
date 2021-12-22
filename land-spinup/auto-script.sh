@@ -50,14 +50,14 @@ elif [[ $HOSTNAME = cori* || $HOSTNAME = nid* ]]; then
   #CIMEROOT=~/clean/E3SM-20210824/
   CIMEROOT=~/E3SM-dev/
   PATHTOCASE=~/I-compsets
-  ICASENAME=RoS-ICLM45-ne0conus30x8-006
+  ICASENAME=RoS-ICLM45-ne0conus30x8-101
   PROJECT=m2637
   MACHINE=cori-knl
   NNODES=12
   #RESOL=ne30_ne30
   RESOL=ne0conus30x8_ne0conus30x8_t12
-  RUNQUEUE=low
-  WALLCLOCK="02:57:00"
+  RUNQUEUE=regular   # low regular debug
+  WALLCLOCK="06:57:00"
   
   ### Only required if doERA5 = 0
   BETACAST=/global/homes/c/czarzyck/betacast/
@@ -240,9 +240,12 @@ fi
 ### USER! Edit this block if using ELM and need to inject any ELM specific mods (e.g., fsurdat, etc.)
 cat > user_nl_elm <<EOF
 !fsurdat="/global/cfs/cdirs/e3sm/inputdata/lnd/clm2/surfdata_map/surfdata_ne30np4_simyr2000_c190730.nc"
-fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2000_c201027.nc"
-finidat="/global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/RoS-F2010C5-ne0conus30x8-001-control/run//landstart//RoS-F2010C5-ne0conus30x8-001-control.elm.r.1996-01-15-00000.nc"
-!finidat=''
+!fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2000_c201027.nc"
+fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_CAL_VR7_simyr2000_c211213.nc"
+!
+!finidat="/global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/RoS-F2010C5-ne0conus30x8-001-control/run//landstart//RoS-F2010C5-ne0conus30x8-001-control.elm.r.1996-01-15-00000.nc"
+finidat=''
+!
 do_transient_pfts = .false.
 check_finidat_fsurdat_consistency = .false.
 !
