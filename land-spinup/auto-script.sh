@@ -50,12 +50,12 @@ elif [[ $HOSTNAME = cori* || $HOSTNAME = nid* ]]; then
   #CIMEROOT=~/clean/E3SM-20210824/
   CIMEROOT=~/E3SM-dev/
   PATHTOCASE=~/I-compsets
-  ICASENAME=RoS-ICLM45-ne0conus30x8-101
+  ICASENAME=RoS-ICLM45-ne0cal30x16-101
   PROJECT=m2637
   MACHINE=cori-knl
   NNODES=12
   #RESOL=ne30_ne30
-  RESOL=ne0conus30x8_ne0conus30x8_t12
+  RESOL=ne0cal30x16_ne0cal30x16_t12
   RUNQUEUE=regular   # low regular debug
   WALLCLOCK="06:57:00"
   
