@@ -157,7 +157,7 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
     w_gfs := int2p_n(grb_file->$windlevName$,w_gfs,grblev,2,0)
   end if
     
-  rh_gfs_native = grb_file->RH_P0_L100_GLC0(:,:,:)
+  rh_gfs_native = grb_file->RH_P0_L100_GLL0(:,:,:)
   cldmix_gfs_native = grb_file->CLWMR_P0_L100_GLL0(:,:,:)
   print("Interpolating GRIB to uniform vertical levels")
   rh_gfs = int2p_n(rhlev,rh_gfs_native,grblev,2,0)
