@@ -261,42 +261,42 @@ tsstride=toint(360.0/dlat)
 windstride=toint(360.0/dlat)
   
 ; NORTH ATLANTIC
-if (plotindex .eq. 0)
-  plotname = "natl"
-  maxlat = 55.           ; NATL         
-  minlat = 5.
-  maxlon = -5. 
-  minlon = -100.
-  snowstride=toint(4.5/dlat)
-  tsstride=toint(6.0/dlat)
-  windstride=toint(4.0/dlat)
 ;if (plotindex .eq. 0)
 ;  plotname = "natl"
-;  maxlat = 53.           ; CONUS         
-;  minlat = 21.
-;  maxlon = 295.-360. 
-;  minlon = 231.-360.
-;  snowstride=toint(2.25/dlat)
-;  tsstride=toint(3.125/dlat)
-;  windstride=toint(2.0/dlat)
-else if (plotindex .eq. 1)    ; ORIG EPAC
-  plotname = "epac"
-  maxlat = 40.             
-  minlat = 5.
-  maxlon = -90.
-  minlon = -165.
-  snowstride=toint(4.5/dlat)
-  tsstride=toint(6.0/dlat)
-  windstride=toint(4.0/dlat)
-;else if (plotindex .eq. 1)     ; Modif EPAC for NE USA
+;  maxlat = 55.           ; NATL         
+;  minlat = 5.
+;  maxlon = -5. 
+;  minlon = -100.
+;  snowstride=toint(4.5/dlat)
+;  tsstride=toint(6.0/dlat)
+;  windstride=toint(4.0/dlat)
+if (plotindex .eq. 0)
+  plotname = "natl"
+  maxlat = 53.           ; CONUS         
+  minlat = 21.
+  maxlon = 295.-360. 
+  minlon = 231.-360.
+  snowstride=toint(2.25/dlat)
+  tsstride=toint(3.125/dlat)
+  windstride=toint(2.0/dlat)
+;else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  plotname = "epac"
-;  maxlat = 49.              
-;  minlat = 37.
-;  maxlon = 295.-360. 
-;  minlon = 275.-360.
-;  snowstride=toint(0.75/dlat)
-;  tsstride=toint(1.0/dlat)
-;  windstride=toint(2.0/dlat)
+;  maxlat = 40.             
+;  minlat = 5.
+;  maxlon = -90.
+;  minlon = -165.
+;  snowstride=toint(4.5/dlat)
+;  tsstride=toint(6.0/dlat)
+;  windstride=toint(4.0/dlat)
+else if (plotindex .eq. 1)     ; NE USA
+  plotname = "epac"
+  maxlat = 49.              
+  minlat = 37.
+  maxlon = 295.-360. 
+  minlon = 275.-360.
+  snowstride=toint(0.75/dlat)
+  tsstride=toint(1.0/dlat)
+  windstride=toint(2.0/dlat)
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
 ;  plotname = "epac"
 ;  maxlat = 30.              
@@ -333,24 +333,24 @@ else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  minlat = 36.5
 ;  maxlon = 258.5-360. 
 ;  minlon = 250.5-360.
-else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
-  plotname = "float1"
-  maxlat = 40.0              
-  minlat = 5.0
-  maxlon = 170.0
-  minlon = 75.0
-  snowstride=toint(4.5/dlat)
-  tsstride=toint(6.0/dlat)
-  windstride=toint(4.0/dlat)
-;else if (plotindex .eq. 2)     ; Modif GLOB
+;else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
 ;  plotname = "float1"
-;  maxlat = 80.0
-;  minlat = -80.0
-;  maxlon = 180. 
-;  minlon = -180.
-;  snowstride=toint(7.5/dlat)
-;  tsstride=toint(15.0/dlat)
-;  windstride=toint(5.0/dlat)
+;  maxlat = 40.0              
+;  minlat = 5.0
+;  maxlon = 170.0
+;  minlon = 75.0
+;  snowstride=toint(4.5/dlat)
+;  tsstride=toint(6.0/dlat)
+;  windstride=toint(4.0/dlat)
+else if (plotindex .eq. 2)     ; Modif GLOB
+  plotname = "float1"
+  maxlat = 80.0
+  minlat = -80.0
+  maxlon = 180. 
+  minlon = -180.
+  snowstride=toint(7.5/dlat)
+  tsstride=toint(15.0/dlat)
+  windstride=toint(5.0/dlat)
 else
   plotname = "glob"
   maxlat = 90.           ; choose subregion           

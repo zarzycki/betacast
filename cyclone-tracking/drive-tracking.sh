@@ -29,9 +29,10 @@ OUTPUTBASE=${6}
 HSTREAMTRACK=${8}
 
 TRAJFILE=trajectories.txt.${UQSTR}
-TEMPESTEXTREMESDIR=/global/homes/c/czarzyck/software/tempestextremes_noMPI/
+#TEMPESTEXTREMESDIR=/global/homes/c/czarzyck/software/tempestextremes_noMPI/
+TEMPESTEXTREMESDIR=~/sw/tempestextremes_noMPI/
 TIMESTRIDE=2         # should be 2 for 3-hourly data, 1 for 6-hourly data
-OVERWRITE_ATCF=true  #CMZ need to build logic that checks if ATCF file has TECH already on it, then overwrite
+OVERWRITE_ATCF=false #CMZ need to build logic that checks if ATCF file has TECH already on it, then overwrite
 
 if [ ${UQSTR:(-3)} == "001" ]; then
   ATCFTECH="C501"
