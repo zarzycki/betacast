@@ -265,8 +265,9 @@ print("Convert to float")
   
   ; print snapshot of interpolated data from obs
   in->sst_snapshot = sst_fv_dbl
-  in->ice_snapshot = ice_fv_dbl
-
+  if (do_ice) then
+    in->ice_snapshot = ice_fv_dbl
+  end if
 ; for debugging 
 ;system("/bin/rm -f simple.nc")   ; remove any pre-existing file
 ;ncdf = addfile("simple.nc" ,"c")  ; open output netCDF file
