@@ -85,6 +85,7 @@ if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
 if [ -z ${do_runoff+x} ]; then do_runoff=0; fi
 if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=1; fi
 if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
+if [ -z ${predict_docn+x} ]; then predict_docn=1; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -413,12 +414,17 @@ if [ $debug -ne 1 ] ; then
     ERA5RDA=0  # Set whether or not ERA5 is local (0 = local, 1 = RDA)
     if [ ! -f ${LOCALGFSFILE} ]; then
       echo "cannot find: ${era_files_path}/${LOCALGFSFILE}"
-      if [[ "$MACHINEFILE" != *cheyenne* ]]; then
-        echo "support broken for auto download ERA, please prestage!"
-        exit
-      else
+      if [[ "$MACHINEFILE" == *cheyenne* ]]; then
         echo "We are on Cheyenne, so even though we lack a local file, we can use RDA"
         ERA5RDA=1
+        RDADIR=/glade/collections/rda/data/ds633.0/
+      elif [[ "$MACHINEFILE" == *cori* ]]; then
+        echo "We are on Cori, so even though we lack a local file, we can use RDA"
+        ERA5RDA=1
+        RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/    
+      else
+        echo "support broken for auto download ERA, please prestage!"
+        exit
       fi
     fi
   else
@@ -505,6 +511,7 @@ if [ $debug -ne 1 ] ; then
   set +e
   cd ${sst_to_cam_path}
   (set -x; ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
+    predict_docn=${predict_docn} \
     'datasource="'${SSTTYPE}'"' \
     'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
     'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
@@ -561,12 +568,12 @@ if [ $debug -ne 1 ] ; then
     echo "CD ing to ERA5 interpolation directory"
     cd $atm_to_cam_path
     if [ $ERA5RDA -eq 1 ] ; then
-      RDADIR=/glade/collections/rda/data/
       (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5RDA"'     \
           numlevels=${numLevels} \
           YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
          'dycore="'${DYCORE}'"' \
-         'data_filename = "'${RDADIR}'/ds633.0/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"'  \
+         'data_filename = "'${RDADIR}'/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"'  \
+         'RDADIR="'${RDADIR}'"' \
          'wgt_filename="'${gfs2seWeights}'"' \
          'model_topo_file="'${adjust_topo-}'"' \
          'adjust_config="'${adjust_flags-}'"' \
@@ -736,7 +743,7 @@ else
   else
     if [ -f user_nl_${lndName}_presave ] ; then
       echo "Using pre-written user_nl_${lndName} file"
-      cp user_nl_${lndName}_presave user_nl_${lndName}
+      cp -v user_nl_${lndName}_presave user_nl_${lndName}
     else
       echo "WARNING: Land file DOES NOT EXIST, will use arbitrary user_nl_${lndName} already in folder"
       echo "!!!!!!!!!!!!!"
@@ -1021,6 +1028,7 @@ mkdir -p $archivedir/images
 mkdir -p $archivedir/text
 mkdir -p $archivedir/nl_files
 mkdir -p $archivedir/logs
+mkdir -p $archivedir/betacast
 
 set +e
 
@@ -1035,6 +1043,12 @@ mv -v timing.*.gz $archivedir/logs
 mv -v atm_chunk_costs*.gz $archivedir/logs
 
 mv -v timing/ $archivedir/
+
+# Copy betacast configs to archive directory for posterity
+cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $perturb_namelist $archivedir/betacast
+
+# Copy user_nl* files to archive dir as well...
+cp -v $path_to_case/user* $archivedir/nl_files
 
 ## Move land files to new restart location
 cd $path_to_nc_files

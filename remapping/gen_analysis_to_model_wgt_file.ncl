@@ -5,13 +5,14 @@ begin
 ; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 ; ============= User settings
 
-; era5_0.25x0.25, gfs_0.50x0.50, gfs_0.25x0.25
-anlgrid="gfs_0.25x0.25" 
+; hrrr_3km_scrip.nc, era5_0.25x0.25, gfs_0.50x0.50, gfs_0.25x0.25, rap_13km, hrrr_3km
+anlgrid="hrrr_3km" 
 
 ; shortname for grid (for naming purposes)
-dstGridName="mpasa15"
+dstGridName="rrm.x4_ESMF.nc"
 ; full path to model SCRIP file
-dstGridFile="/glade/u/home/zarzycki/work/grids/scrip/mpasa15_scrip.nc"
+;dstGridFile="/glade/u/home/zarzycki/work/grids/scrip/ne30np4_091226_pentagons.nc"
+dstGridFile="./rrm.x4_ESMF.nc"
 
 ; where to save the map file?
 wgtFileDir="./"
@@ -19,11 +20,17 @@ wgtFileDir="./"
 ; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 ; ============= do not edit below this line
 
-if (anlgrid .ne. "era5_0.25x0.25" .and. anlgrid .ne. "gfs_0.25x0.25" .and. anlgrid .ne. "gfs_0.50x0.50") then
+if (anlgrid .ne. "era5_0.25x0.25" .and. anlgrid .ne. "gfs_0.25x0.25" .and. anlgrid .ne. "gfs_0.50x0.50" .and. anlgrid .ne. "rap_13km" .and. anlgrid .ne. "hrrr_3km") then
   print("unsupported analysis grid!   : "+anlgrid)
   exit
 end if
 srcGridFile="./anl_scrip/"+anlgrid+"_scrip.nc"
+
+; if using a regional grid, ensure that ESMF knows that...
+regionalGrid=False
+if (anlgrid .eq. "rap_13km" .or. anlgrid .eq. "hrrr_3km") then
+  regionalGrid=True
+end if
 
 ; figure out which file type is input by which variables are on the file...
 f = addfile(dstGridFile,"r")
@@ -92,6 +99,9 @@ Opt@PrintTimings         = True
 Opt@NoPETLog             = True
 Opt@RemovePETLog         = True
 Opt@Debug = True
+if (regionalGrid) then
+  Opt@SrcRegional=True
+end if
 if (dstType .eq. "model" .or. dstType .eq. "esmf") then
   Opt@DstESMF = True
   if (dstType .eq. "model") then

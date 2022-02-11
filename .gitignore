@@ -1,3 +1,5 @@
+namelists/WUS/
+*_ESMF.nc
 gen_nudge_betacast.o*
 commands*.txt
 perturb.*.nl

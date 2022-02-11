@@ -1,0 +1,8 @@
+nhtfrq=0,-12,-3,-1,1
+fincl2='PS','U','V','OMEGA','T','Q','Z3','PSL','U10','SST','PHIS','upwp','vpwp'
+fincl3='PRECL','PRECC','PRECT','TMQ','FLUT','PTYPE'
+fincl4='U4000M','V4000M','U0500M','V0500M','U10','TREFHT','PBLH','QREFHT'
+fincl5='THETAL','PHIS','Z3','T','U','V','Q','PS','TS','TREFHT','U10','TAUX','TAUY','QREFHT','USTAR','PBLH','SHFLX','LHFLX','TAUBLJX','TAUBLJY','TAUGWX','TAUGWY','PRECC','PRECL','PRECSC','PRECSL','KVH','KVM','CLDLIQ','CLDICE','FLDS','FLNS','FLNSC','FSNS','FSDS','FSDSC','TTGWORO','VTGWORO','UTGWORO','Lscale','em','Kh_zt','Kh_zm','upwp','vpwp','Nudge_U','Nudge_V','Nudge_T','Nudge_Q','Target_U','Target_V','Target_T','Target_Q'
+fincl5lonlat='97.49w_36.61n','13.00e_23.00n'
+avgflag_pertape='A','I','I','I','I'
+mfilt=1,2,8,24,48
