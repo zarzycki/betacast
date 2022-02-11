@@ -1085,7 +1085,8 @@ echo "Renaming tmp archive directory to YYYYMMDDHH"
 mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
 
 if $dotracking ; then
-  track_connectfile="/global/homes/c/czarzyck/betacast/cyclone-tracking/ne0np4natlanticref.ne30x4.connect_v2.dat"
+  #track_connectfile="/global/homes/c/czarzyck/betacast/cyclone-tracking/ne0np4natlanticref.ne30x4.connect_v2.dat"
+  track_connectfile="/storage/home/cmz5202/sw/betacast/cyclone-tracking/nhemitc30x4.connect_v2.dat"
   track_sendhtml=true
   track_hstream="h0"
   
