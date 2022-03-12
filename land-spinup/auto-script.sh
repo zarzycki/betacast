@@ -31,13 +31,13 @@ fi
 if [[ $HOSTNAME = cheyenne* ]]; then
   ### CLM on Cheyenne
   ### REQUIRED
-  CIMEROOT=~/work/cesm2_2_0
+  CIMEROOT=~/work/cesm_newclubb
   PATHTOCASE=~/I-compsets
-  ICASENAME=TEST6-ICLM45-f09
+  ICASENAME=ATOMIC-ICLM45-ne30
   PROJECT=UPSU0032
   MACHINE=cheyenne
   NNODES=12
-  RESOL=f09_g16
+  RESOL=ne30_g16
   RUNQUEUE=premium
   WALLCLOCK="00:29:00"
   
