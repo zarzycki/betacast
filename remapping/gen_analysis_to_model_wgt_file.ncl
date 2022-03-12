@@ -6,13 +6,13 @@ begin
 ; ============= User settings
 
 ; hrrr_3km_scrip.nc, era5_0.25x0.25, gfs_0.50x0.50, gfs_0.25x0.25, rap_13km, hrrr_3km
-anlgrid="hrrr_3km" 
+anlgrid="era5_0.25x0.25" 
 
 ; shortname for grid (for naming purposes)
-dstGridName="rrm.x4_ESMF.nc"
+dstGridName="CAL_VR4"
 ; full path to model SCRIP file
-;dstGridFile="/glade/u/home/zarzycki/work/grids/scrip/ne30np4_091226_pentagons.nc"
-dstGridFile="./rrm.x4_ESMF.nc"
+dstGridFile="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/grids/WesternUSA_111-55-28-14-7-4.g_scrip.nc"
+;dstGridFile="./rrm.x4_ESMF.nc"
 
 ; where to save the map file?
 wgtFileDir="./"
