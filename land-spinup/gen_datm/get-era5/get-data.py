@@ -1,19 +1,18 @@
 import cdsapi
 import sys
 
-# python get.py 1986 02
+# python get-data.py 1986 02 /glade/scratch/zarzycki/ERA5-DATM/
 print ("This is the name of the script: ", sys.argv[0])
 print ("Number of arguments: ", len(sys.argv))
 print ("The arguments are: " , str(sys.argv))
 
 c = cdsapi.Client()
 
-OUTDIR="/glade/scratch/zarzycki/ERA5-DATM/"
-#OUTDIR="/global/homes/c/czarzyck/scratch/ERA5-DATM/"
 OUTYEAR=sys.argv[1]
 OUTMONTH=sys.argv[2]
+OUTDIR=sys.argv[3]
 
-OUTVAR= OUTDIR + '/out.' + OUTYEAR + '.'+ OUTMONTH + '.nc'
+OUTVAR = OUTDIR + '/out.' + OUTYEAR + '.'+ OUTMONTH + '.nc'
 
 c.retrieve(
     'reanalysis-era5-single-levels',
