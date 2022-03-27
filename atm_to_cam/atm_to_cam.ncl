@@ -45,10 +45,15 @@ if (.not. isvar("mpasfile") .and. dycore .eq. "mpas") then
   exit
 end if
 
+; checks for whether an input is provided or not -- if not, set to default
 if (.not. isvar("RDADIR")) then
-  print("setting RDADIR to empty")
   RDADIR=""
 end if
+if (.not. isvar("mpas_as_cam")) then
+  mpas_as_cam=False
+end if
+print("USING RDADIR:  "+RDADIR)
+print("USING mpas_as_cam:  "+mpas_as_cam)
 
 ; ===== Getting date from YYYYMMDDHH
 dtime_map = (/4,2,2,2/)
@@ -536,6 +541,9 @@ else   ; if mpas
     end if
     zmid = (mpas_z(ix,1:mpas_nlevi-1) + mpas_z(ix,0:mpas_nlevi-2)) / 2.
     zint = mpas_z(ix,:)
+    if (mpas_as_cam) then
+      t_wrf(:,ix) = z_to_z_interp(t_fv(::-1,ix),z_fv(::-1,ix),zmid,True,True)
+    end if
     theta_wrf(:,ix) = z_to_z_interp(theta_fv(::-1,ix),z_fv(::-1,ix),zmid,True,True)
     rho_wrf(:,ix)   = z_to_z_interp(rho_fv(::-1,ix),z_fv(::-1,ix),zmid,True,True)
     w_wrf(:,ix)     = z_to_z_interp(w_fv(::-1,ix),z_fv(::-1,ix),zint,True,True)
@@ -553,20 +561,35 @@ else   ; if mpas
 
   if (damp_upper_winds_mpas) then
     print("Damping upper level MPAS winds")
-    u_wrf(:,mpas_nlev-1) = u_wrf(:,mpas_nlev-1)*0.90
-    u_wrf(:,mpas_nlev-2) = u_wrf(:,mpas_nlev-2)*0.95
-    u_wrf(:,mpas_nlev-3) = u_wrf(:,mpas_nlev-3)*0.98
-    v_wrf(:,mpas_nlev-1) = v_wrf(:,mpas_nlev-1)*0.90
-    v_wrf(:,mpas_nlev-2) = v_wrf(:,mpas_nlev-2)*0.95
-    v_wrf(:,mpas_nlev-3) = v_wrf(:,mpas_nlev-3)*0.98
+    mpas_damp_coefs=(/0.90,0.95,0.98/)
+    u_wrf(:,mpas_nlev-1) = u_wrf(:,mpas_nlev-1)*mpas_damp_coefs(0)
+    u_wrf(:,mpas_nlev-2) = u_wrf(:,mpas_nlev-2)*mpas_damp_coefs(1)
+    u_wrf(:,mpas_nlev-3) = u_wrf(:,mpas_nlev-3)*mpas_damp_coefs(2)
+    v_wrf(:,mpas_nlev-1) = v_wrf(:,mpas_nlev-1)*mpas_damp_coefs(0)
+    v_wrf(:,mpas_nlev-2) = v_wrf(:,mpas_nlev-2)*mpas_damp_coefs(1)
+    v_wrf(:,mpas_nlev-3) = v_wrf(:,mpas_nlev-3)*mpas_damp_coefs(2)
   end if
-  
-  ; put u + v on cell edges...
-  print("Projecting u + v to velocity normal to edge")
-  uNorm_wrf = uv_cell_to_edge(u_wrf,v_wrf,mpas_nlev,mpasf->lonEdge,mpasf->latEdge,mpasf->lonCell,mpasf->latCell,mpasf->edgeNormalVectors,mpasf->cellsOnEdge)
 
-  ; delete u and v components since we have mapped to edge normals
-  delete([/u_wrf,v_wrf/])
+  if (.not. mpas_as_cam) then
+    ; put u + v on cell edges...
+    print("Projecting u + v to velocity normal to edge")
+    uNorm_wrf = uv_cell_to_edge(u_wrf,v_wrf,mpas_nlev,mpasf->lonEdge,mpasf->latEdge,mpasf->lonCell,mpasf->latCell,mpasf->edgeNormalVectors,mpasf->cellsOnEdge)
+    ; delete u and v components since we have mapped to edge normals
+    delete([/u_wrf,v_wrf/])
+    uNorm_wrf!0 = "lev"
+    uNorm_wrf!1 = "nEdges"
+  else
+    ; we just need to keep U and V at cell centers
+    u_wrf!0 = "lev"
+    u_wrf!1 = "ncol"
+    v_wrf!0 = "lev"
+    v_wrf!1 = "ncol"
+    ; we also have T which we don't have in the MPAS code
+    t_wrf!0 = "lev"
+    t_wrf!1 = "ncol"
+    ; finally, we keep ps_fv which never needed vert interp
+    ps_fv!0 = "ncol"
+  end if
 
   theta_wrf!0 = "lev"
   theta_wrf!1 = "ncol"
@@ -576,8 +599,6 @@ else   ; if mpas
   w_wrf!1 = "ncol"
   q_wrf!0 = "lev"
   q_wrf!1 = "ncol"
-  uNorm_wrf!0 = "lev"
-  uNorm_wrf!1 = "nEdges"
 
   if (debug) then
     system("/bin/rm -f mpas_debug.nc")   ; remove any pre-existing file
@@ -593,15 +614,43 @@ else   ; if mpas
     ncdf->uNorm_wrf = uNorm_wrf
   end if
   
-  print("Writing MPAS fields to a copy of existing init file")
-  system("/bin/rm -f -v "+se_inic)   ; remove any pre-existing file
-  system("cp -v "+mpasfile+" "+se_inic)   ; remove any pre-existing file
-  nc = addfile(se_inic ,"w")  ; open output netCDF file
-  nc->u(0,:,:)     = (/ uNorm_wrf(nEdges|:,lev|:) /)
-  nc->qv(0,:,:)    = (/ q_wrf(ncol|:,lev|:) /)
-  nc->rho(0,:,:)   = (/ rho_wrf(ncol|:,lev|:) /)
-  nc->theta(0,:,:) = (/ theta_wrf(ncol|:,lev|:) /)
-  nc->w(0,:,:)     = (/ w_wrf(ncol|:,ilev|:) /)
+  if (mpas_as_cam) then
+    
+    print("Writing MPAS as CAM file, presumably for nudging")
+    
+    ; take _wrf vars, add time coord for writing -- also flip vert index!
+    u_fv_dbl_time  = add_time_define_precision(u_wrf(::-1,:),"float",True)
+    v_fv_dbl_time  = add_time_define_precision(v_wrf(::-1,:),"float",True)
+    t_fv_dbl_time  = add_time_define_precision(t_wrf(::-1,:),"float",True)
+    q_fv_dbl_time  = add_time_define_precision(q_wrf(::-1,:),"float",True)
+    ps_fv_dbl_time = add_time_define_precision(ps_fv,"float",True)
+
+    ; cheap way of doing this, should update to efficient way later
+    system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
+    ncdf = addfile(se_inic,"c")  ; open output netCDF file
+    fAtt               = True            ; assign file attributes
+    fAtt@creation_date = systemfunc ("date")
+    fileattdef( ncdf, fAtt )            ; copy file attributes
+    filedimdef(ncdf,"time",-1,True) 
+    ncdf->U  = u_fv_dbl_time
+    ncdf->V  = v_fv_dbl_time
+    ncdf->T  = t_fv_dbl_time
+    ncdf->Q  = q_fv_dbl_time
+    ncdf->PS = ps_fv_dbl_time
+
+  else
+  
+    print("Writing MPAS fields to a copy of existing init file")
+    system("/bin/rm -f -v "+se_inic)   ; remove any pre-existing file
+    system("cp -v "+mpasfile+" "+se_inic)   ; remove any pre-existing file
+    nc = addfile(se_inic ,"w")  ; open output netCDF file
+    nc->u(0,:,:)     = (/ uNorm_wrf(nEdges|:,lev|:) /)
+    nc->qv(0,:,:)    = (/ q_wrf(ncol|:,lev|:) /)
+    nc->rho(0,:,:)   = (/ rho_wrf(ncol|:,lev|:) /)
+    nc->theta(0,:,:) = (/ theta_wrf(ncol|:,lev|:) /)
+    nc->w(0,:,:)     = (/ w_wrf(ncol|:,ilev|:) /)
+    
+  end if
   
   wallClockElapseTime(wcStrt, "Total runtime", 0)
   print("done with MPAS, now exiting gracefully...")

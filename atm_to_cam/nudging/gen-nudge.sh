@@ -80,7 +80,7 @@ do
     OUTFILE=${OUTDIR}/ndg.ERA5.${GRIDSTR}.L${NUMLEVS}.cam2.i.$YYYY-$MM-$DD-$SSSSS.nc
     OUTFILETMP=${OUTFILE}.TMP.nc
         
-    NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; ncl -n atm_to_cam.ncl 'datasource=\"ERA5RDA\"' 'RDADIR = \"'${RDADIR}'\"' compress_file=True numlevels=${NUMLEVS} YYYYMMDDHH=${YYYYMMDDHH} 'dycore = \"'${DYCORE}'\"' 'data_filename = \"'${INFILE}'\"' 'wgt_filename=\"'${WGTNAME}'\"' 'model_topo_file=\"'${BNDTOPO}'\"' 'adjust_config=\"-\"' 'se_inic = \"'${OUTFILETMP}'\"' ; mv -v ${OUTFILETMP} ${OUTFILE} "
+    NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; ncl -n atm_to_cam.ncl 'datasource=\"ERA5RDA\"' 'RDADIR = \"'${RDADIR}'\"' mpas_as_cam=True compress_file=True numlevels=${NUMLEVS} YYYYMMDDHH=${YYYYMMDDHH} 'dycore = \"'${DYCORE}'\"' 'data_filename = \"'${INFILE}'\"' 'wgt_filename=\"'${WGTNAME}'\"' 'model_topo_file=\"'${BNDTOPO}'\"' 'adjust_config=\"-\"' 'se_inic = \"'${OUTFILETMP}'\"' ; mv -v ${OUTFILETMP} ${OUTFILE} "
     
     # If file doesn't exist, we want to create, but if it does let's skip
     if [ ! -f ${OUTFILE} ]; then

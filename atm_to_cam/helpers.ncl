@@ -110,3 +110,69 @@ return (uNormal)
 end
 
 
+
+;************************************************************************* 
+
+undef ("add_time_define_precision")
+function add_time_define_precision (var_in:numeric,precision:string,isncol:logical)
+local ncol, nlev, mydims
+begin
+
+mydims = dimsizes(var_in)
+
+if (isncol) then
+
+  if (dimsizes(mydims) .eq. 1) then
+  
+    print("converting a ncol -> ncol "+precision+" with time attached!")
+  
+    ncol = mydims(0)
+    if (precision .eq. "float" .or. precision .eq. "single") then
+      var_out = new((/1,ncol/),float)
+      var_out(0,:) = tofloat(var_in)
+    else if (precision .eq. "double") then
+      var_out = new((/1,ncol/),double)
+      var_out(0,:) = todouble(var_in)
+    else
+      print("invalid precision, exiting...")
+      exit
+    end if
+    end if
+    
+    var_out!0 = "time"
+    var_out!1 = "ncol"
+    
+  else
+  
+    print("converting a lev,ncol -> lev,ncol "+precision+" with time attached!")
+
+    nlev = mydims(0)
+    ncol = mydims(1)
+    
+    if (precision .eq. "float" .or. precision .eq. "single") then
+      var_out = new((/1,nlev,ncol/),float)
+      var_out(0,:,:) = tofloat(var_in)
+    else if (precision .eq. "double") then
+      var_out = new((/1,nlev,ncol/),double)
+      var_out(0,:,:) = todouble(var_in)
+    else
+      print("invalid precision, exiting...")
+      exit
+    end if
+    end if
+    
+    var_out!0 = "time"
+    var_out!1 = "lev"
+    var_out!2 = "ncol"
+
+  end if
+  
+  
+else  ; if not ncol
+  ; placeholder
+end if
+
+return(var_out)
+    
+end
+
