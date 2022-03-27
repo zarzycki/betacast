@@ -169,10 +169,127 @@ if (isncol) then
   
   
 else  ; if not ncol
-  ; placeholder
+
+  if (dimsizes(mydims) .eq. 2) then
+  
+    print("converting a nlat,nlon -> nlat,nlon "+precision+" with time attached!")
+  
+    nlat = mydims(0)
+    nlon = mydims(1)
+    if (precision .eq. "float" .or. precision .eq. "single") then
+      var_out = new((/1,nlat,nlon/),float)
+      var_out(0,:,:) = tofloat(var_in)
+    else if (precision .eq. "double") then
+      var_out = new((/1,nlat,nlon/),double)
+      var_out(0,:,:) = todouble(var_in)
+    else
+      print("invalid precision, exiting...")
+      exit
+    end if
+    end if
+    
+    var_out!0 = "time"
+    var_out!1 = "lat"
+    var_out!2 = "lon"
+        
+  else
+  
+    print("converting a lev,nlat,nlon -> lev,nlat,nlon "+precision+" with time attached!")
+
+    nlev = mydims(0)
+    nlat = mydims(1)
+    nlon = mydims(2)
+    
+    if (precision .eq. "float" .or. precision .eq. "single") then
+      var_out = new((/1,nlev,nlat,nlon/),float)
+      var_out(0,:,:,:) = tofloat(var_in)
+    else if (precision .eq. "double") then
+      var_out = new((/1,nlev,nlat,nlon/),double)
+      var_out(0,:,:,:) = todouble(var_in)
+    else
+      print("invalid precision, exiting...")
+      exit
+    end if
+    end if
+    
+    var_out!0 = "time"
+    var_out!1 = "lev"
+    var_out!2 = "lat"
+    var_out!3 = "lon"
+
+  end if
+  
+
 end if
 
 return(var_out)
     
 end
+
+
+
+
+;************************************************************************* 
+
+undef ("latlon_to_ncol")
+function latlon_to_ncol(var_in:numeric)
+local nlev, nlat, nlon, ncol, vardims
+begin
+
+vardims = dimsizes(var_in)
+
+if (dimsizes(vardims) .eq. 2) then
+  var_out = ndtooned(var_in)
+else if (dimsizes(vardims) .eq. 3) then
+  nlev = vardims(0)
+  nlat = vardims(1)
+  nlon = vardims(2)
+  ncol = nlat*nlon
+  print("unpacking -> nlev: "+nlev+"    nlat: "+nlat+"    nlon: "+nlon+"    ncol: "+ncol)
+  var_out = new((/nlev,ncol/),typeof(var_in))
+  do ii = 0,nlev-1
+    var_out(ii,:) = ndtooned(var_in(ii,:,:))
+  end do
+else
+  print(vardims+" dims not supported")
+  exit
+end if
+end if
+
+return(var_out)
+    
+end
+
+
+;************************************************************************* 
+
+undef ("ncol_to_latlon")
+function ncol_to_latlon(var_out:numeric,nlat:numeric,nlon:numeric)
+local nlev, nlat, nlon, ncol, vardims
+begin
+
+vardims = dimsizes(var_out)
+
+if (dimsizes(vardims) .eq. 1) then
+  var_in = onedtond(var_out,(/nlat,nlon/))
+else if (dimsizes(vardims) .eq. 2) then
+  nlev = vardims(0)
+  ncol = vardims(1)
+  print("repacking -> nlev: "+nlev+"    nlat: "+nlat+"    nlon: "+nlon+"    ncol: "+ncol)
+  var_in = new((/nlev,nlat,nlon/),typeof(var_out))
+  do ii = 0,nlev-1
+    var_in(ii,:,:) = onedtond(var_out(ii,:),(/nlat,nlon/))
+  end do
+else
+  print(vardims+" dims not supported")
+  exit
+end if
+end if
+
+return(var_in)
+    
+end
+
+
+
 

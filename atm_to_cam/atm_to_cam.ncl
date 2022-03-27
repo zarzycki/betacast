@@ -732,7 +732,14 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
     topo_data_SE := ndtooned(topo_data_SE)
     sfct_data_SE := ndtooned(sfct_data_SE)
     topo_model_SE := ndtooned(topo_model_SE)
-    ps_fv := ndtooned(ps_fv)
+    ps_fv := latlon_to_ncol(ps_fv)
+    ; Unpack lev,lat,lon
+    t_fv := latlon_to_ncol(t_fv)
+    q_fv := latlon_to_ncol(q_fv)
+    u_fv := latlon_to_ncol(u_fv)
+    v_fv := latlon_to_ncol(v_fv)
+    cldice_fv := latlon_to_ncol(cldice_fv)
+    cldliq_fv := latlon_to_ncol(cldliq_fv)
     ncol=dim_sePS(0) * dim_sePS(1)
   else
     ncol=dim_sePS(0)
@@ -798,7 +805,7 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
       end if
     
       ; correct other state variables!
-      vert_interp_thresh = 0.1   ; maximum ps corr diff (Pa) to interp vert profiles
+      vert_interp_thresh = 0.1   ; ps corr diff (Pa) req. to interp vert profiles
       extrap_threshold = 5000.   ; maximum ps corr diff (Pa) to allow xtrp
       if ( abs(ps_orig-ps_fv(kk)) .gt. vert_interp_thresh) then
         pm_orig = hya*p0 + hyb*ps_orig
@@ -855,7 +862,13 @@ end if
 ; repack
 if (dycore .eq. "fv") then
   print("repacking fv vars")
-  ps_fv := onedtond(ps_fv,(/dim_sePS(0),dim_sePS(1)/))
+  ps_fv := ncol_to_latlon(ps_fv,dim_sePS(0),dim_sePS(1))
+  t_fv := ncol_to_latlon(t_fv,dim_sePS(0),dim_sePS(1))
+  q_fv := ncol_to_latlon(q_fv,dim_sePS(0),dim_sePS(1))
+  u_fv := ncol_to_latlon(u_fv,dim_sePS(0),dim_sePS(1))
+  v_fv := ncol_to_latlon(v_fv,dim_sePS(0),dim_sePS(1))
+  cldice_fv := ncol_to_latlon(cldice_fv,dim_sePS(0),dim_sePS(1))
+  cldliq_fv := ncol_to_latlon(cldliq_fv,dim_sePS(0),dim_sePS(1))
 end if
 
  print("Converting floats to doubles")
@@ -882,181 +895,89 @@ end if
 delete([/ps_fv,t_fv,u_fv,v_fv,q_fv,cldliq_fv,cldice_fv/])
 
 if (dycore .eq. "se") then
-
-ncol=dim_sePS(0)
-
- print("Correcting time records")
-; ; Add time record
- ps_fv_dbl_time = new((/1,ncol/),double)
- ps_fv_dbl_time(0,:) = ps_fv_dbl
-
- u_fv_dbl_time = new((/1,numlevels,ncol/),double)
- u_fv_dbl_time(0,:,:) = u_fv_dbl
- 
- v_fv_dbl_time = new((/1,numlevels,ncol/),double)
- v_fv_dbl_time(0,:,:) = v_fv_dbl
-
-t_fv_dbl_time = new((/1,numlevels,ncol/),double)
-t_fv_dbl_time(0,:,:) = t_fv_dbl
-
-q_fv_dbl_time = new((/1,numlevels,ncol/),double)
-q_fv_dbl_time(0,:,:) = q_fv_dbl
-
-cldliq_fv_dbl_time = new((/1,numlevels,ncol/),double)
-cldliq_fv_dbl_time(0,:,:) = cldliq_fv_dbl
-
-cldice_fv_dbl_time = new((/1,numlevels,ncol/),double)
-cldice_fv_dbl_time(0,:,:) = cldice_fv_dbl
-
-ps_fv_dbl_time!0 = "time"
-ps_fv_dbl_time!1 = "ncol"
-u_fv_dbl_time!0 = "time"
-u_fv_dbl_time!1 = "lev"
-u_fv_dbl_time!2 = "ncol"
-v_fv_dbl_time!0 = "time"
-v_fv_dbl_time!1 = "lev"
-v_fv_dbl_time!2 = "ncol"
-t_fv_dbl_time!0 = "time"
-t_fv_dbl_time!1 = "lev"
-t_fv_dbl_time!2 = "ncol"
-q_fv_dbl_time!0 = "time"
-q_fv_dbl_time!1 = "lev"
-q_fv_dbl_time!2 = "ncol"
-cldliq_fv_dbl_time!0 = "time"
-cldliq_fv_dbl_time!1 = "lev"
-cldliq_fv_dbl_time!2 = "ncol"
-cldice_fv_dbl_time!0 = "time"
-cldice_fv_dbl_time!1 = "lev"
-cldice_fv_dbl_time!2 = "ncol"
-
-; set coordinates and attributes for se lat/lon arrays
-selat!0 = "ncol"
-selon!0 = "ncol"
-selat@_FillValue = -900.
-selat@long_name = "latitude"
-selat@units = "degrees_north"
-selon@_FillValue = -900.
-selon@long_name = "longitude"
-selon@units = "degrees_east"
+  
+  ncol=dim_sePS(0)
+  
+  print("Correcting time records")
+  ps_fv_dbl_time     = add_time_define_precision(ps_fv_dbl,"double",True)
+  u_fv_dbl_time      = add_time_define_precision(u_fv_dbl,"double",True)
+  v_fv_dbl_time      = add_time_define_precision(v_fv_dbl,"double",True)
+  t_fv_dbl_time      = add_time_define_precision(t_fv_dbl,"double",True)
+  q_fv_dbl_time      = add_time_define_precision(q_fv_dbl,"double",True)
+  cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv_dbl,"double",True)
+  cldice_fv_dbl_time = add_time_define_precision(cldice_fv_dbl,"double",True)
+  
+  ; set coordinates and attributes for se lat/lon arrays
+  selat!0 = "ncol"
+  selon!0 = "ncol"
+  selat@_FillValue = -900.
+  selat@long_name = "latitude"
+  selat@units = "degrees_north"
+  selon@_FillValue = -900.
+  selon@long_name = "longitude"
+  selon@units = "degrees_east"
 
 else if (dycore .eq. "fv") then
 
-nlat=dim_sePS(0)
-nlon=dim_sePS(1)
-
-; NEED TO INTERP SLAT/SLON
-nslat=nlat-1
-nslon=nlon
-slat=new(nslat,"double")
-slon=new(nslon,"double")
-;lat=dim_sePS&lat
-;lon=dim_sePS&lon
-lat=todouble(fspan(-90.,90.,nlat))
-dellon=360./nlon
-lon=todouble(fspan(0,360.-dellon,nlon))
-
-slat(:)=todouble((lat(0:nlat-2)+lat(1:nlat-1))/2.0)
-slon = todouble(lon-(dellon/2.))
-
-w_stag=latRegWgt(slat,"double",0)
-print(w_stag)
-
- print("interpolating FV staggered")
-u_fv_dbl_slat = linint2(lon,lat,u_fv_dbl,True,lon,slat,0) ;(ntim,mlat,mlon)
-v_fv_dbl_slon = linint2(lon,lat,v_fv_dbl,True,slon,lat,0)
-
- print("Correcting time records")
-; ; Add time record
-ps_fv_dbl_time = new((/1,nlat,nlon/),double)
-ps_fv_dbl_time(0,:,:) = ps_fv_dbl
-
-u_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
-u_fv_dbl_time(0,:,:,:) = u_fv_dbl
- 
-v_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
-v_fv_dbl_time(0,:,:,:) = v_fv_dbl
- 
-us_fv_dbl_time = new((/1,numlevels,nslat,nlon/),double)
-us_fv_dbl_time(0,:,:,:) = u_fv_dbl_slat
- 
-vs_fv_dbl_time = new((/1,numlevels,nlat,nslon/),double)
-vs_fv_dbl_time(0,:,:,:) = v_fv_dbl_slon
-
-t_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
-t_fv_dbl_time(0,:,:,:) = t_fv_dbl
-
-q_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
-q_fv_dbl_time(0,:,:,:) = q_fv_dbl
-
-cldliq_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
-cldliq_fv_dbl_time(0,:,:,:) = cldliq_fv_dbl
-
-cldice_fv_dbl_time = new((/1,numlevels,nlat,nlon/),double)
-cldice_fv_dbl_time(0,:,:,:) = cldice_fv_dbl
-
-ps_fv_dbl_time!0 = "time"
-ps_fv_dbl_time!1 = "lat"
-ps_fv_dbl_time!2 = "lon"
-
-us_fv_dbl_time!0 = "time"
-us_fv_dbl_time!1 = "lev"
-us_fv_dbl_time!2 = "slat"
-us_fv_dbl_time!3 = "lon"
-
-vs_fv_dbl_time!0 = "time"
-vs_fv_dbl_time!1 = "lev"
-vs_fv_dbl_time!2 = "lat"
-vs_fv_dbl_time!3 = "slon"
-
-u_fv_dbl_time!0 = "time"
-u_fv_dbl_time!1 = "lev"
-u_fv_dbl_time!2 = "lat"
-u_fv_dbl_time!3 = "lon"
-
-v_fv_dbl_time!0 = "time"
-v_fv_dbl_time!1 = "lev"
-v_fv_dbl_time!2 = "lat"
-v_fv_dbl_time!3 = "lon"
-
-t_fv_dbl_time!0 = "time"
-t_fv_dbl_time!1 = "lev"
-t_fv_dbl_time!2 = "lat"
-t_fv_dbl_time!3 = "lon"
-
-q_fv_dbl_time!0 = "time"
-q_fv_dbl_time!1 = "lev"
-q_fv_dbl_time!2 = "lat"
-q_fv_dbl_time!3 = "lon"
-
-cldliq_fv_dbl_time!0 = "time"
-cldliq_fv_dbl_time!1 = "lev"
-cldliq_fv_dbl_time!2 = "lat"
-cldliq_fv_dbl_time!3 = "lon"
-
-cldice_fv_dbl_time!0 = "time"
-cldice_fv_dbl_time!1 = "lev"
-cldice_fv_dbl_time!2 = "lat"
-cldice_fv_dbl_time!3 = "lon"
-
-cldice_fv_dbl_time@units="kg/kg"
-cldliq_fv_dbl_time@units="kg/kg"
-q_fv_dbl_time@units="kg/kg"
-
-lat!0="lat"
-lat&lat=lat
-lat@units="degrees_north"
-
-lon!0="lon"
-lon&lon=lon
-lon@units="degrees_east"
-
-slat!0="slat"
-slat&slat=slat
-slat@units="degrees_north"
-
-slon!0="slon"
-slon&slon=slon
-slon@units="degrees_east"
+  nlat=dim_sePS(0)
+  nlon=dim_sePS(1)
+  
+  ; NEED TO INTERP SLAT/SLON
+  nslat=nlat-1
+  nslon=nlon
+  slat=new(nslat,"double")
+  slon=new(nslon,"double")
+  ;lat=dim_sePS&lat
+  ;lon=dim_sePS&lon
+  lat=todouble(fspan(-90.,90.,nlat))
+  dellon=360./nlon
+  lon=todouble(fspan(0,360.-dellon,nlon))
+  
+  slat(:)=todouble((lat(0:nlat-2)+lat(1:nlat-1))/2.0)
+  slon = todouble(lon-(dellon/2.))
+  
+  print("getting weights")
+  w_stag=latRegWgt(slat,"double",0)
+  
+  print("interpolating FV staggered")
+  u_fv_dbl_slat = linint2(lon,lat,u_fv_dbl,True,lon,slat,0) ;(ntim,mlat,mlon)
+  v_fv_dbl_slon = linint2(lon,lat,v_fv_dbl,True,slon,lat,0)
+  
+  print("Correcting time records")
+  ps_fv_dbl_time     = add_time_define_precision(ps_fv_dbl,"double",False)
+  u_fv_dbl_time      = add_time_define_precision(u_fv_dbl,"double",False)
+  v_fv_dbl_time      = add_time_define_precision(v_fv_dbl,"double",False)
+  us_fv_dbl_time     = add_time_define_precision(u_fv_dbl_slat,"double",False)
+  vs_fv_dbl_time     = add_time_define_precision(v_fv_dbl_slon,"double",False)
+  t_fv_dbl_time      = add_time_define_precision(t_fv_dbl,"double",False)
+  q_fv_dbl_time      = add_time_define_precision(q_fv_dbl,"double",False)
+  cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv_dbl,"double",False)
+  cldice_fv_dbl_time = add_time_define_precision(cldice_fv_dbl,"double",False)
+  
+  ; Correct dim names for staggered coords
+  us_fv_dbl_time!2 = "slat"
+  vs_fv_dbl_time!3 = "slon"
+  
+  ; Adjust units
+  cldice_fv_dbl_time@units="kg/kg"
+  cldliq_fv_dbl_time@units="kg/kg"
+  q_fv_dbl_time@units="kg/kg"
+  
+  lat!0="lat"
+  lat&lat=lat
+  lat@units="degrees_north"
+  
+  lon!0="lon"
+  lon&lon=lon
+  lon@units="degrees_east"
+  
+  slat!0="slat"
+  slat&slat=slat
+  slat@units="degrees_north"
+  
+  slon!0="slon"
+  slon&slon=slon
+  slon@units="degrees_east"
 
 else
   print("unsupported dycore")
