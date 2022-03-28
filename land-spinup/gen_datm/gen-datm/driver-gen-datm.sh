@@ -5,12 +5,13 @@
 #PBS -l select=1:ncpus=4:mpiprocs=4:mem=80GB
 #PBS -l walltime=24:00:00
 #PBS -q casper
+#PBS -j oe
 
 module load parallel
 module load ncl
 
 STYR=1997
-ENYR=2004
+ENYR=2017
 NUMCORES=4
 TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt

@@ -9,7 +9,7 @@ set -e
 # Usage:
 #./auto-script.sh MODELSYSTEM DOERA5 DATE_YYYYMMDD NMONTHS NCYCLES ANOMYEAR
 # CESM
-#./auto-script.sh 0 0 20200821 12 1 2081
+#./auto-script.sh 0 0 20200103 36 1 -1
 # E3SM
 #./auto-script.sh 1 0 19960113 12 1 2080
 
@@ -34,16 +34,16 @@ if [[ $HOSTNAME = cheyenne* ]]; then
   CIMEROOT=~/work/cesm_newclubb
   PATHTOCASE=~/I-compsets
   ICASENAME=ATOMIC-ICLM45-ne30
-  PROJECT=UPSU0032
+  PROJECT=P93300642
   MACHINE=cheyenne
   NNODES=12
   RESOL=ne30_g16
-  RUNQUEUE=premium
-  WALLCLOCK="00:29:00"
+  RUNQUEUE=economy
+  WALLCLOCK="10:00:00"
   
   ### Only required if doERA5 = 0
   BETACAST=/glade/u/home/zarzycki/betacast
-  BETACAST_DATM_FORCING_BASE=/glade/scratch/zarzycki/ERA5-DATM/DATM_FORCING/
+  BETACAST_DATM_FORCING_BASE=/glade/p/univ/upsu0032/DATM_FORCING/
   
 elif [[ $HOSTNAME = cori* || $HOSTNAME = nid* ]]; then
   ### ELM on Cori
