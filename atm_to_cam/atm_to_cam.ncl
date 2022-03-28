@@ -625,6 +625,9 @@ else   ; if mpas
     q_fv_dbl_time  = add_time_define_precision(q_wrf(::-1,:),"float",True)
     ps_fv_dbl_time = add_time_define_precision(ps_fv,"float",True)
 
+    ; clean up
+    delete([/u_wrf,v_wrf,t_wrf,q_wrf,ps_fv/])
+
     ; cheap way of doing this, should update to efficient way later
     system("/bin/rm -f "+se_inic)   ; remove any pre-existing file
     ncdf = addfile(se_inic,"c")  ; open output netCDF file
@@ -871,41 +874,19 @@ if (dycore .eq. "fv") then
   cldliq_fv := ncol_to_latlon(cldliq_fv,dim_sePS(0),dim_sePS(1))
 end if
 
- print("Converting floats to doubles")
- ; Convert floats to doubles
- ps_fv_dbl = todouble(ps_fv)
- ;pblh_fv_dbl = todouble(pblh_fv)
- t_fv_dbl = todouble(t_fv)
- u_fv_dbl = todouble(u_fv)
- v_fv_dbl = todouble(v_fv)
- q_fv_dbl = todouble(q_fv)
- cldice_fv_dbl = todouble(cldice_fv)
- cldliq_fv_dbl = todouble(cldliq_fv)
- 
- copy_VarMeta(ps_fv,ps_fv_dbl)
- ;copy_VarMeta(pblh_fv,pblh_fv_dbl)
- copy_VarMeta(t_fv,t_fv_dbl)
- copy_VarMeta(u_fv,u_fv_dbl)
- copy_VarMeta(v_fv,v_fv_dbl)
- copy_VarMeta(q_fv,q_fv_dbl)
- copy_VarMeta(cldliq_fv,cldliq_fv_dbl)
- copy_VarMeta(cldice_fv,cldice_fv_dbl)
-; 
-; ; clean up some stuff
-delete([/ps_fv,t_fv,u_fv,v_fv,q_fv,cldliq_fv,cldice_fv/])
 
 if (dycore .eq. "se") then
   
   ncol=dim_sePS(0)
   
-  print("Correcting time records")
-  ps_fv_dbl_time     = add_time_define_precision(ps_fv_dbl,"double",True)
-  u_fv_dbl_time      = add_time_define_precision(u_fv_dbl,"double",True)
-  v_fv_dbl_time      = add_time_define_precision(v_fv_dbl,"double",True)
-  t_fv_dbl_time      = add_time_define_precision(t_fv_dbl,"double",True)
-  q_fv_dbl_time      = add_time_define_precision(q_fv_dbl,"double",True)
-  cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv_dbl,"double",True)
-  cldice_fv_dbl_time = add_time_define_precision(cldice_fv_dbl,"double",True)
+  print("Correcting time records and converting to doubles")
+  ps_fv_dbl_time     = add_time_define_precision(ps_fv,"double",True)
+  u_fv_dbl_time      = add_time_define_precision(u_fv,"double",True)
+  v_fv_dbl_time      = add_time_define_precision(v_fv,"double",True)
+  t_fv_dbl_time      = add_time_define_precision(t_fv,"double",True)
+  q_fv_dbl_time      = add_time_define_precision(q_fv,"double",True)
+  cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv,"double",True)
+  cldice_fv_dbl_time = add_time_define_precision(cldice_fv,"double",True)
   
   ; set coordinates and attributes for se lat/lon arrays
   selat!0 = "ncol"
@@ -922,13 +903,12 @@ else if (dycore .eq. "fv") then
   nlat=dim_sePS(0)
   nlon=dim_sePS(1)
   
-  ; NEED TO INTERP SLAT/SLON
+  print("FV: need to interpolate u/v to slat/slon")
   nslat=nlat-1
   nslon=nlon
   slat=new(nslat,"double")
   slon=new(nslon,"double")
-  ;lat=dim_sePS&lat
-  ;lon=dim_sePS&lon
+  
   lat=todouble(fspan(-90.,90.,nlat))
   dellon=360./nlon
   lon=todouble(fspan(0,360.-dellon,nlon))
@@ -936,23 +916,23 @@ else if (dycore .eq. "fv") then
   slat(:)=todouble((lat(0:nlat-2)+lat(1:nlat-1))/2.0)
   slon = todouble(lon-(dellon/2.))
   
-  print("getting weights")
+  print("FV: getting weights")
   w_stag=latRegWgt(slat,"double",0)
   
-  print("interpolating FV staggered")
-  u_fv_dbl_slat = linint2(lon,lat,u_fv_dbl,True,lon,slat,0) ;(ntim,mlat,mlon)
-  v_fv_dbl_slon = linint2(lon,lat,v_fv_dbl,True,slon,lat,0)
+  print("FV: interpolating FV staggered")
+  u_fv_slat = linint2(lon,lat,u_fv,True,lon,slat,0) ;(ntim,mlat,mlon)
+  v_fv_slon = linint2(lon,lat,v_fv,True,slon,lat,0)
   
-  print("Correcting time records")
-  ps_fv_dbl_time     = add_time_define_precision(ps_fv_dbl,"double",False)
-  u_fv_dbl_time      = add_time_define_precision(u_fv_dbl,"double",False)
-  v_fv_dbl_time      = add_time_define_precision(v_fv_dbl,"double",False)
-  us_fv_dbl_time     = add_time_define_precision(u_fv_dbl_slat,"double",False)
-  vs_fv_dbl_time     = add_time_define_precision(v_fv_dbl_slon,"double",False)
-  t_fv_dbl_time      = add_time_define_precision(t_fv_dbl,"double",False)
-  q_fv_dbl_time      = add_time_define_precision(q_fv_dbl,"double",False)
-  cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv_dbl,"double",False)
-  cldice_fv_dbl_time = add_time_define_precision(cldice_fv_dbl,"double",False)
+  print("Correcting time records and converting to doubles")
+  ps_fv_dbl_time     = add_time_define_precision(ps_fv,"double",False)
+  u_fv_dbl_time      = add_time_define_precision(u_fv,"double",False)
+  v_fv_dbl_time      = add_time_define_precision(v_fv,"double",False)
+  us_fv_dbl_time     = add_time_define_precision(u_fv_slat,"double",False)
+  vs_fv_dbl_time     = add_time_define_precision(v_fv_slon,"double",False)
+  t_fv_dbl_time      = add_time_define_precision(t_fv,"double",False)
+  q_fv_dbl_time      = add_time_define_precision(q_fv,"double",False)
+  cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv,"double",False)
+  cldice_fv_dbl_time = add_time_define_precision(cldice_fv,"double",False)
   
   ; Correct dim names for staggered coords
   us_fv_dbl_time!2 = "slat"
@@ -986,9 +966,9 @@ end if
 end if
 
 ; clean up more stuff
-delete([/ps_fv_dbl,u_fv_dbl,v_fv_dbl,t_fv_dbl,q_fv_dbl,cldliq_fv_dbl,cldice_fv_dbl/])
+delete([/ps_fv,t_fv,u_fv,v_fv,q_fv,cldliq_fv,cldice_fv/])
 if (dycore .eq. "fv")
-  delete([/v_fv_dbl_slon,v_fv_dbl_slon/])
+  delete([/v_fv_slon,v_fv_slon/])
 end if
 
 ; Fix error where Q goes very large (missing values?)
