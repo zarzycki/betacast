@@ -8,18 +8,19 @@
 #PBS -l select=1:ncpus=36:mem=109GB
 ################################################################
 
-STYR=2019
-ENYR=2019
+STYR=2017
+ENYR=2020
 
 #OUTDIR=/glade/u/home/zarzycki/scratch/nudge-E3SM/
-OUTDIR=/glade/scratch/zarzycki/gen-nudge/
+OUTDIR=/glade/scratch/zarzycki/ndg/
+
 BETACASTDIR=/glade/u/home/zarzycki/betacast/
 
-#DYCORE="se"
-#GRIDSTR=ne30
-#BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc
-#WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5-0.25_TO_ne30np4_patc.nc
-#NUMLEVS=58
+DYCORE="se"
+GRIDSTR=ne30
+BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc
+WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5-0.25_TO_ne30np4_patc.nc
+NUMLEVS=58
 
 #DYCORE="fv"
 #GRIDSTR=f09
@@ -27,13 +28,16 @@ BETACASTDIR=/glade/u/home/zarzycki/betacast/
 #WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5_0.25_TO_fv0.9x1.25_patc.nc
 #NUMLEVS=32
 
-DYCORE="mpas"
-GRIDSTR=mp120a
-BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/inic/mpas/mpasa120.CFSR.L32.nc
-WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_mpasa120_patc.nc
-NUMLEVS=32
+#DYCORE="mpas"
+#GRIDSTR=mp120a
+#BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/inic/mpas/mpasa120.CFSR.L32.nc
+#WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_mpasa120_patc.nc
+#NUMLEVS=32
 
 THISDIR=${PWD}
+
+## Append some subdir information for folders
+OUTDIR=${OUTDIR}/${DYCORE}_${GRIDSTR}_L${NUMLEVS}/
 
 # GNUPARALLEL SETTINGS
 module load parallel
@@ -42,6 +46,8 @@ TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt
 
 mkdir -p $OUTDIR
+
+starttime=$(date -u +"%s")
 
 #------------------------------------------------------
 
@@ -53,10 +59,10 @@ do
 
   #### Get dates
   start=$(date -u --date '1 jan '${YYYY}' 0:00' +%s)
-  stop=$(date -u --date '31 dec '${YYYY}' 21:00' +%s)
+  stop=$(date -u --date '31 dec '${YYYY}' 23:00' +%s)
 
   shopt -s nullglob
-  for t in $(seq ${start} 21600 ${stop})
+  for t in $(seq ${start} 3600 ${stop})
   do
     start=`date +%s`
     f=`date -u --date @${t} +'%Y%m%d%H'`
@@ -80,7 +86,7 @@ do
     OUTFILE=${OUTDIR}/ndg.ERA5.${GRIDSTR}.L${NUMLEVS}.cam2.i.$YYYY-$MM-$DD-$SSSSS.nc
     OUTFILETMP=${OUTFILE}.TMP.nc
         
-    NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; ncl -n atm_to_cam.ncl 'datasource=\"ERA5RDA\"' 'RDADIR = \"'${RDADIR}'\"' mpas_as_cam=True compress_file=True numlevels=${NUMLEVS} YYYYMMDDHH=${YYYYMMDDHH} 'dycore = \"'${DYCORE}'\"' 'data_filename = \"'${INFILE}'\"' 'wgt_filename=\"'${WGTNAME}'\"' 'model_topo_file=\"'${BNDTOPO}'\"' 'adjust_config=\"-\"' 'se_inic = \"'${OUTFILETMP}'\"' ; mv -v ${OUTFILETMP} ${OUTFILE} "
+    NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; ncl -n atm_to_cam.ncl 'datasource=\"ERA5RDA\"' 'RDADIR = \"'${RDADIR}'\"' write_floats=True add_cloud_vars=False compress_file=True mpas_as_cam=True numlevels=${NUMLEVS} YYYYMMDDHH=${YYYYMMDDHH} 'dycore = \"'${DYCORE}'\"' 'data_filename = \"'${INFILE}'\"' 'wgt_filename=\"'${WGTNAME}'\"' 'model_topo_file=\"'${BNDTOPO}'\"' 'adjust_config=\"-\"' 'se_inic = \"'${OUTFILETMP}'\"' ; mv -v ${OUTFILETMP} ${OUTFILE} "
     
     # If file doesn't exist, we want to create, but if it does let's skip
     if [ ! -f ${OUTFILE} ]; then
@@ -96,4 +102,6 @@ parallel --jobs ${NUMCORES} -u --sshloginfile $PBS_NODEFILE --workdir $PWD < ${C
 # Cleanup
 rm ${COMMANDFILE}
 
-  
+endtime=$(date -u +"%s")
+tottime=$(($endtime-$starttime))
+printf "${tottime}\n" >> timing.txt
