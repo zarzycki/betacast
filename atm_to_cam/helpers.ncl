@@ -219,8 +219,10 @@ else  ; if not ncol
 
   end if
   
-
 end if
+
+; copy any metadata over to the output variable
+copy_VarMeta(var_in,var_out)
 
 return(var_out)
     

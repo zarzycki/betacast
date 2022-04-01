@@ -34,6 +34,28 @@ if (.not. isvar("dycore")) then
 end if
 print("USING DYCORE:  "+dycore)
 
+; if we are using mpas, decide whether we are writing an MPAS file or CAM-ized file
+if (dycore .eq. "mpas") then
+  if (.not. isvar("mpas_as_cam")) then
+    mpas_as_cam=False
+  end if
+  print("USING mpas_as_cam:  "+mpas_as_cam)
+end if
+
+; checks for whether an input is provided or not -- if not, set to default
+if (.not. isvar("RDADIR")) then
+  RDADIR=""
+end if
+if (.not. isvar("write_floats")) then
+  write_floats=False
+end if
+if (.not. isvar("add_cloud_vars")) then
+  add_cloud_vars=True
+end if
+print("USING RDADIR:  "+RDADIR)
+print("USING write_floats:  "+write_floats)
+print("USING add_cloud_vars:  "+add_cloud_vars)
+
 ; check if we are using MPAS if dycore has been passed in
 if (isvar("model_topo_file") .and. isfilepresent(model_topo_file) .and. dycore .eq. "mpas" ) then
   print("Setting mpasfile to "+model_topo_file)
@@ -45,15 +67,12 @@ if (.not. isvar("mpasfile") .and. dycore .eq. "mpas") then
   exit
 end if
 
-; checks for whether an input is provided or not -- if not, set to default
-if (.not. isvar("RDADIR")) then
-  RDADIR=""
+; Toggle whether or not the output streams will be floats or doubles
+if (write_floats) then
+  write_type="float"
+else
+  write_type="double"
 end if
-if (.not. isvar("mpas_as_cam")) then
-  mpas_as_cam=False
-end if
-print("USING RDADIR:  "+RDADIR)
-print("USING mpas_as_cam:  "+mpas_as_cam)
 
 ; ===== Getting date from YYYYMMDDHH
 dtime_map = (/4,2,2,2/)
@@ -619,11 +638,11 @@ else   ; if mpas
     print("Writing MPAS as CAM file, presumably for nudging")
     
     ; take _wrf vars, add time coord for writing -- also flip vert index!
-    u_fv_dbl_time  = add_time_define_precision(u_wrf(::-1,:),"float",True)
-    v_fv_dbl_time  = add_time_define_precision(v_wrf(::-1,:),"float",True)
-    t_fv_dbl_time  = add_time_define_precision(t_wrf(::-1,:),"float",True)
-    q_fv_dbl_time  = add_time_define_precision(q_wrf(::-1,:),"float",True)
-    ps_fv_dbl_time = add_time_define_precision(ps_fv,"float",True)
+    u_fv_dbl_time  = add_time_define_precision(u_wrf(::-1,:),write_type,True)
+    v_fv_dbl_time  = add_time_define_precision(v_wrf(::-1,:),write_type,True)
+    t_fv_dbl_time  = add_time_define_precision(t_wrf(::-1,:),write_type,True)
+    q_fv_dbl_time  = add_time_define_precision(q_wrf(::-1,:),write_type,True)
+    ps_fv_dbl_time = add_time_define_precision(ps_fv,write_type,True)
 
     ; clean up
     delete([/u_wrf,v_wrf,t_wrf,q_wrf,ps_fv/])
@@ -832,12 +851,15 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
         tmp := int2p(pm_orig,v_fv(:,kk),pm_corr,linlog)
         v_fv(:,kk) = where(ismissing(tmp),v_fv(:,kk),tmp)
       
-        tmp := int2p(pm_orig,cldice_fv(:,kk),pm_corr,linlog)
-        cldice_fv(:,kk) = where(ismissing(tmp),cldice_fv(:,kk),tmp)
+        ; we'll try to speed things up a bit here if we aren't writing cloud_vars
+        if (add_cloud_vars) then
+          tmp := int2p(pm_orig,cldice_fv(:,kk),pm_corr,linlog)
+          cldice_fv(:,kk) = where(ismissing(tmp),cldice_fv(:,kk),tmp)
       
-        tmp := int2p(pm_orig,cldliq_fv(:,kk),pm_corr,linlog)
-        cldliq_fv(:,kk) = where(ismissing(tmp),cldliq_fv(:,kk),tmp)
-
+          tmp := int2p(pm_orig,cldliq_fv(:,kk),pm_corr,linlog)
+          cldliq_fv(:,kk) = where(ismissing(tmp),cldliq_fv(:,kk),tmp)
+        end if
+        
         vert_corrs = vert_corrs+1
         delete(tmp)
       end if
@@ -879,14 +901,14 @@ if (dycore .eq. "se") then
   
   ncol=dim_sePS(0)
   
-  print("Correcting time records and converting to doubles")
-  ps_fv_dbl_time     = add_time_define_precision(ps_fv,"double",True)
-  u_fv_dbl_time      = add_time_define_precision(u_fv,"double",True)
-  v_fv_dbl_time      = add_time_define_precision(v_fv,"double",True)
-  t_fv_dbl_time      = add_time_define_precision(t_fv,"double",True)
-  q_fv_dbl_time      = add_time_define_precision(q_fv,"double",True)
-  cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv,"double",True)
-  cldice_fv_dbl_time = add_time_define_precision(cldice_fv,"double",True)
+  print("Correcting time records and converting to "+write_type+"s")
+  ps_fv_dbl_time     = add_time_define_precision(ps_fv,write_type,True)
+  u_fv_dbl_time      = add_time_define_precision(u_fv,write_type,True)
+  v_fv_dbl_time      = add_time_define_precision(v_fv,write_type,True)
+  t_fv_dbl_time      = add_time_define_precision(t_fv,write_type,True)
+  q_fv_dbl_time      = add_time_define_precision(q_fv,write_type,True)
+  cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv,write_type,True)
+  cldice_fv_dbl_time = add_time_define_precision(cldice_fv,write_type,True)
   
   ; set coordinates and attributes for se lat/lon arrays
   selat!0 = "ncol"
@@ -923,16 +945,16 @@ else if (dycore .eq. "fv") then
   u_fv_slat = linint2(lon,lat,u_fv,True,lon,slat,0) ;(ntim,mlat,mlon)
   v_fv_slon = linint2(lon,lat,v_fv,True,slon,lat,0)
   
-  print("Correcting time records and converting to doubles")
-  ps_fv_dbl_time     = add_time_define_precision(ps_fv,"double",False)
-  u_fv_dbl_time      = add_time_define_precision(u_fv,"double",False)
-  v_fv_dbl_time      = add_time_define_precision(v_fv,"double",False)
-  us_fv_dbl_time     = add_time_define_precision(u_fv_slat,"double",False)
-  vs_fv_dbl_time     = add_time_define_precision(v_fv_slon,"double",False)
-  t_fv_dbl_time      = add_time_define_precision(t_fv,"double",False)
-  q_fv_dbl_time      = add_time_define_precision(q_fv,"double",False)
-  cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv,"double",False)
-  cldice_fv_dbl_time = add_time_define_precision(cldice_fv,"double",False)
+  print("Correcting time records and converting to "+write_type+"s")
+  ps_fv_dbl_time     = add_time_define_precision(ps_fv,write_type,False)
+  u_fv_dbl_time      = add_time_define_precision(u_fv,write_type,False)
+  v_fv_dbl_time      = add_time_define_precision(v_fv,write_type,False)
+  us_fv_dbl_time     = add_time_define_precision(u_fv_slat,write_type,False)
+  vs_fv_dbl_time     = add_time_define_precision(v_fv_slon,write_type,False)
+  t_fv_dbl_time      = add_time_define_precision(t_fv,write_type,False)
+  q_fv_dbl_time      = add_time_define_precision(q_fv,write_type,False)
+  cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv,write_type,False)
+  cldice_fv_dbl_time = add_time_define_precision(cldice_fv,write_type,False)
   
   ; Correct dim names for staggered coords
   us_fv_dbl_time!2 = "slat"
@@ -1014,10 +1036,14 @@ setfileoption(fout,"DefineMode",True)
 ; create global attributes of the file
 ;===================================================================
 fAtt               = True            ; assign file attributes
-fAtt@title         = "NCL Efficient Approach to netCDF Creation"  
-fAtt@source_file   =  "original-file.nc"
-fAtt@Conventions   = "None"   
-fAtt@creation_date = systemfunc ("date")        
+fAtt@title         = "Betacast-generated ncdata file"  
+fAtt@source_file   = data_filename
+fAtt@wgt_file      = wgt_filename
+fAtt@init_date     = YYYYMMDDHH
+;fAtt@Conventions   = "None"   
+fAtt@creation_date = systemfunc ("date")       
+fAtt@dycore        = dycore
+fAtt@datasource    = datasource
 fileattdef( fout, fAtt )            ; copy file attributes    
 
 ;===================================================================
@@ -1066,9 +1092,11 @@ end if
 filevardef(fout, "U"    ,typeof(u_fv_dbl_time)  ,getvardims(u_fv_dbl_time))    
 filevardef(fout, "V"   ,typeof(v_fv_dbl_time) ,getvardims(v_fv_dbl_time))  
 filevardef(fout, "T",typeof(t_fv_dbl_time),getvardims(t_fv_dbl_time))  
-filevardef(fout, "Q",typeof(q_fv_dbl_time),getvardims(q_fv_dbl_time))  
-filevardef(fout, "CLDLIQ",typeof(cldliq_fv_dbl_time),getvardims(cldliq_fv_dbl_time))  
-filevardef(fout, "CLDICE",typeof(cldice_fv_dbl_time),getvardims(cldice_fv_dbl_time))  
+filevardef(fout, "Q",typeof(q_fv_dbl_time),getvardims(q_fv_dbl_time))
+if (add_cloud_vars) then
+  filevardef(fout, "CLDLIQ",typeof(cldliq_fv_dbl_time),getvardims(cldliq_fv_dbl_time))  
+  filevardef(fout, "CLDICE",typeof(cldice_fv_dbl_time),getvardims(cldice_fv_dbl_time))  
+end if
 
 ;====================================================================
 ; Copy attributes associated with each variable to the file
@@ -1099,9 +1127,10 @@ filevarattdef(fout,"U"  ,u_fv_dbl_time)
 filevarattdef(fout,"V"  ,v_fv_dbl_time)
 filevarattdef(fout,"T"  ,t_fv_dbl_time) 
 filevarattdef(fout,"Q"   ,q_fv_dbl_time)
-filevarattdef(fout,"CLDLIQ",cldliq_fv_dbl_time)
-filevarattdef(fout,"CLDICE",cldice_fv_dbl_time)
-
+if (add_cloud_vars) then
+  filevarattdef(fout,"CLDLIQ",cldliq_fv_dbl_time)
+  filevarattdef(fout,"CLDICE",cldice_fv_dbl_time)
+end if
 ;===================================================================
 ; explicitly exit file definition mode. **NOT REQUIRED**
 ;===================================================================
@@ -1121,8 +1150,10 @@ fout->U    = (/u_fv_dbl_time/)
 fout->V    = (/v_fv_dbl_time/)
 fout->T    = (/t_fv_dbl_time/) 
 fout->Q      = (/q_fv_dbl_time/)
-fout->CLDLIQ  = (/cldliq_fv_dbl_time/)
-fout->CLDICE  = (/cldice_fv_dbl_time/)
+if (add_cloud_vars) then
+  fout->CLDLIQ  = (/cldliq_fv_dbl_time/)
+  fout->CLDICE  = (/cldice_fv_dbl_time/)
+end if
 fout->hyam   = (/hya/)     
 fout->hybm    = (/hyb/)
 fout->hyai    = (/hyai/)
