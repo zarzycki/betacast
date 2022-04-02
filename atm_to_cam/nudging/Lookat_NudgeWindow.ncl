@@ -249,7 +249,7 @@ begin
 ;-----------------
 ; GRAPH results
 ;-----------------
-  wks = gsn_open_wks("png","Wcoef")
+  wks = gsn_open_wks("x11","Wcoef")
 ;  wks = gsn_open_wks("X11","Wcoef")
 
   gsn_define_colormap(wks,"BlAqGrYeOrRe") 
@@ -301,6 +301,26 @@ begin
   Vres@trYMinF      = lev(0)
   Vres@trYMaxF      = lev(nlev-1)
   Vres@trYReverse   = True
+  
+  ; Marker settings
+  Vres@xyMarkLineMode = "MarkLines"
+  Vres@xyMarker      = 6
+  Vres@xyMarkerColor = "red"
+  
+  ; Underlying grid
+  Vres@tmXMajorGrid                = True          ; implement x grid 
+  Vres@tmXMajorGridThicknessF      = 1.0           ; 2.0 is default
+  Vres@tmXMajorGridLineDashPattern = 2             ; select short dash lines
+  Vres@tmYMajorGrid                = True          ; implement y grid
+  Vres@tmYMajorGridThicknessF      = 1.0           ; 2.0 is default
+  Vres@tmYMajorGridLineDashPattern = 2             ; select short dash lines
+  Vres@tmXMinorGrid                = True          ; implement x grid 
+  Vres@tmXMinorGridThicknessF      = 1.0           ; 2.0 is default
+  Vres@tmXMinorGridLineDashPattern = 2             ; select short dash lines
+  Vres@tmYMinorGrid                = True          ; implement y grid
+  Vres@tmYMinorGridThicknessF      = 1.0           ; 2.0 is default
+  Vres@tmYMinorGridLineDashPattern = 2             ; select short dash lines
+ 
   Vplot(0) = gsn_csm_xy(wks,Vcoef,Vcoef&lev,Vres)
   gsn_panel(wks,Vplot,(/1/),Pres)
 
