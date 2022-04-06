@@ -39,8 +39,13 @@ else
   exit
 fi
 
+# The TE trajectory file for this particular betacast case
 TRAJFILE=trajectories.txt.${UQSTR}
-OVERWRITE_ATCF=false #CMZ need to build logic that checks if ATCF file has TECH already on it, then overwrite
+
+# Currently, code purges this ATCFTECH's record in YYYYMMDDHH ATCF file.
+# It keeps other models/ensembles, to allow for serial catting.
+# Setting this to true nukes whole thing each time tracker is invoked
+OVERWRITE_ATCF=false 
 
 ### Flag needed if using unstructured data (if not using unstruc data, empty string)
 CONNECTFLAG="--in_connect ${CONNECTFILE}"
@@ -83,6 +88,9 @@ if [ -f ${TCVITFILE} ]; then
   if [ "$OVERWRITE_ATCF" = true ]; then
     cp ${ATCFFILE} ${ATCFFILEMERGE}  
   else
+    # Delete all matching lines from the master ATCF if they exist!
+    sed -i "/${ATCFTECH}/d" ${ATCFFILEMERGE}
+    # Now concat new lines!
     cat ${ATCFFILE} >> ${ATCFFILEMERGE}  
   fi
   ncl plot_ATCF.ncl
