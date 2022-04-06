@@ -2,6 +2,7 @@ path_to_case = /storage/home/cmz5202/SEWX/${casename}
 path_to_inputdata = /gpfs/group/cmz5202/default/sewx/
 path_to_rundir = ~/scratch/output/${casename}/run/
 sewxscriptsdir = ~/sw/betacast/
+TE_SERIAL_DIR = /storage/home/cmz5202/sw/tempestextremes_noMPI/
 
 ### These do not need to be changed except in special circumstances
 # CAM initial conditions (ncdata) path and file(s)
