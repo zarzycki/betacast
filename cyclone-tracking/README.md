@@ -10,7 +10,9 @@ Two main steps:
 2. Low-bar pass of TC tracks using TempestExtremes.
 3. (Optional) Perform statistics with MET-TC.
 
-### Acquire TCVitals file
+### Acquire TC Vitals file
+
+First, we need to figure out exactly where the operational centers deemed observed TCs to be at the same time as the Betacast initialization. These can be gleaned from a couple different sources, with the below bash script attempting to figure out the correct source.
 
 ```
 /bin/bash ./get-vitals.sh ${YYYYMMDDHH} ${TCVITFOLDER}
@@ -24,8 +26,7 @@ Example:
 /bin/bash ./get-vitals.sh 2018082100 ./fin-tcvitals/
 ```
 
-Will procure the TCVitals file for Aug, 21. 2018 at 00Z and store it within a sub-folder named `fin-tcvitals`.
-
+Will procure the TC Vitals file for Aug, 21. 2018 at 00Z and store it within a sub-folder named `fin-tcvitals`. Each init time will get a single file where there will be N rows consisting of the N observed cyclones globally at that time.
 
 ### Track all cyclones and match to TCVitals
 
@@ -61,7 +62,7 @@ Then `./drive-tracking.sh` can be invoked with the following format (11 command 
 | ATCFTECH | Shortcode to use in ATCF files (ex: op centers using GFSO, HWRF, etc.) |
 | TE_NOMPI_DIR | Top-level path to a serial version of TempestExtremes |
 
-After this script is successful, an ATCF file for this particular forecast cycle will be generated in `./fin-atcf`. If there is no ATCF for this particular cycle, a new one will be generated. If one already exists, any lines in the ATCF that match `ATCFTECH` will be purged, with new lines appended. This allows for serial appending of various ensemble members (e.g., CAM001, CAM002, CAM003, etc.).
+After this script is successful, an [ATCF](https://en.wikipedia.org/wiki/Automated_Tropical_Cyclone_Forecasting_System) file for this particular forecast cycle will be generated in `./fin-atcf`. If there is no ATCF for this particular cycle, a new one will be generated. If one already exists, any lines in the ATCF that match `ATCFTECH` will be purged, with new lines appended. This allows for serial appending of various ensemble members (e.g., CAM001, CAM002, CAM003, etc.).
 
 ### Calculate statistics with ATCF data
 
