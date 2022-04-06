@@ -50,5 +50,8 @@ if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
   if [ "$CLEARCOMBINEDVIT" = true ]; then rm -v ${TCVITFOLDER}/combined/combined_tcvitals.${yearstr}.dat ; fi
 fi
 
+# Remove duplicate lines if necessary
+sort -u ${TCVITFILE} -o ${TCVITFILE}
+
 echo "******* TCVIT FILE INFO"
 head -20 ${TCVITFILE}
