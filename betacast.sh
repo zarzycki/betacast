@@ -1103,6 +1103,17 @@ if $dotracking ; then
   track_connectfile="/storage/home/cmz5202/sw/betacast/cyclone-tracking/nhemitc30x4.connect_v2.dat"
   track_sendhtml=true
   track_hstream="h0"
+  track_stride=2
+  
+  if [ ${casename:(-3)} == "001" ]; then
+    ATCFTECH="C501"
+  elif [ ${casename:(-3)} == "002" ]; then
+    ATCFTECH="C502"
+  elif [ ${casename:(-3)} == "003" ]; then
+    ATCFTECH="C503"
+  else
+    ATCFTECH="CAM5"
+  fi
   
   # Go to cyclone tracking folder...
   cd ${sewxscriptsdir}/cyclone-tracking/
@@ -1117,7 +1128,18 @@ if $dotracking ; then
   
   ### If we have vitals, run tracking
   if [ -f ${TCVITFILE} ]; then  # if file does exist (i.e., it was downloaded), run tracker
-    /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} ${casename} ${TCVITFILE} ${ATCFFILE} ${track_connectfile} ${path_to_rundir} ${track_sendhtml} ${track_hstream}
+    /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} \
+      ${casename} \
+      ${TCVITFILE} \
+      ${ATCFFILE} \
+      ${track_connectfile} \
+      ${path_to_rundir} \
+      ${track_sendhtml} \
+      ${track_hstream}
+      ${track_stride} \
+      ${ATCFTECH} \
+      ${TE_SERIAL_DIR}
+    
     cp trajs.trajectories.txt.${casename}.png ./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png
   fi
   

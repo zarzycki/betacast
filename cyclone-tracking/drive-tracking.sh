@@ -16,39 +16,37 @@
 # $6 -- output base (everything before date)
 # $7 -- send HTML (usually false)
 # $8 -- which h stream are we tracking on? (ex: h1)
+# $9 -- timestride, should be 2 for 3-hourly data, 1 for 6-hourly data
+# $10 -- ATCFTECH
+# $11 -- where is the TE noMPI binary on this system?
 ############ USER OPTIONS #####################
 
-## Path to serial TempestExtremes binaries
-YYYYMMDDHH=${1}
-TCVITFILE=${3}
-UQSTR=${2}
-ATCFFILE=${4}
-SENDHTML=${7}
-CONNECTFILE=${5}
-OUTPUTBASE=${6}
-HSTREAMTRACK=${8}
+if [ $# -eq 11 ] 
+then
+  YYYYMMDDHH=${1}
+  UQSTR=${2}
+  TCVITFILE=${3}
+  ATCFFILE=${4}
+  CONNECTFILE=${5}
+  OUTPUTBASE=${6}
+  SENDHTML=${7}
+  HSTREAMTRACK=${8}
+  TIMESTRIDE=${9}
+  ATCFTECH=${10}
+  TEMPESTEXTREMESDIR=${11}
+else
+  echo "Oops... this script requires 11 arguments, not "$#
+  exit
+fi
 
 TRAJFILE=trajectories.txt.${UQSTR}
-#TEMPESTEXTREMESDIR=/global/homes/c/czarzyck/software/tempestextremes_noMPI/
-TEMPESTEXTREMESDIR=~/sw/tempestextremes_noMPI/
-TIMESTRIDE=2         # should be 2 for 3-hourly data, 1 for 6-hourly data
 OVERWRITE_ATCF=false #CMZ need to build logic that checks if ATCF file has TECH already on it, then overwrite
-
-if [ ${UQSTR:(-3)} == "001" ]; then
-  ATCFTECH="C501"
-elif [ ${UQSTR:(-3)} == "002" ]; then
-  ATCFTECH="C502"
-elif [ ${UQSTR:(-3)} == "003" ]; then
-  ATCFTECH="C503"
-else
-  ATCFTECH="CAM5"
-fi
 
 ### Flag needed if using unstructured data (if not using unstruc data, empty string)
 CONNECTFLAG="--in_connect ${CONNECTFILE}"
 
 ### Path + filelist of data to process
-PATHTOFILES=${OUTPUTBASE}/${1}/
+PATHTOFILES=${OUTPUTBASE}/${YYYYMMDDHH}/
 FILES=`ls ${PATHTOFILES}/*.?am.${HSTREAMTRACK}.*.nc`
 
 ############ TRACKER MECHANICS #####################
