@@ -1,15 +1,17 @@
 #!/bin/bash
 
 ## User settings
-casename=t37_v1.2-NATL-F2010C5-v2_L71
-YYYYMMDDHH=2011082512
-connectfile="/global/homes/c/czarzyck/betacast/cyclone-tracking/ne0np4natlanticref.ne30x4.connect_v2.dat"
+casename=t37_v1.2-NATL-F2010C5-v2_L71  # Betacast case
+YYYYMMDDHH=2011082512                  # Init cycle
+ATCFTECH="EAM001"                      # This is the name for this model for ATCF (if ensemble, include member number)
+hstream="h1"                           # Which h stream contains the tracker data PSL, UBOT, VBOT
+TIMESTRIDE=2                           # 2 for 3-hourly data, 1 for 6-hourly data (in h stream)
+# Where are the output files archived after Betacast is done running?
 OUTPUTBASE="/global/cscratch1/sd/jjbenedi/e3sm_scratch/cori-knl/${casename}.${YYYYMMDDHH}.ens001/run/"
+
 sendHTML=false
-hstream="h1"
-TEMPESTEXTREMESDIR=~/sw/tempestextremes_noMPI/
-TIMESTRIDE=2         # should be 2 for 3-hourly data, 1 for 6-hourly data
-ATCFTECH="EAM001"
+connectfile="/global/homes/c/czarzyck/betacast/cyclone-tracking/ne0np4natlanticref.ne30x4.connect_v2.dat"
+TEMPESTEXTREMESDIR=/global/homes/c/czarzyck/sw/tempestextremes_noMPI/
  
 # Define some betacast specific stuff
 ATCFFILE=atcf.${casename}.${YYYYMMDDHH}
