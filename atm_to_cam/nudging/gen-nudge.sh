@@ -1,15 +1,28 @@
 #!/bin/bash
-##=======================================================================
-#PBS -N gen_nudge_betacast 
-#PBS -A P93300642 
-#PBS -l walltime=11:59:00
-#PBS -q regular
-#PBS -j oe
-#PBS -l select=1:ncpus=36:mem=109GB
-################################################################
+#>################################################################
+#>#PBS -N gen_nudge_betacast 
+#>#PBS -A P93300642 
+#>#PBS -l walltime=11:59:00
+#>#PBS -q regular
+#>#PBS -j oe
+#>#PBS -l select=1:ncpus=36:mem=109GB
+#>################################################################
 
-STYR=2017
-ENYR=2020
+#PBS -N gen_nudge_betacast
+#PBS -A UNSB0017
+#PBS -l select=1:ncpus=36:mem=220GB
+#PBS -l walltime=24:00:00
+#PBS -q casper
+#PBS -j oe
+
+### CMZ NOTES:
+# 4/2/21: Cannot find a benefit to running over multiple Casper nodes
+# Cost penalty is 2x per file for 2 nodes, so double cost for same
+# analysis throughput.
+# Current recommendation is 36 CPUs, 36 GnuP tasks, scale mem as needed w/ gridres
+
+STYR=2014
+ENYR=2014
 
 #OUTDIR=/glade/u/home/zarzycki/scratch/nudge-E3SM/
 OUTDIR=/glade/scratch/zarzycki/ndg/
@@ -20,7 +33,7 @@ DYCORE="se"
 GRIDSTR=ne30
 BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc
 WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5-0.25_TO_ne30np4_patc.nc
-NUMLEVS=58
+NUMLEVS=32
 
 #DYCORE="fv"
 #GRIDSTR=f09
@@ -41,7 +54,8 @@ OUTDIR=${OUTDIR}/${DYCORE}_${GRIDSTR}_L${NUMLEVS}/
 
 # GNUPARALLEL SETTINGS
 module load parallel
-NUMCORES=18
+module load peak_memusage
+NUMCORES=36
 TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt
 
@@ -85,8 +99,9 @@ do
     # This gives us a check if the run stops due to wallclock, etc. and the file is only partially written...
     OUTFILE=${OUTDIR}/ndg.ERA5.${GRIDSTR}.L${NUMLEVS}.cam2.i.$YYYY-$MM-$DD-$SSSSS.nc
     OUTFILETMP=${OUTFILE}.TMP.nc
-        
-    NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; ncl -n atm_to_cam.ncl 'datasource=\"ERA5RDA\"' 'RDADIR = \"'${RDADIR}'\"' write_floats=True add_cloud_vars=False compress_file=True mpas_as_cam=True numlevels=${NUMLEVS} YYYYMMDDHH=${YYYYMMDDHH} 'dycore = \"'${DYCORE}'\"' 'data_filename = \"'${INFILE}'\"' 'wgt_filename=\"'${WGTNAME}'\"' 'model_topo_file=\"'${BNDTOPO}'\"' 'adjust_config=\"-\"' 'se_inic = \"'${OUTFILETMP}'\"' ; mv -v ${OUTFILETMP} ${OUTFILE} "
+    
+    #4/4/22 After CESM2.2, nudging.F90 moved to PIO which doesn't support compression (I don't think...) ... supports floats, which are 25GB uncompressed vs 18GB compressed   
+    NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; ncl -n atm_to_cam.ncl 'datasource=\"ERA5RDA\"' 'RDADIR = \"'${RDADIR}'\"' write_floats=True add_cloud_vars=False compress_file=False mpas_as_cam=True numlevels=${NUMLEVS} YYYYMMDDHH=${YYYYMMDDHH} 'dycore = \"'${DYCORE}'\"' 'data_filename = \"'${INFILE}'\"' 'wgt_filename=\"'${WGTNAME}'\"' 'model_topo_file=\"'${BNDTOPO}'\"' 'adjust_config=\"-\"' 'se_inic = \"'${OUTFILETMP}'\"' ; mv -v ${OUTFILETMP} ${OUTFILE} "
     
     # If file doesn't exist, we want to create, but if it does let's skip
     if [ ! -f ${OUTFILE} ]; then
@@ -97,7 +112,8 @@ do
 done
 
 # Launch GNU parallel
-parallel --jobs ${NUMCORES} -u --sshloginfile $PBS_NODEFILE --workdir $PWD < ${COMMANDFILE}
+#parallel --jobs ${NUMCORES} -u --sshloginfile $PBS_NODEFILE --workdir $PWD < ${COMMANDFILE}
+peak_memusage.exe parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
 
 # Cleanup
 rm ${COMMANDFILE}

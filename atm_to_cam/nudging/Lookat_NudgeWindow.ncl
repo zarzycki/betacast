@@ -304,7 +304,7 @@ begin
   
   ; Marker settings
   Vres@xyMarkLineMode = "MarkLines"
-  Vres@xyMarker      = 6
+  Vres@xyMarker      = 16
   Vres@xyMarkerColor = "red"
   
   ; Underlying grid
