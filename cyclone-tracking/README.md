@@ -77,7 +77,7 @@ A sample set of scripts is provided in `./met-tc/`. After navigating to that fol
 
 #### Acquire a-deck files
 
-A-deck files can be acquired from a variety of sources. One example is the RAL repository. All a-deck files for a given hurricane season (e.g., 2021) can be downloaded via wget (O(100-200MB)).
+A-deck files represent model forecasts of various TCs and can be acquired from a variety of sources. One example is the RAL repository. All a-deck files for a given hurricane season (e.g., 2021) can be downloaded via wget (O(100-200MB)).
 
 ```
 wget -r --no-parent -nH --cut-dirs 3 -A 'aal*2021.dat' http://hurricanes.ral.ucar.edu/repository/data/adecks_open/2021/
@@ -93,7 +93,7 @@ cat aal*.dat > aal.2021.ALL
 
 #### Acquire b-deck files
 
-B-deck files can be also be acquired from a variety of sources. All b-deck files for a given hurricane season (e.g., 2021) can be downloaded via wget (O(1MB)).
+B-deck files include the 'best-track' information (i.e., observations) about TCs and can be also be acquired from a variety of sources. All b-deck files for a given hurricane season (e.g., 2021) can be downloaded via wget (O(1MB)).
 
 ```
 wget -r --no-parent -nH --cut-dirs 3 -A 'bal*2021.dat' http://hurricanes.ral.ucar.edu/repository/data/bdecks_open/2021/
