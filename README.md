@@ -178,9 +178,9 @@ from the top-level directory of Betacast. **This only needs to be done once per 
 
 ### 5. Dates file
 
-If not running in real-time, dates to be simulated are passed into the script via a text file in the root betacast directory named `dates.{CASENAME}.txt`. Currently only 00Z and 12Z cycles are fully supported in order to minimize disk writes associated with restart files at intermediate cycles.
+If not running in real-time, dates to be simulated are passed into the script via a text file in `${BETACAST}/dates/` in a file named `dates.${CASENAME}.txt`. Currently only 00Z and 12Z cycles are fully supported in order to minimize disk writes associated with restart files at intermediate cycles.
 
-For example, let's say we are running ne30np4 forecasts with a casename of MY_NE30_BETACAST and want to run a simulation on 00Z August 1, 2nd, and 3rd, 2018. In the `${BETACAST}` directory we would add a text file named `dates.MY_NE30_BETACAST.txt` and add the following lines to the top of the file:
+For example, let's say we are running ne30np4 forecasts with a casename of MY_NE30_BETACAST and want to run a simulation on 00Z August 1, 2nd, and 3rd, 2018. In the `${BETACAST}/dates/` directory we would add a text file named `dates.MY_NE30_BETACAST.txt` and add the following lines to the top of the file:
 
 ```
 2018080100
@@ -190,6 +190,15 @@ For example, let's say we are running ne30np4 forecasts with a casename of MY_NE
 ```
 
 ... when `islive` is equal to 0 in the namelist, the code will extract the YYYY, MM, DD, and HH from the 1st line of this text file. NOTE: this line will only be deleted upon successful forecast completion. If the code crashes mid-run, then the interrupted forecast remains at the head of the dates file.
+
+**NOTE**: There is backwards compatibility such that the "dates" file can live in `${BETACAST}` root. This is not recommended because the root directory can get quite messy with multiple cases and/or ensembles. If `datestemplate` is specified in the namelist *AND* there is no existing dates file for a particular case, Betacast will copy the template file to `dates.${CASENAME}.txt`. This is useful for running an ensemble of simulations -- you would create one template file of all relevant dates and then each case would copy that file over as a starting point (and each subsuquent model run would use the case-specific file).
+
+Workflow when `islive` is false is:
+
+1. Look for `{BETACAST}/dates/dates.${CASENAME}.txt`.
+2. If not **1**, look for `{BETACAST}/dates.${CASENAME}.txt`.
+3. If not **2**, look for `datestemplate` in namelist *AND* that `datestemplate` exists. If yes, copy.
+4. If not **1**, **2**, or **3**, exit.
 
 ### 5.1. Pre-stage atmospheric analysis data (optional)
 
