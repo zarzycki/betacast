@@ -190,10 +190,27 @@ then
     exit 1
   fi
 
-##CMZ 
-#cyclestr=00
 else     # if not live, draw from head of dates.txt file
-  datesfile=dates.${casename}.txt
+
+  # Figure out if dates.CASE.txt exists and where it is located
+  datesbase=dates.${casename}.txt
+  if [ -f "./dates/${datesbase}" ]; then
+    # Preferred location is dates subdir as of 4/13/2022
+    echo "$datesbase exists in dates subdirectory"
+    datesfile=./dates/${datesbase}
+  else
+    if [ -f "./${datesbase}" ]; then
+      echo "WARNING! $datesbase isn't in dates subdir but exists in home dir!"
+      echo "This is allowed for backwards compatibility but is less organized!"
+      echo "You should create a subdir called 'dates' and put the dates.CASE.txt file there!"
+      datesfile=${datesbase}
+    else
+      echo "Uh, oh. Can't find a dates file, but run isn't live. Exiting..."
+      exit 1
+    fi
+  fi
+
+  echo "Using dates in: "${datesfile}
   longdate=$(head -n 1 ${datesfile})
   yearstr=${longdate:0:4}
   monthstr=${longdate:4:2}
