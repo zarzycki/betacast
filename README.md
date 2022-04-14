@@ -118,12 +118,13 @@ In `${BETACAST}/machine_files` there are sample files that define where folders 
 
 ### 3.2 Edit namelist file for your particular case
 
-In `${BETACAST}/namelist_files` there are sample files that define the forecast configuration. This is the primary location where run settings are specified.
+In `${BETACAST}/namelist_files` there are sample files that define the forecast configuration. This is the primary location where run settings are specified. Betacast uses a general philosophy that 0 = false/no and 1 = true/yes.
 
 | Namelist Variable | Description |
 | --- | --- |
 | debug | Setting to 1 adds debugging options. Otherwise leave at 0 |
 | islive | if 1 then pull GDAS/GFS from server in real-time, 0 is "hindcast" mode |
+| datestemplate | If islive = 0, dates.XXX.txt file to cp if Betacast cannot find an existing dates file |
 | runmodel | Unused, set to "true" |
 | modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2 (defaults to 0 if empty or not included) |
 | do_runoff | Include runoff model files. 0 = no, 1 = yes (defaults to 0 if empty or not included) |
@@ -139,10 +140,13 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | filterHourLength | Filter duration (leave at 6), only used if doFilter |
 | filtTcut | Cut setting for filter (leave at 6), only used if doFilter |
 | add_perturbs | Add PGW perturbations for counterfactual runs (leave at false) |
+| perturb_namelist | Path to "perturbation" namelist for counterfactual climate simulations |
 | add_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) |
 | land_spinup | Cycle land spinup only (unsupported currently, leave false) |
-| gfs2seWeights | Full path name of weights file for analysis -> model regridding (see previous section) |
+| keep_land_restarts | 0 = delete land restart files, 1 = archive land restart files (possibly overwriting those in ${CASE}/run/landstart |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
+| predict_docn | 0 = superimpose initialization anomalies on time-varying climatology, 1 = persist t=0 SST/ice fields for duration of simulation |
+| gfs2seWeights | Full path name of weights file for analysis -> model regridding (see previous section) |
 | PROJECTID | Project ID for run submissions |
 | FILTERWALLCLOCK | Wall clock time for filter run |
 | FILTERQUEUE | Submission queue for filter run |
