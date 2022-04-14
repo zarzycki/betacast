@@ -174,13 +174,15 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
     u_gfs := int2p_n(grb_file->$windlevName$,u_gfs,grblev,2,0)
     v_gfs := int2p_n(grb_file->$windlevName$,v_gfs,grblev,2,0)
   end if
-  dNames:=getfilevardims(grb_file,"VVEL_P0_L100_GLL0")
-  windlevName=dNames(0)
-  if ( templevName .ne. windlevName ) then
-    print("interpolating w wind from "+dimsizes(grb_file->$windlevName$)+" to "+dimsizes(grblev)+" levels")
-    w_gfs := int2p_n(grb_file->$windlevName$,w_gfs,grblev,2,0)
+  if (dycore .eq. "mpas") then
+    dNames:=getfilevardims(grb_file,"VVEL_P0_L100_GLL0")
+    windlevName=dNames(0)
+    if ( templevName .ne. windlevName ) then
+      print("interpolating w wind from "+dimsizes(grb_file->$windlevName$)+" to "+dimsizes(grblev)+" levels")
+      w_gfs := int2p_n(grb_file->$windlevName$,w_gfs,grblev,2,0)
+    end if
   end if
-    
+  
   rh_gfs_native = grb_file->RH_P0_L100_GLL0(:,:,:)
   cldmix_gfs_native = grb_file->CLWMR_P0_L100_GLL0(:,:,:)
   print("Interpolating GRIB to uniform vertical levels")
