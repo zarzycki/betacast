@@ -205,8 +205,15 @@ else     # if not live, draw from head of dates.txt file
       echo "You should create a subdir called 'dates' and put the dates.CASE.txt file there!"
       datesfile=${datesbase}
     else
-      echo "Uh, oh. Can't find a dates file, but run isn't live. Exiting..."
-      exit 1
+      if [[ ${datestemplate+x} && -f ./dates/${datestemplate} ]]; then
+        echo "Didn't find case dates, but you specified a datestemplate in the namelist..."
+        echo "So I'm copying $datestemplate to this case and using that..."
+        cp -v ./dates/${datestemplate} ./dates/${datesbase}
+        datesfile=./dates/${datesbase}
+      else
+        echo "Uh, oh. Can't find a dates file OR template AND run isn't live. Exiting..."
+        exit 1
+      fi
     fi
   fi
 
