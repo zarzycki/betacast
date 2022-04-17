@@ -121,7 +121,7 @@ fi
 
 if [ -z ${anl2mdlWeights+x} ] && [ ${gfs2seWeights+x} ] ; then
   echo "WARNING: Setting anl2mdlWeights to ${gfs2seWeights}"
-  echo "WARNING: This is deprecated and will be removed in the future. To fix, change 'gfs2seWeights' to 'anl2mdlWeights' in your namelist!"
+  echo "WARNING: This is deprecated and will be removed in the future! To fix, change 'gfs2seWeights' to 'anl2mdlWeights' in ${NAMELISTFILE}"
   anl2mdlWeights=$gfs2seWeights
 fi
 
