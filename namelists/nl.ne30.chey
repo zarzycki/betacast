@@ -16,12 +16,15 @@
 ### CFSR analysis available from 1979 to Mar 2011          
 ### Use NOAAOI unless running real-time
 # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
-  atmDataType = 1
+  atmDataType = 4
 
 # 1 = GDAS, 2 = ERA, 3 = NOAAOI
   sstDataType = 3
 
-# 72 -> E3SM, 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
+# Do we want to predict docn with anoms? 0 = yes, 1 = no. 1 is default behavior
+  predict_docn = 0
+
+# 72 -> E3SM, 58 -> CAM7 physics, 32 -> CAM6 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
   numLevels = 32
 
 #forecast length (in days)
@@ -51,7 +54,7 @@
   casename = F-betacast-F2000climo
 
 # Weight file for going from GFS -> VR-SE
-  gfs2seWeights = /glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_ne30_patc.nc
+  anl2mdlWeights = /glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_ne30_patc.nc
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = NULL
@@ -60,14 +63,14 @@
   landrawdir = /glade/u/home/zarzycki/scratch/for-truesdale/clmstart/
 
 # Timing settings
-  PROJECTID = UNSB0017 
+  PROJECTID = P93300642 
   FILTERWALLCLOCK = 00:29:00
   FILTERQUEUE = premium
-  RUNWALLCLOCK = 05:59:00
-  RUNQUEUE = premium
+  RUNWALLCLOCK = 04:09:00
+  RUNQUEUE = economy
 
   usingCIME = true
 
   DTIME = 1800.0
   FINERES = 30
-  USERSTAB = 112.5
+  USERSTAB = 900.0
