@@ -110,9 +110,19 @@ fi
 
 ### ERROR CHECKING BLOCK! #########################################################
 
+# Traps for exits
+
 if [ "${add_perturbs}" = true ] && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
   echo "add_perturbs is true but can't find namelist: "$perturb_namelist
   exit 1
+fi
+
+# Check for deprecated namelist options
+
+if [ -z ${anl2mdlWeights+x} ] && [ ${gfs2seWeights+x} ] ; then
+  echo "WARNING: Setting anl2mdlWeights to ${gfs2seWeights}"
+  echo "WARNING: This is deprecated and will be removed in the future. To fix, change 'gfs2seWeights' to 'anl2mdlWeights' in your namelist!"
+  anl2mdlWeights=$gfs2seWeights
 fi
 
 ###################################################################################
@@ -562,7 +572,7 @@ if [ $debug -ne 1 ] ; then
         YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
          'dycore="'${DYCORE}'"' \
        'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
-       'wgt_filename="'${gfs2seWeights}'"' \
+       'wgt_filename="'${anl2mdlWeights}'"' \
        'model_topo_file="'${adjust_topo-}'"' \
        'adjust_config="'${adjust_flags-}'"' \
        'se_inic = "'${sePreFilterIC}'"' )
@@ -584,7 +594,7 @@ if [ $debug -ne 1 ] ; then
       YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
      'dycore="'${DYCORE}'"' \
      'data_filename = "'$gfs_files_path'/cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
-     'wgt_filename="'${gfs2seWeights}'"' \
+     'wgt_filename="'${anl2mdlWeights}'"' \
      'model_topo_file="'${adjust_topo-}'"' \
      'adjust_config="'${adjust_flags-}'"' \
      'se_inic = "'${sePreFilterIC}'"' )
@@ -598,7 +608,7 @@ if [ $debug -ne 1 ] ; then
          'dycore="'${DYCORE}'"' \
          'data_filename = "'${RDADIR}'/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"'  \
          'RDADIR="'${RDADIR}'"' \
-         'wgt_filename="'${gfs2seWeights}'"' \
+         'wgt_filename="'${anl2mdlWeights}'"' \
          'model_topo_file="'${adjust_topo-}'"' \
          'adjust_config="'${adjust_flags-}'"' \
          'se_inic = "'${sePreFilterIC}'"' )
@@ -608,7 +618,7 @@ if [ $debug -ne 1 ] ; then
           YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
          'dycore="'${DYCORE}'"' \
          'data_filename = "'$era_files_path'/ERA5_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
-         'wgt_filename="'${gfs2seWeights}'"' \
+         'wgt_filename="'${anl2mdlWeights}'"' \
          'model_topo_file="'${adjust_topo-}'"' \
          'adjust_config="'${adjust_flags-}'"' \
          'se_inic = "'${sePreFilterIC}'"' )

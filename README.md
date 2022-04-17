@@ -81,7 +81,7 @@ This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`
 - `dstGridName` a shortname describing the model grid (for naming purposes only).
 - `dstGridFile` a full path to a file defining the destination model grid.
 - `anlgrid` is the type of analysis and corresponding grid resolution (*three* are supported, see below).
-- `wgtFileDir` is the directory where the weight file should be saved after being generated (this will dictate the path + file used in `gfs2seWeights` in the next section.
+- `wgtFileDir` is the directory where the weight file should be saved after being generated (this will dictate the path + file used in `anl2mdlWeights` in the next section.
 
 `dstGridFile` can be one of *three* formats. It can be a **SCRIP grid file** (contains variables like grid_corner_lat), an **ESMF grid file** (contains variables like nodeCoords), or an **SE/HOMME model output file** (contains dimension ncol). The script will automatically attempt to determine the type of file and create remapping weights accordingly.
 
@@ -146,7 +146,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | keep_land_restarts | 0 = delete land restart files, 1 = archive land restart files (possibly overwriting those in ${CASE}/run/landstart |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
 | predict_docn | 0 = superimpose initialization anomalies on time-varying climatology, 1 = persist t=0 SST/ice fields for duration of simulation |
-| gfs2seWeights | Full path name of weights file for analysis -> model regridding (see previous section) |
+| anl2mdlWeights | Full path name of weights file for analysis -> model regridding (see previous section) |
 | PROJECTID | Project ID for run submissions |
 | FILTERWALLCLOCK | Wall clock time for filter run |
 | FILTERQUEUE | Submission queue for filter run |
