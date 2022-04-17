@@ -1,0 +1,45 @@
+--- /glade/u/home/zarzycki/work/cesm2_2_0/components/cam/src/physics/cam/physpkg.F90	2020-10-19 15:40:07.305409165 -0600
++++ physpkg.F90	2021-09-24 14:17:35.104215000 -0600
+@@ -1859,7 +1859,8 @@
+     use cam_diagnostics, only: diag_conv_tend_ini, diag_phys_writeout, diag_conv, diag_export, diag_state_b4_phys_write
+     use cam_diagnostics, only: diag_clip_tend_writeout
+     use cam_history,     only: outfld
+-    use physconst,       only: cpair, latvap
++    !++CMZ add rair
++    use physconst,       only: cpair, latvap, rair
+     use constituents,    only: pcnst, qmin, cnst_get_ind
+     use convect_deep,    only: convect_deep_tend, convect_deep_tend_2, deep_scheme_does_scav_trans
+     use time_manager,    only: is_first_step, get_nstep
+@@ -1899,8 +1900,10 @@
+     type(physics_buffer_desc), pointer :: pbuf(:)
+ 
+     type(cam_out_t),     intent(inout) :: cam_out
+-    type(cam_in_t),      intent(in)    :: cam_in
+-
++   !++cmz
++    !type(cam_in_t),      intent(in)    :: cam_in
++    type(cam_in_t),      intent(inout)    :: cam_in
++    !--cmz
+ 
+     !
+     !---------------------------Local workspace-----------------------------
+@@ -2329,6 +2332,19 @@
+              ! =====================================================
+              !    CLUBB call (PBL, shallow convection, macrophysics)
+              ! =====================================================
++ !++cmz 
++             if (macmic_it > 0 .and. nstep > 1) then
++               !print *,'nstep: ',nstep,' macmic: ',macmic_it,' .. WSX: ',cam_in%wsx(1),'  PMID: ',state%pmid(1,pver),'  U: ',state%u(1,pver),'  T: ',state%t(1,pver),'  RAM: ',cam_in%ram1(1)
++               where (cam_in%ram1(:ncol) > 0.0001_r8)  ! only update when RAM is not zero
++                 !print *,'BEFORE: ',cam_in%wsx
++                 cam_in%wsx(:ncol) = -state%pmid(:ncol,pver) * state%u(:ncol,pver) / cam_in%ram1(:ncol) / rair / state%t(:ncol,pver)
++                 cam_in%wsy(:ncol) = -state%pmid(:ncol,pver) * state%v(:ncol,pver) / cam_in%ram1(:ncol) / rair / state%t(:ncol,pver)
++                 !print *,'AFTER: ',cam_in%wsx
++                 !print *,'... ',cam_in%wsx,' ',state%pmid(:,pver),' ',state%u(:,pver),' ',state%t(:,pver),' ',cam_in%ram1
++               end where
++             end if
++             !--cmz
++
+ 
+              if (trim(cam_take_snapshot_before) == "clubb_tend_cam") then
+                 call cam_snapshot_all_outfld_tphysbc(cam_snapshot_before_num, state, tend, cam_in, cam_out, pbuf, &

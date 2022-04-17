@@ -1,0 +1,94 @@
+--- /glade/u/home/zarzycki/work/cesm2_2_0/components/cam/src/physics/cam/cam_diagnostics.F90	2020-10-19 15:40:07.268249826 -0600
++++ cam_diagnostics.F90	2021-09-30 14:24:09.265075640 -0600
+@@ -223,6 +223,13 @@
+     call addfld ('Z100',       horiz_only,  'A', 'm',         'Geopotential Z at 100 mbar pressure surface')
+     call addfld ('Z050',       horiz_only,  'A', 'm',         'Geopotential Z at 50 mbar pressure surface')
+ 
++!++CMZ
++    call addfld ('U0500M',      horiz_only,  'A', 'm/s','Zonal wind at 500m height AGL surface')
++    call addfld ('V0500M',      horiz_only,  'A', 'm/s','Meridional wind at 500m height AGL surface')
++    call addfld ('U4000M',      horiz_only,  'A', 'm/s','Zonal wind at 4000m height AGL surface')
++    call addfld ('V4000M',      horiz_only,  'A', 'm/s','Meridional wind at 4000m height AGL surface')
++!--CMZ
++
+     call addfld ('ZZ',         (/ 'lev' /), 'A', 'm2',        'Eddy height variance' )
+     call addfld ('VZ',         (/ 'lev' /), 'A', 'm2/s',      'Meridional transport of geopotential height')
+     call addfld ('VT',         (/ 'lev' /), 'A', 'K m/s   ',  'Meridional heat transport')
+@@ -906,6 +913,11 @@
+     use co2_cycle,          only: c_i, co2_transport
+ 
+     use tidal_diag,         only: tidal_diag_write
++    
++    !++CMZ
++    use interpolate_data,     only: lininterp_init,lininterp,lininterp_finish,interp_type
++    !--CMZ
++    
+     !-----------------------------------------------------------------------
+     !
+     ! Arguments
+@@ -930,6 +942,14 @@
+     real(r8), pointer :: psl(:)   ! Sea Level Pressure
+ 
+     integer  :: i, k, m, lchnk, ncol, nstep
++    
++    !++CMZ
++    type(interp_type)  :: interp_wgts
++    integer, parameter :: extrap_method = 1              ! sets extrapolation method to boundary value (1)
++    real(r8) :: z_arr(1)   ! Sea Level Pressure
++    real(r8) :: z_out(pcols,1)     ! data interpolated to a pressure surface
++    !--CMZ
++    
+     !
+     !-----------------------------------------------------------------------
+     !
+@@ -965,6 +985,50 @@
+       z3(:ncol,k) = state%zm(:ncol,k) + state%phis(:ncol)*rga
+     end do
+     call outfld('Z3      ',z3,pcols,lchnk)
++    
++    !++CMZ
++    if (hist_fld_active('U0500M')) then
++    z_arr(1)=500._r8
++      do i=1,ncol
++         call lininterp_init(state%zm(i,:),pver,z_arr,1,extrap_method,interp_wgts)
++         call lininterp(state%u(i,:),pver,z_out(i,:),1,interp_wgts)
++         call lininterp_finish(interp_wgts)
++      end do
++      call outfld('U0500M', z_out(:,1), pcols, lchnk)
++    end if
++    
++    if (hist_fld_active('V0500M')) then
++    z_arr(1)=500._r8
++      do i=1,ncol
++         call lininterp_init(state%zm(i,:),pver,z_arr,1,extrap_method,interp_wgts)
++         call lininterp(state%v(i,:),pver,z_out(i,:),1,interp_wgts)
++         call lininterp_finish(interp_wgts)
++      end do
++      call outfld('V0500M', z_out(:,1), pcols, lchnk)
++    end if
++    
++    if (hist_fld_active('U4000M')) then
++    z_arr(1)=4000._r8
++      do i=1,ncol
++         call lininterp_init(state%zm(i,:),pver,z_arr,1,extrap_method,interp_wgts)
++         call lininterp(state%u(i,:),pver,z_out(i,:),1,interp_wgts)
++         call lininterp_finish(interp_wgts)
++      end do
++      call outfld('U4000M', z_out(:,1), pcols, lchnk)
++    end if
++    
++    if (hist_fld_active('V4000M')) then
++    z_arr(1)=4000._r8
++      do i=1,ncol
++         call lininterp_init(state%zm(i,:),pver,z_arr,1,extrap_method,interp_wgts)
++         call lininterp(state%v(i,:),pver,z_out(i,:),1,interp_wgts)
++         call lininterp_finish(interp_wgts)
++      end do
++      call outfld('V4000M', z_out(:,1), pcols, lchnk)
++    end if
++    !--CMZ
++
++    
+     !
+     ! Output Z3 on pressure surfaces
+     !
