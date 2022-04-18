@@ -89,7 +89,7 @@ if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=1; fi
 if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
 if [ -z ${predict_docn+x} ]; then predict_docn=0; fi
 if [ -z ${archive_inic+x} ]; then archive_inic=0; fi
-if [ -z ${compress_history_nc+x} ]; then compress_history_nc=0; fi
+if [ -z ${compress_history_nc+x} ]; then compress_history_nc=1; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -114,19 +114,26 @@ fi
 
 ### ERROR CHECKING BLOCK! #########################################################
 
-# Traps for exits
-
+# Exit if add_perturbs is turned on but no namelist is passed in with perturbation config settings
 if [ "${add_perturbs}" = true ] && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
   echo "add_perturbs is true but can't find namelist: "$perturb_namelist
   exit 1
 fi
 
 # Check for deprecated namelist options
-
 if [ -z ${anl2mdlWeights+x} ] && [ ${gfs2seWeights+x} ] ; then
   echo "WARNING: Setting anl2mdlWeights to ${gfs2seWeights}"
   echo "WARNING: This is deprecated and will be removed in the future! To fix, change 'gfs2seWeights' to 'anl2mdlWeights' in ${NAMELISTFILE}"
   anl2mdlWeights=$gfs2seWeights
+fi
+
+# Check if ncks exists for compression
+if ! type ncks &> /dev/null ; then
+  echo "ERROR: ncks does not exist. Make sure ncks is in your path when betacast is invoked"
+  exit 1
+  #echo "WARNING: ncks does not exist, cannot compress. Setting compress_history_nc to 0 (false)"
+  #echo "WARNING: if you'd like remedy, make sure ncks is in your path when betacast.sh is invoked"
+  #compress_history_nc=0
 fi
 
 ###################################################################################
@@ -1114,9 +1121,11 @@ if [ $archive_inic -eq 1 ]; then
     cp -v $ARCFILE $archivedir/inic
   fi
 
-  # Compress files using lossless compression
-  cd $archivedir/inic
-  for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
+  if [ $compress_history_nc -eq 1 ]; then
+    # Compress files using lossless compression
+    cd $archivedir/inic
+    for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
+  fi
 fi
 
 if [ $compress_history_nc -eq 1 ]; then

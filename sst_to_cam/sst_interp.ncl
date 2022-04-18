@@ -242,32 +242,39 @@ end if
 
 print("Convert to float")
 
-  date = new(1,integer)
-  datasec = new(1,integer)
-  timecoord = new(1,double)
-  
-  date = 116
-  datasec = 43200
-  timecoord = 15.5
-  
-  date!0 = "time"
-  datasec!0 = "time"
-  timecoord!0 = "time"
-  
+date = new(1,integer)
+datasec = new(1,integer)
+timecoord = new(1,double)
+
+date = 116
+datasec = 43200
+timecoord = 15.5
+
+date!0 = "time"
+datasec!0 = "time"
+timecoord!0 = "time"
+
+; 4/18/22 --> cannot get this to work without writing a fresh file
+; change units from yr 0000 to 0001
+;nc_time = in->time
+;nc_time@units="days since 0001-01-01 00:00:00"
+;printVarSummary(nc_time)
+
 ; Write to NetCDF
-  print("Writing file...")
-  
-  ; write the sst and ice streams to be read in CIME
-  in->SST_cpl = (/sst_fv_dbl_time/)
-  if (do_ice) then
-    in->ice_cov = (/ice_fv_dbl_time/)
-  end if
-  
-  ; print snapshot of interpolated data from obs
-  in->sst_snapshot = sst_fv_dbl
-  if (do_ice) then
-    in->ice_snapshot = ice_fv_dbl
-  end if
+print("Writing file...")
+
+; write the sst and ice streams to be read in CIME
+in->SST_cpl = (/sst_fv_dbl_time/)
+if (do_ice) then
+  in->ice_cov = (/ice_fv_dbl_time/)
+end if
+
+; print snapshot of interpolated data from obs
+in->sst_snapshot = sst_fv_dbl
+if (do_ice) then
+  in->ice_snapshot = ice_fv_dbl
+end if
+
 ; for debugging 
 ;system("/bin/rm -f simple.nc")   ; remove any pre-existing file
 ;ncdf = addfile("simple.nc" ,"c")  ; open output netCDF file
