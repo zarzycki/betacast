@@ -86,6 +86,7 @@ if [ -z ${do_runoff+x} ]; then do_runoff=0; fi
 if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=1; fi
 if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
 if [ -z ${predict_docn+x} ]; then predict_docn=1; fi
+if [ -z ${archive_inic+x} ]; then archive_inic=0; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -1083,6 +1084,41 @@ cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $perturb_namelist $archivedir/be
 
 # Copy user_nl* files to archive dir as well...
 cp -v $path_to_case/user* $archivedir/nl_files
+
+# Archive initial conditions?
+if [ $archive_inic -eq 1 ]; then
+  # Strip surrounding quotes from string [$1: variable name]
+  function strip_quotes() {
+    local -n var="$1"
+    [[ "${var}" == \"*\" || "${var}" == \'*\' ]] && var="${var:1:-1}"
+  }
+
+  mkdir -p $archivedir/inic
+
+  # Copy ELM initial conditions
+  ARCFILE=`grep ^finidat ${path_to_case}/user_nl_${lndName} | cut -d "=" -f2`
+  strip_quotes ARCFILE
+  echo "Found initial file: "$ARCFILE
+  cp -v $ARCFILE $archivedir/inic
+
+  # Copy EAM initial conditions
+  ARCFILE=`grep ^ncdata ${path_to_case}/user_nl_${atmName} | cut -d "=" -f2`
+  strip_quotes ARCFILE
+  echo "Found initial file: "$ARCFILE
+  cp -v $ARCFILE $archivedir/inic
+
+  # Copy MOSART initial conditions
+  if [ $do_runoff -ne 0 ]; then
+    ARCFILE=`grep ^finidat_rtm ${path_to_case}/user_nl_${rofName} | cut -d "=" -f2`
+    strip_quotes ARCFILE
+    echo "Found initial file: "$ARCFILE
+    cp -v $ARCFILE $archivedir/inic
+  fi
+
+  # Compress files using lossless compression
+  cd $archivedir/inic
+  for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
+fi
 
 ## Move land files to new restart location
 cd $path_to_nc_files
