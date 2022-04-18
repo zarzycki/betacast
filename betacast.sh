@@ -33,6 +33,8 @@ date
 set -e
 #set -v
 
+source "tools/bash_fcns.sh"
+
 # Set files, in reality order doesn't matter
 MACHINEFILE=${1}
 NAMELISTFILE=${2}
@@ -1087,11 +1089,6 @@ cp -v $path_to_case/user* $archivedir/nl_files
 
 # Archive initial conditions?
 if [ $archive_inic -eq 1 ]; then
-  # Strip surrounding quotes from string [$1: variable name]
-  function strip_quotes() {
-    local -n var="$1"
-    [[ "${var}" == \"*\" || "${var}" == \'*\' ]] && var="${var:1:-1}"
-  }
 
   mkdir -p $archivedir/inic
 
