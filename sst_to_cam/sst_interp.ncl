@@ -24,9 +24,16 @@ begin
 ;SST_write_dir = "/glade/p/work/zarzycki/sewx/SST/"
 ;datasource = "GDAS"
 
-print("copying SST file from repo to "+SST_write_file)
-system("cp ./sst_1x1.nc "+SST_write_file)
-
+; Note: copy_orig = True is the old way where a file was copied and then overwritten
+; Much "smarter" to just do this from scratch...
+copy_orig = False
+if (copy_orig) then
+  print("copying SST file from repo to "+SST_write_file)
+  system("cp ./sst_1x1.nc "+SST_write_file)
+  readinFile=SST_write_file
+else
+  readinFile="./sst_1x1.nc"
+end if
 
 if (.not. isvar("predict_docn")) then
   do_anom=False  
@@ -63,16 +70,14 @@ dd=toint(tst_dtime(2))
 hh=toint(tst_dtime(3))
 
 ; Load SST files that we want to overwrite
-do filenum = 0,0 ;Begin multiple file loop
-if (filenum .eq. 0) then
-    print("Writing 1x1 SSTs")
-    in = addfile(SST_write_file,"w")
-else if (filenum .eq. 1) then
-    print("Writing 0.23x0.31 SSTs")
-    in = addfile(SST_write_dir+"sst_0.23x0.31.nc","w")
+print("Writing 1x1 SSTs")
+if (copy_orig) then
+  in = addfile(SST_write_file,"w")
 else
+  in = addfile(readinFile,"r")
 end if
-end if
+;print("Writing 0.23x0.31 SSTs")
+;in = addfile(SST_write_dir+"sst_0.23x0.31.nc","w")
 
 if (datasource .eq. "GDAS") then
   sst_file = addfile(sstDataFile,"r")
@@ -209,38 +214,35 @@ if (do_ice) then
   print("Correcting ICE time records")
   ice_fv_dbl_time = new((/12,numfvlat,numfvlon/),float)
   
-
-
-if (do_anom) then
+  if (do_anom) then
+    
+    climo_ice = in->ice_cov
+    climo_ice_daily = linint1_n_Wrap (climo_ice&time, climo_ice, True, daily_time, 0, 0)
   
-  climo_ice = in->ice_cov
-  climo_ice_daily = linint1_n_Wrap (climo_ice&time, climo_ice, True, daily_time, 0, 0)
-
-  ice_anom = ice_fv_dbl
-  ice_anom = ice_fv_dbl - climo_ice_daily(doyint,:,:)
+    ice_anom = ice_fv_dbl
+    ice_anom = ice_fv_dbl - climo_ice_daily(doyint,:,:)
+    
+    do i = 0,11
+      ice_fv_dbl_time(i,:,:) = climo_ice(i,:,:) + ice_anom(:,:)
+    end do
+    
+    ; clip ice cover frac to values between 0 and 1
+    ice_fv_dbl_time = where(ice_fv_dbl_time .gt. 1.0,1.0,ice_fv_dbl_time)
+    ice_fv_dbl_time = where(ice_fv_dbl_time .lt. 0.0,0.0,ice_fv_dbl_time)
+    
+  else
   
-  do i = 0,11
-    ice_fv_dbl_time(i,:,:) = climo_ice(i,:,:) + ice_anom(:,:)
-  end do
-  
-  ; clip ice cover frac to values between 0 and 1
-  ice_fv_dbl_time = where(ice_fv_dbl_time .gt. 1.0,1.0,ice_fv_dbl_time)
-  ice_fv_dbl_time = where(ice_fv_dbl_time .lt. 0.0,0.0,ice_fv_dbl_time)
-  
-else
+    do i = 0,11
+      ice_fv_dbl_time(i,:,:) = ice_fv_dbl
+    end do
+    
+  end if ; if do_anom
 
-  do i = 0,11
-    ice_fv_dbl_time(i,:,:) = ice_fv_dbl
-  end do
-  
-end if
+end if ; if do_ice
 
-
-
-
-end if
-
-print("Convert to float")
+; change units from yr 0000 to 0001
+nc_time = in->time
+nc_time@units="days since 0001-01-01 00:00:00"
 
 date = new(1,integer)
 datasec = new(1,integer)
@@ -254,25 +256,64 @@ date!0 = "time"
 datasec!0 = "time"
 timecoord!0 = "time"
 
-; 4/18/22 --> cannot get this to work without writing a fresh file
-; change units from yr 0000 to 0001
-;nc_time = in->time
-;nc_time@units="days since 0001-01-01 00:00:00"
-;printVarSummary(nc_time)
+; Adding relevant coordinates
+sst_fv_dbl_time!0 = "time"
+sst_fv_dbl_time!1 = "lat"
+sst_fv_dbl_time!2 = "lon"
+sst_fv_dbl_time&time = nc_time
+sst_fv_dbl_time&lat = fvlat
+sst_fv_dbl_time&lon = fvlon
+ice_fv_dbl_time!0 = "time"
+ice_fv_dbl_time!1 = "lat"
+ice_fv_dbl_time!2 = "lon"
+ice_fv_dbl_time&time = nc_time
+ice_fv_dbl_time&lat = fvlat
+ice_fv_dbl_time&lon = fvlon
 
 ; Write to NetCDF
 print("Writing file...")
 
-; write the sst and ice streams to be read in CIME
-in->SST_cpl = (/sst_fv_dbl_time/)
-if (do_ice) then
-  in->ice_cov = (/ice_fv_dbl_time/)
-end if
+if (copy_orig) then
+  ; write the sst and ice streams to be read in CIME
+  in->SST_cpl = (/sst_fv_dbl_time/)
+  if (do_ice) then
+    in->ice_cov = (/ice_fv_dbl_time/)
+  end if
+  ; print snapshot of interpolated data from obs
+  in->sst_snapshot = sst_fv_dbl
+  if (do_ice) then
+    in->ice_snapshot = ice_fv_dbl
+  end if
+else
+  system("/bin/rm -f -v "+SST_write_file)
+  out = addfile(SST_write_file,"c")
+       
+  fAtt               = True
+  fAtt@creation_date = systemfunc ("date")
+  fileattdef(out, fAtt)
+  filedimdef(out,"time",-1,True) 
+  
+  ; copy over some vars. Not sure top 2 are needed.
+  out->date = in->date
+  out->datesec = in->datesec
+  out->lat = in->lat
+  out->lon = in->lon
+  
+  ; updated time coord with new units
+  out->time = nc_time
 
-; print snapshot of interpolated data from obs
-in->sst_snapshot = sst_fv_dbl
-if (do_ice) then
-  in->ice_snapshot = ice_fv_dbl
+  ; output SST and ice fields
+  out->SST_cpl = sst_fv_dbl_time
+  if (do_ice) then
+    out->ice_cov = ice_fv_dbl_time
+  end if
+  
+  ; print snapshot of interpolated data from obs
+  out->sst_snapshot = sst_fv_dbl
+  if (do_ice) then
+    out->ice_snapshot = ice_fv_dbl
+  end if
+
 end if
 
 ; for debugging 
@@ -304,8 +345,6 @@ if (do_anom) then
   delete(climo_ice_daily)
   delete(ice_anom)
 end if
-
-end do ; End multiple file loop
 
 status_exit(9)
 

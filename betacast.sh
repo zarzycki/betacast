@@ -129,11 +129,11 @@ fi
 
 # Check if ncks exists for compression
 if ! type ncks &> /dev/null ; then
-  echo "ERROR: ncks does not exist. Make sure ncks is in your path when betacast is invoked"
-  exit 1
-  #echo "WARNING: ncks does not exist, cannot compress. Setting compress_history_nc to 0 (false)"
-  #echo "WARNING: if you'd like remedy, make sure ncks is in your path when betacast.sh is invoked"
-  #compress_history_nc=0
+  #echo "ERROR: ncks does not exist. Make sure ncks is in your path when betacast is invoked"
+  #exit 1
+  echo "WARNING: ncks does not exist, cannot compress. Setting compress_history_nc to 0 (false)"
+  echo "WARNING: if you'd like remedy, make sure ncks is in your path when betacast.sh is invoked"
+  compress_history_nc=0
 fi
 
 ###################################################################################
@@ -567,7 +567,8 @@ if [ $debug -ne 1 ] ; then
   fi
   echo "SST NCL completed successfully"
   set -e # Turn error checking back on
-  ncatted -O -a units,time,o,c,"days since 0001-01-01 00:00:00" ${sstFileIC} ${sstFileIC}
+  # Removed 4/18/22 since this can be done inside sst_interp.ncl
+  #ncatted -O -a units,time,o,c,"days since 0001-01-01 00:00:00" ${sstFileIC} ${sstFileIC}
 
   ############################### ATM NCL ############################### 
 
@@ -1098,7 +1099,6 @@ cp -v $path_to_case/user* $archivedir/nl_files
 # Archive initial conditions?
 if [ $archive_inic -eq 1 ]; then
   echo "Archiving initial condition files..."
-
   mkdir -p $archivedir/inic
 
   # Copy LND initial conditions
@@ -1120,6 +1120,9 @@ if [ $archive_inic -eq 1 ]; then
     echo "Found initial file: "$ARCFILE
     cp -v $ARCFILE $archivedir/inic
   fi
+
+  # Copy SST conditions
+  cp -v $sstFileIC $archivedir/inic
 
   if [ $compress_history_nc -eq 1 ]; then
     # Compress files using lossless compression
