@@ -126,6 +126,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | islive | if 1 then pull GDAS/GFS from server in real-time, 0 is "hindcast" mode |
 | datestemplate | If islive = 0, dates.XXX.txt file to cp if Betacast cannot find an existing dates file |
 | runmodel | Unused, set to "true" |
+| archive_inic | Add compressed initial conditions for component models to archive directory (0 = no, 1 = yes) |
 | modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2 (defaults to 0 if empty or not included) |
 | do_runoff | Include runoff model files. 0 = no, 1 = yes (defaults to 0 if empty or not included) |
 | atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5 |
@@ -145,7 +146,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | land_spinup | Cycle land spinup only (unsupported currently, leave false) |
 | keep_land_restarts | 0 = delete land restart files, 1 = archive land restart files (possibly overwriting those in ${CASE}/run/landstart |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
-| predict_docn | 0 = superimpose initialization anomalies on time-varying climatology, 1 = persist t=0 SST/ice fields for duration of simulation |
+| predict_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |
 | anl2mdlWeights | Full path name of weights file for analysis -> model regridding (see previous section) |
 | PROJECTID | Project ID for run submissions |
 | FILTERWALLCLOCK | Wall clock time for filter run |

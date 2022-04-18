@@ -85,7 +85,7 @@ if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
 if [ -z ${do_runoff+x} ]; then do_runoff=0; fi
 if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=1; fi
 if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
-if [ -z ${predict_docn+x} ]; then predict_docn=1; fi
+if [ -z ${predict_docn+x} ]; then predict_docn=0; fi
 if [ -z ${archive_inic+x} ]; then archive_inic=0; fi
 
 ### Set correct E3SM/CESM split
