@@ -127,6 +127,12 @@ if [ -z ${anl2mdlWeights+x} ] && [ ${gfs2seWeights+x} ] ; then
   anl2mdlWeights=$gfs2seWeights
 fi
 
+# Check if ncks exists
+if ! type ncl &> /dev/null ; then
+  echo "ERROR: ncl does not exist. Make sure ncl is in your path when betacast is invoked"
+  exit 1
+fi
+
 # Check if ncks exists for compression
 if ! type ncks &> /dev/null ; then
   #echo "ERROR: ncks does not exist. Make sure ncks is in your path when betacast is invoked"
