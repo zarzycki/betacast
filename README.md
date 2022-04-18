@@ -126,7 +126,8 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | islive | if 1 then pull GDAS/GFS from server in real-time, 0 is "hindcast" mode |
 | datestemplate | If islive = 0, dates.XXX.txt file to cp if Betacast cannot find an existing dates file |
 | runmodel | Unused, set to "true" |
-| archive_inic | Add compressed initial conditions for component models to archive directory (0 = no, 1 = yes) |
+| archive_inic | Add (NCO-compressed) initial conditions for component models to archive directory (0 = no (default), 1 = yes) |
+| compress_history_nc | Use NCO lossless compression to compress history files (0 = no (default), 1 = yes) |
 | modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2 (defaults to 0 if empty or not included) |
 | do_runoff | Include runoff model files. 0 = no, 1 = yes (defaults to 0 if empty or not included) |
 | atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5 |

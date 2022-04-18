@@ -89,6 +89,7 @@ if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=1; fi
 if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
 if [ -z ${predict_docn+x} ]; then predict_docn=0; fi
 if [ -z ${archive_inic+x} ]; then archive_inic=0; fi
+if [ -z ${compress_history_nc+x} ]; then compress_history_nc=0; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -1089,22 +1090,23 @@ cp -v $path_to_case/user* $archivedir/nl_files
 
 # Archive initial conditions?
 if [ $archive_inic -eq 1 ]; then
+  echo "Archiving initial condition files..."
 
   mkdir -p $archivedir/inic
 
-  # Copy ELM initial conditions
+  # Copy LND initial conditions
   ARCFILE=`grep ^finidat ${path_to_case}/user_nl_${lndName} | cut -d "=" -f2`
   strip_quotes ARCFILE
   echo "Found initial file: "$ARCFILE
   cp -v $ARCFILE $archivedir/inic
 
-  # Copy EAM initial conditions
+  # Copy ATM initial conditions
   ARCFILE=`grep ^ncdata ${path_to_case}/user_nl_${atmName} | cut -d "=" -f2`
   strip_quotes ARCFILE
   echo "Found initial file: "$ARCFILE
   cp -v $ARCFILE $archivedir/inic
 
-  # Copy MOSART initial conditions
+  # Copy ROF initial conditions
   if [ $do_runoff -ne 0 ]; then
     ARCFILE=`grep ^finidat_rtm ${path_to_case}/user_nl_${rofName} | cut -d "=" -f2`
     strip_quotes ARCFILE
@@ -1115,6 +1117,13 @@ if [ $archive_inic -eq 1 ]; then
   # Compress files using lossless compression
   cd $archivedir/inic
   for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
+fi
+
+if [ $compress_history_nc -eq 1 ]; then
+  # Compress files using lossless compression
+  echo "Compressing model history files..."
+  cd $archivedir
+  for f in *.h*.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
 fi
 
 ## Move land files to new restart location
