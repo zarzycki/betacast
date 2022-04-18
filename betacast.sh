@@ -33,8 +33,6 @@ date
 set -e
 #set -v
 
-source "tools/bash_fcns.sh"
-
 # Set files, in reality order doesn't matter
 MACHINEFILE=${1}
 NAMELISTFILE=${2}
@@ -66,6 +64,8 @@ while [ $1 ]
  done
 
 set -u  # turn on crashes for unbound variables in bash
+
+source "$sewxscriptsdir/tools/bash_fcns.sh"   # Source external bash functions
 
 ###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
