@@ -263,12 +263,14 @@ sst_fv_dbl_time!2 = "lon"
 sst_fv_dbl_time&time = nc_time
 sst_fv_dbl_time&lat = fvlat
 sst_fv_dbl_time&lon = fvlon
-ice_fv_dbl_time!0 = "time"
-ice_fv_dbl_time!1 = "lat"
-ice_fv_dbl_time!2 = "lon"
-ice_fv_dbl_time&time = nc_time
-ice_fv_dbl_time&lat = fvlat
-ice_fv_dbl_time&lon = fvlon
+if (do_ice) then
+  ice_fv_dbl_time!0 = "time"
+  ice_fv_dbl_time!1 = "lat"
+  ice_fv_dbl_time!2 = "lon"
+  ice_fv_dbl_time&time = nc_time
+  ice_fv_dbl_time&lat = fvlat
+  ice_fv_dbl_time&lon = fvlon
+end if
 
 ; Write to NetCDF
 print("Writing file...")
@@ -306,6 +308,11 @@ else
   out->SST_cpl = sst_fv_dbl_time
   if (do_ice) then
     out->ice_cov = ice_fv_dbl_time
+  else
+    tmpice = in->ice_cov
+    copy_VarCoords(sst_fv_dbl_time,tmpice)
+    out->ice_cov = tmpice
+    delete(tmpice)
   end if
   
   ; print snapshot of interpolated data from obs
