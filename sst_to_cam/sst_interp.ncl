@@ -53,13 +53,10 @@ print("do_anom (i.e., predict_docn) set to: "+do_anom)
 print("running date "+initdate)
 KtoC=273.15
 
-if (datasource .eq. "GDAS") then
-  do_ice = False
-else if (datasource .eq. "NOAAOI") then
-  do_ice = True
-else
-end if
-end if
+; GDAS ice settings
+TTHRESH=271.95   ; initial cut for ice vs. open ocean
+smooth_ice=True  ; smooth the ice field?
+smooth_iter=3    ; if yes, number of iters?
 
 ; Get YYYYMMDDHH from the initdate string
 dtime_map = (/4,2,2,2/)
@@ -84,6 +81,17 @@ if (datasource .eq. "GDAS") then
   sstlat = sst_file->lat_0
   sstlon = sst_file->lon_0
   sst_gfs = sst_file->TMP_P0_L1_GLL0(:,:)
+  ; handle ice
+  print("For GDAS, set all native cells less than "+TTHRESH+" to ice covered")
+  ice_gfs = sst_gfs
+  ice_gfs = where(sst_gfs .gt. TTHRESH , 0.0, 1.0)
+  if (smooth_ice) then
+    print("smoothing derived ice field "+smooth_iter+" times!")
+    do SM = 0,smooth_iter-1
+      ice_gfs = smth9_Wrap(ice_gfs, 0.50,  0.25, True)
+    end do
+  end if
+  ; Convert SST from K -> degC
   sst_gfs = sst_gfs - KtoC
 else if (datasource .eq. "NOAAOI") then
   sst_file = addfile(sstDataFile,"r")
@@ -117,6 +125,7 @@ numfvlon = dimsizes(fvlon)
 if (datasource .eq. "GDAS") then
   ; Need to flip raw GDAS lats/lons to match SST file
   sst_fv = linint2_Wrap (sstlon,sstlat(::-1),sst_gfs(::-1,:),True,fvlon,fvlat,0)
+  ice_fv = linint2_Wrap (sstlon,sstlat(::-1),ice_gfs(::-1,:),True,fvlon,fvlat,0)
 else if (datasource .eq. "NOAAOI") then
   sst_fv = linint2_Wrap(sstlon,sstlat,sst_gfs,True,fvlon,fvlat,0)
   ice_fv = linint2_Wrap(sstlon,sstlat,ice_gfs,True,fvlon,fvlat,0)
@@ -187,58 +196,52 @@ else
   end do
   
 end if
-
-if (do_ice) then
-  ;ice_fv = linmsg(ice_fv,-1)
-  ;ice_fv = linmsg_n(ice_fv,-1,0)
   
-  print("Sorting bad ice")
-  do i = 0,dimsizes(fvlat)-1
-      do j = 0,dimsizes(fvlon)-1
-              if (ismissing(ice_fv(i,j))) then
-                  ;print("Found missing ice")
-                  ice_fv(i,j) = 0
-              else if (ice_fv(i,j) .gt. 500) then
-                  print("Found bad ice")
-                  ice_fv(i,j) = 1 
-              end if
-              end if
-      end do
+print("Sorting bad ice")
+do i = 0,dimsizes(fvlat)-1
+  do j = 0,dimsizes(fvlon)-1
+          if (ismissing(ice_fv(i,j))) then
+              ;print("Found missing ice")
+              ice_fv(i,j) = 0
+          else if (ice_fv(i,j) .gt. 500) then
+              print("Found bad ice")
+              ice_fv(i,j) = 1 
+          end if
+          end if
   end do
-  
-  print("Converting ICE floats to doubles")
-  ice_fv_dbl = tofloat(ice_fv)
-  print("Copying ICE metadata")
-  copy_VarMeta(ice_fv,ice_fv_dbl)
-  delete(ice_fv)
-  print("Correcting ICE time records")
-  ice_fv_dbl_time = new((/12,numfvlat,numfvlon/),float)
-  
-  if (do_anom) then
-    
-    climo_ice = in->ice_cov
-    climo_ice_daily = linint1_n_Wrap (climo_ice&time, climo_ice, True, daily_time, 0, 0)
-  
-    ice_anom = ice_fv_dbl
-    ice_anom = ice_fv_dbl - climo_ice_daily(doyint,:,:)
-    
-    do i = 0,11
-      ice_fv_dbl_time(i,:,:) = climo_ice(i,:,:) + ice_anom(:,:)
-    end do
-    
-    ; clip ice cover frac to values between 0 and 1
-    ice_fv_dbl_time = where(ice_fv_dbl_time .gt. 1.0,1.0,ice_fv_dbl_time)
-    ice_fv_dbl_time = where(ice_fv_dbl_time .lt. 0.0,0.0,ice_fv_dbl_time)
-    
-  else
-  
-    do i = 0,11
-      ice_fv_dbl_time(i,:,:) = ice_fv_dbl
-    end do
-    
-  end if ; if do_anom
+end do
 
-end if ; if do_ice
+print("Converting ICE floats to doubles")
+ice_fv_dbl = tofloat(ice_fv)
+print("Copying ICE metadata")
+copy_VarMeta(ice_fv,ice_fv_dbl)
+delete(ice_fv)
+print("Correcting ICE time records")
+ice_fv_dbl_time = new((/12,numfvlat,numfvlon/),float)
+
+if (do_anom) then
+
+  climo_ice = in->ice_cov
+  climo_ice_daily = linint1_n_Wrap (climo_ice&time, climo_ice, True, daily_time, 0, 0)
+  
+  ice_anom = ice_fv_dbl
+  ice_anom = ice_fv_dbl - climo_ice_daily(doyint,:,:)
+  
+  do i = 0,11
+    ice_fv_dbl_time(i,:,:) = climo_ice(i,:,:) + ice_anom(:,:)
+  end do
+
+else
+
+  do i = 0,11
+    ice_fv_dbl_time(i,:,:) = ice_fv_dbl
+  end do
+
+end if ; if do_anom
+
+; clip ice cover frac to values between 0 and 1
+ice_fv_dbl_time = where(ice_fv_dbl_time .gt. 1.0,1.0,ice_fv_dbl_time)
+ice_fv_dbl_time = where(ice_fv_dbl_time .lt. 0.0,0.0,ice_fv_dbl_time)
 
 ; change units from yr 0000 to 0001
 nc_time = in->time
@@ -263,14 +266,12 @@ sst_fv_dbl_time!2 = "lon"
 sst_fv_dbl_time&time = nc_time
 sst_fv_dbl_time&lat = fvlat
 sst_fv_dbl_time&lon = fvlon
-if (do_ice) then
-  ice_fv_dbl_time!0 = "time"
-  ice_fv_dbl_time!1 = "lat"
-  ice_fv_dbl_time!2 = "lon"
-  ice_fv_dbl_time&time = nc_time
-  ice_fv_dbl_time&lat = fvlat
-  ice_fv_dbl_time&lon = fvlon
-end if
+ice_fv_dbl_time!0 = "time"
+ice_fv_dbl_time!1 = "lat"
+ice_fv_dbl_time!2 = "lon"
+ice_fv_dbl_time&time = nc_time
+ice_fv_dbl_time&lat = fvlat
+ice_fv_dbl_time&lon = fvlon
 
 ; Write to NetCDF
 print("Writing file...")
@@ -278,14 +279,10 @@ print("Writing file...")
 if (copy_orig) then
   ; write the sst and ice streams to be read in CIME
   in->SST_cpl = (/sst_fv_dbl_time/)
-  if (do_ice) then
-    in->ice_cov = (/ice_fv_dbl_time/)
-  end if
+  in->ice_cov = (/ice_fv_dbl_time/)
   ; print snapshot of interpolated data from obs
   in->sst_snapshot = sst_fv_dbl
-  if (do_ice) then
-    in->ice_snapshot = ice_fv_dbl
-  end if
+  in->ice_snapshot = ice_fv_dbl
 else
   system("/bin/rm -f -v "+SST_write_file)
   out = addfile(SST_write_file,"c")
@@ -306,20 +303,10 @@ else
 
   ; output SST and ice fields
   out->SST_cpl = sst_fv_dbl_time
-  if (do_ice) then
-    out->ice_cov = ice_fv_dbl_time
-  else
-    tmpice = in->ice_cov
-    copy_VarCoords(sst_fv_dbl_time,tmpice)
-    out->ice_cov = tmpice
-    delete(tmpice)
-  end if
-  
+  out->ice_cov = ice_fv_dbl_time
   ; print snapshot of interpolated data from obs
   out->sst_snapshot = sst_fv_dbl
-  if (do_ice) then
-    out->ice_snapshot = ice_fv_dbl
-  end if
+  out->ice_snapshot = ice_fv_dbl
 
 end if
 
@@ -332,26 +319,6 @@ end if
 ;ncdf->ice_snapshot = ice_fv_dbl
 
 print("done")
-  
-delete(fvlat)
-delete(fvlon)
-delete(sst_fv_dbl)
-if (do_ice) then
-  delete(ice_fv_dbl)
-  delete(ice_fv_dbl_time)
-end if
-delete(sst_fv_dbl_time)
-delete(numfvlat)
-delete(numfvlon)
-
-if (do_anom) then
-  delete(climo_SST)
-  delete(climo_SST_daily)
-  delete(sst_anom)
-  delete(climo_ice)
-  delete(climo_ice_daily)
-  delete(ice_anom)
-end if
 
 status_exit(9)
 
