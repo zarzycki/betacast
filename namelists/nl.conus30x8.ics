@@ -49,7 +49,7 @@
   casename = RHEL7_forecast_conus_30_x8_CAM5_L30
 
 # Weight file for going from GFS -> VR-SE
-  gfs2seWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
+  anl2mdlWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
 
 # Repo of 1deg CLM inic for "cold starts"
   landrawdir = ~/scratch/output/RHEL7_forecast_nhemitc_30_x4_CAM5_L30.001/run/landstart/
