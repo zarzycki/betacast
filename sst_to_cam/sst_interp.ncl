@@ -24,6 +24,14 @@ begin
 ;SST_write_dir = "/glade/p/work/zarzycki/sewx/SST/"
 ;datasource = "GDAS"
 
+; GDAS ice settings
+TTHRESH=271.9   ; initial cut for ice vs. open ocean
+smooth_ice=True  ; smooth the ice field?
+smooth_iter=3    ; if yes, number of iters?
+
+; constants (don't change!)
+KtoC=273.15
+
 ; Note: copy_orig = True is the old way where a file was copied and then overwritten
 ; Much "smarter" to just do this from scratch...
 copy_orig = False
@@ -51,13 +59,6 @@ end if
 print("do_anom (i.e., predict_docn) set to: "+do_anom)
 
 print("running date "+initdate)
-KtoC=273.15
-
-; GDAS ice settings
-TTHRESH=271.95   ; initial cut for ice vs. open ocean
-smooth_ice=True  ; smooth the ice field?
-smooth_iter=3    ; if yes, number of iters?
-
 ; Get YYYYMMDDHH from the initdate string
 dtime_map = (/4,2,2,2/)
 tst_dtime = str_split_by_length(initdate, dtime_map)
@@ -73,8 +74,6 @@ if (copy_orig) then
 else
   in = addfile(readinFile,"r")
 end if
-;print("Writing 0.23x0.31 SSTs")
-;in = addfile(SST_write_dir+"sst_0.23x0.31.nc","w")
 
 if (datasource .eq. "GDAS") then
   sst_file = addfile(sstDataFile,"r")
@@ -111,17 +110,6 @@ fvlon  = in->lon
 numfvlat = dimsizes(fvlat)
 numfvlon = dimsizes(fvlon)
 
-; wks   = gsn_open_wks ("x11", "coneff")       ; open ps file
-; gsn_define_colormap(wks,"gui_default")        ; choose color map
-; res                 = True                    ; plot mods desired
-; res@gsnDraw         = False                   ; don't draw yet
-; res@gsnFrame        = False                   ; don't advance frame yet
-; res@cnFillOn        = True                    ; turn on color
-; res@gsnSpreadColors = True                    ; use full colormap
-; plot = gsn_csm_hov(wks, sst_gfs, res) 
-; draw(plot)
-; frame(wks)
-
 if (datasource .eq. "GDAS") then
   ; Need to flip raw GDAS lats/lons to match SST file
   sst_fv = linint2_Wrap (sstlon,sstlat(::-1),sst_gfs(::-1,:),True,fvlon,fvlat,0)
@@ -138,17 +126,17 @@ sst_fv = linmsg_n(sst_fv,-1,0)
 
 print("Sorting bad SST")
 do i = 0,dimsizes(fvlat)-1
-    do j = 0,dimsizes(fvlon)-1
-            if (ismissing(sst_fv(i,j))) then
-                print("Found missing SST")
-                sst_fv(i,j) = 271.5
-            else if (sst_fv(i,j) .gt. 500) then
-                print("Found bad value")
-                sst_fv(i,j) = 271.5
-            end if
-            end if
-        sst_fv(i,j) = sst_fv(i,j); - 273.15
-    end do
+  do j = 0,dimsizes(fvlon)-1
+      if (ismissing(sst_fv(i,j))) then
+        print("Found missing SST, setting to "+TTHRESH)
+        sst_fv(i,j) = TTHRESH
+      else if (sst_fv(i,j) .gt. 500) then
+        print("Found bad value, setting to "+TTHRESH)
+        sst_fv(i,j) = TTHRESH
+      end if
+      end if
+    sst_fv(i,j) = sst_fv(i,j); - 273.15
+  end do
 end do
 
 print("Converting SST floats to doubles")
@@ -159,7 +147,6 @@ delete(sst_fv)
 print("Correcting SST time records")
 ; Add time record
 sst_fv_dbl_time = new((/12,numfvlat,numfvlon/),float)
-
 
 if (do_anom) then
 
@@ -190,7 +177,6 @@ if (do_anom) then
 else
 
   print("SST_TO_CAM: Creating time-invariant SST forcing")
-
   do i = 0,11
     sst_fv_dbl_time(i,:,:) = sst_fv_dbl
   end do
@@ -200,14 +186,14 @@ end if
 print("Sorting bad ice")
 do i = 0,dimsizes(fvlat)-1
   do j = 0,dimsizes(fvlon)-1
-          if (ismissing(ice_fv(i,j))) then
-              ;print("Found missing ice")
-              ice_fv(i,j) = 0
-          else if (ice_fv(i,j) .gt. 500) then
-              print("Found bad ice")
-              ice_fv(i,j) = 1 
-          end if
-          end if
+    if (ismissing(ice_fv(i,j))) then
+      ;print("Found missing ice")
+      ice_fv(i,j) = 0.0
+    else if (ice_fv(i,j) .gt. 500) then
+      print("Found bad ice, setting to 1.0")
+      ice_fv(i,j) = 1.0
+    end if
+    end if
   end do
 end do
 
