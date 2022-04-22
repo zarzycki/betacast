@@ -1,0 +1,28 @@
+--- /glade/u/home/zarzycki/work/test/CAM/components/clm/src/cpl/nuopc/lnd_comp_nuopc.F90	2022-04-21 10:43:59.291198295 -0600
++++ lnd_comp_nuopc.F90	2022-04-22 06:34:34.403775624 -0600
+@@ -842,11 +842,24 @@
+ 
+        !--------------------------------
+        ! Determine if time to write restart
+        !--------------------------------
+        rstwr = .false.
+-       if (nlend .and. write_restart_at_endofrun) then
++       
++       ! ++CMZ
++       ! Get next time to get tod_sync and see if we will be writing at 00Z or 12Z next step
++       ! Note model clock is updated at end of timestep, so I think that's why we need next time here
++       ! tod_sync is first init here, so querying it before ESMF_clock gives garbage answers
++       !print *,tod_sync
++       call ESMF_ClockGetNextTime(clock, nextTime=nextTime, rc=rc)
++       if (ChkErr(rc,__LINE__,u_FILE_u)) return
++       call ESMF_TimeGet( nextTime, yy=yr_sync, mm=mon_sync, dd=day_sync, s=tod_sync, rc=rc )
++       !print *,'--> ',tod_sync
++
++       !if (nlend .and. write_restart_at_endofrun) then
++       if ((nlend .and. write_restart_at_endofrun) .OR. tod_sync == 0 .OR. tod_sync == 43200 ) then
++       ! ++CMZ
+           rstwr = .true.
+        else 
+           call ESMF_ClockGetAlarm(clock, alarmname='alarm_restart', alarm=alarm, rc=rc)
+           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+           if (ESMF_AlarmIsCreated(alarm, rc=rc)) then
