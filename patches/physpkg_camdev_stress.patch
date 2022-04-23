@@ -1,0 +1,72 @@
+--- /glade/u/home/zarzycki/work/test/CAM/src/physics/cam_dev/physpkg.F90	2022-04-21 10:43:44.972582177 -0600
++++ physpkg.F90	2022-04-22 20:05:41.075584630 -0600
+@@ -1297,11 +1297,12 @@
+     use physics_types,      only: physics_dme_adjust, set_dry_to_wet, physics_state_check,       &
+                                   dyn_te_idx
+     use waccmx_phys_intr,   only: waccmx_phys_mspd_tend  ! WACCM-X major diffusion
+     use waccmx_phys_intr,   only: waccmx_phys_ion_elec_temp_tend ! WACCM-X
+     use aoa_tracers,        only: aoa_tracers_timestep_tend
+-    use physconst,          only: rhoh2o
++    !++CMZ add rair
++    use physconst,          only: rhoh2o, rair
+     use aero_model,         only: aero_model_drydep
+     use check_energy,       only: check_energy_chng, calc_te_and_aam_budgets
+     use check_energy,       only: check_tracers_data, check_tracers_init, check_tracers_chng
+     use time_manager,       only: get_nstep
+     use cam_abortutils,     only: endrun
+@@ -1395,10 +1396,15 @@
+     real(r8) :: flx_cnd(pcols)
+ 
+     real(r8) :: zero_sc(pcols*psubcols)        ! array of zeros
+     real(r8) :: zero_tracers(pcols,pcnst)
+ 
++    !++CMZ
++    ! Dummy cmz_in var that can be updated
++    type(cam_in_t) :: cmz_in 
++    !--CMZ
++
+     real(r8), pointer :: dlfzm(:,:)            ! ZM detrained convective cloud water mixing ratio.
+     real(r8), pointer :: cmfmczm(:,:)          ! ZM convective mass fluxes
+     real(r8), pointer :: rliqbc(:)             ! tphysbc reserve liquid
+ 
+     ! stratiform precipitation variables
+@@ -1629,14 +1635,38 @@
+              if (trim(cam_take_snapshot_before) == "clubb_tend_cam") then
+                 call cam_snapshot_all_outfld_tphysac(cam_snapshot_before_num, state, tend, cam_in, cam_out, pbuf, &
+                      fh2o, surfric, obklen, flx_heat, cmfmc, dlf, det_s, det_ice, net_flx)
+              end if
+ 
++!++CMZ        
++             if (macmic_it == 1) then
++               cmz_in = cam_in
++             end if
++ 
++             if (macmic_it > 0 .and. nstep > 1) then
++               !if (masterproc)
++               !print *,'nstep: ',nstep,' macmic: ',macmic_it,' .. WSX: ',cam_in%wsx(1),'  PMID: ',state%pmid(1,pver),'  U: ',state%u(1,pver),'  T: ',state%t(1,pver),'  RAM: ',cam_in%ram1(1)
++               !where (cam_in%ram1(:ncol) > 0.0001_r8)  ! only update when RAM is not zero
++               where (cam_in%landfrac(:ncol) > 0.99999_r8)  ! only update when 100% land cell
++                 !print *,'BEFORE: ',cam_in%wsx
++                 cmz_in%wsx(:ncol) = -state%pmid(:ncol,pver) * state%u(:ncol,pver) / cam_in%ram1(:ncol) / rair / state%t(:ncol,pver)
++                 cmz_in%wsy(:ncol) = -state%pmid(:ncol,pver) * state%v(:ncol,pver) / cam_in%ram1(:ncol) / rair / state%t(:ncol,pver)
++                 !print *,'AFTER: ',cam_in%wsx
++                 !print *,'... ',cam_in%wsx,' ',state%pmid(:,pver),' ',state%u(:,pver),' ',state%t(:,pver),' ',cam_in%ram1
++               end where
++             end if
++
++!CMZ Pass in cmz_in instead of cam_in
+              call clubb_tend_cam(state, ptend, pbuf, cld_macmic_ztodt,&
+-                cmfmc, cam_in, macmic_it, cld_macmic_num_steps, &
++                cmfmc, cmz_in, macmic_it, cld_macmic_num_steps, &
+                 dlf, det_s, det_ice)
+ 
++!             call clubb_tend_cam(state, ptend, pbuf, cld_macmic_ztodt,&
++!                cmfmc, cam_in, macmic_it, cld_macmic_num_steps, &
++!                dlf, det_s, det_ice)
++!--CMZ
++
+              ! Since we "added" the reserved liquid back in this routine, we need
+              ! to account for it in the energy checker
+              flx_cnd(:ncol) = -1._r8*rliq(:ncol)
+              flx_heat(:ncol) = cam_in%shf(:ncol) + det_s(:ncol)
+ 
