@@ -71,7 +71,7 @@ source "$sewxscriptsdir/tools/bash_fcns.sh"   # Source external bash functions
 ############### OPTIONAL TO BE SET BY USER ########################################
 path_to_nc_files=${path_to_rundir}              # Path where .nc files are
 outputdir=${path_to_rundir}                     # Path where .nc files are being written
-archivedir=${path_to_rundir}/proc/              # Path to temporarily stage final data
+tmparchivecdir=${path_to_rundir}/proc/              # Path to temporarily stage final data
 landdir=${path_to_rundir}/landstart/            # Path to store land restart files
 ###################################################################################
 ### THESE COME WITH THE REPO, DO NOT CHANGE #######################################
@@ -111,6 +111,14 @@ else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
 fi
+
+if [ -z ${ARCHIVEDIR+x} ] || [[ -z "${ARCHIVEDIR// }" ]] ; then
+  ARCHIVEDIR=${outputdir}/
+else
+  ARCHIVEDIR=${ARCHIVEDIR}/${casename}/
+  mkdir -v -p ${ARCHIVEDIR}
+fi
+echo "Files will be archived in ${ARCHIVEDIR}/YYYYMMDDHH/"
 
 ### ERROR CHECKING BLOCK! #########################################################
 
@@ -1075,64 +1083,64 @@ fi # end run model
 cd $outputdir
 
 echo "Creating archive folder data structure"
-mkdir -p $archivedir
-mkdir -p $archivedir/images
-mkdir -p $archivedir/text
-mkdir -p $archivedir/nl_files
-mkdir -p $archivedir/logs
-mkdir -p $archivedir/betacast
+mkdir -p $tmparchivecdir
+mkdir -p $tmparchivecdir/images
+mkdir -p $tmparchivecdir/text
+mkdir -p $tmparchivecdir/nl_files
+mkdir -p $tmparchivecdir/logs
+mkdir -p $tmparchivecdir/betacast
 
 set +e
 
 echo "Moving relevant files to archive folder"
-mv -v *.${atmName}.h*.nc $archivedir
-mv -v *.${lndName}*.h*.nc $archivedir
-mv -v *.${rofName}*.h*.nc $archivedir
-cp -v *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $archivedir/nl_files
-mv -v *.txt $archivedir/text
-mv -v *.log.* $archivedir/logs
-mv -v timing.*.gz $archivedir/logs
-mv -v atm_chunk_costs*.gz $archivedir/logs
+mv -v *.${atmName}.h*.nc $tmparchivecdir
+mv -v *.${lndName}*.h*.nc $tmparchivecdir
+mv -v *.${rofName}*.h*.nc $tmparchivecdir
+cp -v *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $tmparchivecdir/nl_files
+mv -v *.txt $tmparchivecdir/text
+mv -v *.log.* $tmparchivecdir/logs
+mv -v timing.*.gz $tmparchivecdir/logs
+mv -v atm_chunk_costs*.gz $tmparchivecdir/logs
 
-mv -v timing/ $archivedir/
+mv -v timing/ $tmparchivecdir/
 
 # Copy betacast configs to archive directory for posterity
-cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $perturb_namelist $archivedir/betacast
+cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $perturb_namelist $tmparchivecdir/betacast
 
 # Copy user_nl* files to archive dir as well...
-cp -v $path_to_case/user* $archivedir/nl_files
+cp -v $path_to_case/user* $tmparchivecdir/nl_files
 
 # Archive initial conditions?
 if [ $archive_inic -eq 1 ]; then
   echo "Archiving initial condition files..."
-  mkdir -p $archivedir/inic
+  mkdir -p $tmparchivecdir/inic
 
   # Copy LND initial conditions
   ARCFILE=`grep ^finidat ${path_to_case}/user_nl_${lndName} | cut -d "=" -f2`
   strip_quotes ARCFILE
   echo "Found initial file: "$ARCFILE
-  cp -v $ARCFILE $archivedir/inic
+  cp -v $ARCFILE $tmparchivecdir/inic
 
   # Copy ATM initial conditions
   ARCFILE=`grep ^ncdata ${path_to_case}/user_nl_${atmName} | cut -d "=" -f2`
   strip_quotes ARCFILE
   echo "Found initial file: "$ARCFILE
-  cp -v $ARCFILE $archivedir/inic
+  cp -v $ARCFILE $tmparchivecdir/inic
 
   # Copy ROF initial conditions
   if [ $do_runoff -ne 0 ]; then
     ARCFILE=`grep ^finidat_rtm ${path_to_case}/user_nl_${rofName} | cut -d "=" -f2`
     strip_quotes ARCFILE
     echo "Found initial file: "$ARCFILE
-    cp -v $ARCFILE $archivedir/inic
+    cp -v $ARCFILE $tmparchivecdir/inic
   fi
 
   # Copy SST conditions
-  cp -v $sstFileIC $archivedir/inic
+  cp -v $sstFileIC $tmparchivecdir/inic
 
   if [ $compress_history_nc -eq 1 ]; then
     # Compress files using lossless compression
-    cd $archivedir/inic
+    cd $tmparchivecdir/inic
     for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
   fi
 fi
@@ -1140,7 +1148,7 @@ fi
 if [ $compress_history_nc -eq 1 ]; then
   # Compress files using lossless compression
   echo "Compressing model history files..."
-  cd $archivedir
+  cd $tmparchivecdir
   for f in *.h*.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
 fi
 
@@ -1189,8 +1197,14 @@ rm -v *.bin
 rm -v *.h.*.nc
 rm -v *initial_hist*.nc
 
-echo "Renaming tmp archive directory to YYYYMMDDHH"
-mv -v $archivedir ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
+echo "Moving tmp archive directory to ARCHIVEDIR/YYYYMMDDHH"
+if [ -d "${ARCHIVEDIR}/${yearstr}${monthstr}${daystr}${cyclestr}" ]
+then
+  echo "${ARCHIVEDIR}/${yearstr}${monthstr}${daystr}${cyclestr} already exists! Appending date string!"
+  mv -v $tmparchivecdir ${ARCHIVEDIR}/${yearstr}${monthstr}${daystr}${cyclestr}_$(date +\%Y\%m\%d\%H\%M)
+else
+  mv -v $tmparchivecdir ${ARCHIVEDIR}/${yearstr}${monthstr}${daystr}${cyclestr}
+fi
 
 if $dotracking ; then
   #track_connectfile="/global/homes/c/czarzyck/betacast/cyclone-tracking/ne0np4natlanticref.ne30x4.connect_v2.dat"
