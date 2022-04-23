@@ -122,6 +122,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 
 | Namelist Variable | Description |
 | --- | --- |
+| ARCHIVEDIR | Top-level directory for archiving runs (ARCHIVEDIR/CASE/YYYYMMDDHH). Do not set for default archive in rundir. |
 | debug | Setting to 1 adds debugging options. Otherwise leave at 0 |
 | islive | if 1 then pull GDAS/GFS from server in real-time, 0 is "hindcast" mode |
 | datestemplate | If islive = 0, dates.XXX.txt file to cp if Betacast cannot find an existing dates file |

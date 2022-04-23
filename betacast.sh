@@ -112,6 +112,7 @@ else
   exit 1
 fi
 
+# Figure out where to archive
 if [ -z ${ARCHIVEDIR+x} ] || [[ -z "${ARCHIVEDIR// }" ]] ; then
   ARCHIVEDIR=${outputdir}/
 else
@@ -184,8 +185,7 @@ uniqtime=`date +"%s%N"`
 
 echo "We are using ${casename} for the case"
 
-if [ $islive -ne 0 ]    # Find most recent GFS forecast
-then
+if [ $islive -ne 0 ] ; then    # Find most recent GFS forecast
   ## Here we get two digit strings for UTC time for month, day, year
   ## We also get current time in hoursminutes (because the GFS output lags by 3.5 hours)
   monthstr=`date -u +%m`
@@ -196,8 +196,7 @@ then
   twodaysago=`date --date='2 days ago' -u +"%Y%m%d"`
   
   ## Use currtime to figure out what is the latest cycle we have access to
-  if [ $currtime -lt 0328 ]
-  then
+  if [ $currtime -lt 0328 ] ; then
     echo "12Z cycle"
     monthstr=`date --date="yesterday" -u +%m`
     daystr=`date --date="yesterday" -u +%d`
@@ -286,8 +285,7 @@ do
 done
 
 ## Figure out what the SE start time will be after filter
-if [ $numHoursSEStart -lt 6 ]
-then
+if [ $numHoursSEStart -lt 6 ] ; then
   let se_cyclestr=$cyclestr+03
   while [ ${#se_cyclestr} -lt 2 ];
   do
@@ -307,8 +305,7 @@ else
   exit 1
 fi
 
-if [ $islive -ne 0 ]
-then
+if [ $islive -ne 0 ] ; then
   ## Use currtime to figure out what SST we can download
   ## Current GDAS SST appears 555 after cycle time
   ## First guess is today's dates!
