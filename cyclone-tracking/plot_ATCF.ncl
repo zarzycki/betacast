@@ -36,26 +36,39 @@ cutwind=0.0
   _pres  =          tofloat(str_get_field(lines,10,delim))
   _latChar = stringtocharacter(str_strip(str_get_field(lines,7,delim)))
   _lonChar= stringtocharacter(str_strip(str_get_field(lines,8,delim)))
-  _latDir = (_latChar(:,4))
-  _lonDir = (_lonChar(:,4))
-  
-  _latDirStr = new(dimsizes(_latDir),"string")
-  _lonDirStr = new(dimsizes(_lonDir),"string")
-  do i = 0,dimsizes(_latDir)-1
-    _latDirStr(i) = chartostring(_latDir(i))
-    _lonDirStr(i) = chartostring(_lonDir(i))
-  end do
-  
+
+  ; NEW CODE. See if "S" or "W" are a substring of the lat/lon string and if so, correct
+  tmp := str_strip(str_get_field(lines,7,delim))
+  _isLatS  = str_match_bool(tmp, "S" )
+  tmp := str_strip(str_get_field(lines,8,delim))
+  _isLonW  = str_match_bool(tmp, "W" )
+
   _lat@_FillValue = -999
   _lon@_FillValue = -999
-  _lat = where(_latDirStr .eq. "S",-_lat,_lat)
-  _lon = where(_lonDirStr .eq. "W",360.-_lon,_lon)
+  _lat = where(_isLatS,-_lat,_lat)
+  _lon = where(_isLonW,360.-_lon,_lon)
+
+  ; OLD CODE, but failed because lat/lon strings were not always 5 chars long
+  ;_latDir = (_latChar(:,4))
+  ;_lonDir = (_lonChar(:,4))
+
+  ;_latDirStr = new(dimsizes(_latDir),"string")
+  ;_lonDirStr = new(dimsizes(_lonDir),"string")
+  ;do i = 0,dimsizes(_latDir)-1
+  ;  _latDirStr(i) = chartostring(_latDir(i))
+  ;  _lonDirStr(i) = chartostring(_lonDir(i))
+  ;end do
+
+  ;_lat@_FillValue = -999
+  ;_lon@_FillValue = -999
+  ;_lat = where(_latDirStr .eq. "S",-_lat,_lat)
+  ;_lon = where(_lonDirStr .eq. "W",360.-_lon,_lon)
 
   nstorms=count_unique_values(_number)
   nmodels=count_unique_values(_modelid)
   ntimes=count_unique_values(_fctime)
 
-  print(nstorms+" "+nmodels+" "+ntimes)
+  print("nstorms "+nstorms+"    nmodels "+nmodels+"     ntimes "+ntimes)
 
   lat = new((/nmodels*nstorms,ntimes/),"float")
   lon = lat
@@ -143,9 +156,9 @@ else if (zz .eq. 2) ; epac
   res@mpMinLonF  = 105
   res@mpMaxLonF = 195
 else if (zz .eq. 3)
-  res@mpMinLatF             = 0
-  res@mpMaxLatF             = 65
-  res@mpMinLonF             = 50
+  res@mpMinLatF             = -60
+  res@mpMaxLatF             = 60
+  res@mpMinLonF             = 30
   res@mpMaxLonF             = 350
 else
   print("invalid basin")
