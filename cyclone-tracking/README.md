@@ -62,7 +62,7 @@ Then `./drive-tracking.sh` can be invoked with the following format (11 command 
 
 After this script is successful, an [ATCF](https://en.wikipedia.org/wiki/Automated_Tropical_Cyclone_Forecasting_System) file for this particular forecast cycle will be generated in `./fin-atcf`. If there is no ATCF for this particular cycle, a new one will be generated. If one already exists, any lines in the ATCF that match `ATCFTECH` will be purged, with new lines appended. This allows for serial appending of various ensemble members (e.g., CAM001, CAM002, CAM003, etc.).
 
-#### Generating a connctivity file (TE_CONNECTFILE) for TempestExtremes
+#### Generating a connectivity file (TE_CONNECTFILE) for TempestExtremes
 
 For TE to work on an unstructured mesh (e.g., SE, HOMME, MPAS), you must generate a connectivity file using TE's included binary that tells how each cell is "attached" to its neighbors. Example:
 

@@ -1205,7 +1205,8 @@ fi
 
 if $dotracking ; then
   #track_connectfile="/global/homes/c/czarzyck/betacast/cyclone-tracking/ne0np4natlanticref.ne30x4.connect_v2.dat"
-  track_connectfile="/storage/home/cmz5202/sw/betacast/cyclone-tracking/nhemitc30x4.connect_v2.dat"
+  #track_connectfile="/storage/home/cmz5202/sw/betacast/cyclone-tracking/nhemitc30x4.connect_v2.dat"
+  track_connectfile="/storage/home/cmz5202/sw/betacast/cyclone-tracking/conus30x8.connect_v2.dat"
   track_sendhtml=true
   track_hstream="h0"
   track_stride=2
@@ -1233,17 +1234,17 @@ if $dotracking ; then
   
   ### If we have vitals, run tracking
   if [ -f ${TCVITFILE} ]; then  # if file does exist (i.e., it was downloaded), run tracker
-    /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} \
+    (set -x; /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} \
       ${casename} \
       ${TCVITFILE} \
       ${ATCFFILE} \
       ${track_connectfile} \
       ${path_to_rundir} \
       ${track_sendhtml} \
-      ${track_hstream}
+      ${track_hstream} \
       ${track_stride} \
       ${ATCFTECH} \
-      ${TE_SERIAL_DIR}
+      ${TE_SERIAL_DIR} )
     
     cp trajs.trajectories.txt.${casename}.png ./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png
   fi

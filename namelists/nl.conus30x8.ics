@@ -71,7 +71,7 @@
   sendplots = true
 
 #SSSS
-  dotracking = false
+  dotracking = true
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = /storage/home/cmz5202/work/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc
