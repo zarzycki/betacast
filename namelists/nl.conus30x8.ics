@@ -70,8 +70,13 @@
 # 0 send plots to external server, no, 1 yes
   sendplots = true
 
-#SSSS
+# Tracking settings
   dotracking = true
+  track_connectfile = /storage/home/cmz5202/sw/betacast/cyclone-tracking/conus30x8.connect_v2.dat
+  track_hstream = "h0"
+  track_stride = 2
+  track_sendhtml = true
+  track_ATCFTECH = "CAM5"
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = /storage/home/cmz5202/work/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc

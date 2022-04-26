@@ -1204,22 +1204,6 @@ else
 fi
 
 if $dotracking ; then
-  #track_connectfile="/global/homes/c/czarzyck/betacast/cyclone-tracking/ne0np4natlanticref.ne30x4.connect_v2.dat"
-  #track_connectfile="/storage/home/cmz5202/sw/betacast/cyclone-tracking/nhemitc30x4.connect_v2.dat"
-  track_connectfile="/storage/home/cmz5202/sw/betacast/cyclone-tracking/conus30x8.connect_v2.dat"
-  track_sendhtml=true
-  track_hstream="h0"
-  track_stride=2
-  
-  if [ ${casename:(-3)} == "001" ]; then
-    ATCFTECH="C501"
-  elif [ ${casename:(-3)} == "002" ]; then
-    ATCFTECH="C502"
-  elif [ ${casename:(-3)} == "003" ]; then
-    ATCFTECH="C503"
-  else
-    ATCFTECH="CAM5"
-  fi
   
   # Go to cyclone tracking folder...
   cd ${sewxscriptsdir}/cyclone-tracking/
@@ -1230,7 +1214,9 @@ if $dotracking ; then
   ATCFFILE=atcf.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}
 
   ### Get TC vitals for YYYYMMDDHH and store in $TCVITFOLDER
-  /bin/bash ./get-vitals.sh ${yearstr}${monthstr}${daystr}${cyclestr} ${TCVITFOLDER}
+  (set -x
+  /bin/bash ./get-vitals.sh ${yearstr}${monthstr}${daystr}${cyclestr} ${TCVITFOLDER} \
+  )
   
   ### If we have vitals, run tracking
   if [ -f ${TCVITFILE} ]; then  # if file does exist (i.e., it was downloaded), run tracker
@@ -1243,10 +1229,9 @@ if $dotracking ; then
       ${track_sendhtml} \
       ${track_hstream} \
       ${track_stride} \
-      ${ATCFTECH} \
+      ${track_ATCFTECH} \
       ${TE_SERIAL_DIR} )
-    
-    cp trajs.trajectories.txt.${casename}.png ./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png
+    cp -v trajs.trajectories.txt.${casename}.png ./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png
   fi
   
   # Return to where we were...
