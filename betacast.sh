@@ -65,7 +65,7 @@ while [ $1 ]
 
 set -u  # turn on crashes for unbound variables in bash
 
-source "$sewxscriptsdir/tools/bash_fcns.sh"   # Source external bash functions
+source "$sewxscriptsdir/functions/bash_fcns.sh"   # Source external bash functions
 
 ###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
