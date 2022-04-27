@@ -1,82 +1,49 @@
-# 0 = no debug, 1 = debug
-  debug = False
+casename = RHEL7_forecast_conus_30_x8_CAM5_L30
 
-# 0 no, using historical data - 1 yes, running live
-  islive = true
+debug = false
+islive = true
+runmodel = true
+modelSystem = 0
+usingCIME = true
+compress_history_nc = true
 
-  runmodel = true
+numdays = 7
 
-# Modeling system. 0 = CESM, 1 = E3SM. Defaults to zero if unset.
-  modelSystem = 0
+atmDataType = 1
+numLevels = 30
 
-### GFS analysis available from 8/2004 onward
-### CFSR analysis available from 1979 to Mar 2011          
-### Use NOAAOI unless running real-time
-# 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
-  atmDataType = 1
+sstDataType = 1
+predict_docn = false
 
-# 1 = GDAS, 2 = ERA, 3 = NOAAOI
-  sstDataType = 1
+anl2mdlWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
+adjust_topo = /gpfs/group/cmz5202/default/ASD2017_files/atm/cam/topo/conus_30_x8_nc3000_Co060_Fi001_MulG_PF_CONUS_Nsw042_20170417.nc
+adjust_flags = 0
 
-# 32 -> CAM5.5 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
-  numLevels = 30
+archive_inic = false
 
-#forecast length (in days)
-  numdays = 7
+add_perturbs = false
+add_noise = false
 
-# Adjustment settings
-  adjust_topo = /gpfs/group/cmz5202/default/ASD2017_files/atm/cam/topo/conus_30_x8_nc3000_Co060_Fi001_MulG_PF_CONUS_Nsw042_20170417.nc
-  adjust_flags = 0
+land_spinup = false
+landrawdir = ~/scratch/output/RHEL7_forecast_nhemitc_30_x4_CAM5_L30.001/run/landstart/
+keep_land_restarts = true
 
-#true/false, needs to be lowercase
-  doFilter = false 
+do_runoff = false
 
-#if true, exits after filter (generates init data)
-  filterOnly = false
+PROJECTID = cmz5202_a_g_sc_default 
+RUNWALLCLOCK = 05:59:00
+RUNQUEUE = batch
 
-  numHoursSEStart = 3
-  filterHourLength = 6
-  filtTcut = 6
+DTIME = 600.0
+FINERES = 240
+USERSTAB = 75.0
 
-# Add perturbations from climate forcing run -- right now only works with M. Wehner data
-  add_perturbs = false
-  add_noise = false
+dotracking = true
+track_connectfile = /storage/home/cmz5202/sw/betacast/cyclone-tracking/conus30x8.connect_v2.dat
+track_hstream = "h0"
+track_stride = 2
+track_sendhtml = true
+track_ATCFTECH = "CAM5"
 
-  land_spinup = false
-
-# Case name
-#  casename = forecast_conus_30_x8_CAM5_L30
-  casename = RHEL7_forecast_conus_30_x8_CAM5_L30
-
-# Weight file for going from GFS -> VR-SE
-  anl2mdlWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
-
-# Repo of 1deg CLM inic for "cold starts"
-  landrawdir = ~/scratch/output/RHEL7_forecast_nhemitc_30_x4_CAM5_L30.001/run/landstart/
-
-# Timing settings
-  PROJECTID = cmz5202_a_g_sc_default 
-  FILTERWALLCLOCK = 00:29:00
-  FILTERQUEUE = batch
-  RUNWALLCLOCK = 05:59:00
-  RUNQUEUE = batch
-
-  usingCIME = true
-
-  DTIME = 600.0
-  FINERES = 240
-  USERSTAB = 75.0
-
-# 0 send plots to external server, no, 1 yes
-  sendplots = true
-
-# Tracking settings
-  dotracking = true
-  track_connectfile = /storage/home/cmz5202/sw/betacast/cyclone-tracking/conus30x8.connect_v2.dat
-  track_hstream = "h0"
-  track_stride = 2
-  track_sendhtml = true
-  track_ATCFTECH = "CAM5"
-
-# File for plotting in NCL (native grid to some sort of RLL)
-  nclPlotWeights = /storage/home/cmz5202/work/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc
+sendplots = true
+nclPlotWeights = /storage/home/cmz5202/work/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc

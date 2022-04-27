@@ -90,6 +90,14 @@ if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
 if [ -z ${predict_docn+x} ]; then predict_docn=false; fi
 if [ -z ${archive_inic+x} ]; then archive_inic=false; fi
 if [ -z ${compress_history_nc+x} ]; then compress_history_nc=true; fi
+### Some defaults infrequently set
+if [ -z ${doFilter+x} ]; then doFilter=false; fi
+if [ -z ${filterOnly+x} ]; then filterOnly=false; fi
+if [ -z ${numHoursSEStart+x} ]; then numHoursSEStart=3; fi
+if [ -z ${filterHourLength+x} ]; then filterHourLength=6; fi
+if [ -z ${filtTcut+x} ]; then filtTcut=6; fi
+if [ -z ${FILTERWALLCLOCK+x} ]; then FILTERWALLCLOCK="00:29:00"; fi
+if [ -z ${FILTERQUEUE+x} ]; then FILTERQUEUE="batch"; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -1255,7 +1263,7 @@ if $sendplots ; then
   sed -i 's?.*daystr=.*?daystr='${daystr}'?' ${upload_ncl_script}.${uniqtime}.ncl
   sed -i 's?.*cyclestrsec=.*?cyclestrsec='${cyclestrsec}'?' ${upload_ncl_script}.${uniqtime}.ncl
   sed -i 's?.*cyclestr=.*?cyclestr='${cyclestr}'?' ${upload_ncl_script}.${uniqtime}.ncl
-  /bin/bash ${upload_ncl_script}.${uniqtime}.ncl ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}
+  (set -x; /bin/bash ${upload_ncl_script}.${uniqtime}.ncl ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr} )
   # Cleanup
   rm ${upload_ncl_script}.${uniqtime}.ncl
 fi
