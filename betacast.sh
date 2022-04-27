@@ -84,12 +84,12 @@ filter_path=${sewxscriptsdir}/filter
 
 ### setting variables not included in namelist for backwards compat
 if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
-if [ -z ${do_runoff+x} ]; then do_runoff=0; fi
-if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=1; fi
+if [ -z ${do_runoff+x} ]; then do_runoff=false; fi
+if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=true; fi
 if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
-if [ -z ${predict_docn+x} ]; then predict_docn=0; fi
-if [ -z ${archive_inic+x} ]; then archive_inic=0; fi
-if [ -z ${compress_history_nc+x} ]; then compress_history_nc=1; fi
+if [ -z ${predict_docn+x} ]; then predict_docn=false; fi
+if [ -z ${archive_inic+x} ]; then archive_inic=false; fi
+if [ -z ${compress_history_nc+x} ]; then compress_history_nc=true; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -151,6 +151,15 @@ if ! type ncks &> /dev/null ; then
   compress_history_nc=0
 fi
 
+# Adjust bools (for backwards compatibility, 0 = false and 1 = true)
+check_bool "islive" $islive
+check_bool "debug" $debug
+check_bool "do_runoff" $do_runoff
+check_bool "keep_land_restarts" $keep_land_restarts
+check_bool "predict_docn" $predict_docn
+check_bool "archive_inic" $archive_inic
+check_bool "compress_history_nc" $compress_history_nc
+
 ###################################################################################
 
 # do some stability calcs
@@ -185,7 +194,7 @@ uniqtime=`date +"%s%N"`
 
 echo "We are using ${casename} for the case"
 
-if [ $islive -ne 0 ] ; then    # Find most recent GFS forecast
+if [ $islive = true ] ; then    # Find most recent GFS forecast
   ## Here we get two digit strings for UTC time for month, day, year
   ## We also get current time in hoursminutes (because the GFS output lags by 3.5 hours)
   monthstr=`date -u +%m`
@@ -203,20 +212,16 @@ if [ $islive -ne 0 ] ; then    # Find most recent GFS forecast
     yearstr=`date --date="yesterday" -u +%Y`
     twodaysago=`date --date='3 days ago' -u +"%Y%m%d"`
     cyclestr=12
-  elif [ $currtime -lt 0928 ]
-  then
+  elif [ $currtime -lt 0928 ] ; then
     echo "00Z cycle"
     cyclestr=00
-  elif [ $currtime -lt 1528 ]
-  then
+  elif [ $currtime -lt 1528 ] ; then
     echo "00Z cycle"
     cyclestr=00
-  elif [ $currtime -lt 2128 ]
-  then
+  elif [ $currtime -lt 2128 ] ; then
     echo "12Z cycle"
     cyclestr=12
-  elif [ $currtime -ge 2128 ]
-  then
+  elif [ $currtime -ge 2128 ] ; then
     echo "12Z cycle"
     cyclestr=12
   else
@@ -305,7 +310,7 @@ else
   exit 1
 fi
 
-if [ $islive -ne 0 ] ; then
+if [ $islive = true ] ; then
   ## Use currtime to figure out what SST we can download
   ## Current GDAS SST appears 555 after cycle time
   ## First guess is today's dates!
@@ -366,7 +371,7 @@ cd $path_to_case
 DYCORE=`./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs`
 echo "DYCORE: "$DYCORE
 
-if [ $debug -ne 1 ] ; then
+if [ $debug = false ] ; then
 ############################### GET ATM DATA ############################### 
 
   if [ $atmDataType -eq 1 ] ; then
@@ -382,7 +387,7 @@ if [ $debug -ne 1 ] ; then
     # gfs.t12z.pgrb2f00.grb2
     if [ ! -f ${LOCALGFSFILE} ]; then
       echo "Getting Atmo file"
-      if [ $islive -ne 0 ] ; then
+      if [ $islive = true ] ; then
         rm -f gfs.t*pgrb2f00*
         gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/atmos/
         #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
@@ -392,7 +397,7 @@ if [ $debug -ne 1 ] ; then
         ## Scrape for files
         error=1
         while [ $error != 0 ] ; do
-          wget --read-timeout=30 $gfsFTPPath$gfsFTPFile
+          wget -nv --read-timeout=30 $gfsFTPPath$gfsFTPFile
           error=`echo $?`
           if [ $error -ne 0 ] ; then
             echo "Cannot get file, will wait 2 min and scrape again"
@@ -455,7 +460,7 @@ if [ $debug -ne 1 ] ; then
       if [[ $(hostname -s) = cheyenne* ]]; then
         cp /glade/collections/rda/data/ds093.0/${yearstr}/${CFSRFILENAME} .
       else
-        wget --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
+        wget -nv --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
       fi
       tar -xvf $CFSRFILENAME
       mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 ${LOCALCFSRFILE}
@@ -497,7 +502,7 @@ if [ $debug -ne 1 ] ; then
     echo "Getting SST data"
     mkdir -p ${sst_files_path}
     cd ${sst_files_path}
-    if [ $islive -ne 0 ] ; then
+    if [ $islive = true ] ; then
       # Here is where we get the "live" GDAS SST file
       rm -f gdas1*sstgrb*
       sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/sst.${yestyearstr}${yestmonthstr}${yestdaystr}/
@@ -511,7 +516,7 @@ if [ $debug -ne 1 ] ; then
     error=1
     while [ $error != 0 ]
     do
-      wget --read-timeout=30 -nv $sstFTPPath$sstFTPFile
+      wget -nv --read-timeout=30 -nv $sstFTPPath$sstFTPFile
       error=`echo $?`
       if [ $error -ne 0 ]
       then
@@ -564,10 +569,13 @@ if [ $debug -ne 1 ] ; then
       echo "Incorrect SST data type entered" ; exit 1
   fi
 
+  # Switch bash bool to int for NCL input
+  if [ $predict_docn = true ]; then INT_PREDICT_DOCN=1; else INT_PREDICT_DOCN=0; fi
+
   set +e
   cd ${sst_to_cam_path}
   (set -x; ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
-    predict_docn=${predict_docn} \
+    predict_docn=${INT_PREDICT_DOCN} \
     'datasource="'${SSTTYPE}'"' \
     'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
     'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
@@ -828,7 +836,7 @@ fi
 
 ############################### ROF SETUP ############################### 
 
-if [ $do_runoff -ne 0 ]; then
+if [ $do_runoff = true ]; then
 
   echo "Setting input rof dataset"
 
@@ -933,7 +941,7 @@ if $doFilter ; then
   ./xmlchange JOB_WALLCLOCK_TIME=${FILTERWALLCLOCK}
   ./xmlchange --force JOB_QUEUE=${FILTERQUEUE}
 
-  if [ $debug -ne 1 ] ; then
+  if [ $debug = false ] ; then
     echo "Begin call to filter-run"
 
     # Get number of log .gz files for sleeping
@@ -1046,7 +1054,7 @@ fi
 sed -i '/.*ncdata/d' user_nl_${atmName}
 echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
 
-if [ $debug -ne 1 ]
+if [ $debug = false ]
 then
   echo "Begin call to forecast run"
 
@@ -1108,7 +1116,7 @@ cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $perturb_namelist $tmparchivecdi
 cp -v $path_to_case/user* $tmparchivecdir/nl_files
 
 # Archive initial conditions?
-if [ $archive_inic -eq 1 ]; then
+if [ $archive_inic = true ]; then
   echo "Archiving initial condition files..."
   mkdir -p $tmparchivecdir/inic
 
@@ -1125,7 +1133,7 @@ if [ $archive_inic -eq 1 ]; then
   cp -v $ARCFILE $tmparchivecdir/inic
 
   # Copy ROF initial conditions
-  if [ $do_runoff -ne 0 ]; then
+  if [ $do_runoff = true ]; then
     ARCFILE=`grep ^finidat_rtm ${path_to_case}/user_nl_${rofName} | cut -d "=" -f2`
     strip_quotes ARCFILE
     echo "Found initial file: "$ARCFILE
@@ -1135,14 +1143,14 @@ if [ $archive_inic -eq 1 ]; then
   # Copy SST conditions
   cp -v $sstFileIC $tmparchivecdir/inic
 
-  if [ $compress_history_nc -eq 1 ]; then
+  if [ $compress_history_nc = true ]; then
     # Compress files using lossless compression
     cd $tmparchivecdir/inic
     for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
   fi
 fi
 
-if [ $compress_history_nc -eq 1 ]; then
+if [ $compress_history_nc = true ]; then
   # Compress files using lossless compression
   echo "Compressing model history files..."
   cd $tmparchivecdir
@@ -1151,7 +1159,7 @@ fi
 
 ## Move land files to new restart location
 cd $path_to_nc_files
-if [ $keep_land_restarts -eq 1 ]; then
+if [ $keep_land_restarts = true ]; then
   echo "Archiving land restart files"
   mkdir $landdir
   echo "Removing 06Z and 18Z land restart files if they exist"
@@ -1161,7 +1169,7 @@ if [ $keep_land_restarts -eq 1 ]; then
   mv -v *.${lndName}*.r.*nc $landdir
   rm -v *.${lndName}*.r.*.nc
   ## Move runoff files to land dir if doing runoff
-  if [ $do_runoff -ne 0 ]; then
+  if [ $do_runoff = true ]; then
     echo "Removing 06Z and 18Z runoff restart files if they exist"
     rm -v *.${rofName}*.r.*32400.nc
     rm -v *.${rofName}*.r.*75600.nc
@@ -1173,7 +1181,7 @@ else
   echo "Removing all land restart files!"
   rm -v *.${lndName}*.r.*.nc
   rm -v *.${lndName}*.r.*.nc
-  if [ $do_runoff -ne 0 ]; then
+  if [ $do_runoff = true ]; then
     rm -v *.${rofName}*.r.*.nc
     rm -v *.${rofName}*.r.*.nc
   fi
@@ -1253,7 +1261,7 @@ if $sendplots ; then
 fi
 
 ### If not live and the run has made it here successively, delete top line of datesfile
-if [ $islive -eq 0 ] ; then
+if [ $islive = false ] ; then
   cd ${sewxscriptsdir}
   #Remove top line from dates file
   tail -n +2 ${datesfile} > ${datesfile}.2

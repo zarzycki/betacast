@@ -1,8 +1,8 @@
 # 0 = no debug, 1 = debug
-  debug = 0
+  debug = False
 
 # 0 no, using historical data - 1 yes, running live
-  islive = 1
+  islive = true
 
   runmodel = true
 
