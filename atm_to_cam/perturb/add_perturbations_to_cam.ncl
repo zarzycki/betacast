@@ -138,7 +138,7 @@ if (esmf_remap) then
   Opt_se@ForceOverwrite = True
   Opt_se@PrintTimings   = True
   Opt_se@Title          = "SE Grid"
-  seGridName = "grid_se.nc"
+  seGridName = "grid_se_"+ncol+".nc"
   if (.not. keep_esmf) then unstructured_to_ESMF(seGridName,lat,lon,Opt_se) end if
 
   ; gen RLL grid
@@ -159,12 +159,12 @@ if (esmf_remap) then
   Opt@PrintTimings         = True
   Opt@SrcESMF        = True    
   Opt@DstESMF        = False
-  wgtFileName1 = "map_se_to_ll.nc"
+  wgtFileName1 = "map_se_"+ncol+"_to_ll.nc"
   if (.not. keep_esmf) then ESMF_regrid_gen_weights(seGridName,llGridName,wgtFileName1,Opt) end if
   
   Opt@SrcESMF        = False    
   Opt@DstESMF        = True
-  wgtFileName2 = "map_ll_to_se.nc"
+  wgtFileName2 = "map_ll_to_se_"+ncol+".nc"
   if (.not. keep_esmf) then ESMF_regrid_gen_weights(llGridName,seGridName,wgtFileName2,Opt) end if
   
   delete(Opt)
