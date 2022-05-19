@@ -7,19 +7,20 @@ begin
 ;(1)	1993 8 2 0   24.988 294.532     1004.89  121.38
 ; 11, 325, 991
 
-minp = 991.00 
-target_rmw = 121380
-cen_lat    = 11.0
-cen_lon    = 325.0
+minp = 985.00 
+target_rmw = 141380
+cen_lat    = 14.0
+cen_lon    = 296.0
 
-lat_bnd = 12.
-lon_bnd = 12.
+deg_bnd = 12.
 doplot=False
 
-system("rm ./testing.nc")
-system("cp ./FHIST-ne30-betacast-ERA5-x001_INIC.nc ./testing.nc")
+origfile="~/work/sewx/INIC/ne0natlantic30x4-FHIST_INIC_seed.nc"
+seedfile="~/work/sewx/INIC/ne0natlantic30x4-FHIST_INIC_seed2.nc"
+system("rm -v "+seedfile)
+system("cp -v "+origfile+" "+seedfile)
 
-inputFile = addfile("./testing.nc","w")
+inputFile = addfile(seedfile,"w")
 
 lat = inputFile->lat
 lon = inputFile->lon
@@ -51,7 +52,7 @@ delete_VarAtts(q,to_delete)
 delete_VarAtts(ps,to_delete)
 
 ; find model point of cen_lat, cen_lon
-gcdist = gc_latlon(cen_lat,cen_lon,lat,lon,2,4)
+gcdist = gc_latlon(cen_lat,cen_lon,lat,lon,2,2)
 minix = minind(gcdist)
 
 ;======= get dp
@@ -71,8 +72,10 @@ do ii = 0,ncol-1
     print("At ncol: "+ii+" of "+ncol)
   end if
 
-  if (lat(ii) .lt. (cen_lat + lat_bnd) .and. lat(ii) .gt. (cen_lat - lat_bnd) .and. \
-    lon(ii) .lt. (cen_lon + lon_bnd) .and. lon(ii) .gt. (cen_lon - lon_bnd)) then
+  if ( gcdist(ii) .le. deg_bnd ) then
+  
+  ;if (lat(ii) .lt. (cen_lat + lat_bnd) .and. lat(ii) .gt. (cen_lat - lat_bnd) .and. \
+  ;  lon(ii) .lt. (cen_lon + lon_bnd) .and. lon(ii) .gt. (cen_lon - lon_bnd)) then
 
     do kk = 0,dimsizes(lev)-1
 
