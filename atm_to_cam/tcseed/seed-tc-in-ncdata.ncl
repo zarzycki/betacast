@@ -1,15 +1,20 @@
-load "./tctestcase.ncl"
+load "./fcns_seeding.ncl"
 
 begin
 
-minp = 950.
-target_rmw = 125943.
-cen_lat    = 30.      ; Center latitude of initial vortex
-cen_lon    = 300.
+;2004 8 31 0   19.772 281.867     1002.52  104.73
+;2004 9 1 0   20.673 273.8     994.01  76.27
+;(1)	1993 8 2 0   24.988 294.532     1004.89  121.38
+; 11, 325, 991
 
-lat_bnd = 15.
-lon_bnd = 15.
-doplot=True
+minp = 991.00 
+target_rmw = 121380
+cen_lat    = 11.0
+cen_lon    = 325.0
+
+lat_bnd = 12.
+lon_bnd = 12.
+doplot=False
 
 system("rm ./testing.nc")
 system("cp ./FHIST-ne30-betacast-ERA5-x001_INIC.nc ./testing.nc")
@@ -86,7 +91,7 @@ do ii = 0,ncol-1
     ; we only want to update ps once per column
     ps(0,ii) = totype(theArr(4), typeof(ps))
     if (ps(0,ii) .lt. 80000) then
-      print(" "+ps(0,i))
+      print(" "+ps(0,ii))
     end if
 
   end if

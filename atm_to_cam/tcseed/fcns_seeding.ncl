@@ -4,6 +4,8 @@ function tctestcase(cen_lon:numeric,cen_lat:numeric,dp:numeric,rp:numeric,lon[*]
 
 begin
 
+modify_q = True
+
 output = new(5,float)
 
 ;zcoords = 0 ;0 = pressure, 1 = z
@@ -21,7 +23,7 @@ pi      = 4.*atan(1.)       ; pi
 convert = 180./pi   ; conversion factor: radians to degrees
 ;rp         = 273000.  ; Radius for calculation of PS
 ;dp         = 2280.    ; Delta P for calculation of PS
-zp         = 7000.    ; Height for calculation of P
+zp         = 10000.    ; Height for calculation of P
 q0         = 0.021    ; q at surface from Jordan
 gamma_      = 0.007    ; lapse rate
 Ts0        = 302.0   ; Surface temperature (SST)
@@ -33,7 +35,7 @@ zq1        = 3000.    ; Height 1 for q calculation
 zq2        = 8000.    ; Height 2 for q calculation
 exppr      = 1.5      ; Exponent for r dependence of p
 exppz      = 2.       ; Exponent for z dependence of p
-ztrop      = 15000.   ; Tropopause Height
+ztrop      = 20000.   ; Tropopause Height
 qtrop      = 1.e-11     ; Tropopause specific humidity
 rfpi       = 1000000. ; Radius within which to use fixed-point iter.
 constTv    = 0.608    ; Constant for Virtual Temp Conversion
@@ -133,8 +135,8 @@ end if
       ufac = d1/d
       vfac = d2/d
       if (height .gt. ztrop) then
-          u = 0.
-          v = 0.
+          u = uin
+          v = vin
       else
           vt = (-f*gr/2+sqrt((f*gr/2)^(2) - (exppr*(gr/rp)^exppr)*(Rd*(T0-gamma_*height)) / (exppz*height*Rd*(T0-gamma_*height)/(g*zp^exppz) + 1. - p00/dp*exp((gr/rp)^exppr)*exp((height/zp)^exppz))))
           ;term1 = -f*gr/2
@@ -156,17 +158,12 @@ end if
       
       w = 0.
       
-      ;-----------------------------------------------------------------------
-      ;    tracer q (specific humidity)
-      ;-----------------------------------------------------------------------
-      
-      q = qin
-      ; not modifying q
-      ;if (height .gt. ztrop) then
-      ;    q = qtrop
-      ;else
-      ;    q = q0*exp(-height/zq1)*exp(-1*(height/zq2)^exppz)
-      ;end if
+      ; Calculate RH from T, Q (via w), and P
+      if (modify_q) then
+        wmin = qin
+        wmin = qin / ( 1. - qin )
+        rh = relhum (Tin, wmin, p)  ; K, kg/kg, Pa
+      end if
           
       ;-----------------------------------------------------------------------
       ;    initialize T (temperature)
@@ -182,11 +179,37 @@ end if
       ; Uncomment this to debug with a uniform T
       ;Tin = 300.
       
+      
+      
       Tvin = Tin*(1+constTv*qin)
       
           t = (Tvin)/(1.+constTv*qin)/(1.+exppz*Rd*(Tvin)*height \
               /(g*zp^exppz*(1.-p00/dp*exp((gr/rp)^exppr)*exp((height/zp)^exppz))))
 
+      ;-----------------------------------------------------------------------
+      ;    tracer q (specific humidity)
+      ;-----------------------------------------------------------------------
+      
+      ; Hold RH fixed, recalculate given vortex
+      if (modify_q) then
+        if (height .gt. ztrop) then
+          q = qin
+        else
+          q = mixhum_ptrh (p/100., t, rh, 2)  ;mb, K, percent
+        end if
+      else
+        q = qin
+      end if
+      
+      ;print(rh+"   "+q+" <- "+qin)
+      ;print("----")
+      
+      ; not modifying q
+      ;if (height .gt. ztrop) then
+      ;    q = qtrop
+      ;else
+      ;    q = q0*exp(-height/zq1)*exp(-1*(height/zq2)^exppz)
+      ;end if
       
       ;-----------------------------------------------------------------------
       ;    initialize PHIS (surface geopotential)
@@ -236,7 +259,7 @@ g	= 9.80616	          ; Gravity (m s^2)
 omega   = 7.292115d-5 ; angular velocity 1/s
 pi      = 4.*atan(1.)       ; pi
 convert = 180./pi   ; conversion factor: radians to degrees
-zp         = 7000.    ; Height for calculation of P
+zp         = 10000.    ; Height for calculation of P
 q0         = 0.021    ; q at surface from Jordan
 gamma_      = 0.007    ; lapse rate
 Ts0        = 302.0   ; Surface temperature (SST)
@@ -248,7 +271,7 @@ zq1        = 3000.    ; Height 1 for q calculation
 zq2        = 8000.    ; Height 2 for q calculation
 exppr      = 1.5      ; Exponent for r dependence of p
 exppz      = 2.       ; Exponent for z dependence of p
-ztrop      = 15000.   ; Tropopause Height
+ztrop      = 20000.   ; Tropopause Height
 qtrop      = 1.e-11     ; Tropopause specific humidity
 rfpi       = 1000000. ; Radius within which to use fixed-point iter.
 constTv    = 0.608    ; Constant for Virtual Temp Conversion
