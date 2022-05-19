@@ -73,160 +73,156 @@ if (zcoords .eq. 1) then
    end if
 
 else
-; Reading in p coords
-
-
-
-ps = -dp*exp(-1*(gr/rp)^exppr) + p00
+  ; Reading in p coords
+  ps = -dp*exp(-1*(gr/rp)^exppr) + p00
       
-;print("ps "+ps+"   p00 "+p00)
+  ;print("ps "+ps+"   p00 "+p00)
 
-height = (T0/gamma_)*(1.-(p/ps)^exponent)
+  height = (T0/gamma_)*(1.-(p/ps)^exponent)
 
-; If inside a certain distance of the center of the storm
-; perform a Fixed-point iteration to calculate the height
-; more accurately
+  ; If inside a certain distance of the center of the storm
+  ; perform a Fixed-point iteration to calculate the height
+  ; more accurately
 
-     if (gr .lt. rfpi ) then
-        ;print("We need to correct")
-          zhere = height
-          zherebefore = height
-          
-          do n = 1,1000
-          
-            fpidFdz =-exppz*zhere*dp*exp(-1*(gr/rp)^exppr)*exp(-1*(zhere/zp)^exppz)/(zp*zp)*((T0-gamma_*zhere)/T0)^(g/(Rd*gamma_)) \
-            +g/(Rd*T0)*(p00-dp*exp(-1*(gr/rp)^exppr)*exp(-1*(zhere/zp)^exppz))*((T0-gamma_*zhere)/T0)^(g/(Rd*gamma_)-1.)
-            
-            fpiF = p-(p00-dp*exp(-1*(gr/rp)^exppr)*exp(-1*(zhere/zp)^exppz)) \
-               *((T0-gamma_*zhere)/T0)^(g/(Rd*gamma_))
-               
-            zn = zhere - fpiF/fpidFdz
-            
-            if ( abs(zn-zhere)/abs(zn) .lt. deltaz) then
-                ;print("We are done with "+n+" iterations")
-                break
-            end if
-            
-            zhere = zn
-            
-            if (n .eq. 1000) then
-              print("FPI did not converge after 500 interations in q & T!!!")
-            end if
-          end do
-          
-          height = zn
-   end if
+  if (gr .lt. rfpi ) then
+    ;print("We need to correct")
+    zhere = height
+    zherebefore = height
+
+    do n = 1,1000
+
+      fpidFdz =-exppz*zhere*dp*exp(-1*(gr/rp)^exppr)*exp(-1*(zhere/zp)^exppz)/(zp*zp)*((T0-gamma_*zhere)/T0)^(g/(Rd*gamma_)) \
+      +g/(Rd*T0)*(p00-dp*exp(-1*(gr/rp)^exppr)*exp(-1*(zhere/zp)^exppz))*((T0-gamma_*zhere)/T0)^(g/(Rd*gamma_)-1.)
+  
+      fpiF = p-(p00-dp*exp(-1*(gr/rp)^exppr)*exp(-1*(zhere/zp)^exppz)) \
+         *((T0-gamma_*zhere)/T0)^(g/(Rd*gamma_))
+     
+      zn = zhere - fpiF/fpidFdz
+  
+      if ( abs(zn-zhere)/abs(zn) .lt. deltaz) then
+          ;print("We are done with "+n+" iterations")
+          break
+      end if
+  
+      zhere = zn
+  
+      if (n .eq. 1000) then
+        print("FPI did not converge after 1000 interations in q & T!!!")
+        exit
+      end if
+    end do
+
+    height = zn
+    
+  end if
 
 end if
-      
-;-----------------------------------------------------------------------
-;    initialize PS (surface pressure of moist air)
-;-----------------------------------------------------------------------
-
-      
+          
 ;-----------------------------------------------------------------------
 ;    initialize U and V (wind components)
 ;-----------------------------------------------------------------------
       
-      d1 = sin(cen_lat/convert)*cos(lat/convert) - cos(cen_lat/convert)*sin(lat/convert)*cos((lon/convert)-(cen_lon/convert))
-      d2 = cos(cen_lat/convert)*sin((lon/convert)-(cen_lon/convert))
-      d  = max( (/ epsilon, sqrt(d1^2. + d2^2.) /) )
+d1 = sin(cen_lat/convert)*cos(lat/convert) - cos(cen_lat/convert)*sin(lat/convert)*cos((lon/convert)-(cen_lon/convert))
+d2 = cos(cen_lat/convert)*sin((lon/convert)-(cen_lon/convert))
+d  = max( (/ epsilon, sqrt(d1^2. + d2^2.) /) )
 
-      ufac = d1/d
-      vfac = d2/d
-      if (height .gt. ztrop) then
-          u = uin
-          v = vin
-      else
-          vt = (-f*gr/2+sqrt((f*gr/2)^(2) - (exppr*(gr/rp)^exppr)*(Rd*(T0-gamma_*height)) / (exppz*height*Rd*(T0-gamma_*height)/(g*zp^exppz) + 1. - p00/dp*exp((gr/rp)^exppr)*exp((height/zp)^exppz))))
-          ;term1 = -f*gr/2
-          ;term2 = f*f*gr*gr/4
-          ;term3 = 1.5*(gr/rp)^(1.5)
-          ;term4 = Rd*(T0-gamma_*height)
-          ;term5 = 2*Rd*(T0-gamma_*height)*height/g/zp/zp
-          ;term6 = (p00/dp)*exp((gr/rp)^(1.5))*exp((height/zp)^2)
-          ;vt = term1 + sqrt(term2 - ((term3*term4)/(1+term5-term6)))
-          ;print(term1)
-          ;print(sqrt(term2 - ((term3*term4)/(1+term5-term6))))          
-          v = vin + vfac*vt
-          u = uin + ufac*vt
-      end if
-      
-      ;-----------------------------------------------------------------------
-      ;    set the vertical velocity to zero (only required for non-hydrostatic models)
-      ;-----------------------------------------------------------------------
-      
-      w = 0.
-      
-      ; Calculate RH from T, Q, and P
-      if (modify_q) then
-        ; from https://earthscience.stackexchange.com/questions/2360/how-do-i-convert-specific-humidity-to-relative-humidity
-        rh = 0.263 * p * qin / exp( (17.67*(Tin - 273.15)) / (Tin - 29.65) )
-      end if
-          
-      ;-----------------------------------------------------------------------
-      ;    initialize T (temperature)
-      ;-----------------------------------------------------------------------
-      
-      ;if (height .gt. ztrop) then
-      ;    t = Ttrop
-      ;else
-      ;    t = (T0-gamma_*height)/(1.+constTv*q)/(1.+exppz*Rd*(T0-gamma_*height)*height \
-      ;        /(g*zp^exppz*(1.-p00/dp*exp((gr/rp)^exppr)*exp((height/zp)^exppz))))
-      ;end if
-      
-      ; Uncomment this to debug with a uniform T
-      ;Tin = 300.
-      
-      
-      
-      Tvin = Tin*(1+constTv*qin)
-      
-          t = (Tvin)/(1.+constTv*qin)/(1.+exppz*Rd*(Tvin)*height \
-              /(g*zp^exppz*(1.-p00/dp*exp((gr/rp)^exppr)*exp((height/zp)^exppz))))
+ufac = d1/d
+vfac = d2/d
+if (height .gt. ztrop) then
+  u = uin
+  v = vin
+else
+  vt = (-f*gr/2+sqrt((f*gr/2)^(2) - (exppr*(gr/rp)^exppr)*(Rd*(T0-gamma_*height)) / (exppz*height*Rd*(T0-gamma_*height)/(g*zp^exppz) + 1. - p00/dp*exp((gr/rp)^exppr)*exp((height/zp)^exppz))))
+  ;term1 = -f*gr/2
+  ;term2 = f*f*gr*gr/4
+  ;term3 = 1.5*(gr/rp)^(1.5)
+  ;term4 = Rd*(T0-gamma_*height)
+  ;term5 = 2*Rd*(T0-gamma_*height)*height/g/zp/zp
+  ;term6 = (p00/dp)*exp((gr/rp)^(1.5))*exp((height/zp)^2)
+  ;vt = term1 + sqrt(term2 - ((term3*term4)/(1+term5-term6)))
+  ;print(term1)
+  ;print(sqrt(term2 - ((term3*term4)/(1+term5-term6))))          
+  v = vin + vfac*vt
+  u = uin + ufac*vt
+end if
 
-      ;-----------------------------------------------------------------------
-      ;    tracer q (specific humidity)
-      ;-----------------------------------------------------------------------
-      
-      ; Hold RH fixed, recalculate given vortex
-      if (modify_q) then
-        if (height .gt. ztrop) then
-          q = qin
-        else
-          q = rh / 0.263 / p * exp( (17.67*(t - 273.15)) / (t - 29.65) )
-        end if
-      else
-        q = qin
-      end if
-      
-      ;print(rh+"   "+q+" <- "+qin)
-      ;print("----")
-      
-      ; not modifying q
-      ;if (height .gt. ztrop) then
-      ;    q = qtrop
-      ;else
-      ;    q = q0*exp(-height/zq1)*exp(-1*(height/zq2)^exppz)
-      ;end if
-      
-      ;-----------------------------------------------------------------------
-      ;    initialize PHIS (surface geopotential)
-      ;-----------------------------------------------------------------------
-      
-      phis = 0.  ; constant
-      
-      ;-----------------------------------------------------------------------
-      ;    initialize RHO (density of moist air)
-      ;-----------------------------------------------------------------------
-      
-      rho = p/(Rd*t*(1.+constTv*q))
-      
-      output(0) = tofloat(v)
-      output(1) = tofloat(u)
-      output(2) = tofloat(q)
-      output(3) = tofloat(t)
-      output(4) = tofloat(ps)
+;-----------------------------------------------------------------------
+;    set the vertical velocity to zero (only required for non-hydrostatic models)
+;-----------------------------------------------------------------------
+
+w = 0.
+
+; Calculate RH from T, Q, and P
+if (modify_q) then
+  ; from https://earthscience.stackexchange.com/questions/2360/how-do-i-convert-specific-humidity-to-relative-humidity
+  rh = 0.263 * p * qin / exp( (17.67*(Tin - 273.15)) / (Tin - 29.65) )
+end if
+    
+;-----------------------------------------------------------------------
+;    initialize T (temperature)
+;-----------------------------------------------------------------------
+
+;if (height .gt. ztrop) then
+;    t = Ttrop
+;else
+;    t = (T0-gamma_*height)/(1.+constTv*q)/(1.+exppz*Rd*(T0-gamma_*height)*height \
+;        /(g*zp^exppz*(1.-p00/dp*exp((gr/rp)^exppr)*exp((height/zp)^exppz))))
+;end if
+
+; Uncomment this to debug with a uniform T
+;Tin = 300.
+
+Tvin = Tin*(1+constTv*qin)
+
+t = (Tvin)/(1.+constTv*qin)/(1.+exppz*Rd*(Tvin)*height \
+    /(g*zp^exppz*(1.-p00/dp*exp((gr/rp)^exppr)*exp((height/zp)^exppz))))
+
+;-----------------------------------------------------------------------
+;    tracer q (specific humidity)
+;-----------------------------------------------------------------------
+
+; Hold RH fixed, recalculate given vortex
+if (modify_q) then
+  if (height .gt. ztrop) then
+    q = qin
+  else
+    q = rh / 0.263 / p * exp( (17.67*(t - 273.15)) / (t - 29.65) )
+  end if
+else
+  q = qin
+end if
+
+;print(rh+"   "+q+" <- "+qin)
+;print("----")
+
+; not modifying q
+;if (height .gt. ztrop) then
+;    q = qtrop
+;else
+;    q = q0*exp(-height/zq1)*exp(-1*(height/zq2)^exppz)
+;end if
+
+;-----------------------------------------------------------------------
+;    initialize PHIS (surface geopotential)
+;-----------------------------------------------------------------------
+
+phis = 0.  ; constant
+
+;-----------------------------------------------------------------------
+;    initialize RHO (density of moist air)
+;-----------------------------------------------------------------------
+
+rho = p/(Rd*t*(1.+constTv*q))
+
+;-----------------------------------------------------------------------
+;   Aggregate state fields and return
+;-----------------------------------------------------------------------
+
+output(0) = tofloat(v)
+output(1) = tofloat(u)
+output(2) = tofloat(q)
+output(3) = tofloat(t)
+output(4) = tofloat(ps)
           
 return(output)
 

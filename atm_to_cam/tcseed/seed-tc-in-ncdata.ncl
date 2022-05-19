@@ -7,16 +7,16 @@ begin
 ;(1)	1993 8 2 0   24.988 294.532     1004.89  121.38
 ; 11, 325, 991
 
-minp = 985.00 
-target_rmw = 141380
-cen_lat    = 14.0
-cen_lon    = 296.0
+minp = 994.01
+target_rmw = 76270
+cen_lat    = 28.673
+cen_lon    = 273.8
 
 deg_bnd = 12.
 doplot=False
 
-origfile="~/work/sewx/INIC/ne0natlantic30x4-FHIST_INIC_seed.nc"
-seedfile="~/work/sewx/INIC/ne0natlantic30x4-FHIST_INIC_seed2.nc"
+origfile="/glade/work/zarzycki/sewx//INIC//ne0natlantic30x4-FHIST_INIC.nc"
+seedfile="~/work/sewx/INIC/ne0natlantic30x4-FHIST_INIC_seed3.nc"
 system("rm -v "+seedfile)
 system("cp -v "+origfile+" "+seedfile)
 
@@ -39,17 +39,6 @@ v = inputFile->V
 ps = inputFile->PS
 t = inputFile->T
 q = inputFile->Q
-
-;to_delete=(/"_FillValue_original","missing_value_original"/)
-;to_delete=(/"_FillValue","missing_value"/)
-;to_delete=(/"maximum_value","minimum_value"/)
-to_delete=(/"time"/)
-
-delete_VarAtts(u,to_delete)
-delete_VarAtts(v,to_delete)
-delete_VarAtts(t,to_delete)
-delete_VarAtts(q,to_delete)
-delete_VarAtts(ps,to_delete)
 
 ; find model point of cen_lat, cen_lon
 gcdist = gc_latlon(cen_lat,cen_lon,lat,lon,2,2)
