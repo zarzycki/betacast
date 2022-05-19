@@ -1014,6 +1014,34 @@ time   = cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cycl
 time!0 = "time"
 delete(timeunits)
 
+;===================================================================
+; Remove any bad metadata we want here
+;===================================================================
+
+print("cleaning up output variables in FV/SE/HOMME/ncol part of atm_to_cam...")
+vars_to_clean=[/ ps_fv_dbl_time, u_fv_dbl_time, v_fv_dbl_time, t_fv_dbl_time, q_fv_dbl_time /]
+if (dycore .eq. "fv") then
+  ListAppend(vars_to_clean,us_fv_dbl_time)
+  ListAppend(vars_to_clean,vs_fv_dbl_time)
+end if
+if (add_cloud_vars) then
+  ListAppend(vars_to_clean,cldliq_fv_dbl_time)
+  ListAppend(vars_to_clean,cldice_fv_dbl_time)
+end if
+do cc = 0, ListCount(vars_to_clean)-1
+  att_to_clean=(/"time", "lat", "slat", "lon", "slon", "lev", "ilev", "ncol"/)
+  do jj = 0,dimsizes(att_to_clean)-1
+    if(isatt(vars_to_clean[cc],att_to_clean(jj))) then
+      print("var: "+cc+" -> cleaning "+att_to_clean(jj)+" attribute from state variables")
+      delete_VarAtts(vars_to_clean[cc],att_to_clean(jj))
+    end if
+  end do
+end do
+
+;===================================================================
+; Write output file
+;===================================================================
+
 print("Writing output file: "+se_inic)
 
 if (isvar("compress_file") .and. compress_file) then
