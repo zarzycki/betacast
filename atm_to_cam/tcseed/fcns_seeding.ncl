@@ -158,11 +158,10 @@ end if
       
       w = 0.
       
-      ; Calculate RH from T, Q (via w), and P
+      ; Calculate RH from T, Q, and P
       if (modify_q) then
-        wmin = qin
-        wmin = qin / ( 1. - qin )
-        rh = relhum (Tin, wmin, p)  ; K, kg/kg, Pa
+        ; from https://earthscience.stackexchange.com/questions/2360/how-do-i-convert-specific-humidity-to-relative-humidity
+        rh = 0.263 * p * qin / exp( (17.67*(Tin - 273.15)) / (Tin - 29.65) )
       end if
           
       ;-----------------------------------------------------------------------
@@ -195,7 +194,7 @@ end if
         if (height .gt. ztrop) then
           q = qin
         else
-          q = mixhum_ptrh (p/100., t, rh, 2)  ;mb, K, percent
+          q = rh / 0.263 / p * exp( (17.67*(t - 273.15)) / (t - 29.65) )
         end if
       else
         q = qin
