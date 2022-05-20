@@ -1,4 +1,4 @@
-function tctestcase(cen_lon:numeric,cen_lat:numeric,dp:numeric,rp:numeric,lon[*]:numeric,lat[*]:numeric,p[*]:numeric,z[*]:numeric,zcoords:integer,psin[*]:numeric,uin[*]:numeric,vin[*]:numeric,Tin[*]:numeric,qin[*]:numeric)
+function tctestcase(cen_lon:numeric,cen_lat:numeric,dp:numeric,rp:numeric,lon[*]:numeric,lat[*]:numeric,p[*]:numeric,z[*]:numeric,zcoords:integer,psin[*]:numeric,uin[*]:numeric,vin[*]:numeric,Tin[*]:numeric,qin[*]:numeric,invert_vortex:logical)
 
 ;SUBROUTINE test5_tropical_cyclone (lon,lat,p,z,zcoords,u,v,w,t,phis,ps,rho,q)
 
@@ -218,12 +218,27 @@ rho = p/(Rd*t*(1.+constTv*q))
 ;   Aggregate state fields and return
 ;-----------------------------------------------------------------------
 
-output(0) = tofloat(v)
-output(1) = tofloat(u)
-output(2) = tofloat(q)
-output(3) = tofloat(t)
-output(4) = tofloat(ps)
-          
+if (invert_vortex) then
+  ; back out dels and then flip the sign so we are "subtracting" the vortex from state
+  delv = v - vin
+  delu = u - uin
+  delt = t - Tin
+  delq = q - qin
+  delps = ps - psin
+  output(0) = tofloat(vin-delv)
+  output(1) = tofloat(uin-delu)
+  output(2) = tofloat(qin-delq)
+  output(3) = tofloat(Tin-delt)
+  output(4) = tofloat(psin-delps)
+else
+  ; adding vortex, just output state
+  output(0) = tofloat(v)
+  output(1) = tofloat(u)
+  output(2) = tofloat(q)
+  output(3) = tofloat(t)
+  output(4) = tofloat(ps)
+end if
+
 return(output)
 
 end
@@ -278,6 +293,12 @@ Ttrop = T0 - gamma_*ztrop     ; Tropopause temp
 ptrop = p00*(Ttrop/T0)^(1./exponent); Tropopause pressure
 
 ; We can tweak these!
+
+if (dp .le. 0)
+  print("dp is "+dp)
+  print("this means ambient pressure lower than target, something is wrong!")
+  exit
+end if
 
 ; calculate coriolis param
 fc  = 2.*omega*sin(cen_lat/convert)           ; Coriolis parameter
