@@ -1,29 +1,27 @@
 load "fcns_seeding.ncl"
 load "../../functions/radialAvg.ncl"
 
-;BEST: 101.06 155400 3580 1.31
-n_p_steps=18
-rp_arr = fspan(080000.,280000.,n_p_steps)
-dp_arr = fspan(0300.,6000.,n_p_steps)
+inic_file="/glade/u/home/zarzycki/work/sewx/INIC/sample_ne120.nc"
+deltaMax=0.25            ; user-defined nominal resolution of raw data
+psminlat=21.75           ; initial target for psminlat
+psminlon=-53.5           ; initial target for psminlon
+truePS_scan_radius=300.  ; what is radius to scan for true psmin relative to psminlat/psminlon? In km.
+rad_for_corr=800.        ; what radius (in km) are we using for radial averages?
+
+modify_q = True          ; do we modify q in addition to T, PS, U, V?
+modify_q_mult = 2.5      ; multiplier on Q relative to C-C scaling (1.0 means scale mixing ratio with RH% and T).
+gamma_   = 0.0065        ; lapse rate
+
+n_p_steps = 18
+rp_arr = fspan(080000.,300000.,n_p_steps)
+dp_arr = fspan(0200.,6000.,n_p_steps)
 exppr_arr = fspan(1.1,1.9,n_p_steps)
-;BEST: 108.967 150000 3700 1.2
-;n_p_steps=1
-;rp_arr = (/150000./)
-;dp_arr = (/3700./)
-;exppr_arr = (/1.2/)
 
-n_p_vars = 3
-n_t_vars = 1
-inic_file="./sample_ne120.nc"
-deltaMax=0.25
-psminlat=24.75
-psminlon=-85.75
-truePS_scan_radius=3.0
+n_t_steps = 60
+zp_arr = fspan(6000.,16000.,n_t_steps)
 
-modify_q = True
-modify_q_mult = 1.5
-gamma_   = 0.0065    ; lapse rate
-
+n_p_vars = 3  ; rp, dp, exppr
+n_t_vars = 1  ; zp
 ; ================== CONSTANTS ===================
 
 pi      = 4.*atan(1.)       ; pi
@@ -44,8 +42,8 @@ mps = f->PS(0,:)
 T = f->T(0,:,:)
 
 ; figure out ACTUAL PSL min location from our "best guess" (i.e., vitals)
-gcdist = gc_latlon(psminlat,psminlon,lat,lon,2,2)
-tmpps    = where(gcdist .gt. truePS_scan_radius,mps@_FillValue,mps)
+gcdist = gc_latlon(psminlat,psminlon,lat,lon,2,4)
+tmpps  = where(gcdist .gt. truePS_scan_radius,mps@_FillValue,mps)
 minix  = minind(tmpps)
 psminlat := lat(minix)
 psminlon := lon(minix)
@@ -53,11 +51,11 @@ delete(gcdist)
 delete(tmpps)
 
 ; Now create a radial profile of ncdata PSL given psminlat
-rad_psl = radialAvg2D_unstruc(mps,lat,lon,deltaMax,psminlat,psminlon,500.,True)
+rad_psl = radialAvg2D_unstruc(mps,lat,lon,deltaMax,psminlat,psminlon,rad_for_corr,False)
 nrad_PS = dimsizes(rad_psl)
 
 ; Now create a radial profile of ncdata T given psminlat
-Tavg = radialAvg3D_unstruc(T,lat,lon,lev,deltaMax,psminlat,psminlon,500.,True)
+Tavg = radialAvg3D_unstruc(T,lat,lon,lev,deltaMax,psminlat,psminlon,rad_for_corr,False)
 
 ; Gets the number of bins
 Tavg_dims = dimsizes(Tavg)
@@ -96,6 +94,11 @@ zp       = 10000.   ; Initial guess for calculation of P
   
 ; Here, we don't want to invert vortex, we want to force ideal case to match obs.
 invert_vortex=False
+
+rp_ext    := ( rp_arr(n_p_steps-1)-rp_arr(0)       )
+dp_ext    := ( dp_arr(n_p_steps-1)-dp_arr(0)       )
+exppr_ext := ( exppr_arr(n_p_steps-1)-exppr_arr(0) )
+print("orig rp range: "+(rp_ext)+"    orig dp range: "+(dp_ext)+"     orig exppr range: "+(exppr_ext))
 
 ; initialize "skill" array
 rmsd = new((/(1+n_p_vars),toint(n_p_steps^n_p_vars)/),"float")
@@ -140,11 +143,11 @@ print("BEST: "+rmsd(0,best_config)+" "+rmsd(1,best_config)+" "+rmsd(2,best_confi
 ; "Shrink" the space by taking the delta between successive loops above and "widening" it a bit (mult_factor) for safety
 ; Note a bin width here = 2*mult_factor
 n_p_steps=18
-mult_factor=0.55
-rp_ext   =( rp_arr(1)-rp_arr(0)       )*mult_factor
-dp_ext   =( dp_arr(1)-dp_arr(0)       )*mult_factor
-exppr_ext=( exppr_arr(1)-exppr_arr(0) )*mult_factor
-print("rp_ext: "+rp_ext+"    dp_ext: "+dp_ext+"     exppr_ext: "+exppr_ext)
+mult_factor=0.52
+rp_ext    := ( rp_arr(1)-rp_arr(0)       )*mult_factor
+dp_ext    := ( dp_arr(1)-dp_arr(0)       )*mult_factor
+exppr_ext := ( exppr_arr(1)-exppr_arr(0) )*mult_factor
+print("new rp range: "+(2.*rp_ext)+"    new dp range: "+(2.*dp_ext)+"     new exppr range: "+(2.*exppr_ext))
 
 ; Create updated arrays and reset skill and counter
 rp_arr    := fspan(rmsd(1,best_config)-rp_ext,rmsd(1,best_config)+rp_ext,n_p_steps)
@@ -184,9 +187,6 @@ dp       = rmsd(2,best_config)
 exppr    = rmsd(3,best_config)
 
 ; ===================OPTIMIZATION T ANOM==============
-
-n_t_steps = 60
-zp_arr = fspan(6000.,16000.,n_t_steps)
 
 ; initialize "skill" array
 corr = new((/(1+n_t_vars),toint(n_t_steps^n_t_vars)/),"float")
@@ -228,7 +228,8 @@ print("dp: "+dp)
 print("zp: "+zp)
 print("gamma_: "+gamma_)
 print("exppr: "+exppr)
-print("cen_lat: "+cen_lat)
+print("cen_lat: "+psminlat)
+print("cen_lat: "+psminlon)
 print("modify_q: "+modify_q)
 print("modify_q_mult: "+modify_q_mult)      
 print("************* --------------------------")
@@ -247,7 +248,7 @@ anlT_anom = anlT(:,0) - anlT(:,dimsizes(mylon)-1)
 
 ; ===================PLOTTING==============
 
-wks   = gsn_open_wks ("x11","xy")               ; send graphics to PNG file
+wks   = gsn_open_wks ("png","best_fit_profiles")               ; send graphics to PNG file
 plot = new(2,graphic)                          ; create a plot array
 
 res                  = True                     ; plot mods desired
@@ -272,9 +273,9 @@ plot(0) = gsn_csm_x2y2(wks,anlT_anom,Tavg(:,0),lev,lev,res1,res2)
 res3=res
 res4=res
 res3@trXMinF = 0.
-res3@trXMaxF = 800.
-res3@trYMinF = 96000.
-res3@trYMaxF = 101000.
+res3@trXMaxF = 900.
+res3@trYMinF = 95000.
+res3@trYMaxF = 102000.
 res4@trXMinF = res3@trXMinF
 res4@trXMaxF = res3@trXMaxF
 res4@trYMinF = res3@trYMinF

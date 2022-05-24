@@ -2,22 +2,42 @@ load "./fcns_seeding.ncl"
 
 begin
 
-;2004 8 31 0   19.772 281.867     1002.52  104.73
-;2004 9 1 0   20.673 273.8     994.01  76.27
-;(1)	1993 8 2 0   24.988 294.532     1004.89  121.38
-; 11, 325, 991
+invert_vortex = False    ; do we want to ADD a vortex (False) or REMOVE a vortex (True)
+deg_bnd = 15.            ; what is the radius where the code will influence the analysis (GCD)
+doplot=False             ; should we plot a diagnostic map
+modify_q = True          ; do we also modify Q based on RH and the T anomaly?
+origfile="/glade/u/home/zarzycki/work/sewx/INIC/sample_ne120_unseed.nc"
+seedfile="/glade/u/home/zarzycki/work/sewx/INIC/sample_ne120_unseed2.nc"
 
-minp = 994.01
-target_rmw = 76270.
-cen_lat    = 24.75
-cen_lon    = 360.-85.75
-invert_vortex = True
+if (.not. invert_vortex) then
+  ; here we are seeding the vortex
+  ; rp and dp will come from minp and target_rmw
+  ; minp -> what is the SLP min we want to inject?
+  ; target_rmw -> what is the RMW we want?
+  ; setting zp, gamma, exppr, modify_q_mult to -1 uses defaults
+  minp = 990.0
+  target_rmw = 150000.
+  cen_lat    = 22.75
+  cen_lon    = 360.-92.0
+  zp = -1.
+  gamma_ = -1.
+  exppr = -1.
+  modify_q_mult = -1.
+else
+  ; here we are removing the vortex, these settings come from find-tc-fill-params
+  cen_lat = 21.87653196344101
+  cen_lon = 306.2441153488365
+  rp       = 179761 ; Radius for calculation of PS
+  dp       = 1641.97   ; Delta P for calculation of PS
+  zp       = 14305.1   ; Height for calculation of P
+  gamma_   = 0.0065    ; lapse rate
+  exppr    = 1.12118     ; Exponent for r dependence of p
+  modify_q_mult = 2.5
+end if
 
-deg_bnd = 15.
-doplot=False
+wcSeedStrt     = systemfunc("date")
 
-origfile="sample_ne120.nc"
-seedfile="sample_ne120_unseed.nc"
+print("copying files...")
 system("rm -v "+seedfile)
 system("cp -v "+origfile+" "+seedfile)
 
@@ -47,46 +67,28 @@ inputFile->PS_orig = ps
 inputFile->T_orig = t
 inputFile->Q_orig = q
 
-; find model point of cen_lat, cen_lon
+; get gcdist from projected center lat/lon to full lat/lon arrays
 gcdist = gc_latlon(cen_lat,cen_lon,lat,lon,2,2)
 
-; figure out true model point of center lat
-;tmps = ps(0,:)
-;tmps = where(gcdist .gt. 5.0 , 10000000. , tmps)
-;minix = minind(tmps)
-;print(lat(minix)+" "+lon(minix))
-
 ;======= get dp and rp
-
 if (.not. invert_vortex) then
+  ; figure out true model point of center lat
+  ;tmps = ps(0,:)
+  ;tmps = where(gcdist .gt. 5.0 , 10000000. , tmps)
+  ;minix = minind(tmps)
+  ;print(lat(minix)+" "+lon(minix))
+  ;delete(tmps)
+  
+  minix = minind(gcdist)
+  print(lat(minix)+" "+lon(minix))
+  
   ambps = ps(0,minix)
   print("ambient ps: "+ambps)
   dp = ambps - minp*100.
   rp = get_rp_from_dp_rmw(cen_lat,dp,target_rmw)
-else
-  ; for inversion, we need to estimate...
-  ; dp and target_rmw -> get_stuff(ps,windbot,initiallat,initiallon)
-  ; dp should be difference between vortex min and environment at ring away from storm
-  ; rmw should be radius of maximum wind scaled?
-  dp = 3600.
-  target_rmw = 150000.
-  cen_lat = 24.80228676012924
-  cen_lon = 274.0679218247745
-  ;rp = get_rp_from_dp_rmw(cen_lat,dp,target_rmw)
-
-  rp       = 155400.  ; Radius for calculation of PS
-  dp       = 3580.    ; Delta P for calculation of PS
-  zp       = 13189.   ; Height for calculation of P
-  exppr    = 1.31     ; Exponent for r dependence of p
-  gamma_   = 0.0065    ; lapse rate
-  modify_q = True
-  modify_q_mult = 1.5
-
-  gcdist = gc_latlon(cen_lat,cen_lon,lat,lon,2,2)
+  print("derived dp: "+dp)
+  print("derived rp: "+rp)
 end if
-
-print("dp: "+dp)
-print("rp: "+rp)
 
 ;======= seed TC
 
@@ -96,6 +98,7 @@ do ii = 0,ncol-1
     print("At ncol: "+ii+" of "+ncol)
   end if
 
+  ; only edit cells that are within our defined radius of TC seed
   if ( gcdist(ii) .le. deg_bnd ) then
   
     do kk = 0,dimsizes(lev)-1
@@ -110,15 +113,15 @@ do ii = 0,ncol-1
       t(0,kk,ii) = totype(theArr(3), typeof(t))
     end do
     
-    ; we only want to update ps once per column
+    ; we only need to update ps once per column
     ps(0,ii) = totype(theArr(4), typeof(ps))
     if (ps(0,ii) .lt. 80000) then
-      print(" "+ps(0,ii))
+      print("For diagnostic purposes, PS below 800mb --> "+ps(0,ii))
     end if
     
   end if  ; if this cell is an edited cell
   
-end do
+end do  ; end column loop
 
 ; Write file!
 inputFile->PS=ps
@@ -128,9 +131,19 @@ inputFile->T=t
 inputFile->Q=q
 
 ; add metadata
-inputFile@dp = dp
-inputFile@target_rmw = target_rmw
-inputFile@rp = rp
+;inputFile@invert_vortex = invert_vortex
+;inputFile@dp = dp
+;inputFile@target_rmw = target_rmw
+;inputFile@rp = rp
+;inputFile@zp = zp
+;inputFile@gamma_ = gamma_
+;inputFile@exppr = exppr
+;inputFile@cen_lat = cen_lat
+;inputFile@cen_lon = cen_lon
+;inputFile@modify_q = modify_q
+;inputFile@modify_q_mult = modify_q_mult
+
+wallClockElapseTime(wcSeedStrt, "Time to seed", 0)
 
 if (doplot) then
   wks = gsn_open_wks("x11","tc_mask")
