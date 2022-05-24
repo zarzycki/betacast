@@ -8,12 +8,12 @@ begin
 ; 11, 325, 991
 
 minp = 994.01
-target_rmw = 76270
+target_rmw = 76270.
 cen_lat    = 24.75
 cen_lon    = 360.-85.75
-invert_vortex = False
+invert_vortex = True
 
-deg_bnd = 12.
+deg_bnd = 15.
 doplot=False
 
 origfile="sample_ne120.nc"
@@ -45,11 +45,16 @@ inputFile->U_orig = u
 inputFile->V_orig = v
 inputFile->PS_orig = ps
 inputFile->T_orig = t
-inputFile->Q_orig = ps
+inputFile->Q_orig = q
 
 ; find model point of cen_lat, cen_lon
 gcdist = gc_latlon(cen_lat,cen_lon,lat,lon,2,2)
-minix = minind(gcdist)
+
+; figure out true model point of center lat
+;tmps = ps(0,:)
+;tmps = where(gcdist .gt. 5.0 , 10000000. , tmps)
+;minix = minind(tmps)
+;print(lat(minix)+" "+lon(minix))
 
 ;======= get dp and rp
 
@@ -63,12 +68,21 @@ else
   ; dp and target_rmw -> get_stuff(ps,windbot,initiallat,initiallon)
   ; dp should be difference between vortex min and environment at ring away from storm
   ; rmw should be radius of maximum wind scaled?
-  dp = 3500.
-  target_rmw=200000.
-  cen_lat    = 24.75
-  cen_lon    = 360.-85.75
-  rp = get_rp_from_dp_rmw(cen_lat,dp,target_rmw)
-  ;rp = 82031.2
+  dp = 3600.
+  target_rmw = 150000.
+  cen_lat = 24.80228676012924
+  cen_lon = 274.0679218247745
+  ;rp = get_rp_from_dp_rmw(cen_lat,dp,target_rmw)
+
+  rp       = 155400.  ; Radius for calculation of PS
+  dp       = 3580.    ; Delta P for calculation of PS
+  zp       = 13189.   ; Height for calculation of P
+  exppr    = 1.31     ; Exponent for r dependence of p
+  gamma_   = 0.0065    ; lapse rate
+  modify_q = True
+  modify_q_mult = 1.5
+
+  gcdist = gc_latlon(cen_lat,cen_lon,lat,lon,2,2)
 end if
 
 print("dp: "+dp)
@@ -88,7 +102,7 @@ do ii = 0,ncol-1
       ; calc pressure level
       p = hyam(kk)*P0 + hybm(kk)*ps(0,ii)
       ; get perturbed TC field
-      theArr = tctestcase(cen_lon,cen_lat,dp,rp,lon(ii),lat(ii),p,-999,0,ps(0,ii),u(0,kk,ii),v(0,kk,ii),t(0,kk,ii),q(0,kk,ii),invert_vortex)
+      theArr = tctestcase(todouble(cen_lon),todouble(cen_lat),dp,rp,zp,exppr,gamma_,lon(ii),lat(ii),p,-999,0,ps(0,ii),u(0,kk,ii),v(0,kk,ii),t(0,kk,ii),q(0,kk,ii),invert_vortex,modify_q,modify_q_mult)
       ; convert and write to state arrays
       v(0,kk,ii) = totype(theArr(0), typeof(v))
       u(0,kk,ii) = totype(theArr(1), typeof(u))

@@ -1,18 +1,37 @@
-function tctestcase(cen_lon:numeric,cen_lat:numeric,dp:numeric,rp:numeric,lon[*]:numeric,lat[*]:numeric,p[*]:numeric,z[*]:numeric,zcoords:integer,psin[*]:numeric,uin[*]:numeric,vin[*]:numeric,Tin[*]:numeric,qin[*]:numeric,invert_vortex:logical)
+function tctestcase(cen_lon:numeric,cen_lat:numeric,dp:numeric,rp:numeric,zp:numeric,exppr:numeric,gamma_:numeric,lon[*]:numeric,lat[*]:numeric,p[*]:numeric,z[*]:numeric,zcoords:integer,psin[*]:numeric,uin[*]:numeric,vin[*]:numeric,Tin[*]:numeric,qin[*]:numeric,invert_vortex:logical,modify_q:logical,modify_q_mult:numeric)
 
 ;SUBROUTINE test5_tropical_cyclone (lon,lat,p,z,zcoords,u,v,w,t,phis,ps,rho,q)
 
 begin
 
-modify_q = True
-
 output = new(5,float)
 
 ;zcoords = 0 ;0 = pressure, 1 = z
 
-;input longitude (radians) 
-; 	latitude (radians) 
-; 	pressure/height
+if (rp .le. 0.0) then
+  rp         = 273000.  ; Radius for calculation of PS
+end if
+if (dp .le. 0.0) then
+  dp         = 2280.    ; Delta P for calculation of PS
+end if
+if (zp .le. 0.0) then
+  zp         = 12000.    ; Height for calculation of P
+end if
+if (gamma_ .le. 0.0) then
+  gamma_      = 0.006    ; lapse rate
+end if
+if (exppr .le. 0.0) then
+  exppr      = 1.3      ; Exponent for r dependence of p
+end if
+if (cen_lat .le. -900.) then
+  cen_lat    = 20.      ; Center latitude of initial vortex
+end if
+if (cen_lon .le. -900.) then
+  cen_lon    = -40.     ; Center longitufe of initial vortex
+end if
+if (modify_q_mult .lt. 0.) then
+  modify_q_mult    = 1.0     ; adjustment Q multiplier
+end if
 
 ; Constants
 a	= 6371220.	        ; Earth's Radius (m)
@@ -21,20 +40,13 @@ g	= 9.80616	          ; Gravity (m s^2)
 omega   = 7.292115d-5 ; angular velocity 1/s
 pi      = 4.*atan(1.)       ; pi
 convert = 180./pi   ; conversion factor: radians to degrees
-;rp         = 273000.  ; Radius for calculation of PS
-;dp         = 2280.    ; Delta P for calculation of PS
-zp         = 10000.    ; Height for calculation of P
 q0         = 0.021    ; q at surface from Jordan
-gamma_      = 0.007    ; lapse rate
 Ts0        = 302.0   ; Surface temperature (SST)
 p00        = 101500.  ; global mean surface pressure
 p0         = 100000.  ; p for model level calculation
-;cen_lat    = 20.      ; Center latitude of initial vortex
-;cen_lon    = -40.     ; Center longitufe of initial vortex
 zq1        = 3000.    ; Height 1 for q calculation
 zq2        = 8000.    ; Height 2 for q calculation
-exppr      = 1.5      ; Exponent for r dependence of p
-exppz      = 2.       ; Exponent for z dependence of p
+exppz      = 2.0       ; Exponent for z dependence of p
 ztrop      = 20000.   ; Tropopause Height
 qtrop      = 1.e-11     ; Tropopause specific humidity
 rfpi       = 1000000. ; Radius within which to use fixed-point iter.
@@ -45,17 +57,34 @@ exponent = Rd*gamma_/g   ; exponent
 T0    = Ts0*(1.+constTv*q0)   ; Surface temp
 Ttrop = T0 - gamma_*ztrop     ; Tropopause temp
 ptrop = p00*(Ttrop/T0)^(1./exponent); Tropopause pressure
-      
+
+; Print diagnostics to log
+
+;print("rp: "+rp)
+;print("dp: "+dp)
+;print("zp: "+zp)
+;print("gamma_: "+gamma_)
+;print("exppr: "+exppr)
+;print("cen_lat: "+cen_lat)
+;print("cen_lon: "+cen_lon)
+;print("modify_q: "+modify_q)
+;print("modify_q_mult: "+modify_q_mult)      
+;print("--------------------------")
+
+; Do calculations
+
 f  = 2.*omega*sin(cen_lat/convert)           ; Coriolis parameter
 
 ; Great circle calculations
-gr = a*acos(sin(cen_lat/convert)*sin(lat/convert) + \
-           (cos(cen_lat/convert)*cos(lat/convert)*cos((lon-cen_lon)/convert)))          
-;gr = gc_latlon(cen_lat,cen_lon,lat,lon,2,3)
+; CMZ, using internal NCL to avoid nans when cen_lat is too close to this lat...
+;gr = a*acos(sin(cen_lat/convert)*sin(lat/convert) + \
+;           (cos(cen_lat/convert)*cos(lat/convert)*cos((lon-cen_lon)/convert)))          
+gr = gc_latlon(cen_lat,cen_lon,lat,lon,2,3)
 
 ; Define surface pressure as pressure in instead of constant  
 p00 = tofloat(psin)
-      
+
+
 ;-----------------------------------------------------------------------
 ;    initialize height field if provided pressure or pressure if provided z
 ;-----------------------------------------------------------------------
@@ -218,13 +247,20 @@ rho = p/(Rd*t*(1.+constTv*q))
 ;   Aggregate state fields and return
 ;-----------------------------------------------------------------------
 
+delv = v - vin
+delu = u - uin
+delt = t - Tin
+delq = q - qin
+delps = ps - psin
+if (modify_q) then
+  ; modify the delq -- this is used in the inversion
+  delq = delq*modify_q_mult
+  ; otherwise, add the delq to qin
+  q = qin + delq
+end if
+  
 if (invert_vortex) then
   ; back out dels and then flip the sign so we are "subtracting" the vortex from state
-  delv = v - vin
-  delu = u - uin
-  delt = t - Tin
-  delq = q - qin
-  delps = ps - psin
   output(0) = tofloat(vin-delv)
   output(1) = tofloat(uin-delu)
   output(2) = tofloat(qin-delq)
