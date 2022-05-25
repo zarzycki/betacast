@@ -1,16 +1,22 @@
-load "fcns_seeding.ncl"
+load "../../functions/fcns_seeding.ncl"
 load "../../functions/radialAvg.ncl"
+load "../../functions/namelist.ncl"
 
-inic_file="/glade/u/home/zarzycki/work/sewx/INIC/sample_ne120.nc"
-deltaMax=0.25            ; user-defined nominal resolution of raw data
-psminlat=21.75           ; initial target for psminlat
-psminlon=-53.5           ; initial target for psminlon
+begin
+
+pthi="../../namelists/unseed.default.nl"
+inic_file  = keyword_values( pthi, "new_file", "string")
+deltaMax  = keyword_values( pthi, "deltaMax", "float")
+psminlat  = keyword_values( pthi, "psminlat", "float")
+psminlon  = keyword_values( pthi, "psminlon", "float")
+modify_q  = keyword_values( pthi, "modify_q", "logical")
+modify_q_mult  = keyword_values( pthi, "modify_q_mult", "float")
+gamma_  = keyword_values( pthi, "gamma", "float")
+
+; ================== INTERNAL SETTINGS ===================
+
 truePS_scan_radius=300.  ; what is radius to scan for true psmin relative to psminlat/psminlon? In km.
 rad_for_corr=800.        ; what radius (in km) are we using for radial averages?
-
-modify_q = True          ; do we modify q in addition to T, PS, U, V?
-modify_q_mult = 2.5      ; multiplier on Q relative to C-C scaling (1.0 means scale mixing ratio with RH% and T).
-gamma_   = 0.0065        ; lapse rate
 
 n_p_steps = 18
 rp_arr = fspan(080000.,300000.,n_p_steps)
@@ -22,6 +28,7 @@ zp_arr = fspan(6000.,16000.,n_t_steps)
 
 n_p_vars = 3  ; rp, dp, exppr
 n_t_vars = 1  ; zp
+
 ; ================== CONSTANTS ===================
 
 pi      = 4.*atan(1.)       ; pi
@@ -232,7 +239,18 @@ print("cen_lat: "+psminlat)
 print("cen_lat: "+psminlon)
 print("modify_q: "+modify_q)
 print("modify_q_mult: "+modify_q_mult)      
+
+; write to namelist
+WHICHSED="sed"
+system("cp -v "+pthi+" "+pthi+".BAK")
+system(WHICHSED+" -i 's?.*rp=.*?rp="+rp+"?' "+pthi)
+system(WHICHSED+" -i 's?.*dp=.*?dp="+dp+"?' "+pthi)
+system(WHICHSED+" -i 's?.*zp=.*?zp="+zp+"?' "+pthi)
+system(WHICHSED+" -i 's?.*exppr=.*?exppr="+exppr+"?' "+pthi)
+system(WHICHSED+" -i 's?.*psminlat=.*?psminlat="+psminlat+"?' "+pthi)
+system(WHICHSED+" -i 's?.*psminlon=.*?psminlon="+psminlon+"?' "+pthi)
 print("************* --------------------------")
+
 
 ; BEST CONFIG PROFILE CALCULATION
 
@@ -286,3 +304,5 @@ plot(1) = gsn_csm_x2y2(wks,rad_psl&radius,rad_psl&radius,anlPS,rad_psl,res3,res4
 gsn_panel(wks,plot,(/2,1/),False)             ; now draw as one plot
 
 print(dim_rmsd_n(anlPS,rad_psl,0))
+
+end 

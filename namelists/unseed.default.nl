@@ -1,0 +1,12 @@
+invert_vortex=True
+new_file="/glade/u/home/zarzycki/work/sewx/INIC/sample_ne120_unseed.nc"
+deltaMax=0.25
+psminlat=21.87653196344101
+psminlon=306.2441153488365
+gamma=0.0065
+rp=180758
+dp=1637.76
+zp=14305.1
+exppr=1.12259
+modify_q=True
+modify_q_mult=2.5

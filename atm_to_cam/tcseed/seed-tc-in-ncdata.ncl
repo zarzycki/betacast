@@ -1,45 +1,45 @@
-load "./fcns_seeding.ncl"
+load "../../functions/fcns_seeding.ncl"
+load "../../functions/namelist.ncl"
 
 begin
 
-invert_vortex = False    ; do we want to ADD a vortex (False) or REMOVE a vortex (True)
-deg_bnd = 15.            ; what is the radius where the code will influence the analysis (GCD)
-doplot=False             ; should we plot a diagnostic map
-modify_q = True          ; do we also modify Q based on RH and the T anomaly?
-origfile="/glade/u/home/zarzycki/work/sewx/INIC/sample_ne120_unseed.nc"
-seedfile="/glade/u/home/zarzycki/work/sewx/INIC/sample_ne120_unseed2.nc"
+pthi="../../namelists/unseed.default.nl"
+invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
+seedfile = keyword_values( pthi, "new_file", "string")
+modify_q = keyword_values( pthi, "modify_q", "logical")
+if (modify_q) then
+  modify_q_mult  = keyword_values( pthi, "modify_q_mult", "float")
+else
+  modify_q_mult=1.0
+end if
+gamma_  = keyword_values( pthi, "gamma", "float")
+cen_lat  = keyword_values( pthi, "psminlat", "float")
+cen_lon  = keyword_values( pthi, "psminlon", "float")
+zp  = keyword_values( pthi, "zp", "float")
+exppr  = keyword_values( pthi, "exppr", "float")
+
+deg_bnd=15.      ; what is the radius where the code will influence the analysis (GCD)
+doplot=False     ; should we plot a diagnostic map
 
 if (.not. invert_vortex) then
   ; here we are seeding the vortex
   ; rp and dp will come from minp and target_rmw
   ; minp -> what is the SLP min we want to inject?
   ; target_rmw -> what is the RMW we want?
-  ; setting zp, gamma, exppr, modify_q_mult to -1 uses defaults
-  minp = 990.0
-  target_rmw = 150000.
-  cen_lat    = 22.75
-  cen_lon    = 360.-92.0
-  zp = -1.
-  gamma_ = -1.
-  exppr = -1.
-  modify_q_mult = -1.
+  ; setting zp, gamma, exppr, modify_q_mult to -1 uses defaults 
+  minp       = keyword_values( pthi, "minp", "float")
+  target_rmw = keyword_values( pthi, "target_rmw", "float")
 else
   ; here we are removing the vortex, these settings come from find-tc-fill-params
-  cen_lat = 21.87653196344101
-  cen_lon = 306.2441153488365
-  rp       = 179761 ; Radius for calculation of PS
-  dp       = 1641.97   ; Delta P for calculation of PS
-  zp       = 14305.1   ; Height for calculation of P
-  gamma_   = 0.0065    ; lapse rate
-  exppr    = 1.12118     ; Exponent for r dependence of p
-  modify_q_mult = 2.5
+  rp  = keyword_values( pthi, "rp", "float")
+  dp  = keyword_values( pthi, "dp", "float")
 end if
 
 wcSeedStrt     = systemfunc("date")
 
-print("copying files...")
-system("rm -v "+seedfile)
-system("cp -v "+origfile+" "+seedfile)
+;print("copying files...")
+;system("rm -v "+seedfile)
+;system("cp -v "+origfile+" "+seedfile)
 
 inputFile = addfile(seedfile,"w")
 
@@ -60,12 +60,11 @@ ps = inputFile->PS
 t = inputFile->T
 q = inputFile->Q
 
-; make a copy of orig vars on file
-inputFile->U_orig = u
-inputFile->V_orig = v
-inputFile->PS_orig = ps
-inputFile->T_orig = t
-inputFile->Q_orig = q
+u_orig = u
+v_orig = v
+ps_orig = ps
+t_orig = t
+q_orig = q
 
 ; get gcdist from projected center lat/lon to full lat/lon arrays
 gcdist = gc_latlon(cen_lat,cen_lon,lat,lon,2,2)
@@ -91,6 +90,19 @@ if (.not. invert_vortex) then
 end if
 
 ;======= seed TC
+; print some diagnostics
+print("**************")
+print("invert_vortex: "+invert_vortex)
+print("cen_lat: "+cen_lat)
+print("cen_lon: "+cen_lon)
+print("dp: "+dp)
+print("rp: "+rp)
+print("zp: "+zp)
+print("gamma: "+gamma_)
+print("exppr: "+exppr)
+print("modify_q: "+modify_q)
+print("modify_q_mult: "+modify_q_mult)
+print("**************")
 
 do ii = 0,ncol-1
 
@@ -129,6 +141,27 @@ inputFile->U=u
 inputFile->V=v
 inputFile->T=t
 inputFile->Q=q
+
+; make a copy of orig vars on file
+if (.not. isfilevar(inputFile, "U_orig")) then
+  print("copying u -> u_orig")
+  inputFile->U_orig = u_orig
+  inputFile->V_orig = v_orig
+  inputFile->PS_orig = ps_orig
+  inputFile->T_orig = t_orig
+  inputFile->Q_orig = q_orig
+else
+  if (.not. isfilevar(inputFile, "U_orig2")) then
+    print("copying u -> u_orig2")
+    inputFile->U_orig2 = u_orig
+    inputFile->V_orig2 = v_orig
+    inputFile->PS_orig2 = ps_orig
+    inputFile->T_orig2 = t_orig
+    inputFile->Q_orig2 = q_orig
+  else
+    print("We already have U_orig + U_orig2 on file, not adding any more!")
+  end if
+end if
 
 ; add metadata
 ;inputFile@invert_vortex = invert_vortex
