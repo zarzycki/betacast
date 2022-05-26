@@ -3,9 +3,9 @@ load "../../functions/namelist.ncl"
 
 begin
 
-pthi="../../namelists/unseed.default.nl"
+;pthi="../../namelists/unseed.default.nl"
 invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
-seedfile = keyword_values( pthi, "new_file", "string")
+;seedfile = keyword_values( pthi, "new_file", "string")
 modify_q = keyword_values( pthi, "modify_q", "logical")
 if (modify_q) then
   modify_q_mult  = keyword_values( pthi, "modify_q_mult", "float")

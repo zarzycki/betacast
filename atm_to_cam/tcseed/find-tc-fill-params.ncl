@@ -4,14 +4,21 @@ load "../../functions/namelist.ncl"
 
 begin
 
-pthi="../../namelists/unseed.default.nl"
-inic_file  = keyword_values( pthi, "new_file", "string")
+;pthi="../../namelists/unseed.default.nl"
+invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
+if (.not. invert_vortex)
+  print("Not inverting vortex, we can exit gracefully!")
+  exit
+end if
+;inic_file  = keyword_values( pthi, "new_file", "string")
 deltaMax  = keyword_values( pthi, "deltaMax", "float")
 psminlat  = keyword_values( pthi, "psminlat", "float")
 psminlon  = keyword_values( pthi, "psminlon", "float")
 modify_q  = keyword_values( pthi, "modify_q", "logical")
 modify_q_mult  = keyword_values( pthi, "modify_q_mult", "float")
 gamma_  = keyword_values( pthi, "gamma", "float")
+
+
 
 ; ================== INTERNAL SETTINGS ===================
 

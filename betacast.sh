@@ -90,6 +90,8 @@ if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
 if [ -z ${predict_docn+x} ]; then predict_docn=false; fi
 if [ -z ${archive_inic+x} ]; then archive_inic=false; fi
 if [ -z ${compress_history_nc+x} ]; then compress_history_nc=true; fi
+if [ -z ${add_vortex+x} ]; then add_vortex=false; fi
+if [ -z ${vortex_namelist+x} ]; then vortex_namelist=""; fi
 ### Some defaults infrequently set
 if [ -z ${doFilter+x} ]; then doFilter=false; fi
 if [ -z ${filterOnly+x} ]; then filterOnly=false; fi
@@ -132,8 +134,14 @@ echo "Files will be archived in ${ARCHIVEDIR}/YYYYMMDDHH/"
 ### ERROR CHECKING BLOCK! #########################################################
 
 # Exit if add_perturbs is turned on but no namelist is passed in with perturbation config settings
-if [ "${add_perturbs}" = true ] && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
+if ${add_perturbs} && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
   echo "add_perturbs is true but can't find namelist: "$perturb_namelist
+  exit 1
+fi
+
+# Exit if add_perturbs is turned on but no namelist is passed in with perturbation config settings
+if ${add_vortex} && { [ -z "$vortex_namelist" ] || [ ! -f "$vortex_namelist" ]; } ; then
+  echo "add_vortex is true but can't find namelist: "$vortex_namelist
   exit 1
 fi
 
@@ -681,6 +689,18 @@ if [ $debug = false ] ; then
 fi #End debug if statement
 
 ############################### #### ############################### 
+##### ADD OR REMOVE VORTEX
+
+if ${add_vortex} ; then
+  cd $atm_to_cam_path/tcseed 
+  set +e
+  echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
+  (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' )
+  (set -x; ncl -n seed-tc-in-ncdata.ncl   'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' )
+  set -e
+fi
+
+############################### #### ############################### 
 ##### ADD WHITE NOISE PERTURBATIONS
 
 if ${add_noise} ; then
@@ -694,7 +714,7 @@ fi
 ############################### #### ############################### 
 ##### ADD PERTURBATIONS
 
-if [ "${add_perturbs}" = true ] ; then
+if ${add_perturbs} ; then
   echo "Adding perturbations"
 
 #   cp /glade/scratch/zarzycki/apply-haiyan-perturb/sst_1x1_Nat-Hist-CMIP5-est1-v1-0.nc ${sstFileIC}
