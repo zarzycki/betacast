@@ -678,11 +678,7 @@ if [ $debug = false ] ; then
   # if successful! However, this means we have to check if code is successful with
   # something other than zero. Generally, if NCL fails expect a 0 return, but lets
   # be safe and call everything non-9.
-  if [[ $? -ne 9 ]]
-  then
-    echo "NCL exited with non-9 error code"
-    exit 240
-  fi
+  if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
   echo "ATM NCL completed successfully"
   set -e # Turn error checking back on
   
@@ -695,8 +691,13 @@ if ${add_vortex} ; then
   cd $atm_to_cam_path/tcseed 
   set +e
   echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
+  
   (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' )
+  if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
+  
   (set -x; ncl -n seed-tc-in-ncdata.ncl   'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' )
+  if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
+  
   set -e
 fi
 
