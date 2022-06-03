@@ -1,90 +1,65 @@
 ## To add a vortex to an SE analysis state
 
-In `seed-tc-in-ncdata.ncl`...
+A user can either "seed" a vortex or "deseed" a vortex. To do so, two settings need to be added to the main namelist and a "seed namelist" must be generated.
 
-First set
-
-```
-invert_vortex = False
-origfile="???"
-seedfile="???_seed.nc"
-```
-
-Then define...
+In the main namelist, add...
 
 ```
-minp = 990.
-target_rmw = 150000.
-cen_lat = 22.75
-cen_lon = 268.0
+  add_vortex = true
+  vortex_namelist = /glade/u/home/zarzycki/betacast/namelists/seed.default.nl
 ```
 
-where minp is the target pressure of the vortex seed (in hPa), target_rmw is the target radius of maximum wind (in m), and cen_lat, cen_lon is the vortex location in the SE data.
+Then generate a "seed namelist" with the below settings.
+
+| Namelist Variable | Type | Description | RQ_ADD | RQ_RM | Default |
+| --- | --- | --- | --- | --- | --- |
+| invert_vortex | Bool | **False** means we are adding (seeding), **True** means remove existing vortex ("deseed") | X | X | |
+| psminlat | Numeric | Latitude of vortex center | X | X^ | |
+| psminlon | Numeric | Longitude of vortex center | X | X^ | |
+| deltaMax | Numeric | Nominal resolution of input data (degrees) |  | X | |
+| minp | Numeric | Target pressure of vortex to add (hPa) | X* | | 995.0 |
+| target_rmw | Numeric | Target radius of maximum wind of vortex to add (m) | X* |  | 200000.0 |
+| zp | Numeric | Height for calculation of P (~top of vortex) (m) | X* |  | 12000. |
+| exppr | Numeric | Exponent for r dependence of p | X* |  | 1.5 |
+| gamma | Numeric | TC environmental lapse rate (K/m) | X* | X* | 0.0065 |
+| modify_q | Bool | Should the q profile be modified via RH%? | X | X | |
+| modify_q_mult | Numeric | Multiplicative factor beyond Clausius-Clapeyron if modify_q = True | X* | X* | 1.0 |
+
+An 'X' in the column RQ_ADD means that namelist variable is **required** if one is *adding* a vortex, RQ_RM means required if one is *removing* a vortex.
+
+*Any required variable with an asterisk can be set to -1.0 for the default setting in the right column.
+
+^For vortex removal, psminlat and psminlon are "best guesses" that must be within 3 great circle degrees of the observed TC and will be overwritten by the code which finds the local minimum in PS in the model data.
+
+### Adding a vortex example
+
+If one is seeding (adding) a vortex, the file **must** contain the following...
 
 ```
-$> ncl seed-tc-in-ncdata.ncl
+invert_vortex=False
+psminlat = 25.315
+psminlon = 282.831
+minp = -1.
+target_rmw = -1.
+gamma=-1.
+zp=-1.
+exppr=-1.
+modify_q=True
+modify_q_mult=-1.
 ```
 
-should then produce an analysis with seeded TC.
+### Removing a vortex example
 
-Use this as ncdata in Betacast.
-
-## To remove an existing vortex from SE analysis state
-
-Find the rough location of the vortex's PSL center
-
-`find-tc-fill-params.ncl` will attempt to find the correct vortex shape/settings to optimally remove the vortex from the analysis.
-
-Edit the head of the file...
+If one is removing a vortex, the file **must** contain the following...
 
 ```
-inic_file="/glade/u/home/zarzycki/work/sewx/INIC/sample_ne120.nc"
-deltaMax=0.25            ; user-defined nominal resolution of raw data
-psminlat=21.75           ; initial target for psminlat
-psminlon=-53.5           ; initial target for psminlon
-truePS_scan_radius=300.  ; what is radius to scan for true psmin relative to psminlat/psminlon? In km.
-rad_for_corr=800.        ; what radius (in km) are we using for radial averages?
-modify_q = True          ; do we modify q in addition to T, PS, U, V?
-modify_q_mult = 2.5      ; multiplier on Q relative to C-C scaling (1.0 means scale mixing ratio with RH% and T).
-gamma_   = 0.0065        ; lapse rate
+invert_vortex=True
+psminlat=28.2
+psminlon=312.8
+deltaMax=0.25
+gamma=-1.
+modify_q=True
+modify_q_mult=2.5
 ```
 
-Note that deltaMax is in degrees and needs to be user-specified.
-
-Once edited, run:
-
-```
-$> ncl find-tc-fill-params.ncl
-```
-
-This should take a little while scanning all the potential settings that could "fill in" the vortex. At the end of the script, it will print...
-
-```
-(0)	BEST SETTINGS --------------------------
-(0)	rp: 179761
-(0)	dp: 1641.97
-(0)	zp: 14305.1
-(0)	gamma_: 0.0065
-(0)	exppr: 1.12118
-(0)	cen_lat: 21.87653196344101
-(0)	cen_lat: 306.2441153488365
-(0)	modify_q: True
-(0)	modify_q_mult: 2.5
-(0)	************* --------------------------
-```
-
-Transfer these settings over to `seed-tc-in-ncdata.ncl` in the relevant block. Also make sure you toggle `invert_vortex`.
-
-```
-invert_vortex = True
-origfile="???"
-seedfile="???_seed.nc"
-```
-
-Now you can run the script and it will fill in the existing vortex in the analysis.
-
-```
-$> ncl seed-tc-in-ncdata.ncl
-```
-
-Use this as ncdata in Betacast.
+`find-tc-fill-params.ncl` will attempt to find the correct vortex shape/settings to optimally remove the vortex from the analysis. It will append these settings to the namelist without user intervention and then run the seeding code with the invert_vortex flag specified as True.
