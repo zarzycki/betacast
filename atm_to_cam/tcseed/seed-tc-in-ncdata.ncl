@@ -29,6 +29,14 @@ if (.not. invert_vortex) then
   ; setting zp, gamma, exppr, modify_q_mult to -1 uses defaults 
   minp       = keyword_values( pthi, "minp", "float")
   target_rmw = keyword_values( pthi, "target_rmw", "float")
+  if (minp .lt. 0.0) then
+    minp = 995.0
+    print("SEED TC: setting minp to default of "+minp)
+  end if
+  if (target_rmw .lt. 0.0) then
+    target_rmw = 200000.
+    print("SEED TC: setting target_rmw to default of "+target_rmw)
+  end if
 else
   ; here we are removing the vortex, these settings come from find-tc-fill-params
   rp  = keyword_values( pthi, "rp", "float")
@@ -209,5 +217,7 @@ if (doplot) then
   res@cnLevelSpacingF = 2.			; set the interval between contours
   map = gsn_csm_contour_map_ce(wks,u(0,26,:),res)
 end if
+
+status_exit(9)
 
 end

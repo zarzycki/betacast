@@ -8,7 +8,7 @@ begin
 invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
 if (.not. invert_vortex)
   print("Not inverting vortex, we can exit gracefully!")
-  exit
+  status_exit(9)
 end if
 ;inic_file  = keyword_values( pthi, "new_file", "string")
 deltaMax  = keyword_values( pthi, "deltaMax", "float")
@@ -18,7 +18,10 @@ modify_q  = keyword_values( pthi, "modify_q", "logical")
 modify_q_mult  = keyword_values( pthi, "modify_q_mult", "float")
 gamma_  = keyword_values( pthi, "gamma", "float")
 
-
+if (gamma_ .lt. 0.0) then
+  gamma_ = 0.0065
+  print("setting gamma_ to default of "+gamma_)
+end if
 
 ; ================== INTERNAL SETTINGS ===================
 
@@ -250,12 +253,32 @@ print("modify_q_mult: "+modify_q_mult)
 ; write to namelist
 WHICHSED="sed"
 system("cp -v "+pthi+" "+pthi+".BAK")
-system(WHICHSED+" -i 's?.*rp=.*?rp="+rp+"?' "+pthi)
-system(WHICHSED+" -i 's?.*dp=.*?dp="+dp+"?' "+pthi)
-system(WHICHSED+" -i 's?.*zp=.*?zp="+zp+"?' "+pthi)
-system(WHICHSED+" -i 's?.*exppr=.*?exppr="+exppr+"?' "+pthi)
+;system(WHICHSED+" -i 's?.*rp=.*?rp="+rp+"?' "+pthi)
+;system(WHICHSED+" -i 's?.*dp=.*?dp="+dp+"?' "+pthi)
+;system(WHICHSED+" -i 's?.*zp=.*?zp="+zp+"?' "+pthi)
+;system(WHICHSED+" -i 's?.*exppr=.*?exppr="+exppr+"?' "+pthi)
+;system(WHICHSED+" -i 's?.*psminlat=.*?psminlat="+psminlat+"?' "+pthi)
+;system(WHICHSED+" -i 's?.*psminlon=.*?psminlon="+psminlon+"?' "+pthi)
+
+; if we have added rp, dp, zp, or exppr, delete!
+system(WHICHSED+" -i 's?rp?d' "+pthi)
+system(WHICHSED+" -i 's?dp?d' "+pthi)
+system(WHICHSED+" -i 's?zp?d' "+pthi)
+system(WHICHSED+" -i 's?exppr?d' "+pthi)
+
+; this line *forces* a newline at the end of the file if one does not exist so we can echo correctly
+system(WHICHSED+" -i -e '$a\' "+pthi)
+
+; add the variables we have figured out!
+system("echo 'rp = "+rp+"' >> "+pthi)
+system("echo 'dp = "+dp+"' >> "+pthi)
+system("echo 'zp = "+zp+"' >> "+pthi)
+system("echo 'exppr = "+exppr+"' >> "+pthi)
+
+; overwrite psminlat and psminlon since we needed those to begin with!
 system(WHICHSED+" -i 's?.*psminlat=.*?psminlat="+psminlat+"?' "+pthi)
 system(WHICHSED+" -i 's?.*psminlon=.*?psminlon="+psminlon+"?' "+pthi)
+  
 print("************* --------------------------")
 
 
@@ -310,6 +333,8 @@ plot(1) = gsn_csm_x2y2(wks,rad_psl&radius,rad_psl&radius,anlPS,rad_psl,res3,res4
 
 gsn_panel(wks,plot,(/2,1/),False)             ; now draw as one plot
 
-print(dim_rmsd_n(anlPS,rad_psl,0))
+print("PSL total RSMD: "+dim_rmsd_n(anlPS,rad_psl,0))
+
+status_exit(9)
 
 end 

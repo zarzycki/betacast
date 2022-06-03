@@ -1,10 +1,10 @@
 invert_vortex=False
-minp = 1002.9
-target_rmw = 106610.
-psminlat = 25.315
-psminlon = 282.831
+minp=-1.
+target_rmw=-1.
+psminlat =    25.315
+psminlon =    282.831
 gamma=-1.
-zp=3000.
+zp=-1.
 exppr=-1.
 modify_q=True
-modify_q_mult=2.5
+modify_q_mult=-1.

@@ -21,7 +21,7 @@ if (gamma_ .le. 0.0) then
   gamma_      = 0.006    ; lapse rate
 end if
 if (exppr .le. 0.0) then
-  exppr      = 1.3      ; Exponent for r dependence of p
+  exppr      = 1.5      ; Exponent for r dependence of p
 end if
 if (cen_lat .le. -900.) then
   cen_lat    = 20.      ; Center latitude of initial vortex
