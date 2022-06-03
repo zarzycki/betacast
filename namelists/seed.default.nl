@@ -1,11 +1,10 @@
 invert_vortex=False
-new_file="/glade/u/home/zarzycki/work/sewx/INIC/sample_ne120_seed.nc"
-minp = 990.0
-target_rmw = 150000.
-psminlat = 23.5
-psminlon = 272.0
+minp = 1002.9
+target_rmw = 106610.
+psminlat = 25.315
+psminlon = 282.831
 gamma=-1.
-zp=-1.
+zp=3000.
 exppr=-1.
 modify_q=True
-modify_q_mult=1.0
+modify_q_mult=2.5
