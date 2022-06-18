@@ -159,6 +159,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | DTIME | Physics timestep (in seconds) |
 | FINERES | Finest resolution of SE grid |
 | USERSTAB | Required dynamics timestep (in s), negative values try internal calculation, but use with caution |
+| use_nsplit | If true, use the CESM/E3SMv1 SE/HOMME nsplit timestep logic, if false apply new E3SMv2 se_tstep parameter (equal to USERSTAB) |
 | sendplots | Are we going to send live output to some external server? (generally false unless you are CMZ) |
 | nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) |
 | dotracking | Do online TC tracking and process to ATCF format? |

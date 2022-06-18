@@ -100,6 +100,7 @@ if [ -z ${filterHourLength+x} ]; then filterHourLength=6; fi
 if [ -z ${filtTcut+x} ]; then filtTcut=6; fi
 if [ -z ${FILTERWALLCLOCK+x} ]; then FILTERWALLCLOCK="00:29:00"; fi
 if [ -z ${FILTERQUEUE+x} ]; then FILTERQUEUE="batch"; fi
+if [ -z ${use_nsplit+x} ]; then use_nsplit="true"; fi
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -939,16 +940,29 @@ if $doFilter ; then
   ATM_NCPL=192
   echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
   if [[ "$DYCORE" == "se" ]]; then
-    sed -i '/.*se_nsplit/d' user_nl_${atmName}
-    if [ "$VALIDSTABVAL" = false ]; then
-      # Use se_nsplit = -1, which is internal
-      echo "SE_NSPLIT: -1"
-      echo "se_nsplit=-1" >> user_nl_${atmName}
+    if [ "$use_nsplit" = true ]; then # if trad. SE nsplit timestepping
+      sed -i '/.*se_nsplit/d' user_nl_${atmName}
+      if [ "$VALIDSTABVAL" = false ]; then
+        # Use se_nsplit = -1, which is internal
+        echo "SE_NSPLIT: -1"
+        echo "se_nsplit=-1" >> user_nl_${atmName}
+      else
+        # Add se_nsplit based off of dtime=450 and stability
+        SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(450/${STABILITY})))"`
+        echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
+        echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
+      fi
     else
-      # Add se_nsplit based off of dtime=450 and stability
-      SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(450/${STABILITY})))"`
-      echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
-      echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
+      sed -i '/.*se_tstep/d' user_nl_${atmName}
+      if [ "$VALIDSTABVAL" = false ]; then
+        echo "Betacast cannot handle when $VALIDSTABVAL is false and use_nsplit is false"
+        echo "You need to set USERSTAB -> desired se_tstep in the namelist. Exiting..."
+        exit
+      else
+        # Add se_tstep directly from stability
+        echo "SE_TSTEP --> STABILITY: $STABILITY   "
+        echo "se_tstep=${STABILITY}" >> user_nl_${atmName}
+      fi
     fi
   else
     echo "non-SE core, make sure timestepping is happy!"
@@ -1062,15 +1076,30 @@ cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
 ATM_NCPL=`python -c "print(int(86400/${DTIME}))"`
 echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
 if [[ "$DYCORE" == "se" ]]; then
-  sed -i '/.*se_nsplit/d' user_nl_${atmName}
-  if [ "$VALIDSTABVAL" = false ]; then
-    echo "SE_NSPLIT: -1 "
-    echo "se_nsplit=-1" >> user_nl_${atmName}
-  else
-    # Add se_nsplit based off of dtime and stability
-    SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))"`
-    echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
-    echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
+  if [ "$use_nsplit" = true ]; then # if trad. SE nsplit timestepping
+    # Delete existing se_nsplit
+    sed -i '/.*se_nsplit/d' user_nl_${atmName}
+    if [ "$VALIDSTABVAL" = false ]; then
+      echo "SE_NSPLIT: -1 "
+      echo "se_nsplit=-1" >> user_nl_${atmName}
+    else
+      # Add se_nsplit based off of dtime and stability
+      SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))"`
+      echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
+      echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
+    fi
+  else # otherwise, use E3SM se_tstep
+    # Delete existing tstep
+    sed -i '/.*se_tstep/d' user_nl_${atmName}
+    if [ "$VALIDSTABVAL" = false ]; then
+      echo "Betacast cannot handle when $VALIDSTABVAL is false and use_nsplit is false"
+      echo "You need to set USERSTAB -> desired se_tstep in the namelist. Exiting..."
+      exit
+    else
+      # Add se_tstep directly from stability
+      echo "SE_TSTEP --> STABILITY: $STABILITY   "
+      echo "se_tstep=${STABILITY}" >> user_nl_${atmName}
+    fi
   fi
 else
   echo "non-SE core, make sure timestepping is happy!"
