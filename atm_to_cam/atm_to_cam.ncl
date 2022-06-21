@@ -886,6 +886,37 @@ end if
 end if
 end if
 
+; dry pressure?
+ps_wet_to_dry=False
+if (ps_wet_to_dry) then
+  print("wet to dry!")
+  ncol=dim_sePS(0)
+  pw_fv = ps_fv
+  ps_orig = ps_fv
+  pw_fv@long_name = "total column precipitable water"
+  pw_fv@units     = "kg/m2"
+  do kk = 0,ncol-1
+    pi_orig = hyai*p0 + hybi*ps_fv(kk)
+    nlevp1 = dimsizes(pi_orig)
+    dp = tofloat(pi_orig(1:nlevp1-1) - pi_orig(0:nlevp1-2))
+    pw_fv(kk) = prcwater_dp (q_fv(:,kk), dp )
+    ps_fv(kk) = ps_orig(kk) - pw_fv(kk)*9.81
+    if (mod(kk,10000) .eq. 0) then
+      print(dp+"")
+      print("Correcting PS: "+kk+" of "+(ncol-1)+"   from "+ps_orig(kk)+" to "+ps_fv(kk)+" since TPW: "+pw_fv(kk))
+    end if
+  end do
+
+  delete(ps_orig)
+  delete(pw_fv)
+  delete(dp)
+  delete(pi_orig)
+  print("done!")
+end if
+
+
+
+
 ; repack
 if (dycore .eq. "fv") then
   print("repacking fv vars")
