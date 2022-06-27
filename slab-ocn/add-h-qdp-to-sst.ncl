@@ -1,22 +1,48 @@
 begin
 
 sfile="/global/homes/c/czarzyck/m2637/betacast/som/docn_files/sst_HadOIBl_bc_1x1_1850_2021_c120422.nc"
-afile="./hq_z16.nc"
-
-s = addfile(sfile,"r")
-a = addfile(afile,"r")
+WHICH_H = "GODAS"   ; Z16 or GODAS
+WHICH_Q = "NONE"   ; Z16 or NONE
 
 ; get fields from SST stream
+s = addfile(sfile,"r")
 SST_cpl = s->SST_cpl
-
-; get 
-hblt = a->hblt
-qdp = a->qdp
-
 SST_cpl_dims = dimsizes(SST_cpl)
 ntim = SST_cpl_dims(0)
 nlat = SST_cpl_dims(1)
 nlon = SST_cpl_dims(2)
+lat = SST_cpl&lat
+lon = SST_cpl&lon
+
+; get boundary layer heights
+if (WHICH_H .eq. "Z16") then
+  afile="./nc_files/hq_z16.nc"
+  a = addfile(afile,"r")
+  hblt = a->hblt
+else if (WHICH_H .eq. "GODAS") then
+  afile="./nc_files/dbss_obml.mon.ltm.1991-2020.nc"
+  a = addfile(afile,"r")
+  hblt_o = a->dbss_obml
+  hblt = linint2_Wrap (hblt_o&lon,hblt_o&lat,hblt_o, True, lon,lat, 0)
+else
+  print("unsupported WHICH_H")
+  exit
+end if
+end if
+
+; use existing correction or set to zero
+if (WHICH_Q .eq. "Z16") then
+  qfile="./nc_files/hq_z16.nc"
+  q = addfile(qfile,"r")
+  qdp = q->qdp
+else if (WHICH_Q .eq. "NONE") then
+  qdp = hblt
+  qdp = 0.0
+else
+  print("unsupported WHICH_H")
+  exit
+end if
+end if
 
 nyears = ntim / 12
 
@@ -40,9 +66,10 @@ end do
 ;qdp_full(1639,{0:80},:) = 15.
 ;qdp_full(1640,{0:80},:) = 15.
 
-;hblt_full = where(ismissing(hblt_full),1000000.,hblt_full)
+; first interpolate along longitude and then latitude to fill in missing values.
 hblt_full = linmsg_n(hblt_full,-1,2)
-hblt_full = where(hblt_full .lt. 10.0,10.0,hblt_full)
+hblt_full = linmsg_n(hblt_full,-1,1)
+hblt_full = where(hblt_full .lt. 5.0,5.0,hblt_full)
 
 times=SST_cpl&time
 print(cd_calendar(times,3))
