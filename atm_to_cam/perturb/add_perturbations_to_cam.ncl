@@ -139,7 +139,7 @@ if (esmf_remap) then
   Opt_se@PrintTimings   = True
   Opt_se@Title          = "SE Grid"
   seGridName = "grid_se_"+ncol+".nc"
-  if (.not. keep_esmf) then unstructured_to_ESMF(seGridName,lat,lon,Opt_se) end if
+  if (.not. keep_esmf .or. .not.isfilepresent(seGridName)) then unstructured_to_ESMF(seGridName,lat,lon,Opt_se) end if
 
   ; gen RLL grid
   Opt_ll = True
@@ -147,11 +147,11 @@ if (esmf_remap) then
   Opt_ll@PrintTimings   = True
   Opt_ll@Title          = "Deltas grid"
   llGridName="grid_deltas.nc"
-  if (.not. keep_esmf) then rectilinear_to_SCRIP(llGridName,deltaT&lat,deltaT&lon,Opt_ll) end if
+  if (.not. keep_esmf .or. .not.isfilepresent(llGridName)) then rectilinear_to_SCRIP(llGridName,deltaT&lat,deltaT&lon,Opt_ll) end if
 
-  system ("echo $PATH")
-  system ("echo $ESMFBINDIR")
-  system ("which ESMF_RegridWeightGen")
+  ;system ("echo $PATH")
+  ;system ("echo $ESMFBINDIR")
+  ;system ("which ESMF_RegridWeightGen")
 
   Opt                      = True
   Opt@InterpMethod         = "patch"
@@ -160,12 +160,12 @@ if (esmf_remap) then
   Opt@SrcESMF        = True    
   Opt@DstESMF        = False
   wgtFileName1 = "map_se_"+ncol+"_to_ll.nc"
-  if (.not. keep_esmf) then ESMF_regrid_gen_weights(seGridName,llGridName,wgtFileName1,Opt) end if
+  if (.not. keep_esmf .or. .not.isfilepresent(wgtFileName1)) then ESMF_regrid_gen_weights(seGridName,llGridName,wgtFileName1,Opt) end if
   
   Opt@SrcESMF        = False    
   Opt@DstESMF        = True
   wgtFileName2 = "map_ll_to_se_"+ncol+".nc"
-  if (.not. keep_esmf) then ESMF_regrid_gen_weights(llGridName,seGridName,wgtFileName2,Opt) end if
+  if (.not. keep_esmf .or. .not.isfilepresent(wgtFileName2)) then ESMF_regrid_gen_weights(llGridName,seGridName,wgtFileName2,Opt) end if
   
   delete(Opt)
 end if
