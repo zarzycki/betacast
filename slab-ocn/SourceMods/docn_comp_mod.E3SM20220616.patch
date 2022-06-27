@@ -1,0 +1,128 @@
+--- /global/homes/c/czarzyck/E3SM-20220616/components/data_comps/docn/src/docn_comp_mod.F90	2022-06-16 07:13:30.804842671 -0700
++++ docn_comp_mod.F90	2022-06-27 11:58:19.690564015 -0700
+@@ -64,6 +64,9 @@
+   integer(IN)   :: kt,ks,ku,kv,kdhdx,kdhdy,kq,kswp  ! field indices
+   integer(IN)   :: kswnet,klwup,klwdn,ksen,klat,kmelth,ksnow,krofi
+   integer(IN)   :: kh,kqbot
++!++CMZ
++  integer(IN)   :: k10uu,kbackt
++!--CMZ
+   integer(IN)   :: index_lat, index_lon
+   integer(IN)   :: kmask, kfrac ! frac and mask field indices of docn domain
+   integer(IN)   :: ksomask      ! So_omask field index
+@@ -83,7 +86,11 @@
+   character(12)   , parameter  :: avofld(1:ktrans) = &
+        (/ "So_t        ","So_u        ","So_v        ","So_dhdx     ",&
+           "So_dhdy     ","So_s        ","strm_h      ","strm_qbot   "/)
+-  character(len=*), parameter :: flds_strm = 'strm_h:strm_qbot'
++!++CMZ         
++  character(len=*),parameter :: flds_strm = 'strm_h:strm_qbot:So_t'
++  !character(len=*), parameter :: flds_strm = 'strm_h:strm_qbot'
++!--CMZ
++
+   !--------------------------------------------------------------------------
+ 
+   !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+@@ -256,11 +263,17 @@
+     klwdn  = mct_aVect_indexRA(x2o,'Faxa_lwdn')
+     ksnow  = mct_aVect_indexRA(x2o,'Faxa_snow')
+     kmelth = mct_aVect_indexRA(x2o,'Fioi_melth')
++!++CMZ add 10^2 m wind to available options
++    k10uu  = mct_aVect_indexRA(x2o,'So_duu10n')
++!--CMZ
+ 
+     call mct_aVect_init(avstrm, rList=flds_strm, lsize=lsize)
+     call mct_aVect_zero(avstrm)
+ 
+     kh    = mct_aVect_indexRA(avstrm,'strm_h')
++!++CMZ
++    kbackt= mct_aVect_indexRA(avstrm,'So_t')
++!--CMZ  
+     kqbot = mct_aVect_indexRA(avstrm,'strm_qbot')
+ 
+     allocate(somtp(lsize))
+@@ -418,6 +431,16 @@
+     real(R8)      :: dt                    ! timestep
+     integer(IN)   :: nu                    ! unit number
+     real(R8)      :: hn                    ! h field
++!++CMZ
++    real(R8)      :: backt             ! stream SST field
++    real(R8)      :: u10               ! 10 m wind
++    real(R8)      :: X_cool            ! logistics function weight
++    real(R8)      :: R_cool
++    real(R8)      :: dT_o
++    real(R8)      :: h_o
++    real(R8)      :: relax_tau
++    real(R8)      :: Tdeep
++!--CMZ
+     character(len=18) :: date_str
+     character(len=CL) :: local_case_name
+     real(R8), parameter :: &
+@@ -589,21 +612,60 @@
+              if (imask(n) /= 0) then
+                 !--- pull out h from av for resuse below ---
+                 hn = avstrm%rAttr(kh,n)
+-                !--- compute new temp ---
++!++CMZ             
++              ! Get "background" temperature, including optional correction
++              backt = avstrm%rAttr(kbackt,n) + TkFrz - avstrm%rAttr(kqbot ,n)
++              ! Get 10m wind speed
++              u10 = SQRT(x2o%rAttr(k10uu,n))
++              
++              R_cool = 11.75
++              dT_o = 27.0
++              h_o = 30.0
++              relax_tau = 8.0   ! days
++              Tdeep = 271.00     ! CMZ update for Zarzycki (2016)
++              
++              ! Calculate scaling function
++              ! SLAB1 from Zarzycki (2016)
++              X_cool = 1.0_r8/(1.0_r8 + EXP(-0.5_r8*(u10-30.0_r8))   )
++              
++              ! SLAB2 from Zarzycki (2016)
++              !X_cool = (u10*2.4_r8/80.0_r8) * (1.0_r8/(1.0_r8 + &
++              !           EXP(-0.2_r8*(u10-30.0_r8))))
++              
++              ! THERMO from Zarzycki (2016)
++              !X_cool = 0.0
++              
++              !************************** compute new temp ****
+                 o2x%rAttr(kt,n) = somtp(n) + &
++                 
++                 ! Thermodynamic terms
+                      (x2o%rAttr(kswnet,n) + &  ! shortwave
+                       x2o%rAttr(klwup ,n) + &  ! longwave
+                       x2o%rAttr(klwdn ,n) + &  ! longwave
+                       x2o%rAttr(ksen  ,n) + &  ! sensible
+-                      x2o%rAttr(klat  ,n) + &  ! latent
+-                      x2o%rAttr(kmelth,n) - &  ! ice melt
+-                      avstrm%rAttr(kqbot ,n) - &  ! flux at bottom
++                  x2o%rAttr(klat  ,n) - &  ! latent
+                      (x2o%rAttr(ksnow,n)+x2o%rAttr(krofi,n))*latice) * &  ! latent by prec and roff
+-                     dt/(cpsw*rhosw*hn)
++                    dt/(cpsw*rhosw*hn) + &
++                  
++                  ! Turb mixing
++                  -X_cool*(R_cool/86400._r8)*((somtp(n)-Tdeep)/dT_o)*(h_o/hn)*dt + & 
++                  
++                  ! Newtonian Relaxation
++                  (1.0_r8/(relax_tau*86400._r8))*(backt - somtp(n))*dt ! Relaxation
++             !**************************
++           
+                 !--- compute ice formed or melt potential ---
+-                o2x%rAttr(kq,n) = (tfreeze(n) - o2x%rAttr(kt,n))*(cpsw*rhosw*hn)/dt  ! ice formed q>0
+-                o2x%rAttr(kt,n) = max(tfreeze(n),o2x%rAttr(kt,n))                    ! reset temp
++             ! o2x%rAttr(kq,n) = (TkFrzSw - o2x%rAttr(kt,n))*(cpsw*rhosw*hn)/dt  ! ice formed q>0
++             ! Let's not form ice since we are using ice data stream
++              o2x%rAttr(kq,n) = 0.0 
++              
++             ! Do we want to cap SSTs to freezing?
++             !o2x%rAttr(kt,n) = max(TkFrzSw,o2x%rAttr(kt,n)) 
++
++              ! Save temperature to send back to coupler          
+                 somtp(n) = o2x%rAttr(kt,n)                                           ! save temp
++
++!--CMZ
+              endif
+           enddo
+        endif   ! firstcall
