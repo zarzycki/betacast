@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<file id="stream" version="1.0">
+<dataSource>
+   GENERIC
+</dataSource>
+<domainInfo>
+  <variableNames>
+     time    time
+        xc      lon
+        yc      lat
+        area    area
+        mask    mask
+  </variableNames>
+  <filePath>
+     /global/homes/c/czarzyck/m2637/betacast/som/docn_files/
+  </filePath>
+  <fileNames>
+     domain.ocn.1x1.111007.nc
+  </fileNames>
+</domainInfo>
+<fieldInfo>
+   <variableNames>
+     SST_cpl     t
+        hblt  h
+        qdp   qbot
+   </variableNames>
+   <filePath>
+     /global/homes/c/czarzyck/betacast/sst_to_cam/slab/
+   </filePath>
+   <fileNames>
+    simple.nc
+   </fileNames>
+   <offset>
+      0
+   </offset>
+</fieldInfo>
+</file>
