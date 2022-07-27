@@ -134,8 +134,20 @@ else if (datasource .eq. "ERA5RDA") then
   grblon        = tofloat(rda_file->longitude)
   grblev        = tofloat(rda_file->level)
   grblev        = grblev * 100.
+else if (datasource .eq. "CAM") then
+  grblev := (/ 100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, \
+    15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000,  \
+    65000, 70000, 75000, 80000, 85000, 90000, 92500, 95000, 97500, 100000/)
+  grblev := tofloat(grblev)
+  mod_remap_file = "/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc"
+  tmp  = ESMF_regrid_with_weights(grb_file->PS(0,:),mod_remap_file,False)
+  grblat = tmp&lat
+  grblon = tmp&lon
+  delete(tmp)
 else
+  print("Exiting when Loading lat/lon/lev")
   exit
+end if
 end if
 end if
 end if
@@ -350,6 +362,133 @@ if (datasource .eq. "ERA5RDA") then
   end if
 end if
 
+
+if (datasource .eq. "CAM") then
+
+  mod_remap_file = "/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc"
+  mod_in_topo = "/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc"
+
+  ;grb_file is loaded above
+  opt=0
+  opt@return_type = "int"
+  cam_time := grb_file->time
+  cam_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,cam_time@units,opt)
+  delete(opt)
+  
+  ps_mod = grb_file->PS(closest_val(cam_thistime,cam_time),:)
+  p0   = 100000.
+  t_mod = grb_file->T(closest_val(cam_thistime,cam_time),:,:)
+  u_mod = grb_file->U(closest_val(cam_thistime,cam_time),:,:)
+  v_mod = grb_file->V(closest_val(cam_thistime,cam_time),:,:)
+  q_mod = grb_file->Q(closest_val(cam_thistime,cam_time),:,:)
+  cldice_mod = t_mod
+  cldliq_mod = t_mod
+  cldice_mod = 0.0
+  cldliq_mod = 0.0
+  
+  mod_in_topo_f = addfile(mod_in_topo,"r")
+  phis_mod=mod_in_topo_f->PHIS
+    
+  ; remap from CAM to lat-lon
+  Opt         = True
+  ps  = ESMF_regrid_with_weights(ps_mod,mod_remap_file,Opt)
+  t_rll  = ESMF_regrid_with_weights(t_mod,mod_remap_file,Opt)
+  u_rll  = ESMF_regrid_with_weights(u_mod,mod_remap_file,Opt)
+  v_rll  = ESMF_regrid_with_weights(v_mod,mod_remap_file,Opt)
+  q_rll  = ESMF_regrid_with_weights(q_mod,mod_remap_file,Opt)
+  cldice_rll  = ESMF_regrid_with_weights(cldice_mod,mod_remap_file,Opt)
+  cldliq_rll  = ESMF_regrid_with_weights(cldliq_mod,mod_remap_file,Opt)
+
+  phis_rll  = ESMF_regrid_with_weights(phis_mod,mod_remap_file,Opt)
+  delete([/ps_mod,t_mod,u_mod,v_mod,q_mod,phis_mod,cldliq_mod,cldice_mod/])
+  delete(Opt)
+  
+  ; get relevant coeffs from CAM file
+  hyam=grb_file->hyam
+  hybm=grb_file->hybm
+  hyai=grb_file->hyai
+  hybi=grb_file->hybi
+  mod_lev = dimsizes(hyam)
+
+  if (dycore .eq. "mpas") then
+    ; calculate omega
+    omega_rll = omega_ccm_driver(p0,ps,u_rll,v_rll,hyam,hybm,hyai,hybi)
+  
+    ; remove omega poleward of OMEGA_LAT_THRESH to deal with singularity
+    OMEGA_LAT_THRESH=86.0
+    omega_rll = where(abs(conform(omega_rll,omega_rll&lat,1)).gt.OMEGA_LAT_THRESH,0.0,omega_rll)
+  
+    ; convert OMEGA to W
+    p3d_rll = pres_hybrid_ccm(ps,p0,hyam,hybm)
+    w_rll = omega_to_w(omega_rll, p3d_rll, t_rll)         ; wc[*][*][*][*] (m/s)
+  
+    ; calculate Z
+    tkv_rll = t_rll
+    tkv_rll = t_rll*(1.+0.61*q_rll)  
+    ;z_rll = hydro (p3d_rll,tkv_rll,phis_rll/9.80655)
+    z_rll = cz2ccm(ps,phis_rll,tkv_rll,p0,hyam(::-1),hybm(::-1),hyai(::-1),hybi(::-1))
+    copy_VarCoords(t_rll,z_rll)  
+  end if
+
+  ; now go to constant pressure surfaces
+;  grblev := (/ 100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, \
+;    15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000,  \
+;    65000, 70000, 75000, 80000, 85000, 90000, 92500, 95000, 97500, 100000/)
+;  grblev := tofloat(grblev)
+  
+  P0mb=p0/100.                          ; p0 in mb
+  intyp = 1                             ; 1=linear, 2=log, 3=log-log
+  kxtrp = True                          ; True=extrapolate
+  tbot_mod = t_rll(mod_lev-1,:,:)             ; bottom level temperature
+
+  ; note, this function needs levels in mb
+  ; the bit after kxtrp needs to be 1 for T, -1 for Z, 0 for all else
+  t_gfs := vinth2p_ecmwf(t_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,1,tbot_mod,phis_rll)
+  u_gfs := vinth2p_ecmwf(u_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,0,tbot_mod,phis_rll)               
+  v_gfs := vinth2p_ecmwf(v_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,0,tbot_mod,phis_rll)      
+  q_gfs := vinth2p_ecmwf(q_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,0,tbot_mod,phis_rll)
+  cldice_gfs := vinth2p_ecmwf(cldice_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,0,tbot_mod,phis_rll)       
+  cldliq_gfs := vinth2p_ecmwf(cldliq_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,0,tbot_mod,phis_rll)
+  if (dycore .eq. "mpas") then
+    w_gfs := vinth2p_ecmwf(w_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                   1,kxtrp,0,tbot_mod,phis_rll)       
+    z_gfs := vinth2p_ecmwf(z_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                   1,kxtrp,-1,tbot_mod,phis_rll)
+  end if
+  
+  delete([/kxtrp,intyp,P0mb/])
+  delete([/t_rll,u_rll,v_rll,q_rll,cldice_rll,cldliq_rll/])
+  delete([/hyam,hybm,hyai,hybi,mod_lev/])       
+  delete([/cam_time,cam_thistime/])
+  if (dycore .eq. "mpas") then
+    delete([/w_rll,z_rll,omega_rll/])
+    delete([/p3d_rll,tkv_rll/])
+  end if
+
+end if
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 print("=================================================================")
 print("************ NATIVE DATA")
 print("Max T: "+max(t_gfs)+"   min T: "+min(t_gfs))
@@ -418,7 +557,7 @@ if (dycore .ne. "mpas") then
   ilev = fC->ilev
 
   print("Interpolating to CAM hybrid coordinates")
-  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA" .or. datasource .eq. "RAP") then
+  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA" .or. datasource .eq. "RAP" .or. datasource .eq. "CAM") then
     print("Using pressure to hybrid interpolation")
     t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,1)
     u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,1)
@@ -716,9 +855,13 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
     rda_time     := rda_file->time
     rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
     sfct_data     = rda_file->VAR_2T(closest_val(rda_thistime,rda_time),:,:)
+  else if (datasource .eq. "CAM") then
+    topo_data = phis_rll
+    sfct_data = tbot_mod
   else
     print("no avail reanalysis surface data for corr... exiting...")
     exit
+  end if
   end if
   end if
   end if
