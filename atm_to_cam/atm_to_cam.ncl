@@ -374,7 +374,7 @@ if (datasource .eq. "CAM") then
 
   ; if CAM downscale + MPAS, we need to smooth omega field
   ; 35 seems to work OK with 0.25deg rll data
-  w_smooth_iter = 35
+  w_smooth_iter = 1
   
   opt=0
   opt@return_type = "int"
@@ -418,7 +418,14 @@ if (datasource .eq. "CAM") then
 
   if (dycore .eq. "mpas") then
     ; calculate omega
-    omega_rll = omega_ccm_driver(p0,ps,u_rll,v_rll,hyam,hybm,hyai,hybi)
+    if (grblat(0) .gt. grblat(1)) then
+      print("flipping omega since calc needs to be S->N")
+      omega_rll = omega_ccm_driver(p0,ps(::-1,:),u_rll(:,::-1,:),v_rll(:,::-1,:),hyam,hybm,hyai,hybi)
+      omega_rll = omega_rll(:,::-1,:) ; flip back
+    else
+      omega_rll = omega_ccm_driver(p0,ps,u_rll,v_rll,hyam,hybm,hyai,hybi)
+    end if
+
     ; remove omega poleward of OMEGA_LAT_THRESH to deal with singularity
     OMEGA_LAT_THRESH=88.0
     omega_rll = where(abs(conform(omega_rll,omega_rll&lat,1)).gt.OMEGA_LAT_THRESH,0.0,omega_rll)
@@ -458,6 +465,17 @@ if (datasource .eq. "CAM") then
     z_gfs := vinth2p_ecmwf(z_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
                    1,kxtrp,-1,tbot_mod,phis_rll)
     z_is_phi = False
+  end if
+  
+  if (debug) then
+    system("/bin/rm -f mpas2_debug.nc")   ; remove any pre-existing file
+    ncdf = addfile("mpas2_debug.nc" ,"c")  ; open output netCDF file
+    fAtt               = True            ; assign file attributes
+    fAtt@creation_date = systemfunc ("date")
+    fileattdef( ncdf, fAtt )            ; copy file attributes
+    filedimdef(ncdf,"time",-1,True) 
+    ncdf->w_gfs = w_gfs
+    ncdf->omega_rll = omega_rll
   end if
   
   ; NOTE: we do not delete phis_rll and tbot_mod which may be used for hydro adjustment
