@@ -135,9 +135,9 @@ else if (datasource .eq. "ERA5RDA") then
   grblev        = tofloat(rda_file->level)
   grblev        = grblev * 100.
 else if (datasource .eq. "CAM") then
-  grblev := (/ 100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, \
+  grblev := (/ 50, 100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, \
     15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000,  \
-    65000, 70000, 75000, 80000, 85000, 90000, 92500, 95000, 97500, 100000/)
+    65000, 70000, 75000, 80000, 82500, 85000, 87500, 90000, 92500, 95000, 97500, 100000/)
   grblev := tofloat(grblev)
   mod_remap_file = "/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc"
   tmp  = ESMF_regrid_with_weights(grb_file->PS(0,:),mod_remap_file,False)
@@ -413,14 +413,9 @@ if (datasource .eq. "CAM") then
   if (dycore .eq. "mpas") then
     ; calculate omega
     omega_rll = omega_ccm_driver(p0,ps,u_rll,v_rll,hyam,hybm,hyai,hybi)
-  
     ; remove omega poleward of OMEGA_LAT_THRESH to deal with singularity
-    OMEGA_LAT_THRESH=86.0
+    OMEGA_LAT_THRESH=88.0
     omega_rll = where(abs(conform(omega_rll,omega_rll&lat,1)).gt.OMEGA_LAT_THRESH,0.0,omega_rll)
-  
-    ; convert OMEGA to W
-    p3d_rll = pres_hybrid_ccm(ps,p0,hyam,hybm)
-    w_rll = omega_to_w(omega_rll, p3d_rll, t_rll)         ; wc[*][*][*][*] (m/s)
   
     ; calculate Z
     tkv_rll = t_rll
@@ -437,7 +432,7 @@ if (datasource .eq. "CAM") then
 ;  grblev := tofloat(grblev)
   
   P0mb=p0/100.                          ; p0 in mb
-  intyp = 1                             ; 1=linear, 2=log, 3=log-log
+  intyp = 2                             ; 1=linear, 2=log, 3=log-log
   kxtrp = True                          ; True=extrapolate
   tbot_mod = t_rll(mod_lev-1,:,:)             ; bottom level temperature
 
@@ -456,10 +451,12 @@ if (datasource .eq. "CAM") then
   cldliq_gfs := vinth2p_ecmwf(cldliq_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
                  1,kxtrp,0,tbot_mod,phis_rll)
   if (dycore .eq. "mpas") then
-    w_gfs := vinth2p_ecmwf(w_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
-                   1,kxtrp,0,tbot_mod,phis_rll)       
+    w_gfs := vinth2p_ecmwf(omega_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                   1,kxtrp,0,tbot_mod,phis_rll)
+    w_is_omega = True
     z_gfs := vinth2p_ecmwf(z_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
                    1,kxtrp,-1,tbot_mod,phis_rll)
+    z_is_phi = False
   end if
   
   delete([/kxtrp,intyp,P0mb/])
@@ -467,8 +464,7 @@ if (datasource .eq. "CAM") then
   delete([/hyam,hybm,hyai,hybi,mod_lev/])       
   delete([/cam_time,cam_thistime/])
   if (dycore .eq. "mpas") then
-    delete([/w_rll,z_rll,omega_rll/])
-    delete([/p3d_rll,tkv_rll/])
+    delete([/z_rll,omega_rll/])
   end if
 
 end if
@@ -514,6 +510,13 @@ if (dycore .eq. "mpas") then
   if (w_is_omega) then
     w_gfs := omega_to_w(w_gfs, pres_gfs, t_gfs)
   end if
+
+  ; smooth w?
+  smooth_iter = 40
+  do ii = 0,smooth_iter-1
+    print("W SMOOTH ITER: "+(ii+1))
+    w_gfs = smth9_Wrap(w_gfs, 0.50,  0.25, True)
+  end do
 
   ; if z is reported in geopotential, convert to geometric height
   if (z_is_phi) then
@@ -647,6 +650,7 @@ else   ; if mpas
   
   ; First, we have to load the MPAS init file and get the zgrid.
   mpasf=addfile(mpasfile,"r")
+  print("getting zgrid from "+mpasfile)
   mpas_z = mpasf->zgrid
   mpas_dims = dimsizes(mpas_z)
   mpas_ncell = mpas_dims(0)
@@ -806,12 +810,19 @@ else   ; if mpas
     print("Writing MPAS fields to a copy of existing init file")
     system("/bin/rm -f -v "+se_inic)   ; remove any pre-existing file
     system("cp -v "+mpasfile+" "+se_inic)   ; remove any pre-existing file
+    
     nc = addfile(se_inic ,"w")  ; open output netCDF file
-    nc->u(0,:,:)     = (/ uNorm_wrf(nEdges|:,lev|:) /)
-    nc->qv(0,:,:)    = (/ q_wrf(ncol|:,lev|:) /)
-    nc->rho(0,:,:)   = (/ rho_wrf(ncol|:,lev|:) /)
-    nc->theta(0,:,:) = (/ theta_wrf(ncol|:,lev|:) /)
-    nc->w(0,:,:)     = (/ w_wrf(ncol|:,ilev|:) /)
+    print("writing u...")
+    nc->u(0,:,:)     = (/ totype( uNorm_wrf(nEdges|:,lev|:), typeof(nc->u)   ) /)
+    print("writing qv...")
+    nc->qv(0,:,:)    = (/ totype( q_wrf(ncol|:,lev|:), typeof(nc->qv)        ) /)
+    print("writing rho...")
+    nc->rho(0,:,:)   = (/ totype( rho_wrf(ncol|:,lev|:), typeof(nc->rho)     ) /)
+    print("writing theta...")
+    nc->theta(0,:,:) = (/ totype( theta_wrf(ncol|:,lev|:), typeof(nc->theta) ) /)
+    print("writing w...")
+    ;w_wrf = 0.0
+    nc->w(0,:,:)     = (/ totype( w_wrf(ncol|:,ilev|:), typeof(nc->w)        ) /)
     
   end if
   
