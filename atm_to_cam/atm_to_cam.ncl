@@ -26,6 +26,7 @@ Rv_over_Rd = Rv / Rd
 debug=False
 rho_d_algo = 2  ; 1 or 2
 damp_upper_winds_mpas=False
+w_smooth_iter = 0
 
 ; dycore options are FV, MPAS, and SE for now
 ; reverse compat -- if you don't specify dycore, default to SE
@@ -271,8 +272,6 @@ if (datasource .eq. "RAP") then
   delete(rh_gfs)
 end if
 
-
-
 if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
   p0   = 100000.
   ; We need to use short2flt because ERA-Interim data is stored
@@ -362,13 +361,21 @@ if (datasource .eq. "ERA5RDA") then
   end if
 end if
 
-
 if (datasource .eq. "CAM") then
 
+  ; goal in this block is to make CAM data look like GFS/ECMWF on pressure levels
+  ; in the future, mimicing ERAI to go hy-hy may be an option
+  ; note we have to use an intermediate LL grid as deference to getting omega
+  ; if we don't need omega/w, we could probably go unstruc->unstruc without RLL in middle
+
+  ; NOTE: these need to be moved to nl vars
   mod_remap_file = "/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc"
   mod_in_topo = "/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc"
 
-  ;grb_file is loaded above
+  ; if CAM downscale + MPAS, we need to smooth omega field
+  ; 35 seems to work OK with 0.25deg rll data
+  w_smooth_iter = 35
+  
   opt=0
   opt@return_type = "int"
   cam_time := grb_file->time
@@ -398,12 +405,11 @@ if (datasource .eq. "CAM") then
   q_rll  = ESMF_regrid_with_weights(q_mod,mod_remap_file,Opt)
   cldice_rll  = ESMF_regrid_with_weights(cldice_mod,mod_remap_file,Opt)
   cldliq_rll  = ESMF_regrid_with_weights(cldliq_mod,mod_remap_file,Opt)
-
   phis_rll  = ESMF_regrid_with_weights(phis_mod,mod_remap_file,Opt)
   delete([/ps_mod,t_mod,u_mod,v_mod,q_mod,phis_mod,cldliq_mod,cldice_mod/])
   delete(Opt)
   
-  ; get relevant coeffs from CAM file
+  ; get relevant vert coeffs from CAM file
   hyam=grb_file->hyam
   hybm=grb_file->hybm
   hyai=grb_file->hyai
@@ -422,19 +428,14 @@ if (datasource .eq. "CAM") then
     tkv_rll = t_rll*(1.+0.61*q_rll)  
     ;z_rll = hydro (p3d_rll,tkv_rll,phis_rll/9.80655)
     z_rll = cz2ccm(ps,phis_rll,tkv_rll,p0,hyam(::-1),hybm(::-1),hyai(::-1),hybi(::-1))
-    copy_VarCoords(t_rll,z_rll)  
+    copy_VarCoords(t_rll,z_rll)
   end if
 
-  ; now go to constant pressure surfaces
-;  grblev := (/ 100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, \
-;    15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000,  \
-;    65000, 70000, 75000, 80000, 85000, 90000, 92500, 95000, 97500, 100000/)
-;  grblev := tofloat(grblev)
-  
+  ; interpolation settings  
   P0mb=p0/100.                          ; p0 in mb
   intyp = 2                             ; 1=linear, 2=log, 3=log-log
   kxtrp = True                          ; True=extrapolate
-  tbot_mod = t_rll(mod_lev-1,:,:)             ; bottom level temperature
+  tbot_mod = t_rll(mod_lev-1,:,:)       ; bottom level temperature
 
   ; note, this function needs levels in mb
   ; the bit after kxtrp needs to be 1 for T, -1 for Z, 0 for all else
@@ -459,6 +460,7 @@ if (datasource .eq. "CAM") then
     z_is_phi = False
   end if
   
+  ; NOTE: we do not delete phis_rll and tbot_mod which may be used for hydro adjustment
   delete([/kxtrp,intyp,P0mb/])
   delete([/t_rll,u_rll,v_rll,q_rll,cldice_rll,cldliq_rll/])
   delete([/hyam,hybm,hyai,hybi,mod_lev/])       
@@ -467,23 +469,7 @@ if (datasource .eq. "CAM") then
     delete([/z_rll,omega_rll/])
   end if
 
-end if
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+end if  ; datasource .eq. CAM
 
 print("=================================================================")
 print("************ NATIVE DATA")
@@ -512,11 +498,12 @@ if (dycore .eq. "mpas") then
   end if
 
   ; smooth w?
-  smooth_iter = 40
-  do ii = 0,smooth_iter-1
-    print("W SMOOTH ITER: "+(ii+1))
-    w_gfs = smth9_Wrap(w_gfs, 0.50,  0.25, True)
-  end do
+  if (w_smooth_iter .gt. 0) then
+    do ii = 0,w_smooth_iter-1
+      print("W SMOOTH ITER: "+(ii+1))
+      w_gfs = smth9_Wrap(w_gfs, 0.50,  0.25, True)
+    end do
+  end if
 
   ; if z is reported in geopotential, convert to geometric height
   if (z_is_phi) then
@@ -812,16 +799,17 @@ else   ; if mpas
     system("cp -v "+mpasfile+" "+se_inic)   ; remove any pre-existing file
     
     nc = addfile(se_inic ,"w")  ; open output netCDF file
-    print("writing u...")
+    ; use totype and typeof, because we are overwriting an existing nc file
+    ; and type mismatch will not work (i.e., we can't specify float v double)
+    print("(over)writing u...")
     nc->u(0,:,:)     = (/ totype( uNorm_wrf(nEdges|:,lev|:), typeof(nc->u)   ) /)
-    print("writing qv...")
+    print("(over)writing qv...")
     nc->qv(0,:,:)    = (/ totype( q_wrf(ncol|:,lev|:), typeof(nc->qv)        ) /)
-    print("writing rho...")
+    print("(over)writing rho...")
     nc->rho(0,:,:)   = (/ totype( rho_wrf(ncol|:,lev|:), typeof(nc->rho)     ) /)
-    print("writing theta...")
+    print("(over)writing theta...")
     nc->theta(0,:,:) = (/ totype( theta_wrf(ncol|:,lev|:), typeof(nc->theta) ) /)
-    print("writing w...")
-    ;w_wrf = 0.0
+    print("(over)writing w...")
     nc->w(0,:,:)     = (/ totype( w_wrf(ncol|:,ilev|:), typeof(nc->w)        ) /)
     
   end if
