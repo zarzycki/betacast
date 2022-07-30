@@ -68,6 +68,16 @@ if (.not. isvar("mpasfile") .and. dycore .eq. "mpas") then
   exit
 end if
 
+; error check if CAM data as input
+if (.not. isvar("mod_in_topo") .and. datasource .eq. "CAM") then
+  print("Using CAM data, but no mod_in_topo passed in, exit!")
+  exit
+end if
+if (.not. isvar("mod_remap_file") .and. datasource .eq. "CAM") then
+  print("Using CAM data, but no mod_remap_file passed in, exit!")
+  exit
+end if
+
 ; Toggle whether or not the output streams will be floats or doubles
 if (write_floats) then
   write_type="float"
@@ -140,7 +150,7 @@ else if (datasource .eq. "CAM") then
     15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000,  \
     65000, 70000, 75000, 80000, 82500, 85000, 87500, 90000, 92500, 95000, 97500, 100000/)
   grblev := tofloat(grblev)
-  mod_remap_file = "/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc"
+  print("CAM: Using mod_remap_file: "+mod_remap_file)
   tmp  = ESMF_regrid_with_weights(grb_file->PS(0,:),mod_remap_file,False)
   grblat = tmp&lat
   grblon = tmp&lon
@@ -368,12 +378,9 @@ if (datasource .eq. "CAM") then
   ; note we have to use an intermediate LL grid as deference to getting omega
   ; if we don't need omega/w, we could probably go unstruc->unstruc without RLL in middle
 
-  ; NOTE: these need to be moved to nl vars
-  mod_remap_file = "/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc"
-  mod_in_topo = "/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc"
-
   ; if CAM downscale + MPAS, we need to smooth omega field
   ; 35 seems to work OK with 0.25deg rll data
+
   w_smooth_iter = 1
   
   opt=0
@@ -392,6 +399,8 @@ if (datasource .eq. "CAM") then
   cldliq_mod = t_mod
   cldice_mod = 0.0
   cldliq_mod = 0.0
+  
+  print("CAM: Using mod_in_topo: "+mod_in_topo)
   
   mod_in_topo_f = addfile(mod_in_topo,"r")
   phis_mod=mod_in_topo_f->PHIS
