@@ -125,7 +125,7 @@ if (isncol) then
   if (dimsizes(mydims) .eq. 1) then
   
     print("converting a ncol -> ncol "+precision+" with time attached!")
-  
+
     ncol = mydims(0)
     if (precision .eq. "float" .or. precision .eq. "single") then
       var_out = new((/1,ncol/),float)
@@ -138,17 +138,17 @@ if (isncol) then
       exit
     end if
     end if
-    
+
     var_out!0 = "time"
     var_out!1 = "ncol"
-    
+
   else
-  
+
     print("converting a lev,ncol -> lev,ncol "+precision+" with time attached!")
 
     nlev = mydims(0)
     ncol = mydims(1)
-    
+
     if (precision .eq. "float" .or. precision .eq. "single") then
       var_out = new((/1,nlev,ncol/),float)
       var_out(0,:,:) = tofloat(var_in)
@@ -160,7 +160,7 @@ if (isncol) then
       exit
     end if
     end if
-    
+
     var_out!0 = "time"
     var_out!1 = "lev"
     var_out!2 = "ncol"
@@ -222,7 +222,7 @@ else  ; if not ncol
 end if
 
 ; copy any metadata over to the output variable
-copy_VarMeta(var_in,var_out)
+copy_VarAtts(var_in,var_out)
 
 return(var_out)
     
