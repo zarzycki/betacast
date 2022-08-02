@@ -300,13 +300,13 @@ if (datasource .eq. "ERA5RDA") then
   ; define some stuff that is static
   p0   = 100000.
   opt=0
-  opt@return_type = "int"
-
+  
   ; go through var by var, get relevant file, extract time
   rda_find     := systemfunc("ls "+sf_dir+"/e5.oper.an.sfc.128_134_sp.ll025sc."+yearstr+monthstr+"0100_*.nc")
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   ps            = rda_file->SP(closest_val(rda_thistime,rda_time),:,:)
 
@@ -314,6 +314,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   t_gfs         = rda_file->T(closest_val(rda_thistime,rda_time),:,:,:)
 
@@ -321,6 +322,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   u_gfs         = rda_file->U(closest_val(rda_thistime,rda_time),:,:,:)
 
@@ -328,6 +330,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   v_gfs         = rda_file->V(closest_val(rda_thistime,rda_time),:,:,:)
 
@@ -335,6 +338,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   q_gfs         = rda_file->Q(closest_val(rda_thistime,rda_time),:,:,:)
 
@@ -342,6 +346,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   cldliq_gfs    = rda_file->CLWC(closest_val(rda_thistime,rda_time),:,:,:)
 
@@ -349,6 +354,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   cldice_gfs    = rda_file->CIWC(closest_val(rda_thistime,rda_time),:,:,:)
   
@@ -357,6 +363,7 @@ if (datasource .eq. "ERA5RDA") then
     print(rda_find+"")
     rda_file     := addfile(rda_find,"r")
     rda_time     := rda_file->time
+    opt@return_type = typeof(rda_time)
     rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
     w_gfs         = rda_file->W(closest_val(rda_thistime,rda_time),:,:,:)
     w_is_omega    = True
@@ -365,6 +372,7 @@ if (datasource .eq. "ERA5RDA") then
     print(rda_find+"")
     rda_file     := addfile(rda_find,"r")
     rda_time     := rda_file->time
+    opt@return_type = typeof(rda_time)
     rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
     z_gfs         = rda_file->Z(closest_val(rda_thistime,rda_time),:,:,:)
     z_is_phi      = True
@@ -380,14 +388,22 @@ if (datasource .eq. "CAM") then
 
   ; if CAM downscale + MPAS, we need to smooth omega field
   ; 35 seems to work OK with 0.25deg rll data
-
+  
   w_smooth_iter = 1
   
-  opt=0
-  opt@return_type = "int"
   cam_time := grb_file->time
+  opt=0
+  opt@return_type = typeof(cam_time)
   cam_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,cam_time@units,opt)
   delete(opt)
+  
+  if (cam_thistime .lt. min(cam_time) .or. cam_thistime .gt. max(cam_time)) then
+    print("ERROR: cam_thistime falls outside range of cam_time array")
+    print("cam_thistime: "+cam_thistime+"    "+cd_calendar(cam_thistime, 3))
+    print("min(cam_time): "+min(cam_time)+"    "+min(cd_calendar(cam_time, 3)))
+    print("max(cam_time): "+max(cam_time)+"    "+max(cd_calendar(cam_time, 3)))
+    exit
+  end if
   
   ps_mod = grb_file->PS(closest_val(cam_thistime,cam_time),:)
   p0   = 100000.
