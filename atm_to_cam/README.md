@@ -3,7 +3,7 @@
 ### Command line options for atm_to_cam.ncl
 
 | Namelist Variable | Type | Description | Default |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- |
 | datasource | Str | CFSR, ERA5, ERAI, GFS, CAM, RAP | |
 | numlevels | Int | Number of levels | |
 | YYYYMMDDHH | Int | Initialization date | |
