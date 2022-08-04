@@ -522,7 +522,8 @@ if [ $debug = false ] ; then
     if [ $islive = true ] ; then
       # Here is where we get the "live" GDAS SST file
       rm -f gdas1*sstgrb*
-      sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/sst.${yestyearstr}${yestmonthstr}${yestdaystr}/
+      #sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/sst.${yestyearstr}${yestmonthstr}${yestdaystr}/
+      sstFTPPath=ftp://ftp.ncep.noaa.gov//pub/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/
       sstFTPFile='rtgssthr_grb_0.5.grib2'
       echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
     else
