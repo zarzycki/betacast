@@ -147,6 +147,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | add_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) |
 | land_spinup | Cycle land spinup only (unsupported currently, leave false) |
 | keep_land_restarts | 0 = delete land restart files, 1 = archive land restart files (possibly overwriting those in ${CASE}/run/landstart |
+| save_nudging_files | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
 | predict_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |
 | anl2mdlWeights | Full path name of weights file for analysis -> model regridding (see previous section) |
