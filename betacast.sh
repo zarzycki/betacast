@@ -92,6 +92,7 @@ if [ -z ${archive_inic+x} ]; then archive_inic=false; fi
 if [ -z ${compress_history_nc+x} ]; then compress_history_nc=true; fi
 if [ -z ${add_vortex+x} ]; then add_vortex=false; fi
 if [ -z ${vortex_namelist+x} ]; then vortex_namelist=""; fi
+if [ -z ${save_nudging_files+x} ]; then save_nudging_files=false; fi
 ### Some defaults infrequently set
 if [ -z ${doFilter+x} ]; then doFilter=false; fi
 if [ -z ${filterOnly+x} ]; then filterOnly=false; fi
@@ -1065,10 +1066,15 @@ sed -i '/.*nhtfrq/d' user_nl_${atmName}
 sed -i '/.*mfilt/d' user_nl_${atmName}
 sed -i '/.*fincl/d' user_nl_${atmName}
 sed -i '/.*empty_htapes/d' user_nl_${atmName}
-sed -i '/.*inithist/d' user_nl_${atmName}
 sed -i '/.*avgflag_pertape/d' user_nl_${atmName}  # Note, we delete this and user either specifies as :A, :I for each var or as a sep var
 echo "empty_htapes=.TRUE." >> user_nl_${atmName}
-echo "inithist='NONE'" >> user_nl_${atmName}
+sed -i '/.*inithist/d' user_nl_${atmName}
+if ${save_nudging_files} ; then
+  echo "inithist='6-HOURLY'" >> user_nl_${atmName}
+else
+  echo "inithist='NONE'" >> user_nl_${atmName}
+fi
+
 
 # Concatenate output streams to end of user_nl_${atmName}
 cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
@@ -1214,6 +1220,19 @@ if [ $compress_history_nc = true ]; then
   echo "Compressing model history files..."
   cd $tmparchivecdir
   for f in *.h*.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
+fi
+
+if ${save_nudging_files} ; then
+  echo "Archiving nudging files..."
+  cd $path_to_nc_files
+  mkdir -p $tmparchivecdir/nudging
+  mv -v *.${atmName}.i.*.nc $tmparchivecdir/nudging
+  if [ $compress_history_nc = true ]; then
+    # Compress files using lossless compression
+    echo "Compressing nudging files..."
+    cd $tmparchivecdir/nudging
+    for f in *.${atmName}.i.*.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
+  fi
 fi
 
 ## Move land files to new restart location
