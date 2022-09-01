@@ -9,7 +9,7 @@
 #>################################################################
 
 #PBS -N gen_nudge_betacast
-#PBS -A UNSB0017
+#PBS -A P93300642
 #PBS -l select=1:ncpus=36:mem=220GB
 #PBS -l walltime=24:00:00
 #PBS -q casper
@@ -21,19 +21,36 @@
 # analysis throughput.
 # Current recommendation is 36 CPUs, 36 GnuP tasks, scale mem as needed w/ gridres
 
-STYR=2014
-ENYR=2014
+CAM_TO_CAM=true   # Set to false for reanalysis -> CAM, otherwise true
+dryrun=false        # Use for debugging -- will generate parallel file but will not execute
+  
+STYR=2005
+ENYR=2005
+if ${CAM_TO_CAM} ; then
+  STDAY=15
+  ENDAY=31
+  STMON="aug"
+  ENMON="aug"
+  HR_RES=6
+else
+  # NOTE, DO NOT NEED TO TOUCH!
+  STDAY=1
+  ENDAY=31
+  STMON="jan"
+  ENMON="dec"
+  HR_RES=1
+fi
 
 #OUTDIR=/glade/u/home/zarzycki/scratch/nudge-E3SM/
 OUTDIR=/glade/scratch/zarzycki/ndg/
 
 BETACASTDIR=/glade/u/home/zarzycki/betacast/
 
-DYCORE="se"
-GRIDSTR=ne30
-BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc
-WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5-0.25_TO_ne30np4_patc.nc
-NUMLEVS=32
+#DYCORE="se"
+#GRIDSTR=ne30pg3
+#BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30pg3_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171014.nc
+#WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_ne30pg3_patc.nc
+#NUMLEVS=58
 
 #DYCORE="fv"
 #GRIDSTR=f09
@@ -46,6 +63,16 @@ NUMLEVS=32
 #BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/inic/mpas/mpasa120.CFSR.L32.nc
 #WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_mpasa120_patc.nc
 #NUMLEVS=32
+
+# Example of CAM->CAM
+DYCORE="mpas"
+GRIDSTR=mpasa3-60-florida
+BNDTOPO=/glade/u/home/zarzycki/work/cesmfiles/inic/x20.835586.florida.init.nc
+WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_mpasa3-60-florida_patc.nc
+NUMLEVS=58
+INFILE=/glade/scratch/zarzycki/cam_to_cam/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900.cam.h2.2005-08-08-00000.nc
+MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc
+MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc
 
 THISDIR=${PWD}
 
@@ -65,6 +92,10 @@ starttime=$(date -u +"%s")
 
 #------------------------------------------------------
 
+ENDHOUR=$((24-HR_RES))
+TIME_INCREMENT=$((3600*HR_RES))
+echo "ENDHOUR: "$ENDHOUR"    TIME_INCREMENT: "$TIME_INCREMENT
+
 ## now loop through the above array
 for jj in $(seq $STYR $ENYR);
 do
@@ -72,11 +103,11 @@ do
   YYYY=${jj}
 
   #### Get dates
-  start=$(date -u --date '1 jan '${YYYY}' 0:00' +%s)
-  stop=$(date -u --date '31 dec '${YYYY}' 23:00' +%s)
+  start=$(date -u --date ''${STDAY}' '${STMON}' '${YYYY}' 0:00' +%s)
+  stop=$(date -u --date ''${ENDAY}' '${ENMON}' '${YYYY}' '${ENDHOUR}':00' +%s)
 
   shopt -s nullglob
-  for t in $(seq ${start} 3600 ${stop})
+  for t in $(seq ${start} ${TIME_INCREMENT} ${stop})
   do
     start=`date +%s`
     f=`date -u --date @${t} +'%Y%m%d%H'`
@@ -91,18 +122,54 @@ do
   
     ## Begin betacast block
     YYYYMMDDHH=${f}
-  
-    RDADIR=/glade/collections/rda/data/ds633.0/
-    INFILE=${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc
-    
+
     # OUTFILETMP is what betacast writes, but then quickly finalize.
     # This gives us a check if the run stops due to wallclock, etc. and the file is only partially written...
     OUTFILE=${OUTDIR}/ndg.ERA5.${GRIDSTR}.L${NUMLEVS}.cam2.i.$YYYY-$MM-$DD-$SSSSS.nc
     OUTFILETMP=${OUTFILE}.TMP.nc
     
     #4/4/22 After CESM2.2, nudging.F90 moved to PIO which doesn't support compression (I don't think...) ... supports floats, which are 25GB uncompressed vs 18GB compressed   
-    NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; ncl -n atm_to_cam.ncl 'datasource=\"ERA5RDA\"' 'RDADIR = \"'${RDADIR}'\"' write_floats=True add_cloud_vars=False compress_file=False mpas_as_cam=True numlevels=${NUMLEVS} YYYYMMDDHH=${YYYYMMDDHH} 'dycore = \"'${DYCORE}'\"' 'data_filename = \"'${INFILE}'\"' 'wgt_filename=\"'${WGTNAME}'\"' 'model_topo_file=\"'${BNDTOPO}'\"' 'adjust_config=\"-\"' 'se_inic = \"'${OUTFILETMP}'\"' ; mv -v ${OUTFILETMP} ${OUTFILE} "
-    
+    if ${CAM_TO_CAM} ; then
+      echo "Running CAM->CAM options"
+      NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; 
+          ncl -n atm_to_cam.ncl 
+          'datasource=\"CAM\"' 
+          write_floats=True 
+          add_cloud_vars=False 
+          compress_file=False 
+          mpas_as_cam=True 
+          numlevels=${NUMLEVS} 
+          YYYYMMDDHH=${YYYYMMDDHH} 
+          'dycore = \"'${DYCORE}'\"' 
+          'data_filename = \"'${INFILE}'\"' 
+          'wgt_filename=\"'${WGTNAME}'\"' 
+          'model_topo_file=\"'${BNDTOPO}'\"' 
+          'mod_remap_file=\"'${MODREMAPFILE}'\"' 
+          'mod_in_topo=\"'${MODINTOPO}'\"' 
+          'adjust_config=\"\"' 
+          'se_inic = \"'${OUTFILETMP}'\"' ; 
+          mv -v ${OUTFILETMP} ${OUTFILE} "
+    else
+      echo "Running ERA5 -> CAM options"
+      RDADIR=/glade/collections/rda/data/ds633.0/
+      INFILE=${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc
+      NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; 
+          ncl -n atm_to_cam.ncl 
+          'datasource=\"ERA5RDA\"' 
+          write_floats=True 
+          add_cloud_vars=False 
+          compress_file=False 
+          mpas_as_cam=True 
+          numlevels=${NUMLEVS} 
+          YYYYMMDDHH=${YYYYMMDDHH} 
+          'dycore = \"'${DYCORE}'\"' 
+          'data_filename = \"'${INFILE}'\"' 
+          'wgt_filename=\"'${WGTNAME}'\"' 
+          'model_topo_file=\"'${BNDTOPO}'\"' 
+          'adjust_config=\"-\"' 
+          'se_inic = \"'${OUTFILETMP}'\"' ; 
+          mv -v ${OUTFILETMP} ${OUTFILE} "
+    fi
     # If file doesn't exist, we want to create, but if it does let's skip
     if [ ! -f ${OUTFILE} ]; then
       echo ${NCLCOMMAND} >> ${COMMANDFILE}
@@ -111,12 +178,14 @@ do
 
 done
 
-# Launch GNU parallel
-#parallel --jobs ${NUMCORES} -u --sshloginfile $PBS_NODEFILE --workdir $PWD < ${COMMANDFILE}
-peak_memusage.exe parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
+if [ $dryrun = false ] ; then
+  # Launch GNU parallel
+  #parallel --jobs ${NUMCORES} -u --sshloginfile $PBS_NODEFILE --workdir $PWD < ${COMMANDFILE}
+  peak_memusage.exe parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
 
-# Cleanup
-rm ${COMMANDFILE}
+  # Cleanup
+  rm ${COMMANDFILE}
+fi
 
 endtime=$(date -u +"%s")
 tottime=$(($endtime-$starttime))
