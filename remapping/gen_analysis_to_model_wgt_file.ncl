@@ -9,16 +9,17 @@ begin
 anlgrid="era5_0.25x0.25" 
 
 ; shortname for grid (for naming purposes)
-dstGridName="mpasa15natl"
+dstGridName="ne0np4natlanticwat.ne30x4"
 ; full path to model SCRIP file
-dstGridFile="/glade/u/home/zarzycki/work/grids/scrip/mpasa15natl_scrip.nc"
+;dstGridFile="/glade/p/cesmdata/inputdata/share/scripgrids/ne30pg3_scrip_170611.nc"
+dstGridFile="/glade/work/zarzycki/grids/scrip/ne0np4natlanticwat.ne30x4.g_scrip.nc"
 ;dstGridFile="./rrm.x4_ESMF.nc"
 
 ; where to save the map file?
 wgtFileDir="./"
 
 ; set this flag to True if you need to generated a CAM->ANL grid (mainly for model downscaling)
-flip_model_and_analysis=False
+flip_model_and_analysis=True
 
 ; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 ; ============= do not edit below this line
