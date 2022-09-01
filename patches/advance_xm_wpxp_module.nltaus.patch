@@ -1,0 +1,11 @@
+--- /glade/u/home/zarzycki/work/cam_20220628/src/physics/clubb/advance_xm_wpxp_module.F90	2022-06-28 07:22:56.447978050 -0600
++++ advance_xm_wpxp_module.F90	2022-06-28 18:52:19.692920564 -0600
+@@ -42,7 +42,7 @@
+ 
+   ! Flag to relax clipping on wpxp in xm_wpxp_clipping_and_stats
+   logical, parameter, public :: &
+-    l_enable_relaxed_clipping = .false.
++    l_enable_relaxed_clipping = .true.
+ 
+   contains
+ 

@@ -1,0 +1,29 @@
+--- /glade/u/home/zarzycki/work/cam_20220628/src/physics/cam/clubb_intr.F90	2022-06-28 07:21:16.360695202 -0600
++++ clubb_intr.F90	2022-07-06 09:12:29.318027891 -0600
+@@ -2922,8 +2922,24 @@
+     do i=1,ncol                                                                  
+       wpthlp_sfc(i) = cam_in%shf(i)/(cpair*rho_ds_zm(i,1))       ! Sensible heat flux
+       wprtp_sfc(i)  = cam_in%cflx(i,1)/rho_ds_zm(i,1)            ! Moisture flux  (check rho)
+-      upwp_sfc(i)   = cam_in%wsx(i)/rho_ds_zm(i,1)               ! Surface meridional momentum flux
+-      vpwp_sfc(i)   = cam_in%wsy(i)/rho_ds_zm(i,1)               ! Surface zonal momentum flux  
++!++CMZ
++      ubar = sqrt(state1%u(i,pver)**2+state1%v(i,pver)**2)
++      if (ubar <  0.25_r8) ubar = 0.25_r8
++      
++      call calc_ustar( state1%t(i,pver), state1%pmid(i,pver), cam_in%wsx(i), cam_in%wsy(i), &
++                    rrho(i), ustar )
++      
++      upwp_sfc(i) = -state1%u(i,pver)*ustar**2/ubar
++      vpwp_sfc(i) = -state1%v(i,pver)*ustar**2/ubar
++
++      !upwp_sfc(i)   = cam_in%wsx(i)/rho_ds_zm(i,1)               ! Surface meridional momentum flux
++      !vpwp_sfc(i)   = cam_in%wsy(i)/rho_ds_zm(i,1)               ! Surface zonal momentum flux
++
++      ! Debugging
++      !if ( masterproc ) then
++      !  print *,'... ',upwp_sfc(i),' ',cam_in%wsx(i)/rho_ds_zm(i,1),' ',ustar,' ',state1%u(i,pver),' ',ubar
++      !end if
++!--CMZ
+     end do
+     
+     !  Need to flip arrays around for CLUBB core
