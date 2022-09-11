@@ -22,18 +22,20 @@
 # Current recommendation is 36 CPUs, 36 GnuP tasks, scale mem as needed w/ gridres
 
 CAM_TO_CAM=true   # Set to false for reanalysis -> CAM, otherwise true
-dryrun=false        # Use for debugging -- will generate parallel file but will not execute
-  
-STYR=2005
-ENYR=2005
+dryrun=false       # Use for debugging -- will generate parallel file but will not execute
+
 if ${CAM_TO_CAM} ; then
-  STDAY=15
-  ENDAY=31
+  STYR=1989
+  ENYR=1989
   STMON="aug"
+  STDAY=8
   ENMON="aug"
+  ENDAY=22
   HR_RES=6
 else
   # NOTE, DO NOT NEED TO TOUCH!
+  STYR=2005
+  ENYR=2005
   STDAY=1
   ENDAY=31
   STMON="jan"
@@ -67,12 +69,22 @@ BETACASTDIR=/glade/u/home/zarzycki/betacast/
 # Example of CAM->CAM
 DYCORE="mpas"
 GRIDSTR=mpasa3-60-florida
-BNDTOPO=/glade/u/home/zarzycki/work/cesmfiles/inic/x20.835586.florida.init.nc
+BNDTOPO=/glade/u/home/zarzycki/scratch/MPAS/3km_florida/x20.835586.florida.init.nc
+####L58 BNDTOPO=/glade/u/home/zarzycki/work/cesmfiles/inic/x20.835586.florida.init.nc
+NUMLEVS=32
 WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_mpasa3-60-florida_patc.nc
-NUMLEVS=58
-INFILE=/glade/scratch/zarzycki/cam_to_cam/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900.cam.h2.2005-08-08-00000.nc
-MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc
-MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc
+
+#INFILE=/glade/scratch/zarzycki/cam_to_cam/CHEY.VR28.NATL.EXT.CAM5.4CLM5.0.dtime900.cam.h2.2008-08-22-00000.nc
+#MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticext.ne30x4_TO_era5_0.25x0.25_patc.nc
+#MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticext.ne30x4/topo/topo_ne0np4natlanticext.ne30x4_smooth.nc
+
+#INFILE=/glade/scratch/zarzycki/cam_to_cam/CHEY.VR28.NATL.EXT.CAM5.4CLM5.0.dtime900.cam.h2.2008-08-22-00000.nc
+#MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc
+#MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc
+
+INFILE=/glade/u/home/zarzycki/scratch/cam_to_cam/CORI.VR28.NATL.WAT.CAM5.4CLM5.0.dtime900.003.cam.h2.1989-08-02-00000.nc
+MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticwat.ne30x4_TO_era5_0.25x0.25_patc.nc
+MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticwat.ne30x4/topo/topo_ne0np4natlanticwat.ne30x4_smooth.nc
 
 THISDIR=${PWD}
 
