@@ -146,9 +146,11 @@ else if (datasource .eq. "ERA5RDA") then
   grblev        = tofloat(rda_file->level)
   grblev        = grblev * 100.
 else if (datasource .eq. "CAM") then
-  grblev := (/ 50, 100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, \
+  grblev := (/ 20, 30, 50, 100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, \
     15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000,  \
-    65000, 70000, 75000, 80000, 82500, 85000, 87500, 90000, 92500, 95000, 97500, 100000/)
+    65000, 70000, 75000, 80000, 82500, 85000, 87500, 90000, 92000, 93000, 94000, \
+    95000, 96000, 97000, 98000, 99000, \
+    99500, 100000, 100500, 101000, 102000, 103000/)
   grblev := tofloat(grblev)
   print("CAM: Using mod_remap_file: "+mod_remap_file)
   tmp  = ESMF_regrid_with_weights(grb_file->PS(0,:),mod_remap_file,False)
@@ -747,6 +749,50 @@ else   ; if mpas
     v_wrf(:,ix)     = z_to_z_interp(v_fv(::-1,ix),z_fv(::-1,ix),zmid,True,False)
   end do
 
+  if (debug) then
+    ; debugging for checking vertical interpolation from CAM -> MPAS
+    t_fv!0 = "lev"
+    t_fv!1 = "ncol"
+    u_fv!0 = "lev"
+    u_fv!1 = "ncol"
+    q_fv!0 = "lev"
+    q_fv!1 = "ncol"
+    w_fv!0 = "lev"
+    w_fv!1 = "ncol"
+    z_fv!0 = "lev"
+    z_fv!1 = "ncol"
+    
+    t_wrf!0 = "newlev"
+    t_wrf!1 = "ncol"
+    u_wrf!0 = "newlev"
+    u_wrf!1 = "ncol"
+    q_wrf!0 = "newlev"
+    q_wrf!1 = "ncol"
+    w_wrf!0 = "newlevi"
+    w_wrf!1 = "ncol"
+    mpas_z!1 = "newlevi"
+    mpas_z!0 = "ncol"
+        
+    debugfile="/glade/scratch/zarzycki/mpas_interp_check.nc"
+    system("/bin/rm -f "+debugfile)   ; remove any pre-existing file
+    ncdf = addfile(debugfile ,"c")  ; open output netCDF file
+    fAtt               = True            ; assign file attributes
+    fAtt@creation_date = systemfunc ("date")
+    fileattdef( ncdf, fAtt )            ; copy file attributes
+    filedimdef(ncdf,"time",-1,True) 
+    ncdf->t_fv = t_fv
+    ncdf->u_fv = u_fv
+    ncdf->w_fv = w_fv
+    ncdf->q_fv = q_fv
+    ncdf->z_fv = z_fv
+    ncdf->t_wrf = t_wrf
+    ncdf->u_wrf = u_wrf
+    ncdf->w_wrf = w_wrf
+    ncdf->q_wrf = q_wrf
+    ncdf->z_wrf = mpas_z(newlevi|:,ncol|:) 
+    exit
+  end if
+  
   ; delete the analysis data that is on the MPAS grid since we now have interpolated MPAS + vert
   delete([/theta_fv,rho_fv,w_fv,q_fv,u_fv,v_fv/])
  
