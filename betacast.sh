@@ -1062,10 +1062,12 @@ fi
 
 ############################### "ACTUAL" FORECAST RUN ############################### 
 
+## Initial modification of user_nl_atm
 sed -i '/.*nhtfrq/d' user_nl_${atmName}
 sed -i '/.*mfilt/d' user_nl_${atmName}
 sed -i '/.*fincl/d' user_nl_${atmName}
 sed -i '/.*empty_htapes/d' user_nl_${atmName}
+sed -i '/.*collect_column_output/d' user_nl_${atmName}
 sed -i '/.*avgflag_pertape/d' user_nl_${atmName}  # Note, we delete this and user either specifies as :A, :I for each var or as a sep var
 echo "empty_htapes=.TRUE." >> user_nl_${atmName}
 sed -i '/.*inithist/d' user_nl_${atmName}
@@ -1074,7 +1076,6 @@ if ${save_nudging_files} ; then
 else
   echo "inithist='NONE'" >> user_nl_${atmName}
 fi
-
 
 # Concatenate output streams to end of user_nl_${atmName}
 cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
