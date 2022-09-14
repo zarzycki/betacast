@@ -1,0 +1,22 @@
+--- /glade/u/home/zarzycki/work/cam_20220628/src/physics/clubb/clubb_api_module.F90	2022-06-28 07:22:56.467975731 -0600
++++ clubb_api_module.F90	2022-09-13 18:51:28.572419124 -0600
+@@ -158,6 +158,9 @@
+     iC_invrs_tau_sfc, iC_invrs_tau_shear, iC_invrs_tau_N2, &
+     iC_invrs_tau_N2_wp2, iC_invrs_tau_N2_xp2, iC_invrs_tau_N2_wpxp, &
+     iC_invrs_tau_N2_clear_wp3, ialtitude_threshold, irtp2_clip_coef, &
++!++CMZ
++    iC_invrs_tau_wpxp_Ri, &
++!--CMZ
+     iRichardson_num_min, iRichardson_num_max, iCx_min, iCx_max
+ 
+ 
+@@ -270,6 +273,9 @@
+         iC_invrs_tau_sfc, iC_invrs_tau_shear, iC_invrs_tau_N2, &
+         iC_invrs_tau_N2_wp2, iC_invrs_tau_N2_xp2, iC_invrs_tau_N2_wpxp, &
+         iC_invrs_tau_N2_clear_wp3, ialtitude_threshold, irtp2_clip_coef, &
++!++CMZ
++        iC_invrs_tau_wpxp_Ri, &
++!--CMZ
+         iRichardson_num_min, iRichardson_num_max, iCx_min, iCx_max
+ 
+ 

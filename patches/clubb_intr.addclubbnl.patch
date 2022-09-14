@@ -1,0 +1,68 @@
+--- /glade/u/home/zarzycki/work/cam_20220628/src/physics/cam/clubb_intr.F90	2022-06-28 07:21:16.360695202 -0600
++++ clubb_intr.F90	2022-09-13 18:29:04.322192590 -0600
+@@ -179,6 +179,10 @@
+   real(r8) :: clubb_skw_max_mag = unset_r8
+   real(r8) :: clubb_up2_sfc_coef = unset_r8
+   real(r8) :: clubb_C_wp2_splat = unset_r8
++!++CMZ
++  real(r8) :: clubb_altitude_threshold = unset_r8
++  real(r8) :: clubb_C_invrs_tau_wpxp_Ri = unset_r8
++!--CMZ
+   real(r8) :: clubb_wpxp_L_thresh = unset_r8
+   real(r8) :: clubb_detliq_rad = unset_r8
+   real(r8) :: clubb_detice_rad = unset_r8
+@@ -709,6 +713,9 @@
+                                clubb_C4, clubb_C_uu_shr, clubb_C_uu_buoy, &
+                                clubb_c_K1, clubb_c_K2, clubb_nu2, clubb_c_K8, &
+                                clubb_c_K9, clubb_nu9, clubb_C_wp2_splat, clubb_wpxp_L_thresh, &
++                               !++CMZ
++                               clubb_altitude_threshold, clubb_C_invrs_tau_wpxp_Ri, &
++                               !--CMZ
+                                clubb_lambda0_stability_coef, clubb_l_lscale_plume_centered, &
+                                clubb_do_liqsupersat, clubb_do_energyfix,&
+                                clubb_lmin_coef,clubb_skw_max_mag, clubb_l_stability_correct_tau_zm, &
+@@ -919,6 +926,12 @@
+     if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: clubb_nu9")
+     call mpi_bcast(clubb_C_wp2_splat,         1, mpi_real8,   mstrid, mpicom, ierr)
+     if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: clubb_C_wp2_splat")
++!++CMZ
++    call mpi_bcast(clubb_altitude_threshold,         1, mpi_real8,   mstrid, mpicom, ierr)
++    if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: clubb_altitude_threshold")
++    call mpi_bcast(clubb_C_invrs_tau_wpxp_Ri,         1, mpi_real8,   mstrid, mpicom, ierr)
++    if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: clubb_C_invrs_tau_wpxp_Ri")   
++!--CMZ
+     call mpi_bcast(clubb_lambda0_stability_coef, 1, mpi_real8,   mstrid, mpicom, ierr)
+     if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: clubb_lambda0_stability_coef")
+     call mpi_bcast(clubb_l_lscale_plume_centered,1, mpi_logical, mstrid, mpicom, ierr)
+@@ -1074,6 +1087,10 @@
+     if(clubb_skw_max_mag == unset_r8) call endrun(sub//": FATAL: clubb_skw_max_mag is not set")
+     if(clubb_up2_sfc_coef == unset_r8) call endrun(sub//": FATAL: clubb_up2_sfc_coef is not set")
+     if(clubb_C_wp2_splat == unset_r8) call endrun(sub//": FATAL: clubb_C_wp2_splatis not set")
++!++CMZ
++    if(clubb_altitude_threshold == unset_r8) call endrun(sub//": FATAL: clubb_altitude_threshold not set")
++    if(clubb_C_invrs_tau_wpxp_Ri == unset_r8) call endrun(sub//": FATAL: clubb_C_invrs_tau_wpxp_Ri not set")
++!--CMZ
+     if(clubb_detliq_rad == unset_r8) call endrun(sub//": FATAL: clubb_detliq_rad not set")
+     if(clubb_detice_rad == unset_r8) call endrun(sub//": FATAL: clubb_detice_rad not set")
+     if(clubb_ipdf_call_placement == unset_i) call endrun(sub//": FATAL: clubb_ipdf_call_placement not set")
+@@ -1169,6 +1186,9 @@
+          iSkw_denom_coef, ibeta, iskw_max_mag, &
+          iC_invrs_tau_bkgnd,iC_invrs_tau_sfc,iC_invrs_tau_shear,iC_invrs_tau_N2,iC_invrs_tau_N2_wp2, &
+          iC_invrs_tau_N2_xp2,iC_invrs_tau_N2_wpxp,iC_invrs_tau_N2_clear_wp3,iC_uu_shr,iC_uu_buoy, &
++!++CMZ
++         ialtitude_threshold, iC_invrs_tau_wpxp_Ri, &
++!--CMZ
+          iC2rt, iC2thl, iC2rtthl, ic_K1, ic_K2, inu2, ic_K8, ic_K9, inu9, iC_wp2_splat, params_list
+ 
+     use clubb_api_module, only: &
+@@ -1495,6 +1515,10 @@
+     clubb_params(ic_K8) = clubb_c_K8
+     clubb_params(ic_K9) = clubb_c_K9
+     clubb_params(inu9)  = clubb_nu9
++!++CMZ
++    clubb_params(ialtitude_threshold) = clubb_altitude_threshold
++    clubb_params(iC_invrs_tau_wpxp_Ri) = clubb_C_invrs_tau_wpxp_Ri
++!--CMZ
+     clubb_params(iC_wp2_splat) = clubb_C_wp2_splat
+     clubb_params(iC_invrs_tau_bkgnd) = clubb_C_invrs_tau_bkgnd
+     clubb_params(iC_invrs_tau_sfc) = clubb_C_invrs_tau_sfc
