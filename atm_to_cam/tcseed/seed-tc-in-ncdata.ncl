@@ -20,6 +20,7 @@ exppr  = keyword_values( pthi, "exppr", "float")
 
 deg_bnd=15.      ; what is the radius where the code will influence the analysis (GCD)
 doplot=False     ; should we plot a diagnostic map
+restart_file=False
 
 if (.not. invert_vortex) then
   ; here we are seeding the vortex
@@ -51,10 +52,13 @@ wcSeedStrt     = systemfunc("date")
 
 inputFile = addfile(seedfile,"w")
 
-lat = inputFile->lat
-lon = inputFile->lon
-lev = inputFile->lev
-ncol = dimsizes(lat)
+if (restart_file) then
+  lat = inputFile->lat_d
+  lon = inputFile->lon_d
+else
+  lat = inputFile->lat
+  lon = inputFile->lon
+end if
 
 hyai = inputFile->hyai
 hybi = inputFile->hyai
@@ -62,11 +66,33 @@ hyam = inputFile->hyam
 hybm = inputFile->hybm
 P0   = 100000.
 
-u = inputFile->U
-v = inputFile->V
-ps = inputFile->PS
-t = inputFile->T
-q = inputFile->Q
+ncol = dimsizes(lat)
+nlev = dimsizes(hybm)
+
+if (restart_file) then
+  ; based on CESM2 dry mass coordinate *but* not using physgrid
+  ; physgrid requires dp to be updated on the fvm grid as well...
+  u = inputFile->U
+  v = inputFile->V
+  ps = inputFile->PSDRY
+  t = inputFile->T
+  q = inputFile->dpQ
+  q = 0.0
+  print("avg PS before correction from dry to wet PS: "+avg(ps))
+  corrMass = ps
+  corrMass = 0.0
+  corrMass = corrMass + dim_sum_n(inputFile->dpQ,1)
+  corrMass = corrMass + dim_sum_n(inputFile->dpCLDICE,1)
+  corrMass = corrMass + dim_sum_n(inputFile->dpCLDLIQ,1)
+  ps = ps + corrMass
+  print("avg PS after correction: "+avg(ps))
+else
+  u = inputFile->U
+  v = inputFile->V
+  ps = inputFile->PS
+  t = inputFile->T
+  q = inputFile->Q
+end if
 
 u_orig = u
 v_orig = v
@@ -121,7 +147,7 @@ do ii = 0,ncol-1
   ; only edit cells that are within our defined radius of TC seed
   if ( gcdist(ii) .le. deg_bnd ) then
   
-    do kk = 0,dimsizes(lev)-1
+    do kk = 0,nlev-1
       ; calc pressure level
       p = hyam(kk)*P0 + hybm(kk)*ps(0,ii)
       ; get perturbed TC field
@@ -144,30 +170,41 @@ do ii = 0,ncol-1
 end do  ; end column loop
 
 ; Write file!
-inputFile->PS=ps
-inputFile->U=u
-inputFile->V=v
-inputFile->T=t
-inputFile->Q=q
-
-; make a copy of orig vars on file
-if (.not. isfilevar(inputFile, "U_orig")) then
-  print("copying u -> u_orig")
-  inputFile->U_orig = u_orig
-  inputFile->V_orig = v_orig
-  inputFile->PS_orig = ps_orig
-  inputFile->T_orig = t_orig
-  inputFile->Q_orig = q_orig
+if (restart_file) then
+  ps = ps - corrMass
+  inputFile->PSDRY=ps
+  inputFile->U=u
+  inputFile->V=v
+  inputFile->T=t
+  ;inputFile->dpQ=q
 else
-  if (.not. isfilevar(inputFile, "U_orig2")) then
-    print("copying u -> u_orig2")
-    inputFile->U_orig2 = u_orig
-    inputFile->V_orig2 = v_orig
-    inputFile->PS_orig2 = ps_orig
-    inputFile->T_orig2 = t_orig
-    inputFile->Q_orig2 = q_orig
+  inputFile->PS=ps
+  inputFile->U=u
+  inputFile->V=v
+  inputFile->T=t
+  inputFile->Q=q
+end if
+
+if (.not. restart_file) then
+  ; make a copy of orig vars on file
+  if (.not. isfilevar(inputFile, "U_orig")) then
+    print("copying u -> u_orig")
+    inputFile->U_orig = u_orig
+    inputFile->V_orig = v_orig
+    inputFile->PS_orig = ps_orig
+    inputFile->T_orig = t_orig
+    inputFile->Q_orig = q_orig
   else
-    print("We already have U_orig + U_orig2 on file, not adding any more!")
+    if (.not. isfilevar(inputFile, "U_orig2")) then
+      print("copying u -> u_orig2")
+      inputFile->U_orig2 = u_orig
+      inputFile->V_orig2 = v_orig
+      inputFile->PS_orig2 = ps_orig
+      inputFile->T_orig2 = t_orig
+      inputFile->Q_orig2 = q_orig
+    else
+      print("We already have U_orig + U_orig2 on file, not adding any more!")
+    end if
   end if
 end if
 
