@@ -228,7 +228,7 @@ if (doplot) then
   
   res                      = True
   res@gsnMaximize          = True
-  res@gsnSpreadColors     = True 	 
+  res@gsnSpreadColors     = True    
   res@cnFillOn             = True              ; turn on color
   res@cnLinesOn            = False             ; turn off contour lines
   res@cnLineLabelsOn       = False
@@ -242,16 +242,16 @@ if (doplot) then
   res@sfXArray            = lon        ; Required to tell NCL where to
   res@sfYArray            = lat        ; overlay data on globe.
 
-  res@cnLevelSelectionMode = "ManualLevels"	; manually set the contour levels with the following 3 resources
-  res@cnMinLevelValF  = 96000.			; set the minimum contour level
-  res@cnMaxLevelValF  = 104000.			; set the maximum contour level
-  res@cnLevelSpacingF = 500.			; set the interval between contours
+  res@cnLevelSelectionMode = "ManualLevels"  ; manually set the contour levels with the following 3 resources
+  res@cnMinLevelValF  = 96000.      ; set the minimum contour level
+  res@cnMaxLevelValF  = 104000.      ; set the maximum contour level
+  res@cnLevelSpacingF = 500.      ; set the interval between contours
   map = gsn_csm_contour_map_ce(wks,ps(0,:),res)
   
-  res@cnLevelSelectionMode = "ManualLevels"	; manually set the contour levels with the following 3 resources
+  res@cnLevelSelectionMode = "ManualLevels"  ; manually set the contour levels with the following 3 resources
   res@cnMinLevelValF  = -20.
   res@cnMaxLevelValF  = 20.
-  res@cnLevelSpacingF = 2.			; set the interval between contours
+  res@cnLevelSpacingF = 2.      ; set the interval between contours
   map = gsn_csm_contour_map_ce(wks,u(0,26,:),res)
 end if
 
