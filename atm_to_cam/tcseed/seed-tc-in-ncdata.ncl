@@ -3,6 +3,9 @@ load "../../functions/namelist.ncl"
 
 begin
 
+;debug restart file vortex add
+;system("cp /glade/u/home/zarzycki/scratch/APE3-test/run/ORIG.nc "+seedfile)
+
 ;pthi="../../namelists/unseed.default.nl"
 invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
 ;seedfile = keyword_values( pthi, "new_file", "string")
@@ -61,13 +64,14 @@ else
 end if
 
 hyai = inputFile->hyai
-hybi = inputFile->hyai
+hybi = inputFile->hybi
 hyam = inputFile->hyam
 hybm = inputFile->hybm
 P0   = 100000.
 
 ncol = dimsizes(lat)
 nlev = dimsizes(hybm)
+nlevi = dimsizes(hybi)
 
 if (restart_file) then
   ; based on CESM2 dry mass coordinate *but* not using physgrid
@@ -76,16 +80,37 @@ if (restart_file) then
   v = inputFile->V
   ps = inputFile->PSDRY
   t = inputFile->T
-  q = inputFile->dpQ
-  q = 0.0
-  print("avg PS before correction from dry to wet PS: "+avg(ps))
+  dpq = inputFile->dpQ   ; this is the pressure contribution from q to PS
+  
+  print("getting dp3d")
+  ; uses same formulation as in dp_coupling
+  dp3d = t
+  dp3d = 0.0
+  do ii = 0,ncol-1
+    dp3d(0,:,ii) = ((hyai(1:nlevi-1) - hyai(0:nlevi-2)) * P0) + ((hybi(1:nlevi-1) - hybi(0:nlevi-2)) * ps(0,ii))
+  end do
+  print("min/max dp3d: "+min(dp3d)+" "+max(dp3d))
+
+  print("getting q from dpq + dp3d")
+  q = dpq
+  q = dpq / dp3d
+  print("min/max q: "+min(q)+" "+max(q))
+  
+  ; calculate before dry mass
+  area = inputFile->area_d
+  avg_ps_in = sum(ps(0,:) * area) / sum(area)
+  print("Average PSDRY in: "+avg_ps_in)
+  
+  ; dry to total PS
   corrMass = ps
   corrMass = 0.0
   corrMass = corrMass + dim_sum_n(inputFile->dpQ,1)
   corrMass = corrMass + dim_sum_n(inputFile->dpCLDICE,1)
   corrMass = corrMass + dim_sum_n(inputFile->dpCLDLIQ,1)
+  print("Initial wet pressure for mass correction: "+avg(corrMass))
   ps = ps + corrMass
-  print("avg PS after correction: "+avg(ps))
+  print("Total PS after adding condensates: "+sum(ps(0,:) * area) / sum(area))
+  ; NOTE: now ps is total pressure!
 else
   u = inputFile->U
   v = inputFile->V
@@ -171,12 +196,35 @@ end do  ; end column loop
 
 ; Write file!
 if (restart_file) then
+
+  ; update dpq by assuming that the percent change in q due to vortex adding equals
+  ; the percent change in dpq
+  q_perc = q / q_orig
+  print("qperc min/max: "+min(q_perc)+" "+max(q_perc))
+  dpq = q_perc * dpq
+  
+  ; recalculate the dry PS from total PS based on new dpq and unmod'ed condensates
+  print("Total PS after adding vortex: "+sum(ps(0,:) * area) / sum(area))
+  corrMass = 0.0
+  corrMass = corrMass + dim_sum_n(dpq,1)
+  corrMass = corrMass + dim_sum_n(inputFile->dpCLDICE,1)
+  corrMass = corrMass + dim_sum_n(inputFile->dpCLDLIQ,1)
+  print("New wet pressure for mass correction: "+avg(corrMass))
   ps = ps - corrMass
+  
+  ; calculate new global dry mass and add/substract PS to ensure PSDRY before = PSDRY after
+  avg_ps_out = sum(ps(0,:) * area) / sum(area)
+  print("Average PSDRY out: "+avg_ps_out)
+  ps = ps - (avg_ps_out - avg_ps_in)
+  avg_ps_final = sum(ps(0,:) * area) / sum(area)
+  print("Final PSDRY out: "+avg_ps_final)
+  
+  ; write to file
   inputFile->PSDRY=ps
   inputFile->U=u
   inputFile->V=v
   inputFile->T=t
-  ;inputFile->dpQ=q
+  inputFile->dpQ=dpq
 else
   inputFile->PS=ps
   inputFile->U=u
