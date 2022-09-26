@@ -4,7 +4,7 @@ load "../../functions/namelist.ncl"
 begin
 
 ;debug restart file vortex add
-;system("cp /glade/u/home/zarzycki/scratch/APE3-test/run/ORIG.nc "+seedfile)
+system("cp /glade/u/home/zarzycki/scratch/APE3-test/run/ORIG.nc "+seedfile)
 
 ;pthi="../../namelists/unseed.default.nl"
 invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
@@ -20,10 +20,11 @@ cen_lat  = keyword_values( pthi, "psminlat", "float")
 cen_lon  = keyword_values( pthi, "psminlon", "float")
 zp  = keyword_values( pthi, "zp", "float")
 exppr  = keyword_values( pthi, "exppr", "float")
+restart_file  = keyword_values( pthi, "restart_file", "logical")
 
 deg_bnd=15.      ; what is the radius where the code will influence the analysis (GCD)
 doplot=False     ; should we plot a diagnostic map
-restart_file=False
+;restart_file=True
 
 if (.not. invert_vortex) then
   ; here we are seeding the vortex

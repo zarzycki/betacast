@@ -4,6 +4,9 @@ load "../../functions/namelist.ncl"
 
 begin
 
+;debug restart file vortex add
+;system("cp -v /glade/u/home/zarzycki/scratch/APE3-test/run/ORIG.nc "+inic_file)
+
 ;pthi="../../namelists/unseed.default.nl"
 invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
 if (.not. invert_vortex)
@@ -17,6 +20,7 @@ psminlon  = keyword_values( pthi, "psminlon", "float")
 modify_q  = keyword_values( pthi, "modify_q", "logical")
 modify_q_mult  = keyword_values( pthi, "modify_q_mult", "float")
 gamma_  = keyword_values( pthi, "gamma", "float")
+restart_file  = keyword_values( pthi, "restart_file", "logical")
 
 if (gamma_ .lt. 0.0) then
   gamma_ = 0.0065
@@ -48,15 +52,43 @@ convert = 180./pi   ; conversion factor: radians to degrees
 
 ; load a regridded state field with the TC in it.
 f = addfile(inic_file,"r")
+if (restart_file) then
+  lat = f->lat_d
+  lon = f->lon_d
+  hybm = f->hybm
+  hyam = f->hyam
+  P0   = 100000.
+  lev  = hyam*P0 + hybm*avg(f->PSDRY)
+  lev  = lev/100.  ; needs to be in mb
+else
+  lat = f->lat
+  lon = f->lon
+  lev = f->lev
+end if
 
-lat = f->lat
-lon = f->lon
-lev = f->lev
 ncol = dimsizes(lat)
 nlev = dimsizes(lev)
 
-mps = f->PS(0,:)
-T = f->T(0,:,:)
+if (restart_file) then
+  ps = f->PSDRY
+  corrMass = ps
+  corrMass = 0.0
+  corrMass = corrMass + dim_sum_n(f->dpQ,1)
+  corrMass = corrMass + dim_sum_n(f->dpCLDICE,1)
+  corrMass = corrMass + dim_sum_n(f->dpCLDLIQ,1)
+  ps = ps + corrMass
+  mps = ps(0,:)
+  T = f->T(0,:,:)
+  mps@units = "Pa"
+  mps@long_name = "Dry surface pressure"
+  T@units = "K"
+  T@long_name = "Air temperature"
+  delete(corrMass)
+  delete(ps)
+else
+  mps = f->PS(0,:)
+  T = f->T(0,:,:)
+end if
 
 ; figure out ACTUAL PSL min location from our "best guess" (i.e., vitals)
 gcdist = gc_latlon(psminlat,psminlon,lat,lon,2,4)
@@ -260,27 +292,30 @@ system("cp -v "+pthi+" "+pthi+".BAK")
 ;system(WHICHSED+" -i 's?.*psminlat=.*?psminlat="+psminlat+"?' "+pthi)
 ;system(WHICHSED+" -i 's?.*psminlon=.*?psminlon="+psminlon+"?' "+pthi)
 
+print("deleting vars from exiting namelist...")
 ; if we have added rp, dp, zp, or exppr, delete!
-system(WHICHSED+" -i 's?rp?d' "+pthi)
-system(WHICHSED+" -i 's?dp?d' "+pthi)
-system(WHICHSED+" -i 's?zp?d' "+pthi)
-system(WHICHSED+" -i 's?exppr?d' "+pthi)
+system(WHICHSED+" -i '/rp/d' "+pthi)
+system(WHICHSED+" -i '/dp/d' "+pthi)
+system(WHICHSED+" -i '/zp/d' "+pthi)
+system(WHICHSED+" -i '/exppr/d' "+pthi)
 
+print("forcing a newline at end of the file...")
 ; this line *forces* a newline at the end of the file if one does not exist so we can echo correctly
 system(WHICHSED+" -i -e '$a\' "+pthi)
 
+print("add new variables...")
 ; add the variables we have figured out!
 system("echo 'rp = "+rp+"' >> "+pthi)
 system("echo 'dp = "+dp+"' >> "+pthi)
 system("echo 'zp = "+zp+"' >> "+pthi)
 system("echo 'exppr = "+exppr+"' >> "+pthi)
 
+print("overwrite ps cen lat and lon...")
 ; overwrite psminlat and psminlon since we needed those to begin with!
 system(WHICHSED+" -i 's?.*psminlat=.*?psminlat="+psminlat+"?' "+pthi)
 system(WHICHSED+" -i 's?.*psminlon=.*?psminlon="+psminlon+"?' "+pthi)
   
 print("************* --------------------------")
-
 
 ; BEST CONFIG PROFILE CALCULATION
 
