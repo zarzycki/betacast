@@ -4,7 +4,7 @@ load "../../functions/namelist.ncl"
 begin
 
 ;debug restart file vortex add
-system("cp /glade/u/home/zarzycki/scratch/APE3-test/run/ORIG.nc "+seedfile)
+;system("cp /glade/u/home/zarzycki/scratch/APE3-test/run/ORIG.nc "+seedfile)
 
 ;pthi="../../namelists/unseed.default.nl"
 invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
@@ -34,10 +34,18 @@ if (.not. invert_vortex) then
   ; setting zp, gamma, exppr, modify_q_mult to -1 uses defaults 
   minp       = keyword_values( pthi, "minp", "float")
   target_rmw = keyword_values( pthi, "target_rmw", "float")
-  if (minp .lt. 0.0) then
+  
+  print(minp)
+  if (minp .lt. -19999.0) then
     minp = 995.0
     print("SEED TC: setting minp to default of "+minp)
+  else if (minp .ge. -19999.0 .and. minp .le. 0.0) then
+    print("SEED TC: Using the negative value of minp as dp: "+minp)
+  else
+    print("SEED TC: using minp from input file as: "+minp)
   end if
+  end if
+  
   if (target_rmw .lt. 0.0) then
     target_rmw = 200000.
     print("SEED TC: setting target_rmw to default of "+target_rmw)
@@ -143,7 +151,11 @@ if (.not. invert_vortex) then
   
   ambps = ps(0,minix)
   print("ambient ps: "+ambps)
-  dp = ambps - minp*100.
+  if (minp .gt. 0.0)
+    dp = ambps - minp*100.
+  else
+    dp = -minp
+  end if
   rp = get_rp_from_dp_rmw(cen_lat,dp,target_rmw)
   print("derived dp: "+dp)
   print("derived rp: "+rp)
