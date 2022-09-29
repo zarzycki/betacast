@@ -2,14 +2,15 @@
 
 # Case directory set
 DRIVER_DIRECTORY=/glade/u/home/zarzycki/betacast/atm_to_cam/tcseed/
-path_to_case=/glade/u/home/zarzycki/aqua/APE3-test/
-path_to_rundir=/glade/u/home/zarzycki/scratch/APE3-test/run
+path_to_case=/glade/u/home/zarzycki/aqua/APE4-test/
+path_to_rundir=/glade/u/home/zarzycki/scratch/APE4-test/run
 
 # Tempeststuff
 TEMPESTEXTREMESDIR=~/work/tempestextremes_noMPI/
 CONNECTDAT="/glade/u/home/zarzycki/tempest-scripts/hyperion/ne30.connect_v2.dat"
 TEMPESTFILE=${path_to_rundir}/cyclones_tempest
-TEMPESTTMP=${DRIVER_DIRECTORY}/cyclones_tempest.tmp
+TEMPESTTMP=${DRIVER_DIRECTORY}/cyclones_tempest.$(date +"%s%N").tmp
+HTRACKSTR="h1"
 
 #Vortex settings
 vortex_namelist=/glade/u/home/zarzycki/betacast/atm_to_cam/tcseed/seed.ape.nl
@@ -19,25 +20,29 @@ NSEEDS=3
 #do_seed=false
 #NSEEDS=0
 
+# CIME, etc. settings
+st_archive_ontheway=true
+
 #misc settings
 WHICHSED="sed"
 
 ############################### RUN MODEL ############################### 
 
+# Turn on error checking...
+set -e
+
 if [ -f .SEED_DONE ]; then
   echo "Exiting because of done..."
+  echo "If this is a surprise to you, you need to rm .SEED_DONE in the driver folder"
   exit
 fi
-
-############################### RUN MODEL ############################### 
   
 echo "Setting up settings!"
 
 cd ${path_to_case}
 
-# turn off restarts
-# turn off archiving
-./xmlchange DOUT_S=FALSE
+# turn off auto ST archiving
+./xmlchange -v DOUT_S=FALSE
 
 echo "Begin call to model run"
 
@@ -59,22 +64,23 @@ do
   if [ -f "${path_to_rundir}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
   sleep 10 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
 done
-echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 10 more sec to make sure files moved"
-sleep 10
+echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 20 more sec to make sure files moved"
+sleep 20
 
 ############################### RESUB SCRIPT ############################### 
 
 cd $DRIVER_DIRECTORY
 
 # Get most recent file for tracking
-MOSTRECENT=`ls --color=never ${path_to_rundir}/*.cam.h0.*.nc -r | head -n 1`
-# TempestExtremes
+MOSTRECENT=`ls --color=never ${path_to_rundir}/*.cam.${HTRACKSTR}.*.nc -r | head -n 1`
+
+# Do TE to find candidates in final timeslice
 STR_DETECT="--verbosity 0 --in_connect ${CONNECTDAT} --out ${TEMPESTFILE} --closedcontourcmd PSL,300.0,5.0,0;_DIFF(Z300,Z500),-6.0,5.0,1.0 --minlat -25.0 --maxlat 25.0 --mergedist 6.0 --searchbymin PSL --outputcmd PSL,min,0"
 ${TEMPESTEXTREMESDIR}/bin/DetectNodes --in_data ${MOSTRECENT} ${STR_DETECT} 
 
-# Get number of lines in Tempest file
+# Get number of lines in Tempest file. NOTE, since TE includes a header line NLINES=1 means no TCs and >1 means candidates exist...
 NLINES=`head ${TEMPESTFILE} | wc -l`
-echo $NLINES
+echo "The tempestExtremes candidate file has $NLINES lines"
 
 # If we have more than one storm *or* no storms but do seed...
 if (( $NLINES > 1 )) || ${do_seed} ; then
@@ -111,6 +117,7 @@ if (( $NLINES > 1 )) || ${do_seed} ; then
   fi
   echo "NLOOP is: $NLOOP"
 
+  # Loop over either how many seeds we need to add *or* how many TCs we need to unseed
   for ((ii=0; ii<NLOOP; ii++)); do
     echo "doing loop index: $ii"
     
@@ -142,15 +149,20 @@ if (( $NLINES > 1 )) || ${do_seed} ; then
   rm -v ${TEMPESTTMP}
 else
   # If here it means we are *not* seeding and there were no detected storms (i.e., NLINES=1) that need filling
-  echo "Doing nothing!"
+  echo "No seeding requested and/or no unseeding required... doing nothing!"
 fi
 
 ############################### go back and do some things... ############################### 
 
 cd ${path_to_case}
 
-./xmlchange CONTINUE_RUN=TRUE
-#set +e ; ./case.st_archive ; set -e
+## Force run to be "continued" now since we've run at least one cycle
+./xmlchange -v CONTINUE_RUN=TRUE
+
+## Run the ST archiver
+if ${st_archive_ontheway} ; then
+  set +e ; ./case.st_archive ; set -e
+fi
 
 ############################### RESUB SCRIPT ############################### 
 
