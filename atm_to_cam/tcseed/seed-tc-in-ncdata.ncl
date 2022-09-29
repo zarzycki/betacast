@@ -65,8 +65,20 @@ wcSeedStrt     = systemfunc("date")
 inputFile = addfile(seedfile,"w")
 
 if (restart_file) then
-  lat = inputFile->lat_d
-  lon = inputFile->lon_d
+  if (isfilevar(inputFile, "lat_d")) then
+    lat = inputFile->lat_d
+    lon = inputFile->lon_d
+    area = inputFile->area_d
+  else
+    if (isfilevar(inputFile, "lat")) then
+      lat = inputFile->lat
+      lon = inputFile->lon
+      area = inputFile->area
+    else
+      print("Cannot find lat or lat_d on input file")
+      exit
+    end if
+  end if
 else
   lat = inputFile->lat
   lon = inputFile->lon
@@ -106,7 +118,6 @@ if (restart_file) then
   print("min/max q: "+min(q)+" "+max(q))
   
   ; calculate before dry mass
-  area = inputFile->area_d
   avg_ps_in = sum(ps(0,:) * area) / sum(area)
   print("Average PSDRY in: "+avg_ps_in)
   

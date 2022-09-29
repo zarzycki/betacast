@@ -53,8 +53,18 @@ convert = 180./pi   ; conversion factor: radians to degrees
 ; load a regridded state field with the TC in it.
 f = addfile(inic_file,"r")
 if (restart_file) then
-  lat = f->lat_d
-  lon = f->lon_d
+  if (isfilevar(f, "lat_d")) then
+    lat = f->lat_d
+    lon = f->lon_d
+  else
+    if (isfilevar(f, "lat")) then
+      lat = f->lat
+      lon = f->lon
+    else
+      print("Cannot find lat or lat_d on input file")
+      exit
+    end if
+  end if
   hybm = f->hybm
   hyam = f->hyam
   P0   = 100000.
