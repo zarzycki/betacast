@@ -28,10 +28,10 @@
 # doi:10.1175/MWR-D-15-0159.1.
 ###################################################################################
 
-date
-
 set -e
 #set -v
+
+source utils.sh
 
 # Set files, in reality order doesn't matter
 MACHINEFILE=${1}
@@ -102,6 +102,9 @@ if [ -z ${filtTcut+x} ]; then filtTcut=6; fi
 if [ -z ${FILTERWALLCLOCK+x} ]; then FILTERWALLCLOCK="00:29:00"; fi
 if [ -z ${FILTERQUEUE+x} ]; then FILTERQUEUE="batch"; fi
 if [ -z ${use_nsplit+x} ]; then use_nsplit="true"; fi
+
+echo "$CIMEsubstring"
+echo "$CIMEbatchargs"
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -276,36 +279,19 @@ else     # if not live, draw from head of dates.txt file
 
   echo "Using dates in: "${datesfile}
   longdate=$(head -n 1 ${datesfile})
-  yearstr=${longdate:0:4}
-  monthstr=${longdate:4:2}
-  daystr=${longdate:6:2}
-  cyclestr=${longdate:8:2}
-  echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
-
+  
   # Do some simple error trapping on date string to ensure validity
-  if [ -z "$longdate" ]; then
-    echo "Date string passed in is empty, exiting..." ; exit 91
-  fi
-  if [ ${#longdate} -ne 10 ]; then 
-    echo "Malformed date string, $longdate is ${#longdate} characters, needs 10 (YYYYMMDDHH). Exiting..." ; exit 92
-  fi
-  if [[ -n $(echo $longdate | tr -d '[0-9]') ]] ; then
-    echo "Malformed date string, $longdate contains non-numeric values. Exiting..." ; exit 93
-  fi
-  if (( yearstr > 3000 || yearstr < 1 )); then
-    echo "Year set to $yearstr, this sounds wrong, exiting..." ; exit 94
-  fi
-  if (( cyclestr > 23 )); then
-    echo "Cycle string set to $cyclestr Z, this sounds wrong, exiting..." ; exit 95
-  fi
+  if [ -z "$longdate" ]; then { echo "Date string passed in is empty, exiting..." ; exit 91; } ; fi
+  if [ ${#longdate} -ne 10 ]; then { echo "Malformed date string, $longdate is ${#longdate} characters, needs 10 (YYYYMMDDHH). Exiting..." ; exit 92; } ; fi
+  if [[ -n $(echo $longdate | tr -d '[0-9]') ]]; then { echo "Malformed date string, $longdate contains non-numeric values. Exiting..." ; exit 93; } ; fi
+  
+  echo "Getting parsed time from $longdate"
+  parse_YYYYMMDDHH $longdate    
+  echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
+  # Do some error trapping on returned time values
+  if (( yearstr > 3000 || yearstr < 1 )); then { echo "Year set to $yearstr, this sounds wrong, exiting..." ; exit 94; } ; fi
+  if (( cyclestr > 23 )); then { echo "Cycle string set to $cyclestr Z, this sounds wrong, exiting..." ; exit 95; } ; fi
 fi
-
-## Figure out the seconds which correspond to the cycle and zero pad if neces
-cyclestrsec=$(($cyclestr*3600))
-while [ ${#cyclestrsec} -lt 5 ];
-do
-  cyclestrsec="0"$cyclestrsec
-done
 
 ## Figure out what the SE start time will be after filter
 if [ $numHoursSEStart -lt 6 ] ; then
@@ -324,7 +310,7 @@ if [ $numHoursSEStart -lt 6 ] ; then
   done
 else
   echo "SE forecast lead time too long, 18Z cycle causes trouble"
-  echo "Not yet supported."
+  echo "Not supported."
   exit 1
 fi
 
@@ -987,30 +973,9 @@ if $doFilter ; then
   ./xmlchange --force JOB_QUEUE=${FILTERQUEUE}
 
   if [ $debug = false ] ; then
+  
     echo "Begin call to filter-run"
-
-    # Get number of log .gz files for sleeping
-    echo "Running again!" > ${path_to_rundir}/testrunning.gz
-    numlogfiles=`ls ${path_to_rundir}/*.gz | wc -l`
-    echo "numlogfiles: $numlogfiles"
-
-    echo "SUBMITTING FILTER RUN"
-    if $usingCIME ; then
-      set +e ; ./case.submit ${CIMEsubstring} --batch-args "${CIMEbatchargs}" ; set -e
-    else
-      # needs to be modified for your machine if not using CIME
-      bsub < ${casename}.run
-    fi
-
-    if [ -f "${path_to_rundir}/NUKE" ] ; then rm -v ${path_to_rundir}/NUKE ; sleep 5 ; fi
-    echo "To NUKE, run \"touch ${path_to_rundir}/NUKE\" "
-    ## Hold script while log files from filter run haven't been archived yet
-    while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
-    do
-      if [ -f "${path_to_rundir}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
-      sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
-    done
-    echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved" ; sleep 40
+    run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs"
 
     ## Run NCL filter
     cd $filter_path
@@ -1123,30 +1088,7 @@ echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
 if [ $debug = false ]
 then
   echo "Begin call to forecast run"
-
-  # Get number of log .gz files for sleeping
-  echo "Running again!" > ${path_to_rundir}/testrunning.gz
-  numlogfiles=`ls ${path_to_rundir}/*.gz | wc -l`
-  echo "numlogfiles: $numlogfiles"
-
-  echo "SUBMITTING FORECAST RUN"
-  if $usingCIME ; then
-    set +e ; ./case.submit ${CIMEsubstring} --batch-args "${CIMEbatchargs}" ; set -e
-  else
-    # needs to be modified for your machine if not using CIME
-    bsub < ${casename}.run
-  fi
-  
-  if [ -f "${path_to_rundir}/NUKE" ] ; then rm -v ${path_to_rundir}/NUKE ; sleep 5 ; fi
-  echo "To NUKE, run \"touch ${path_to_rundir}/NUKE\" "
-  ## Hold script while log files from filter run haven't been archived yet
-  while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
-  do
-    if [ -f "${path_to_rundir}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
-    sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
-  done
-  echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved"
-  sleep 30
+  run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs"
 fi
 
 fi # end run model
