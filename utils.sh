@@ -8,13 +8,21 @@ parse_YYYYMMDDHH () {
   monthstr=${thisDate:4:2}
   daystr=${thisDate:6:2}
   cyclestr=${thisDate:8:2}
+}
+
+
+## Input is HH int
+## Sets $cyclestrsec which is zero padded 3600*hr
+get_cyclestrsec () {
+  local hrstr=$1
   ## Figure out the seconds which correspond to the cycle and zero pad if neces
-  cyclestrsec=$(($cyclestr*3600))
+  cyclestrsec=$(($hrstr*3600))
   while [ ${#cyclestrsec} -lt 5 ];
   do
     cyclestrsec="0"$cyclestrsec
   done
 }
+
 
 ### This is the OG version of this that figures out what the status is by
 ### counting the number of gzipped files in the run directory
@@ -49,6 +57,7 @@ run_CIME () {
   echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 10 more sec to make sure files moved"
   sleep 10
 }
+
 
 ### This is the v2 version of this that figures out what the status is by reading
 ### the last valid entry in CaseStatus

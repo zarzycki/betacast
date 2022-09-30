@@ -31,8 +31,8 @@
 set -e
 #set -v
 
-SCRIPT=$(realpath "$0")
-SCRIPTPATH=$(dirname "$SCRIPT")
+SCRIPTPATH=$(dirname "$(realpath "$0")")
+echo "Our script path is $SCRIPTPATH"
 source ${SCRIPTPATH}/utils.sh
 
 # Set files, in reality order doesn't matter
@@ -104,9 +104,6 @@ if [ -z ${filtTcut+x} ]; then filtTcut=6; fi
 if [ -z ${FILTERWALLCLOCK+x} ]; then FILTERWALLCLOCK="00:29:00"; fi
 if [ -z ${FILTERQUEUE+x} ]; then FILTERQUEUE="batch"; fi
 if [ -z ${use_nsplit+x} ]; then use_nsplit="true"; fi
-
-echo "$CIMEsubstring"
-echo "$CIMEbatchargs"
 
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
@@ -296,11 +293,7 @@ else     # if not live, draw from head of dates.txt file
 fi
 
 ## Figure out the seconds which correspond to the cycle and zero pad if neces
-cyclestrsec=$(($cyclestr*3600))
-while [ ${#cyclestrsec} -lt 5 ];
-do
-  cyclestrsec="0"$cyclestrsec
-done
+get_cyclestrsec "$cyclestr"
 
 ## Figure out what the SE start time will be after filter
 if [ $numHoursSEStart -lt 6 ] ; then
