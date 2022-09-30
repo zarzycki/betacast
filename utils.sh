@@ -83,7 +83,7 @@ run_CIME2 () {
     
     if [[ "$CASESTR" == *"case.run success"* ]]; then
       STATUS=0
-    elif [[ "$CASESTR" == *"error"* ]]; then
+    elif [[ "$CASESTR" == *"case.run error"* ]]; then
       STATUS=99
     else
       STATUS=1

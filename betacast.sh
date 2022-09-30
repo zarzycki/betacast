@@ -31,7 +31,9 @@
 set -e
 #set -v
 
-source utils.sh
+SCRIPT=$(realpath "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+source ${SCRIPTPATH}/utils.sh
 
 # Set files, in reality order doesn't matter
 MACHINEFILE=${1}
@@ -292,6 +294,13 @@ else     # if not live, draw from head of dates.txt file
   if (( yearstr > 3000 || yearstr < 1 )); then { echo "Year set to $yearstr, this sounds wrong, exiting..." ; exit 94; } ; fi
   if (( cyclestr > 23 )); then { echo "Cycle string set to $cyclestr Z, this sounds wrong, exiting..." ; exit 95; } ; fi
 fi
+
+## Figure out the seconds which correspond to the cycle and zero pad if neces
+cyclestrsec=$(($cyclestr*3600))
+while [ ${#cyclestrsec} -lt 5 ];
+do
+  cyclestrsec="0"$cyclestrsec
+done
 
 ## Figure out what the SE start time will be after filter
 if [ $numHoursSEStart -lt 6 ] ; then
