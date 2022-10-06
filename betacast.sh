@@ -1097,27 +1097,8 @@ fi # end run model
 
 cd $outputdir
 
-echo "Creating archive folder data structure"
-mkdir -p $tmparchivecdir
-mkdir -p $tmparchivecdir/images
-mkdir -p $tmparchivecdir/text
-mkdir -p $tmparchivecdir/nl_files
-mkdir -p $tmparchivecdir/logs
-mkdir -p $tmparchivecdir/betacast
-
-set +e
-
-echo "Moving relevant files to archive folder"
-mv -v *.${atmName}.h*.nc $tmparchivecdir
-mv -v *.${lndName}*.h*.nc $tmparchivecdir
-mv -v *.${rofName}*.h*.nc $tmparchivecdir
-cp -v *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $tmparchivecdir/nl_files
-mv -v *.txt $tmparchivecdir/text
-mv -v *.log.* $tmparchivecdir/logs
-mv -v timing.*.gz $tmparchivecdir/logs
-mv -v atm_chunk_costs*.gz $tmparchivecdir/logs
-
-mv -v timing/ $tmparchivecdir/
+# Generate folder structure and move NetCDF files
+main_archive "$tmparchivecdir" "$atmName" "$lndName" "$rofName"
 
 # Copy betacast configs to archive directory for posterity
 cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $perturb_namelist $tmparchivecdir/betacast
@@ -1127,57 +1108,15 @@ cp -v $path_to_case/user* $tmparchivecdir/nl_files
 
 # Archive initial conditions?
 if [ $archive_inic = true ]; then
-  echo "Archiving initial condition files..."
-  mkdir -p $tmparchivecdir/inic
-
-  # Copy LND initial conditions
-  ARCFILE=`grep ^finidat ${path_to_case}/user_nl_${lndName} | cut -d "=" -f2`
-  strip_quotes ARCFILE
-  echo "Found initial file: "$ARCFILE
-  cp -v $ARCFILE $tmparchivecdir/inic
-
-  # Copy ATM initial conditions
-  ARCFILE=`grep ^ncdata ${path_to_case}/user_nl_${atmName} | cut -d "=" -f2`
-  strip_quotes ARCFILE
-  echo "Found initial file: "$ARCFILE
-  cp -v $ARCFILE $tmparchivecdir/inic
-
-  # Copy ROF initial conditions
-  if [ $do_runoff = true ]; then
-    ARCFILE=`grep ^finidat_rtm ${path_to_case}/user_nl_${rofName} | cut -d "=" -f2`
-    strip_quotes ARCFILE
-    echo "Found initial file: "$ARCFILE
-    cp -v $ARCFILE $tmparchivecdir/inic
-  fi
-
-  # Copy SST conditions
-  cp -v $sstFileIC $tmparchivecdir/inic
-
-  if [ $compress_history_nc = true ]; then
-    # Compress files using lossless compression
-    cd $tmparchivecdir/inic
-    for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
-  fi
+  archive_inic "$tmparchivecdir" "$path_to_case" "$compress_history_nc" "$atmName" "$lndName" "$rofName" "$sstFileIC"
 fi
 
 if [ $compress_history_nc = true ]; then
-  # Compress files using lossless compression
-  echo "Compressing model history files..."
-  cd $tmparchivecdir
-  for f in *.h*.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
+  compress_history "$tmparchivecdir"
 fi
 
-if ${save_nudging_files} ; then
-  echo "Archiving nudging files..."
-  cd $path_to_nc_files
-  mkdir -p $tmparchivecdir/nudging
-  mv -v *.${atmName}.i.*.nc $tmparchivecdir/nudging
-  if [ $compress_history_nc = true ]; then
-    # Compress files using lossless compression
-    echo "Compressing nudging files..."
-    cd $tmparchivecdir/nudging
-    for f in *.${atmName}.i.*.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
-  fi
+if [ $save_nudging_files = true ] ; then
+  archive_nudging "$tmparchivecdir" "$path_to_nc_files" "$compress_history_nc"
 fi
 
 ## Move land files to new restart location

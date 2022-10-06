@@ -108,3 +108,102 @@ run_CIME2 () {
     echo "Uh oh, something wrong!"
   fi
 }
+
+
+compress_history () {
+  (
+  # Compress files using lossless compression
+  echo "Compressing model history files..."
+  cd $1
+  for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
+  )
+}
+
+
+#$path_to_nc_files $2
+#$tmparchivecdir $1
+#$compress_history $3
+archive_nudging () {
+  (
+  echo "Archiving nudging files..."
+  cd $2
+  mkdir -p $1/nudging
+  mv -v *.i.*.nc $1/nudging
+  if [ $3 = true ]; then
+    # Compress files using lossless compression
+    compress_history $1/nudging
+  fi
+  )
+}
+
+#tmparchivecdir = 1
+#path_to_case =2 
+#compress_history_nc = 3
+#atmName = 4
+#lndName = 5
+#rofName = 6
+#sstFileIC = 7
+
+archive_inic () {
+
+  echo "Archiving initial condition files..."
+  mkdir -p $1/inic
+
+  # Copy LND initial conditions
+  ARCFILE=`grep ^finidat $2/user_nl_$5 | cut -d "=" -f2`
+  strip_quotes ARCFILE
+  echo "Found initial file: "$ARCFILE
+  cp -v $ARCFILE $1/inic
+
+  # Copy ATM initial conditions
+  ARCFILE=`grep ^ncdata $2/user_nl_$4 | cut -d "=" -f2`
+  strip_quotes ARCFILE
+  echo "Found initial file: "$ARCFILE
+  cp -v $ARCFILE $1/inic
+
+  # Copy ROF initial conditions
+  if [ $do_runoff = true ]; then
+    ARCFILE=`grep ^finidat_rtm $2/user_nl_$6 | cut -d "=" -f2`
+    strip_quotes ARCFILE
+    echo "Found initial file: "$ARCFILE
+    cp -v $ARCFILE $1/inic
+  fi
+
+  # Copy SST conditions
+  cp -v $7 $1/inic
+
+  if [ $3 = true ]; then
+    compress_history "$1/inic"
+  fi
+}
+
+
+#tmparchivecdir = 1
+#atmName = 2
+#lndName = 3
+#rofName = 4
+main_archive () {
+  echo "Creating archive folder data structure"
+  mkdir -p $1
+  mkdir -p $1/images
+  mkdir -p $1/text
+  mkdir -p $1/nl_files
+  mkdir -p $1/logs
+  mkdir -p $1/betacast
+
+  set +e
+
+  echo "Moving relevant files to archive folder"
+  mv -v *.$2.h*.nc $1
+  mv -v *.$3*.h*.nc $1
+  mv -v *.$4*.h*.nc $1
+  cp -v *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $1/nl_files
+  mv -v *.txt $1/text
+  mv -v *.log.* $1/logs
+  mv -v timing.*.gz $1/logs
+  mv -v atm_chunk_costs*.gz $1/logs
+
+  mv -v timing/ $1/
+  
+  set -e
+}
