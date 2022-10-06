@@ -33,7 +33,7 @@ set -e
 
 SCRIPTPATH=$(dirname "$(realpath "$0")")
 echo "Our script path is $SCRIPTPATH"
-source ${SCRIPTPATH}/utils.sh
+source ${SCRIPTPATH}/utils.sh   # Source external bash functions
 
 # Set files, in reality order doesn't matter
 MACHINEFILE=${1}
@@ -46,10 +46,9 @@ if [[ "$OUTPUTSTREAMS" != /* ]] && [[ "$OUTPUTSTREAMS" != ~* ]]; then OUTPUTSTRE
 echo $MACHINEFILE; echo $NAMELISTFILE; echo $OUTPUTSTREAMS
 
 # Sanitize namelist files (add carriage return to end)
-sed -i -e '$a\' ${MACHINEFILE}
-sed -i -e '$a\' ${NAMELISTFILE}
-sed -i -e '$a\' ${OUTPUTSTREAMS}
-#'
+sanitize_file ${MACHINEFILE}
+sanitize_file ${NAMELISTFILE}
+sanitize_file ${OUTPUTSTREAMS}
 
 # Note, ___ will be converted to a space. Namelists cannot have whitespace due to
 # parsing on whitespaces...
@@ -66,8 +65,6 @@ while [ $1 ]
  done
 
 set -u  # turn on crashes for unbound variables in bash
-
-source "$sewxscriptsdir/functions/bash_fcns.sh"   # Source external bash functions
 
 ###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
@@ -1079,6 +1076,7 @@ if [[ "$DYCORE" == "se" ]]; then
 else
   echo "non-SE core, make sure timestepping is happy!"
 fi
+
 ./xmlchange ATM_NCPL=${ATM_NCPL}
 
 ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
@@ -1123,47 +1121,32 @@ fi
 cd $path_to_nc_files
 if [ $keep_land_restarts = true ]; then
   echo "Archiving land restart files"
-  mkdir $landdir
+  mkdir -p $landdir
   echo "Removing 06Z and 18Z land restart files if they exist"
-  rm -v *.${lndName}*.r.*32400.nc
-  rm -v *.${lndName}*.r.*75600.nc
+  rm -v *.${lndName}*.r.*32400.nc || true
+  rm -v *.${lndName}*.r.*75600.nc || true
   echo "Moving land restart files for future runs"
-  mv -v *.${lndName}*.r.*nc $landdir
-  rm -v *.${lndName}*.r.*.nc
+  mv -v *.${lndName}*.r.*.nc $landdir || true
   ## Move runoff files to land dir if doing runoff
   if [ $do_runoff = true ]; then
     echo "Removing 06Z and 18Z runoff restart files if they exist"
-    rm -v *.${rofName}*.r.*32400.nc
-    rm -v *.${rofName}*.r.*75600.nc
+    rm -v *.${rofName}*.r.*32400.nc || true
+    rm -v *.${rofName}*.r.*75600.nc || true
     echo "Moving runoff restart files for future runs"
-    mv -v *.${rofName}*.r.*nc $landdir
-    rm -v *.${rofName}*.r.*.nc
+    mv -v *.${rofName}*.r.*.nc $landdir || true
   fi
 else
   echo "Removing all land restart files!"
-  rm -v *.${lndName}*.r.*.nc
-  rm -v *.${lndName}*.r.*.nc
+  rm -v *.${lndName}*.r.*.nc || true
   if [ $do_runoff = true ]; then
-    rm -v *.${rofName}*.r.*.nc
-    rm -v *.${rofName}*.r.*.nc
+    rm -v *.${rofName}*.r.*.nc || true
   fi
 fi
 
-echo "Deleting restart/misc. files produced by CESM that aren't needed"
-cd $path_to_nc_files
-rm -v *.${lndName}*.rh0.*.nc
-rm -v *.docn.rs1.*.bin
-rm -v *.${atmName}.r.*.nc
-rm -v *.${atmName}.rs.*.nc
-rm -v *.cpl.r.*.nc
-rm -v *.${atmName}.rh3.*.nc
-rm -v *.${rofName}.rh0.*.nc
-rm -v *.cice.r.*.nc
-rm -v rpointer.*
-rm -v *.bin
-rm -v *.h.*.nc
-rm -v *initial_hist*.nc
+## Delete any leftover files in the run dir that we don't need/want anymore
+delete_leftovers "$path_to_nc_files" "$atmName" "$lndName" "$rofName"
 
+cd $path_to_nc_files
 echo "Moving tmp archive directory to ARCHIVEDIR/YYYYMMDDHH"
 if [ -d "${ARCHIVEDIR}/${yearstr}${monthstr}${daystr}${cyclestr}" ]
 then

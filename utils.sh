@@ -1,3 +1,69 @@
+#!/bin/bash
+
+### -----------------------------------------------------------------------------------
+
+# Strip surrounding quotes from string [$1: variable name]
+function strip_quotes() {
+  local -n var="$1"
+  [[ "${var}" == \"*\" || "${var}" == \'*\' ]] && var="${var:1:-1}"
+}
+### -----------------------------------------------------------------------------------
+
+# Check if a boolean is set via 0/1 and correct.
+# Usage: check_bool "do_tracking" $do_tracking
+check_bool() {
+
+  local cborig
+  local cbnew
+  var_string=$1
+  var_totest=$2
+  cborig=$2
+
+  # Convert to lowercase
+  var_totest=`echo ${var_totest,,}`
+  
+  if [ "${var_totest}" == "0" ] ; then
+    #echo "$var_totest"
+    echo "* WARNING: Setting $var_string from 0 (as set in namelist) to false."
+    echo "WARNING: This will be deprecated in the future!"
+    echo "WARNING: To fix, update your namelist for $var_string from 0 to false."
+    cbnew=false
+  elif [ "${var_totest}" == "1" ] ; then
+    echo "* WARNING: Setting $var_string from 1 (as set in namelist) to true."
+    echo "WARNING: This will be deprecated in the future!"
+    echo "WARNING: To fix, update your namelist for $var_string from 1 to true."
+    cbnew=true
+  elif [ "${var_totest}" == "f" ] ; then
+    echo "* WARNING: Setting $var_string from f to false."
+    echo "WARNING: To fix, update your namelist for $var_string from f to false."
+    cbnew=false
+  elif [ "${var_totest}" == "t" ] ; then
+    echo "* WARNING: Setting $var_string from t to true."
+    echo "WARNING: To fix, update your namelist for $var_string from t to true."
+    cbnew=true
+  else
+    if [ "$var_totest" != "false" ] && [ "$var_totest" != "true" ] ; then
+      echo "ERROR: $var_string is set to $var_totest and not a valid true/false or 0/1, exiting."
+      exit
+    fi
+    # Set cbnew to our lowercased var from earlier since we didn't have to fix.
+    cbnew=$var_totest
+  fi
+  export ${var_string}=${cbnew}
+  echo "CHECK_BOOL: ${var_string}     in: $cborig   out: $cbnew"
+}
+### -----------------------------------------------------------------------------------
+
+
+
+
+sanitize_file () {
+  echo "Sanitizing $1"
+  sed -i -e '$a\' $1
+}
+
+
+
 ## Input is YYYYMMDDHH
 ## Sets ${yearstr}, ${monthstr}, ${daystr}, ${hourstr}, ${cyclestrsec}
 ## Ex: parse_time 2022092812
@@ -143,7 +209,6 @@ archive_nudging () {
 #lndName = 5
 #rofName = 6
 #sstFileIC = 7
-
 archive_inic () {
 
   echo "Archiving initial condition files..."
@@ -178,10 +243,7 @@ archive_inic () {
 }
 
 
-#tmparchivecdir = 1
-#atmName = 2
-#lndName = 3
-#rofName = 4
+## Usage: main_archive $archive_dir $atmName $lndName $rofName
 main_archive () {
   echo "Creating archive folder data structure"
   mkdir -p $1
@@ -191,19 +253,36 @@ main_archive () {
   mkdir -p $1/logs
   mkdir -p $1/betacast
 
-  set +e
-
   echo "Moving relevant files to archive folder"
-  mv -v *.$2.h*.nc $1
-  mv -v *.$3*.h*.nc $1
-  mv -v *.$4*.h*.nc $1
-  cp -v *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $1/nl_files
-  mv -v *.txt $1/text
-  mv -v *.log.* $1/logs
-  mv -v timing.*.gz $1/logs
-  mv -v atm_chunk_costs*.gz $1/logs
+  mv -v *.$2.h*.nc $1 || true
+  mv -v *.$3*.h*.nc $1 || true
+  mv -v *.$4*.h*.nc $1 || true
+  cp -v *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $1/nl_files || true
+  mv -v *.txt $1/text || true
+  mv -v *.log.* $1/logs || true
+  mv -v timing.*.gz $1/logs || true
+  mv -v atm_chunk_costs*.gz $1/logs || true
 
-  mv -v timing/ $1/
-  
-  set -e
+  mv -v timing/ $1/ || true
+}
+
+
+#Usage: delete_leftovers $rundir $atmName $lndName $rofName
+delete_leftovers () {
+  (
+  echo "Deleting restart/misc. files produced by CESM that aren't needed"
+  cd $1
+  rm -f -v *.$3*.rh0.*.nc
+  rm -f -v *.docn.rs1.*.bin
+  rm -f -v *.$2.r.*.nc
+  rm -f -v *.$2.rs.*.nc
+  rm -f -v *.cpl.r.*.nc
+  rm -f -v *.$2.rh3.*.nc
+  rm -f -v *.$4.rh0.*.nc
+  rm -f -v *.cice.r.*.nc
+  rm -f -v rpointer.*
+  rm -f -v *.bin
+  rm -f -v *.h.*.nc
+  rm -f -v *initial_hist*.nc
+  )
 }
