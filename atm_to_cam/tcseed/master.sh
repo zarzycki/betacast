@@ -1,40 +1,41 @@
 #!/bin/bash
 
-# Case directory set
-DRIVER_DIRECTORY=/glade/u/home/zarzycki/betacast/atm_to_cam/tcseed/
-path_to_case=/glade/u/home/zarzycki/aqua/APE4-test/
-path_to_rundir=/glade/u/home/zarzycki/scratch/APE4-test/run
+SCRIPTPATH=$(dirname "$(realpath "$0")")
+## Drop last two folders of path to get back to base betacast dir where utils.sh lives
+SCRIPTPATH=`echo $SCRIPTPATH | rev | cut -d'/' -f3- | rev`
+echo "Our script path is $SCRIPTPATH"
+source ${SCRIPTPATH}/utils.sh   # Source external bash functions
 
-# Tempeststuff
-TEMPESTEXTREMESDIR=~/work/tempestextremes_noMPI/
-CONNECTDAT="/glade/u/home/zarzycki/tempest-scripts/hyperion/ne30.connect_v2.dat"
-TEMPESTFILE=${path_to_rundir}/cyclones_tempest
-TEMPESTTMP=${DRIVER_DIRECTORY}/cyclones_tempest.$(date +"%s%N").tmp
-HTRACKSTR="h1"
+if [[ $# -eq 0 ]] ; then echo "no namelist, exiting..." ; exit ; fi
+if [ ! -s $1 ]; then echo "File is empty, exiting..." ; exit ; fi
 
-#Vortex settings
-vortex_namelist=/glade/u/home/zarzycki/betacast/atm_to_cam/tcseed/seed.ape.nl
-do_seed=true
-NSEEDS=3
-#vortex_namelist=/glade/u/home/zarzycki/betacast/atm_to_cam/tcseed/unseed.ape.nl
-#do_seed=false
-#NSEEDS=0
+CONFIG_NAMELIST=$1
 
-# CIME, etc. settings
-st_archive_ontheway=true
+read_bash_nl "$CONFIG_NAMELIST"
+
+############################### SET UP SOME THINGS ############################### 
+
+TEMPESTTMP=${TEMPESTTMP}.$(date +"%s%N")
 
 #misc settings
 WHICHSED="sed"
+
+if [ -z ${CIMEsubstring+x} ]; then CIMEsubstring=""; fi
+if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
 
 ############################### RUN MODEL ############################### 
 
 # Turn on error checking...
 set -e
+set -u
 
-if [ -f .SEED_DONE ]; then
+if [ -f .${KILLSTR} ]; then
   echo "Exiting because of done..."
   echo "If this is a surprise to you, you need to rm .SEED_DONE in the driver folder"
   exit
+else
+  echo "If you want to kill this process, run..."
+  echo "touch .$KILLSTR"
 fi
   
 echo "Setting up settings!"
@@ -168,4 +169,4 @@ fi
 
 cd $DRIVER_DIRECTORY ; pwd
 
-exec ./master.sh
+exec ./master.sh "$CONFIG_NAMELIST"
