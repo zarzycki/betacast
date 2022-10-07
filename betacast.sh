@@ -35,7 +35,7 @@ SCRIPTPATH=$(dirname "$(realpath "$0")")
 echo "Our script path is $SCRIPTPATH"
 source ${SCRIPTPATH}/utils.sh   # Source external bash functions
 
-# Set files, in reality order doesn't matter
+# Set files
 MACHINEFILE=${1}
 NAMELISTFILE=${2}
 OUTPUTSTREAMS=${3}
@@ -45,24 +45,9 @@ if [[ "$NAMELISTFILE" != /* ]] && [[ "$NAMELISTFILE" != ~* ]]; then NAMELISTFILE
 if [[ "$OUTPUTSTREAMS" != /* ]] && [[ "$OUTPUTSTREAMS" != ~* ]]; then OUTPUTSTREAMS=${PWD}/${OUTPUTSTREAMS}; fi
 echo $MACHINEFILE; echo $NAMELISTFILE; echo $OUTPUTSTREAMS
 
-# Sanitize namelist files (add carriage return to end)
-sanitize_file ${MACHINEFILE}
-sanitize_file ${NAMELISTFILE}
-sanitize_file ${OUTPUTSTREAMS}
-
-# Note, ___ will be converted to a space. Namelists cannot have whitespace due to
-# parsing on whitespaces...
-echo "Reading namelist ${NAMELISTFILE}..."
-inputstream=`cat ${NAMELISTFILE} ${MACHINEFILE} | grep -v "^#"`
-#echo $inputstream
-set -- $inputstream
-while [ $1 ]
- do
-  echo "NAMELIST: setting ${1} to ${3//___/ }"
-  #eval $1=$3
-  eval $1="${3//___/ }"  
-  shift 3
- done
+# Read namelists
+read_bash_nl "${NAMELISTFILE}"
+read_bash_nl "${MACHINEFILE}"
 
 set -u  # turn on crashes for unbound variables in bash
 

@@ -56,6 +56,30 @@ check_bool() {
 
 
 
+function read_bash_nl() {
+
+  local FILETOREAD=$1
+  # Sanitize namelist files (add carriage return to end)
+  sanitize_file ${FILETOREAD}
+
+  # Note, ___ will be converted to a space. Namelists cannot have whitespace due to
+  # parsing on whitespaces...
+  echo "Reading namelist ${FILETOREAD}..."
+  local inputstream=`cat ${FILETOREAD} | grep -v "^#"`
+  inputstream="${inputstream//=/\ =\ }"
+  #echo $inputstream
+  set -- $inputstream
+  while [ $1 ]
+   do
+     if [ "${2}" != "=" ] ; then echo "Uh oh!" ; exit ; fi
+     echo "NAMELIST: setting ${1} to ${3//___/ }"
+     #eval $1=$3
+     eval $1="${3//___/ }"  
+     shift 3
+   done
+}
+
+
 
 sanitize_file () {
   echo "Sanitizing $1"

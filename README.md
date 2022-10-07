@@ -101,7 +101,7 @@ Each VALUE line is read in, splitting on ` = `.
 
 #### Important namelist notes!
 
-1. There must be at least one ASCII space between and after the splitting `=`!
+1. There must be at least one ASCII space between and after the splitting `=`! (As of 10/2022 this is no longer a requirement and `VALUE=key` is acceptable, although best practice remains to use `VALUE = key`)
 2. If you want to pass an empty string in, you must define the key as `"___"` (three underscores) since spaces break the splitting.
 3. Namelist files may include comments by specifying `#` as the first character of a line.
 
