@@ -22,6 +22,7 @@ WHICHSED="sed"
 
 if [ -z ${CIMEsubstring+x} ]; then CIMEsubstring=""; fi
 if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
+if [ -z ${NSEEDS+x} ]; then NSEEDS=0; fi
 
 ############################### RUN MODEL ############################### 
 
