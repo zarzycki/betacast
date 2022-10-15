@@ -1,0 +1,22 @@
+--- /glade/u/home/zarzycki/work/cam_20220628/src/physics/clubb/model_flags.F90	2022-06-28 07:22:56.509317475 -0600
++++ model_flags.F90	2022-06-28 18:53:06.421731564 -0600
+@@ -522,8 +522,8 @@
+     l_trapezoidal_rule_zt = .false.
+     l_trapezoidal_rule_zm = .false.
+     l_call_pdf_closure_twice = .false.
+-    l_standard_term_ta = .false.
+-    l_partial_upwind_wp3 = .false.
++    l_standard_term_ta = .true.
++    l_partial_upwind_wp3 = .true.
+     l_godunov_upwind_wpxp_ta = .false.
+     l_godunov_upwind_xpyp_ta = .false.
+     l_use_cloud_cover = .false.
+@@ -550,7 +550,7 @@
+ #endif
+     l_lmm_stepping = .false.
+     l_e3sm_config = .false.
+-    l_vary_convect_depth = .false.
++    l_vary_convect_depth = .true.
+     l_use_tke_in_wp3_pr_turb_term = .false.
+     l_use_tke_in_wp2_wp3_K_dfsn = .false.
+     l_smooth_Heaviside_tau_wpxp = .false.

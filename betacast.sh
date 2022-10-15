@@ -28,12 +28,14 @@
 # doi:10.1175/MWR-D-15-0159.1.
 ###################################################################################
 
-date
-
 set -e
 #set -v
 
-# Set files, in reality order doesn't matter
+SCRIPTPATH=$(dirname "$(realpath "$0")")
+echo "Our script path is $SCRIPTPATH"
+source ${SCRIPTPATH}/utils.sh   # Source external bash functions
+
+# Set files
 MACHINEFILE=${1}
 NAMELISTFILE=${2}
 OUTPUTSTREAMS=${3}
@@ -43,29 +45,11 @@ if [[ "$NAMELISTFILE" != /* ]] && [[ "$NAMELISTFILE" != ~* ]]; then NAMELISTFILE
 if [[ "$OUTPUTSTREAMS" != /* ]] && [[ "$OUTPUTSTREAMS" != ~* ]]; then OUTPUTSTREAMS=${PWD}/${OUTPUTSTREAMS}; fi
 echo $MACHINEFILE; echo $NAMELISTFILE; echo $OUTPUTSTREAMS
 
-# Sanitize namelist files (add carriage return to end)
-sed -i -e '$a\' ${MACHINEFILE}
-sed -i -e '$a\' ${NAMELISTFILE}
-sed -i -e '$a\' ${OUTPUTSTREAMS}
-#'
-
-# Note, ___ will be converted to a space. Namelists cannot have whitespace due to
-# parsing on whitespaces...
-echo "Reading namelist ${NAMELISTFILE}..."
-inputstream=`cat ${NAMELISTFILE} ${MACHINEFILE} | grep -v "^#"`
-#echo $inputstream
-set -- $inputstream
-while [ $1 ]
- do
-  echo "NAMELIST: setting ${1} to ${3//___/ }"
-  #eval $1=$3
-  eval $1="${3//___/ }"  
-  shift 3
- done
+# Read namelists
+read_bash_nl "${NAMELISTFILE}"
+read_bash_nl "${MACHINEFILE}"
 
 set -u  # turn on crashes for unbound variables in bash
-
-source "$sewxscriptsdir/functions/bash_fcns.sh"   # Source external bash functions
 
 ###################################################################################
 ############### OPTIONAL TO BE SET BY USER ########################################
@@ -92,6 +76,7 @@ if [ -z ${archive_inic+x} ]; then archive_inic=false; fi
 if [ -z ${compress_history_nc+x} ]; then compress_history_nc=true; fi
 if [ -z ${add_vortex+x} ]; then add_vortex=false; fi
 if [ -z ${vortex_namelist+x} ]; then vortex_namelist=""; fi
+if [ -z ${save_nudging_files+x} ]; then save_nudging_files=false; fi
 ### Some defaults infrequently set
 if [ -z ${doFilter+x} ]; then doFilter=false; fi
 if [ -z ${filterOnly+x} ]; then filterOnly=false; fi
@@ -275,36 +260,22 @@ else     # if not live, draw from head of dates.txt file
 
   echo "Using dates in: "${datesfile}
   longdate=$(head -n 1 ${datesfile})
-  yearstr=${longdate:0:4}
-  monthstr=${longdate:4:2}
-  daystr=${longdate:6:2}
-  cyclestr=${longdate:8:2}
-  echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
-
+  
   # Do some simple error trapping on date string to ensure validity
-  if [ -z "$longdate" ]; then
-    echo "Date string passed in is empty, exiting..." ; exit 91
-  fi
-  if [ ${#longdate} -ne 10 ]; then 
-    echo "Malformed date string, $longdate is ${#longdate} characters, needs 10 (YYYYMMDDHH). Exiting..." ; exit 92
-  fi
-  if [[ -n $(echo $longdate | tr -d '[0-9]') ]] ; then
-    echo "Malformed date string, $longdate contains non-numeric values. Exiting..." ; exit 93
-  fi
-  if (( yearstr > 3000 || yearstr < 1 )); then
-    echo "Year set to $yearstr, this sounds wrong, exiting..." ; exit 94
-  fi
-  if (( cyclestr > 23 )); then
-    echo "Cycle string set to $cyclestr Z, this sounds wrong, exiting..." ; exit 95
-  fi
+  if [ -z "$longdate" ]; then { echo "Date string passed in is empty, exiting..." ; exit 91; } ; fi
+  if [ ${#longdate} -ne 10 ]; then { echo "Malformed date string, $longdate is ${#longdate} characters, needs 10 (YYYYMMDDHH). Exiting..." ; exit 92; } ; fi
+  if [[ -n $(echo $longdate | tr -d '[0-9]') ]]; then { echo "Malformed date string, $longdate contains non-numeric values. Exiting..." ; exit 93; } ; fi
+  
+  echo "Getting parsed time from $longdate"
+  parse_YYYYMMDDHH $longdate    
+  echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
+  # Do some error trapping on returned time values
+  if (( yearstr > 3000 || yearstr < 1 )); then { echo "Year set to $yearstr, this sounds wrong, exiting..." ; exit 94; } ; fi
+  if (( cyclestr > 23 )); then { echo "Cycle string set to $cyclestr Z, this sounds wrong, exiting..." ; exit 95; } ; fi
 fi
 
 ## Figure out the seconds which correspond to the cycle and zero pad if neces
-cyclestrsec=$(($cyclestr*3600))
-while [ ${#cyclestrsec} -lt 5 ];
-do
-  cyclestrsec="0"$cyclestrsec
-done
+get_cyclestrsec "$cyclestr"
 
 ## Figure out what the SE start time will be after filter
 if [ $numHoursSEStart -lt 6 ] ; then
@@ -323,7 +294,7 @@ if [ $numHoursSEStart -lt 6 ] ; then
   done
 else
   echo "SE forecast lead time too long, 18Z cycle causes trouble"
-  echo "Not yet supported."
+  echo "Not supported."
   exit 1
 fi
 
@@ -522,7 +493,8 @@ if [ $debug = false ] ; then
     if [ $islive = true ] ; then
       # Here is where we get the "live" GDAS SST file
       rm -f gdas1*sstgrb*
-      sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/sst.${yestyearstr}${yestmonthstr}${yestdaystr}/
+      #sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/sst.${yestyearstr}${yestmonthstr}${yestdaystr}/
+      sstFTPPath=ftp://ftp.ncep.noaa.gov//pub/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/
       sstFTPFile='rtgssthr_grb_0.5.grib2'
       echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
     else
@@ -985,30 +957,9 @@ if $doFilter ; then
   ./xmlchange --force JOB_QUEUE=${FILTERQUEUE}
 
   if [ $debug = false ] ; then
+  
     echo "Begin call to filter-run"
-
-    # Get number of log .gz files for sleeping
-    echo "Running again!" > ${path_to_rundir}/testrunning.gz
-    numlogfiles=`ls ${path_to_rundir}/*.gz | wc -l`
-    echo "numlogfiles: $numlogfiles"
-
-    echo "SUBMITTING FILTER RUN"
-    if $usingCIME ; then
-      set +e ; ./case.submit ${CIMEsubstring} --batch-args "${CIMEbatchargs}" ; set -e
-    else
-      # needs to be modified for your machine if not using CIME
-      bsub < ${casename}.run
-    fi
-
-    if [ -f "${path_to_rundir}/NUKE" ] ; then rm -v ${path_to_rundir}/NUKE ; sleep 5 ; fi
-    echo "To NUKE, run \"touch ${path_to_rundir}/NUKE\" "
-    ## Hold script while log files from filter run haven't been archived yet
-    while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
-    do
-      if [ -f "${path_to_rundir}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
-      sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
-    done
-    echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved" ; sleep 40
+    run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs"
 
     ## Run NCL filter
     cd $filter_path
@@ -1060,14 +1011,20 @@ fi
 
 ############################### "ACTUAL" FORECAST RUN ############################### 
 
+## Initial modification of user_nl_atm
 sed -i '/.*nhtfrq/d' user_nl_${atmName}
 sed -i '/.*mfilt/d' user_nl_${atmName}
 sed -i '/.*fincl/d' user_nl_${atmName}
 sed -i '/.*empty_htapes/d' user_nl_${atmName}
-sed -i '/.*inithist/d' user_nl_${atmName}
+sed -i '/.*collect_column_output/d' user_nl_${atmName}
 sed -i '/.*avgflag_pertape/d' user_nl_${atmName}  # Note, we delete this and user either specifies as :A, :I for each var or as a sep var
 echo "empty_htapes=.TRUE." >> user_nl_${atmName}
-echo "inithist='NONE'" >> user_nl_${atmName}
+sed -i '/.*inithist/d' user_nl_${atmName}
+if ${save_nudging_files} ; then
+  echo "inithist='6-HOURLY'" >> user_nl_${atmName}
+else
+  echo "inithist='NONE'" >> user_nl_${atmName}
+fi
 
 # Concatenate output streams to end of user_nl_${atmName}
 cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
@@ -1104,6 +1061,7 @@ if [[ "$DYCORE" == "se" ]]; then
 else
   echo "non-SE core, make sure timestepping is happy!"
 fi
+
 ./xmlchange ATM_NCPL=${ATM_NCPL}
 
 ./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
@@ -1112,60 +1070,17 @@ fi
 sed -i '/.*ncdata/d' user_nl_${atmName}
 echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
 
-if [ $debug = false ]
-then
+if [ $debug = false ] ; then
   echo "Begin call to forecast run"
-
-  # Get number of log .gz files for sleeping
-  echo "Running again!" > ${path_to_rundir}/testrunning.gz
-  numlogfiles=`ls ${path_to_rundir}/*.gz | wc -l`
-  echo "numlogfiles: $numlogfiles"
-
-  echo "SUBMITTING FORECAST RUN"
-  if $usingCIME ; then
-    set +e ; ./case.submit ${CIMEsubstring} --batch-args "${CIMEbatchargs}" ; set -e
-  else
-    # needs to be modified for your machine if not using CIME
-    bsub < ${casename}.run
-  fi
-  
-  if [ -f "${path_to_rundir}/NUKE" ] ; then rm -v ${path_to_rundir}/NUKE ; sleep 5 ; fi
-  echo "To NUKE, run \"touch ${path_to_rundir}/NUKE\" "
-  ## Hold script while log files from filter run haven't been archived yet
-  while [ `ls ${path_to_rundir}/*.gz | wc -l` == $numlogfiles ]
-  do
-    if [ -f "${path_to_rundir}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
-    sleep 20 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
-  done
-  echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved"
-  sleep 30
+  run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs"
 fi
 
 fi # end run model
 
 cd $outputdir
 
-echo "Creating archive folder data structure"
-mkdir -p $tmparchivecdir
-mkdir -p $tmparchivecdir/images
-mkdir -p $tmparchivecdir/text
-mkdir -p $tmparchivecdir/nl_files
-mkdir -p $tmparchivecdir/logs
-mkdir -p $tmparchivecdir/betacast
-
-set +e
-
-echo "Moving relevant files to archive folder"
-mv -v *.${atmName}.h*.nc $tmparchivecdir
-mv -v *.${lndName}*.h*.nc $tmparchivecdir
-mv -v *.${rofName}*.h*.nc $tmparchivecdir
-cp -v *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $tmparchivecdir/nl_files
-mv -v *.txt $tmparchivecdir/text
-mv -v *.log.* $tmparchivecdir/logs
-mv -v timing.*.gz $tmparchivecdir/logs
-mv -v atm_chunk_costs*.gz $tmparchivecdir/logs
-
-mv -v timing/ $tmparchivecdir/
+# Generate folder structure and move NetCDF files
+main_archive "$tmparchivecdir" "$atmName" "$lndName" "$rofName"
 
 # Copy betacast configs to archive directory for posterity
 cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $perturb_namelist $tmparchivecdir/betacast
@@ -1175,91 +1090,49 @@ cp -v $path_to_case/user* $tmparchivecdir/nl_files
 
 # Archive initial conditions?
 if [ $archive_inic = true ]; then
-  echo "Archiving initial condition files..."
-  mkdir -p $tmparchivecdir/inic
-
-  # Copy LND initial conditions
-  ARCFILE=`grep ^finidat ${path_to_case}/user_nl_${lndName} | cut -d "=" -f2`
-  strip_quotes ARCFILE
-  echo "Found initial file: "$ARCFILE
-  cp -v $ARCFILE $tmparchivecdir/inic
-
-  # Copy ATM initial conditions
-  ARCFILE=`grep ^ncdata ${path_to_case}/user_nl_${atmName} | cut -d "=" -f2`
-  strip_quotes ARCFILE
-  echo "Found initial file: "$ARCFILE
-  cp -v $ARCFILE $tmparchivecdir/inic
-
-  # Copy ROF initial conditions
-  if [ $do_runoff = true ]; then
-    ARCFILE=`grep ^finidat_rtm ${path_to_case}/user_nl_${rofName} | cut -d "=" -f2`
-    strip_quotes ARCFILE
-    echo "Found initial file: "$ARCFILE
-    cp -v $ARCFILE $tmparchivecdir/inic
-  fi
-
-  # Copy SST conditions
-  cp -v $sstFileIC $tmparchivecdir/inic
-
-  if [ $compress_history_nc = true ]; then
-    # Compress files using lossless compression
-    cd $tmparchivecdir/inic
-    for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
-  fi
+  archive_inic "$tmparchivecdir" "$path_to_case" "$compress_history_nc" "$atmName" "$lndName" "$rofName" "$sstFileIC"
 fi
 
+# Compress model output streams
 if [ $compress_history_nc = true ]; then
-  # Compress files using lossless compression
-  echo "Compressing model history files..."
-  cd $tmparchivecdir
-  for f in *.h*.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
+  compress_history "$tmparchivecdir"
+fi
+
+# Archive nudging files generated by hindcasts
+if [ $save_nudging_files = true ] ; then
+  archive_nudging "$tmparchivecdir" "$path_to_nc_files" "$compress_history_nc"
 fi
 
 ## Move land files to new restart location
 cd $path_to_nc_files
 if [ $keep_land_restarts = true ]; then
   echo "Archiving land restart files"
-  mkdir $landdir
+  mkdir -p $landdir
   echo "Removing 06Z and 18Z land restart files if they exist"
-  rm -v *.${lndName}*.r.*32400.nc
-  rm -v *.${lndName}*.r.*75600.nc
+  rm -v *.${lndName}*.r.*32400.nc || true
+  rm -v *.${lndName}*.r.*75600.nc || true
   echo "Moving land restart files for future runs"
-  mv -v *.${lndName}*.r.*nc $landdir
-  rm -v *.${lndName}*.r.*.nc
+  mv -v *.${lndName}*.r.*.nc $landdir || true
   ## Move runoff files to land dir if doing runoff
   if [ $do_runoff = true ]; then
     echo "Removing 06Z and 18Z runoff restart files if they exist"
-    rm -v *.${rofName}*.r.*32400.nc
-    rm -v *.${rofName}*.r.*75600.nc
+    rm -v *.${rofName}*.r.*32400.nc || true
+    rm -v *.${rofName}*.r.*75600.nc || true
     echo "Moving runoff restart files for future runs"
-    mv -v *.${rofName}*.r.*nc $landdir
-    rm -v *.${rofName}*.r.*.nc
+    mv -v *.${rofName}*.r.*.nc $landdir || true
   fi
 else
   echo "Removing all land restart files!"
-  rm -v *.${lndName}*.r.*.nc
-  rm -v *.${lndName}*.r.*.nc
+  rm -v *.${lndName}*.r.*.nc || true
   if [ $do_runoff = true ]; then
-    rm -v *.${rofName}*.r.*.nc
-    rm -v *.${rofName}*.r.*.nc
+    rm -v *.${rofName}*.r.*.nc || true
   fi
 fi
 
-echo "Deleting restart/misc. files produced by CESM that aren't needed"
-cd $path_to_nc_files
-rm -v *.${lndName}*.rh0.*.nc
-rm -v *.docn.rs1.*.bin
-rm -v *.${atmName}.r.*.nc
-rm -v *.${atmName}.rs.*.nc
-rm -v *.cpl.r.*.nc
-rm -v *.${atmName}.rh3.*.nc
-rm -v *.${rofName}.rh0.*.nc
-rm -v *.cice.r.*.nc
-rm -v rpointer.*
-rm -v *.bin
-rm -v *.h.*.nc
-rm -v *initial_hist*.nc
+## Delete any leftover files in the run dir that we don't need/want anymore
+delete_leftovers "$path_to_nc_files" "$atmName" "$lndName" "$rofName"
 
+cd $path_to_nc_files
 echo "Moving tmp archive directory to ARCHIVEDIR/YYYYMMDDHH"
 if [ -d "${ARCHIVEDIR}/${yearstr}${monthstr}${daystr}${cyclestr}" ]
 then

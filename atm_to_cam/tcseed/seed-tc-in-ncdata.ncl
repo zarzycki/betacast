@@ -3,6 +3,9 @@ load "../../functions/namelist.ncl"
 
 begin
 
+;debug restart file vortex add
+;system("cp /glade/u/home/zarzycki/scratch/APE3-test/run/ORIG.nc "+seedfile)
+
 ;pthi="../../namelists/unseed.default.nl"
 invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
 ;seedfile = keyword_values( pthi, "new_file", "string")
@@ -17,9 +20,11 @@ cen_lat  = keyword_values( pthi, "psminlat", "float")
 cen_lon  = keyword_values( pthi, "psminlon", "float")
 zp  = keyword_values( pthi, "zp", "float")
 exppr  = keyword_values( pthi, "exppr", "float")
+restart_file  = keyword_values( pthi, "restart_file", "logical")
 
 deg_bnd=15.      ; what is the radius where the code will influence the analysis (GCD)
 doplot=False     ; should we plot a diagnostic map
+;restart_file=True
 
 if (.not. invert_vortex) then
   ; here we are seeding the vortex
@@ -29,10 +34,18 @@ if (.not. invert_vortex) then
   ; setting zp, gamma, exppr, modify_q_mult to -1 uses defaults 
   minp       = keyword_values( pthi, "minp", "float")
   target_rmw = keyword_values( pthi, "target_rmw", "float")
-  if (minp .lt. 0.0) then
+  
+  print(minp)
+  if (minp .lt. -19999.0) then
     minp = 995.0
     print("SEED TC: setting minp to default of "+minp)
+  else if (minp .ge. -19999.0 .and. minp .le. 0.0) then
+    print("SEED TC: Using the negative value of minp as dp: "+minp)
+  else
+    print("SEED TC: using minp from input file as: "+minp)
   end if
+  end if
+  
   if (target_rmw .lt. 0.0) then
     target_rmw = 200000.
     print("SEED TC: setting target_rmw to default of "+target_rmw)
@@ -51,22 +64,80 @@ wcSeedStrt     = systemfunc("date")
 
 inputFile = addfile(seedfile,"w")
 
-lat = inputFile->lat
-lon = inputFile->lon
-lev = inputFile->lev
-ncol = dimsizes(lat)
+if (restart_file) then
+  if (isfilevar(inputFile, "lat_d")) then
+    lat = inputFile->lat_d
+    lon = inputFile->lon_d
+    area = inputFile->area_d
+  else
+    if (isfilevar(inputFile, "lat")) then
+      lat = inputFile->lat
+      lon = inputFile->lon
+      area = inputFile->area
+    else
+      print("Cannot find lat or lat_d on input file")
+      exit
+    end if
+  end if
+else
+  lat = inputFile->lat
+  lon = inputFile->lon
+end if
 
 hyai = inputFile->hyai
-hybi = inputFile->hyai
+hybi = inputFile->hybi
 hyam = inputFile->hyam
 hybm = inputFile->hybm
 P0   = 100000.
 
-u = inputFile->U
-v = inputFile->V
-ps = inputFile->PS
-t = inputFile->T
-q = inputFile->Q
+ncol = dimsizes(lat)
+nlev = dimsizes(hybm)
+nlevi = dimsizes(hybi)
+
+if (restart_file) then
+  ; based on CESM2 dry mass coordinate *but* not using physgrid
+  ; physgrid requires dp to be updated on the fvm grid as well...
+  u = inputFile->U
+  v = inputFile->V
+  ps = inputFile->PSDRY
+  t = inputFile->T
+  dpq = inputFile->dpQ   ; this is the pressure contribution from q to PS
+  
+  print("getting dp3d")
+  ; uses same formulation as in dp_coupling
+  dp3d = t
+  dp3d = 0.0
+  do ii = 0,ncol-1
+    dp3d(0,:,ii) = ((hyai(1:nlevi-1) - hyai(0:nlevi-2)) * P0) + ((hybi(1:nlevi-1) - hybi(0:nlevi-2)) * ps(0,ii))
+  end do
+  print("min/max dp3d: "+min(dp3d)+" "+max(dp3d))
+
+  print("getting q from dpq + dp3d")
+  q = dpq
+  q = dpq / dp3d
+  print("min/max q: "+min(q)+" "+max(q))
+  
+  ; calculate before dry mass
+  avg_ps_in = sum(ps(0,:) * area) / sum(area)
+  print("Average PSDRY in: "+avg_ps_in)
+  
+  ; dry to total PS
+  corrMass = ps
+  corrMass = 0.0
+  corrMass = corrMass + dim_sum_n(inputFile->dpQ,1)
+  corrMass = corrMass + dim_sum_n(inputFile->dpCLDICE,1)
+  corrMass = corrMass + dim_sum_n(inputFile->dpCLDLIQ,1)
+  print("Initial wet pressure for mass correction: "+avg(corrMass))
+  ps = ps + corrMass
+  print("Total PS after adding condensates: "+sum(ps(0,:) * area) / sum(area))
+  ; NOTE: now ps is total pressure!
+else
+  u = inputFile->U
+  v = inputFile->V
+  ps = inputFile->PS
+  t = inputFile->T
+  q = inputFile->Q
+end if
 
 u_orig = u
 v_orig = v
@@ -91,7 +162,11 @@ if (.not. invert_vortex) then
   
   ambps = ps(0,minix)
   print("ambient ps: "+ambps)
-  dp = ambps - minp*100.
+  if (minp .gt. 0.0)
+    dp = ambps - minp*100.
+  else
+    dp = -minp
+  end if
   rp = get_rp_from_dp_rmw(cen_lat,dp,target_rmw)
   print("derived dp: "+dp)
   print("derived rp: "+rp)
@@ -121,7 +196,7 @@ do ii = 0,ncol-1
   ; only edit cells that are within our defined radius of TC seed
   if ( gcdist(ii) .le. deg_bnd ) then
   
-    do kk = 0,dimsizes(lev)-1
+    do kk = 0,nlev-1
       ; calc pressure level
       p = hyam(kk)*P0 + hybm(kk)*ps(0,ii)
       ; get perturbed TC field
@@ -144,30 +219,64 @@ do ii = 0,ncol-1
 end do  ; end column loop
 
 ; Write file!
-inputFile->PS=ps
-inputFile->U=u
-inputFile->V=v
-inputFile->T=t
-inputFile->Q=q
+if (restart_file) then
 
-; make a copy of orig vars on file
-if (.not. isfilevar(inputFile, "U_orig")) then
-  print("copying u -> u_orig")
-  inputFile->U_orig = u_orig
-  inputFile->V_orig = v_orig
-  inputFile->PS_orig = ps_orig
-  inputFile->T_orig = t_orig
-  inputFile->Q_orig = q_orig
+  ; update dpq by assuming that the percent change in q due to vortex adding equals
+  ; the percent change in dpq
+  q_perc = q / q_orig
+  print("qperc min/max: "+min(q_perc)+" "+max(q_perc))
+  dpq = q_perc * dpq
+  
+  ; recalculate the dry PS from total PS based on new dpq and unmod'ed condensates
+  print("Total PS after adding vortex: "+sum(ps(0,:) * area) / sum(area))
+  corrMass = 0.0
+  corrMass = corrMass + dim_sum_n(dpq,1)
+  corrMass = corrMass + dim_sum_n(inputFile->dpCLDICE,1)
+  corrMass = corrMass + dim_sum_n(inputFile->dpCLDLIQ,1)
+  print("New wet pressure for mass correction: "+avg(corrMass))
+  ps = ps - corrMass
+  
+  ; calculate new global dry mass and add/substract PS to ensure PSDRY before = PSDRY after
+  avg_ps_out = sum(ps(0,:) * area) / sum(area)
+  print("Average PSDRY out: "+avg_ps_out)
+  ps = ps - (avg_ps_out - avg_ps_in)
+  avg_ps_final = sum(ps(0,:) * area) / sum(area)
+  print("Final PSDRY out: "+avg_ps_final)
+  
+  ; write to file
+  inputFile->PSDRY=ps
+  inputFile->U=u
+  inputFile->V=v
+  inputFile->T=t
+  inputFile->dpQ=dpq
 else
-  if (.not. isfilevar(inputFile, "U_orig2")) then
-    print("copying u -> u_orig2")
-    inputFile->U_orig2 = u_orig
-    inputFile->V_orig2 = v_orig
-    inputFile->PS_orig2 = ps_orig
-    inputFile->T_orig2 = t_orig
-    inputFile->Q_orig2 = q_orig
+  inputFile->PS=ps
+  inputFile->U=u
+  inputFile->V=v
+  inputFile->T=t
+  inputFile->Q=q
+end if
+
+if (.not. restart_file) then
+  ; make a copy of orig vars on file
+  if (.not. isfilevar(inputFile, "U_orig")) then
+    print("copying u -> u_orig")
+    inputFile->U_orig = u_orig
+    inputFile->V_orig = v_orig
+    inputFile->PS_orig = ps_orig
+    inputFile->T_orig = t_orig
+    inputFile->Q_orig = q_orig
   else
-    print("We already have U_orig + U_orig2 on file, not adding any more!")
+    if (.not. isfilevar(inputFile, "U_orig2")) then
+      print("copying u -> u_orig2")
+      inputFile->U_orig2 = u_orig
+      inputFile->V_orig2 = v_orig
+      inputFile->PS_orig2 = ps_orig
+      inputFile->T_orig2 = t_orig
+      inputFile->Q_orig2 = q_orig
+    else
+      print("We already have U_orig + U_orig2 on file, not adding any more!")
+    end if
   end if
 end if
 
@@ -191,7 +300,7 @@ if (doplot) then
   
   res                      = True
   res@gsnMaximize          = True
-  res@gsnSpreadColors     = True 	 
+  res@gsnSpreadColors     = True    
   res@cnFillOn             = True              ; turn on color
   res@cnLinesOn            = False             ; turn off contour lines
   res@cnLineLabelsOn       = False
@@ -205,16 +314,16 @@ if (doplot) then
   res@sfXArray            = lon        ; Required to tell NCL where to
   res@sfYArray            = lat        ; overlay data on globe.
 
-  res@cnLevelSelectionMode = "ManualLevels"	; manually set the contour levels with the following 3 resources
-  res@cnMinLevelValF  = 96000.			; set the minimum contour level
-  res@cnMaxLevelValF  = 104000.			; set the maximum contour level
-  res@cnLevelSpacingF = 500.			; set the interval between contours
+  res@cnLevelSelectionMode = "ManualLevels"  ; manually set the contour levels with the following 3 resources
+  res@cnMinLevelValF  = 96000.      ; set the minimum contour level
+  res@cnMaxLevelValF  = 104000.      ; set the maximum contour level
+  res@cnLevelSpacingF = 500.      ; set the interval between contours
   map = gsn_csm_contour_map_ce(wks,ps(0,:),res)
   
-  res@cnLevelSelectionMode = "ManualLevels"	; manually set the contour levels with the following 3 resources
+  res@cnLevelSelectionMode = "ManualLevels"  ; manually set the contour levels with the following 3 resources
   res@cnMinLevelValF  = -20.
   res@cnMaxLevelValF  = 20.
-  res@cnLevelSpacingF = 2.			; set the interval between contours
+  res@cnLevelSpacingF = 2.      ; set the interval between contours
   map = gsn_csm_contour_map_ce(wks,u(0,26,:),res)
 end if
 

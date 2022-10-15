@@ -1,3 +1,6 @@
+.SEED*
+BAK/
+namelists/ATOMIC/
 *.BAK
 index.html
 FZRA/

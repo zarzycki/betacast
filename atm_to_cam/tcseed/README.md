@@ -24,6 +24,7 @@ Then generate a "seed namelist" with the below settings.
 | gamma | Numeric | TC environmental lapse rate (K/m) | X* | X* | 0.0065 |
 | modify_q | Bool | Should the q profile be modified via RH%? | X | X | |
 | modify_q_mult | Numeric | Multiplicative factor beyond Clausius-Clapeyron if modify_q = True | X* | X* | 1.0 |
+| restart_file | Bool | Is this a CAM-SE restart file (true) or ncdata (false)? | X | X | |
 
 An 'X' in the column RQ_ADD means that namelist variable is **required** if one is *adding* a vortex, RQ_RM means required if one is *removing* a vortex.
 

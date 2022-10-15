@@ -101,7 +101,7 @@ Each VALUE line is read in, splitting on ` = `.
 
 #### Important namelist notes!
 
-1. There must be at least one ASCII space between and after the splitting `=`!
+1. There must be at least one ASCII space between and after the splitting `=`! (As of 10/2022 this is no longer a requirement and `VALUE=key` is acceptable, although best practice remains to use `VALUE = key`)
 2. If you want to pass an empty string in, you must define the key as `"___"` (three underscores) since spaces break the splitting.
 3. Namelist files may include comments by specifying `#` as the first character of a line.
 
@@ -147,6 +147,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | add_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) |
 | land_spinup | Cycle land spinup only (unsupported currently, leave false) |
 | keep_land_restarts | 0 = delete land restart files, 1 = archive land restart files (possibly overwriting those in ${CASE}/run/landstart |
+| save_nudging_files | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
 | predict_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |
 | anl2mdlWeights | Full path name of weights file for analysis -> model regridding (see previous section) |

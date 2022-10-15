@@ -9,13 +9,17 @@ begin
 anlgrid="era5_0.25x0.25" 
 
 ; shortname for grid (for naming purposes)
-dstGridName="CAL_VR4"
+dstGridName="ne0np4natlanticwat.ne30x4"
 ; full path to model SCRIP file
-dstGridFile="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/grids/WesternUSA_111-55-28-14-7-4.g_scrip.nc"
+;dstGridFile="/glade/p/cesmdata/inputdata/share/scripgrids/ne30pg3_scrip_170611.nc"
+dstGridFile="/glade/work/zarzycki/grids/scrip/ne0np4natlanticwat.ne30x4.g_scrip.nc"
 ;dstGridFile="./rrm.x4_ESMF.nc"
 
 ; where to save the map file?
 wgtFileDir="./"
+
+; set this flag to True if you need to generated a CAM->ANL grid (mainly for model downscaling)
+flip_model_and_analysis=True
 
 ; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 ; ============= do not edit below this line
@@ -81,7 +85,6 @@ else
   shortInterpName=InterpMethod
 end if
 
-wgtFileName="map_"+anlgrid+"_TO_"+dstGridName+"_"+shortInterpName+".nc"
 
 ;----------------------------------------------------------------------
 ; Now generate weights file
@@ -89,8 +92,15 @@ wgtFileName="map_"+anlgrid+"_TO_"+dstGridName+"_"+shortInterpName+".nc"
 
 print("Generating weights!")
 
-srcGridName=srcGridFile
-dstGridName=dstGridFile
+if (.not.flip_model_and_analysis) then
+  wgtFileName="map_"+anlgrid+"_TO_"+dstGridName+"_"+shortInterpName+".nc"
+  srcGridName=srcGridFile
+  dstGridName=dstGridFile
+else
+  wgtFileName="map_"+dstGridName+"_TO_"+anlgrid+"_"+shortInterpName+".nc"
+  srcGridName=dstGridFile
+  dstGridName=srcGridFile
+end if
 
 Opt                      = True
 Opt@InterpMethod         = InterpMethod
@@ -99,17 +109,33 @@ Opt@PrintTimings         = True
 Opt@NoPETLog             = True
 Opt@RemovePETLog         = True
 Opt@Debug = True
+
 if (regionalGrid) then
-  Opt@SrcRegional=True
-end if
-if (dstType .eq. "model" .or. dstType .eq. "esmf") then
-  Opt@DstESMF = True
-  if (dstType .eq. "model") then
-    dstGridName = seGridName
+  if (.not.flip_model_and_analysis) then
+    Opt@SrcRegional=True
+  else
+    Opt@DstRegional=True
   end if
 end if
 
-ESMF_regrid_gen_weights(srcGridName,dstGridName,wgtFileDir+"/"+wgtFileName,Opt)
+if (dstType .eq. "model" .or. dstType .eq. "esmf") then
+  if (.not.flip_model_and_analysis) then
+    Opt@DstESMF = True
+    if (dstType .eq. "model") then
+      dstGridName = seGridName
+    end if
+  else
+    Opt@SrcESMF = True 
+    if (dstType .eq. "model") then
+      srcGridName = seGridName
+    end if 
+  end if
+end if
+
+print(Opt)
+
+  ESMF_regrid_gen_weights(srcGridName,dstGridName,wgtFileDir+"/"+wgtFileName,Opt)
+
 
 delete(Opt)
 if (dstType .eq. "model") then

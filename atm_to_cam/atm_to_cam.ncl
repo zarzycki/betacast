@@ -26,6 +26,7 @@ Rv_over_Rd = Rv / Rd
 debug=False
 rho_d_algo = 2  ; 1 or 2
 damp_upper_winds_mpas=False
+w_smooth_iter = 0
 
 ; dycore options are FV, MPAS, and SE for now
 ; reverse compat -- if you don't specify dycore, default to SE
@@ -64,6 +65,16 @@ end if
 if (.not. isvar("mpasfile") .and. dycore .eq. "mpas") then
   print("No mpasfile passed in but mpas dycore selected.")
   print("MPAS init file is needed to mimic + get zcoord from.  exiting...")
+  exit
+end if
+
+; error check if CAM data as input
+if (.not. isvar("mod_in_topo") .and. datasource .eq. "CAM") then
+  print("Using CAM data, but no mod_in_topo passed in, exit!")
+  exit
+end if
+if (.not. isvar("mod_remap_file") .and. datasource .eq. "CAM") then
+  print("Using CAM data, but no mod_remap_file passed in, exit!")
   exit
 end if
 
@@ -134,8 +145,22 @@ else if (datasource .eq. "ERA5RDA") then
   grblon        = tofloat(rda_file->longitude)
   grblev        = tofloat(rda_file->level)
   grblev        = grblev * 100.
+else if (datasource .eq. "CAM") then
+  grblev := (/ 20, 30, 50, 100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000, \
+    15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000,  \
+    65000, 70000, 75000, 80000, 82500, 85000, 87500, 90000, 92000, 93000, 94000, \
+    95000, 96000, 97000, 98000, 99000, \
+    99500, 100000, 100500, 101000, 102000, 103000/)
+  grblev := tofloat(grblev)
+  print("CAM: Using mod_remap_file: "+mod_remap_file)
+  tmp  = ESMF_regrid_with_weights(grb_file->PS(0,:),mod_remap_file,False)
+  grblat = tmp&lat
+  grblon = tmp&lon
+  delete(tmp)
 else
+  print("Exiting when Loading lat/lon/lev")
   exit
+end if
 end if
 end if
 end if
@@ -259,8 +284,6 @@ if (datasource .eq. "RAP") then
   delete(rh_gfs)
 end if
 
-
-
 if (datasource .eq. "ERAI" .or. datasource .eq. "ERA5") then
   p0   = 100000.
   ; We need to use short2flt because ERA-Interim data is stored
@@ -279,13 +302,13 @@ if (datasource .eq. "ERA5RDA") then
   ; define some stuff that is static
   p0   = 100000.
   opt=0
-  opt@return_type = "int"
-
+  
   ; go through var by var, get relevant file, extract time
   rda_find     := systemfunc("ls "+sf_dir+"/e5.oper.an.sfc.128_134_sp.ll025sc."+yearstr+monthstr+"0100_*.nc")
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   ps            = rda_file->SP(closest_val(rda_thistime,rda_time),:,:)
 
@@ -293,6 +316,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   t_gfs         = rda_file->T(closest_val(rda_thistime,rda_time),:,:,:)
 
@@ -300,6 +324,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   u_gfs         = rda_file->U(closest_val(rda_thistime,rda_time),:,:,:)
 
@@ -307,6 +332,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   v_gfs         = rda_file->V(closest_val(rda_thistime,rda_time),:,:,:)
 
@@ -314,6 +340,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   q_gfs         = rda_file->Q(closest_val(rda_thistime,rda_time),:,:,:)
 
@@ -321,6 +348,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   cldliq_gfs    = rda_file->CLWC(closest_val(rda_thistime,rda_time),:,:,:)
 
@@ -328,6 +356,7 @@ if (datasource .eq. "ERA5RDA") then
   print(rda_find+"")
   rda_file     := addfile(rda_find,"r")
   rda_time     := rda_file->time
+  opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   cldice_gfs    = rda_file->CIWC(closest_val(rda_thistime,rda_time),:,:,:)
   
@@ -336,6 +365,7 @@ if (datasource .eq. "ERA5RDA") then
     print(rda_find+"")
     rda_file     := addfile(rda_find,"r")
     rda_time     := rda_file->time
+    opt@return_type = typeof(rda_time)
     rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
     w_gfs         = rda_file->W(closest_val(rda_thistime,rda_time),:,:,:)
     w_is_omega    = True
@@ -344,11 +374,147 @@ if (datasource .eq. "ERA5RDA") then
     print(rda_find+"")
     rda_file     := addfile(rda_find,"r")
     rda_time     := rda_file->time
+    opt@return_type = typeof(rda_time)
     rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
     z_gfs         = rda_file->Z(closest_val(rda_thistime,rda_time),:,:,:)
     z_is_phi      = True
   end if
 end if
+
+if (datasource .eq. "CAM") then
+
+  ; goal in this block is to make CAM data look like GFS/ECMWF on pressure levels
+  ; in the future, mimicing ERAI to go hy-hy may be an option
+  ; note we have to use an intermediate LL grid as deference to getting omega
+  ; if we don't need omega/w, we could probably go unstruc->unstruc without RLL in middle
+
+  ; if CAM downscale + MPAS, we need to smooth omega field
+  ; 35 seems to work OK with 0.25deg rll data
+  
+  w_smooth_iter = 1
+  
+  cam_time := grb_file->time
+  opt=0
+  opt@return_type = typeof(cam_time)
+  cam_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,cam_time@units,opt)
+  delete(opt)
+  
+  if (cam_thistime .lt. min(cam_time) .or. cam_thistime .gt. max(cam_time)) then
+    print("ERROR: cam_thistime falls outside range of cam_time array")
+    print("cam_thistime: "+cam_thistime+"    "+cd_calendar(cam_thistime, 3))
+    print("min(cam_time): "+min(cam_time)+"    "+min(cd_calendar(cam_time, 3)))
+    print("max(cam_time): "+max(cam_time)+"    "+max(cd_calendar(cam_time, 3)))
+    exit
+  end if
+  
+  ps_mod = grb_file->PS(closest_val(cam_thistime,cam_time),:)
+  p0   = 100000.
+  t_mod = grb_file->T(closest_val(cam_thistime,cam_time),:,:)
+  u_mod = grb_file->U(closest_val(cam_thistime,cam_time),:,:)
+  v_mod = grb_file->V(closest_val(cam_thistime,cam_time),:,:)
+  q_mod = grb_file->Q(closest_val(cam_thistime,cam_time),:,:)
+  cldice_mod = t_mod
+  cldliq_mod = t_mod
+  cldice_mod = 0.0
+  cldliq_mod = 0.0
+  
+  print("CAM: Using mod_in_topo: "+mod_in_topo)
+  
+  mod_in_topo_f = addfile(mod_in_topo,"r")
+  phis_mod=mod_in_topo_f->PHIS
+    
+  ; remap from CAM to lat-lon
+  Opt         = True
+  ps  = ESMF_regrid_with_weights(ps_mod,mod_remap_file,Opt)
+  t_rll  = ESMF_regrid_with_weights(t_mod,mod_remap_file,Opt)
+  u_rll  = ESMF_regrid_with_weights(u_mod,mod_remap_file,Opt)
+  v_rll  = ESMF_regrid_with_weights(v_mod,mod_remap_file,Opt)
+  q_rll  = ESMF_regrid_with_weights(q_mod,mod_remap_file,Opt)
+  cldice_rll  = ESMF_regrid_with_weights(cldice_mod,mod_remap_file,Opt)
+  cldliq_rll  = ESMF_regrid_with_weights(cldliq_mod,mod_remap_file,Opt)
+  phis_rll  = ESMF_regrid_with_weights(phis_mod,mod_remap_file,Opt)
+  delete([/ps_mod,t_mod,u_mod,v_mod,q_mod,phis_mod,cldliq_mod,cldice_mod/])
+  delete(Opt)
+  
+  ; get relevant vert coeffs from CAM file
+  hyam=grb_file->hyam
+  hybm=grb_file->hybm
+  hyai=grb_file->hyai
+  hybi=grb_file->hybi
+  mod_lev = dimsizes(hyam)
+
+  if (dycore .eq. "mpas") then
+    ; calculate omega
+    if (grblat(0) .gt. grblat(1)) then
+      print("flipping omega since calc needs to be S->N")
+      omega_rll = omega_ccm_driver(p0,ps(::-1,:),u_rll(:,::-1,:),v_rll(:,::-1,:),hyam,hybm,hyai,hybi)
+      omega_rll = omega_rll(:,::-1,:) ; flip back
+    else
+      omega_rll = omega_ccm_driver(p0,ps,u_rll,v_rll,hyam,hybm,hyai,hybi)
+    end if
+
+    ; remove omega poleward of OMEGA_LAT_THRESH to deal with singularity
+    OMEGA_LAT_THRESH=88.0
+    omega_rll = where(abs(conform(omega_rll,omega_rll&lat,1)).gt.OMEGA_LAT_THRESH,0.0,omega_rll)
+  
+    ; calculate Z
+    tkv_rll = t_rll
+    tkv_rll = t_rll*(1.+0.61*q_rll)  
+    ;z_rll = hydro (p3d_rll,tkv_rll,phis_rll/9.80655)
+    z_rll = cz2ccm(ps,phis_rll,tkv_rll,p0,hyam(::-1),hybm(::-1),hyai(::-1),hybi(::-1))
+    copy_VarCoords(t_rll,z_rll)
+  end if
+
+  ; interpolation settings  
+  P0mb=p0/100.                          ; p0 in mb
+  intyp = 2                             ; 1=linear, 2=log, 3=log-log
+  kxtrp = True                          ; True=extrapolate
+  tbot_mod = t_rll(mod_lev-1,:,:)       ; bottom level temperature
+
+  ; note, this function needs levels in mb
+  ; the bit after kxtrp needs to be 1 for T, -1 for Z, 0 for all else
+  t_gfs := vinth2p_ecmwf(t_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,1,tbot_mod,phis_rll)
+  u_gfs := vinth2p_ecmwf(u_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,0,tbot_mod,phis_rll)               
+  v_gfs := vinth2p_ecmwf(v_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,0,tbot_mod,phis_rll)      
+  q_gfs := vinth2p_ecmwf(q_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,0,tbot_mod,phis_rll)
+  cldice_gfs := vinth2p_ecmwf(cldice_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,0,tbot_mod,phis_rll)       
+  cldliq_gfs := vinth2p_ecmwf(cldliq_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                 1,kxtrp,0,tbot_mod,phis_rll)
+  if (dycore .eq. "mpas") then
+    w_gfs := vinth2p_ecmwf(omega_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                   1,kxtrp,0,tbot_mod,phis_rll)
+    w_is_omega = True
+    z_gfs := vinth2p_ecmwf(z_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
+                   1,kxtrp,-1,tbot_mod,phis_rll)
+    z_is_phi = False
+  end if
+  
+  if (debug) then
+    system("/bin/rm -f mpas2_debug.nc")   ; remove any pre-existing file
+    ncdf = addfile("mpas2_debug.nc" ,"c")  ; open output netCDF file
+    fAtt               = True            ; assign file attributes
+    fAtt@creation_date = systemfunc ("date")
+    fileattdef( ncdf, fAtt )            ; copy file attributes
+    filedimdef(ncdf,"time",-1,True) 
+    ncdf->w_gfs = w_gfs
+    ncdf->omega_rll = omega_rll
+  end if
+  
+  ; NOTE: we do not delete phis_rll and tbot_mod which may be used for hydro adjustment
+  delete([/kxtrp,intyp,P0mb/])
+  delete([/t_rll,u_rll,v_rll,q_rll,cldice_rll,cldliq_rll/])
+  delete([/hyam,hybm,hyai,hybi,mod_lev/])       
+  delete([/cam_time,cam_thistime/])
+  if (dycore .eq. "mpas") then
+    delete([/z_rll,omega_rll/])
+  end if
+
+end if  ; datasource .eq. CAM
 
 print("=================================================================")
 print("************ NATIVE DATA")
@@ -374,6 +540,14 @@ if (dycore .eq. "mpas") then
   ; if w is omega (Pa/s), convert to vertical velocity in m/s
   if (w_is_omega) then
     w_gfs := omega_to_w(w_gfs, pres_gfs, t_gfs)
+  end if
+
+  ; smooth w?
+  if (w_smooth_iter .gt. 0) then
+    do ii = 0,w_smooth_iter-1
+      print("W SMOOTH ITER: "+(ii+1))
+      w_gfs = smth9_Wrap(w_gfs, 0.50,  0.25, True)
+    end do
   end if
 
   ; if z is reported in geopotential, convert to geometric height
@@ -418,7 +592,7 @@ if (dycore .ne. "mpas") then
   ilev = fC->ilev
 
   print("Interpolating to CAM hybrid coordinates")
-  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA" .or. datasource .eq. "RAP") then
+  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA" .or. datasource .eq. "RAP" .or. datasource .eq. "CAM") then
     print("Using pressure to hybrid interpolation")
     t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,1)
     u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,1)
@@ -508,6 +682,7 @@ else   ; if mpas
   
   ; First, we have to load the MPAS init file and get the zgrid.
   mpasf=addfile(mpasfile,"r")
+  print("getting zgrid from "+mpasfile)
   mpas_z = mpasf->zgrid
   mpas_dims = dimsizes(mpas_z)
   mpas_ncell = mpas_dims(0)
@@ -574,6 +749,50 @@ else   ; if mpas
     v_wrf(:,ix)     = z_to_z_interp(v_fv(::-1,ix),z_fv(::-1,ix),zmid,True,False)
   end do
 
+  if (debug) then
+    ; debugging for checking vertical interpolation from CAM -> MPAS
+    t_fv!0 = "lev"
+    t_fv!1 = "ncol"
+    u_fv!0 = "lev"
+    u_fv!1 = "ncol"
+    q_fv!0 = "lev"
+    q_fv!1 = "ncol"
+    w_fv!0 = "lev"
+    w_fv!1 = "ncol"
+    z_fv!0 = "lev"
+    z_fv!1 = "ncol"
+    
+    t_wrf!0 = "newlev"
+    t_wrf!1 = "ncol"
+    u_wrf!0 = "newlev"
+    u_wrf!1 = "ncol"
+    q_wrf!0 = "newlev"
+    q_wrf!1 = "ncol"
+    w_wrf!0 = "newlevi"
+    w_wrf!1 = "ncol"
+    mpas_z!1 = "newlevi"
+    mpas_z!0 = "ncol"
+        
+    debugfile="/glade/scratch/zarzycki/mpas_interp_check.nc"
+    system("/bin/rm -f "+debugfile)   ; remove any pre-existing file
+    ncdf = addfile(debugfile ,"c")  ; open output netCDF file
+    fAtt               = True            ; assign file attributes
+    fAtt@creation_date = systemfunc ("date")
+    fileattdef( ncdf, fAtt )            ; copy file attributes
+    filedimdef(ncdf,"time",-1,True) 
+    ncdf->t_fv = t_fv
+    ncdf->u_fv = u_fv
+    ncdf->w_fv = w_fv
+    ncdf->q_fv = q_fv
+    ncdf->z_fv = z_fv
+    ncdf->t_wrf = t_wrf
+    ncdf->u_wrf = u_wrf
+    ncdf->w_wrf = w_wrf
+    ncdf->q_wrf = q_wrf
+    ncdf->z_wrf = mpas_z(newlevi|:,ncol|:) 
+    exit
+  end if
+  
   ; delete the analysis data that is on the MPAS grid since we now have interpolated MPAS + vert
   delete([/theta_fv,rho_fv,w_fv,q_fv,u_fv,v_fv/])
  
@@ -667,12 +886,20 @@ else   ; if mpas
     print("Writing MPAS fields to a copy of existing init file")
     system("/bin/rm -f -v "+se_inic)   ; remove any pre-existing file
     system("cp -v "+mpasfile+" "+se_inic)   ; remove any pre-existing file
+    
     nc = addfile(se_inic ,"w")  ; open output netCDF file
-    nc->u(0,:,:)     = (/ uNorm_wrf(nEdges|:,lev|:) /)
-    nc->qv(0,:,:)    = (/ q_wrf(ncol|:,lev|:) /)
-    nc->rho(0,:,:)   = (/ rho_wrf(ncol|:,lev|:) /)
-    nc->theta(0,:,:) = (/ theta_wrf(ncol|:,lev|:) /)
-    nc->w(0,:,:)     = (/ w_wrf(ncol|:,ilev|:) /)
+    ; use totype and typeof, because we are overwriting an existing nc file
+    ; and type mismatch will not work (i.e., we can't specify float v double)
+    print("(over)writing u...")
+    nc->u(0,:,:)     = (/ totype( uNorm_wrf(nEdges|:,lev|:), typeof(nc->u)   ) /)
+    print("(over)writing qv...")
+    nc->qv(0,:,:)    = (/ totype( q_wrf(ncol|:,lev|:), typeof(nc->qv)        ) /)
+    print("(over)writing rho...")
+    nc->rho(0,:,:)   = (/ totype( rho_wrf(ncol|:,lev|:), typeof(nc->rho)     ) /)
+    print("(over)writing theta...")
+    nc->theta(0,:,:) = (/ totype( theta_wrf(ncol|:,lev|:), typeof(nc->theta) ) /)
+    print("(over)writing w...")
+    nc->w(0,:,:)     = (/ totype( w_wrf(ncol|:,ilev|:), typeof(nc->w)        ) /)
     
   end if
   
@@ -716,9 +943,13 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
     rda_time     := rda_file->time
     rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
     sfct_data     = rda_file->VAR_2T(closest_val(rda_thistime,rda_time),:,:)
+  else if (datasource .eq. "CAM") then
+    topo_data = phis_rll
+    sfct_data = tbot_mod
   else
     print("no avail reanalysis surface data for corr... exiting...")
     exit
+  end if
   end if
   end if
   end if
