@@ -5,13 +5,17 @@
 
 # Turn on error checking
 set -e
+source ../utils.sh
 
 # Usage:
 #./auto-script.sh MODELSYSTEM DOERA5 DATE_YYYYMMDD NMONTHS NCYCLES ANOMYEAR
 # CESM
-#./auto-script.sh 0 0 20200103 36 1 -1
+#./auto-script.sh 0 0 20200103 36 1 -1 NAMELIST.MACHINE
 # E3SM
-#./auto-script.sh 1 0 19960113 12 1 2080
+#./auto-script.sh 1 0 19960113 12 1 2080 NAMELIST.MACHINE
+
+if [[ $# -ne 7 ]] ; then echo "Need 7 inputs, got $#, exiting..." ; exit ; fi
+if [ ! -s $7 ]; then echo "Namelist is empty, exiting..." ; exit ; fi
 
 ### User settings
 modelSystem=${1}         # 0 = CESM/E3SMv1, 1 = E3SMv2
@@ -20,54 +24,17 @@ FORECASTDATE=${3}        # What is the date you want to spin up for (00Z)
 NMONTHSSPIN=${4}         # Duration of spinup (somewhere b/w 3-12 months seems reasonable)
 NCYCLES=${5} 
 BETACAST_ANOMYEAR=${6}
+NAMELISTFILE=${7}
 
 ### Check if BETACAST_ANOMYEAR is positive integer -- if yes, add deltas, if no, nothing
 if [ $BETACAST_ANOMYEAR -lt 1 ]; then
-  addDeltas=1
+  addDeltas=1 ; echo "We are NOT adding deltas..."
 else
-  addDeltas=0
+  addDeltas=0 ; echo "We ARE adding deltas..." 
 fi
 
-if [[ $HOSTNAME = cheyenne* ]]; then
-  ### CLM on Cheyenne
-  ### REQUIRED
-  CIMEROOT=~/work/cesm_newclubb
-  PATHTOCASE=~/I-compsets
-  ICASENAME=ATOMIC-ICLM45-ne30
-  PROJECT=P93300642
-  MACHINE=cheyenne
-  NNODES=12
-  RESOL=ne30_g16
-  RUNQUEUE=economy
-  WALLCLOCK="10:00:00"
-  
-  ### Only required if doERA5 = 0
-  BETACAST=/glade/u/home/zarzycki/betacast
-  BETACAST_DATM_FORCING_BASE=/glade/p/univ/upsu0032/DATM_FORCING/
-  
-elif [[ $HOSTNAME = cori* || $HOSTNAME = nid* ]]; then
-  ### ELM on Cori
-  #CIMEROOT=~/clean/E3SM-20210824/
-  CIMEROOT=~/E3SM-dev/
-  PATHTOCASE=~/I-compsets
-  ICASENAME=RoS-ICLM45-ne0conus30x8-201
-  PROJECT=m2637
-  MACHINE=cori-knl
-  NNODES=12
-  #RESOL=ne30_ne30
-  #RESOL=ne0cal30x32_ne0cal30x32_t12
-  RESOL=ne0conus30x8_ne0conus30x8_t12
-  RUNQUEUE=regular   # low regular debug
-  WALLCLOCK="07:57:00"
-  
-  ### Only required if doERA5 = 0
-  BETACAST=/global/homes/c/czarzyck/betacast/
-  BETACAST_DATM_FORCING_BASE=/global/homes/c/czarzyck/scratch/DATM_FORCING/
-  
-else
-  echo "Can't figure out hostname, need to add new host and config. Exiting for now..."
-  exit
-fi
+# Read the namelist
+read_bash_nl "${NAMELISTFILE}"
 
 # Derived settings that should be same between all machines
 BETACAST_DATMDOMAIN=${BETACAST}/land-spinup/gen_datm/gen-datm/
@@ -241,9 +208,12 @@ fi
 ### USER! Edit this block if using ELM and need to inject any ELM specific mods (e.g., fsurdat, etc.)
 cat > user_nl_elm <<EOF
 !fsurdat="/global/cfs/cdirs/e3sm/inputdata/lnd/clm2/surfdata_map/surfdata_ne30np4_simyr2000_c190730.nc"
-fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2000_c201027.nc"
+!fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2000_c201027.nc"
 !fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_CAL_VR7_simyr2000_c211213.nc"
 !fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_CAL_VR4_simyr2000_c211213.nc"
+!fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_CAL_VR4_simyr2000_c220531.nc"
+!fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/elm_surfdata/surfdata_ne0np4westernus.ne30x8_simyr2015_c220615.nc"
+fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/elm_surfdata/surfdata_ne0np4westernus.ne30x32_simyr2015_c220615.nc"
 !
 !finidat="/global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/RoS-F2010C5-ne0conus30x8-001-control/run//landstart//RoS-F2010C5-ne0conus30x8-001-control.elm.r.1996-01-15-00000.nc"
 finidat=''

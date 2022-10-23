@@ -1,0 +1,15 @@
+### CLM on Cheyenne
+### REQUIRED
+CIMEROOT=~/work/cesm_newclubb
+PATHTOCASE=~/I-compsets
+ICASENAME=ATOMIC-ICLM45-ne30
+PROJECT=P93300642
+MACHINE=cheyenne
+NNODES=12
+RESOL=ne30_g16
+RUNQUEUE=economy
+WALLCLOCK="10:00:00"
+
+### Only required if doERA5 = 0
+BETACAST=/glade/u/home/zarzycki/betacast
+BETACAST_DATM_FORCING_BASE=/glade/p/univ/upsu0032/DATM_FORCING/
