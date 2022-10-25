@@ -81,6 +81,16 @@ function read_bash_nl() {
 
 
 
+function get_YYYYMMDD_from_hfile() {
+  local FILE=$1
+  local DELIM=$2
+  local var2=${FILE#*${DELIM}.}
+  local THEDATE=$(echo $var2 | cut -c1-4)$(echo $var2 | cut -c6-7)$(echo $var2 | cut -c9-10)
+  echo $THEDATE
+}
+
+
+
 sanitize_file () {
   echo "Sanitizing $1"
   sed -i -e '$a\' $1
