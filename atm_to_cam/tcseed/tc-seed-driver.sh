@@ -184,4 +184,4 @@ fi
 
 cd $DRIVER_DIRECTORY ; pwd
 
-exec ./master.sh "$CONFIG_NAMELIST"
+exec ./tc-seed-driver.sh "$CONFIG_NAMELIST"
