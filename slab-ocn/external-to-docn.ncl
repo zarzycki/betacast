@@ -74,10 +74,8 @@ out->datesec = (/datesec/)
 out->SST = var_in
 out->ICEFRAC = ice_in
 
+print("all done!")
 
-
-
-
-
+status_exit(9)
 
 end
