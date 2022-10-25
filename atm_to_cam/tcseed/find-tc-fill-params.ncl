@@ -6,6 +6,7 @@ begin
 
 ;debug restart file vortex add
 ;system("cp -v /glade/u/home/zarzycki/scratch/APE3-test/run/ORIG.nc "+inic_file)
+debug=False
 
 ;pthi="../../namelists/unseed.default.nl"
 invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
@@ -341,6 +342,8 @@ anlT_anom = anlT(:,0) - anlT(:,dimsizes(mylon)-1)
 
 ; ===================PLOTTING==============
 
+if (debug) then
+
 wks   = gsn_open_wks ("png","best_fit_profiles")               ; send graphics to PNG file
 plot = new(2,graphic)                          ; create a plot array
 
@@ -377,6 +380,8 @@ res3@xyLineColor           = "red"
 plot(1) = gsn_csm_x2y2(wks,rad_psl&radius,rad_psl&radius,anlPS,rad_psl,res3,res4)
 
 gsn_panel(wks,plot,(/2,1/),False)             ; now draw as one plot
+
+end if
 
 print("PSL total RSMD: "+dim_rmsd_n(anlPS,rad_psl,0))
 
