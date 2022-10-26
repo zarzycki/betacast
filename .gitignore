@@ -1,3 +1,10 @@
+## Seeding/unseeding nl
+atm_to_cam/tcseed/config.seed
+atm_to_cam/tcseed/config.unseed
+atm_to_cam/tcseed/seed.ape.nl
+atm_to_cam/tcseed/unseed.ape.nl
+
+cyclones_tempest*
 .SEED*
 BAK/
 namelists/ATOMIC/
