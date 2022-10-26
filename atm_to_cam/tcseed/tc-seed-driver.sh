@@ -184,4 +184,7 @@ fi
 
 cd $DRIVER_DIRECTORY ; pwd
 
+# cleanup any BAK files
+rm -v ${vortex_namelist}.BAK
+
 exec ./tc-seed-driver.sh "$CONFIG_NAMELIST"

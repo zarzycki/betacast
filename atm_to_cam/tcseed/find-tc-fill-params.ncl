@@ -342,44 +342,45 @@ anlT_anom = anlT(:,0) - anlT(:,dimsizes(mylon)-1)
 
 ; ===================PLOTTING==============
 
+; only output the best fit profiles if debug is turned on.
 if (debug) then
 
-wks   = gsn_open_wks ("png","best_fit_profiles")               ; send graphics to PNG file
-plot = new(2,graphic)                          ; create a plot array
+  wks   = gsn_open_wks ("png","best_fit_profiles")               ; send graphics to PNG file
+  plot = new(2,graphic)                          ; create a plot array
 
-res                  = True                     ; plot mods desired
-res@gsnDraw  = False                          ; don't draw
-res@gsnFrame = False                          ; don't advance frame
+  res                  = True                     ; plot mods desired
+  res@gsnDraw  = False                          ; don't draw
+  res@gsnFrame = False                          ; don't advance frame
 
-res1=res
-res2=res
-res1@trYReverse = True 
-res2@trYReverse = True 
-res1@trXMinF = -10.
-res1@trXMaxF = 10.
-res1@trYMinF = 100.
-res1@trYMaxF = 1010.
-res2@trXMinF = res1@trXMinF
-res2@trXMaxF = res1@trXMaxF
-res2@trYMinF = res1@trYMinF
-res2@trYMaxF = res1@trYMaxF
-res1@xyLineColor = "red"
-plot(0) = gsn_csm_x2y2(wks,anlT_anom,Tavg(:,0),lev,lev,res1,res2)
+  res1=res
+  res2=res
+  res1@trYReverse = True 
+  res2@trYReverse = True 
+  res1@trXMinF = -10.
+  res1@trXMaxF = 10.
+  res1@trYMinF = 100.
+  res1@trYMaxF = 1010.
+  res2@trXMinF = res1@trXMinF
+  res2@trXMaxF = res1@trXMaxF
+  res2@trYMinF = res1@trYMinF
+  res2@trYMaxF = res1@trYMaxF
+  res1@xyLineColor = "red"
+  plot(0) = gsn_csm_x2y2(wks,anlT_anom,Tavg(:,0),lev,lev,res1,res2)
 
-res3=res
-res4=res
-res3@trXMinF = 0.
-res3@trXMaxF = 900.
-res3@trYMinF = 95000.
-res3@trYMaxF = 102000.
-res4@trXMinF = res3@trXMinF
-res4@trXMaxF = res3@trXMaxF
-res4@trYMinF = res3@trYMinF
-res4@trYMaxF = res3@trYMaxF
-res3@xyLineColor           = "red"
-plot(1) = gsn_csm_x2y2(wks,rad_psl&radius,rad_psl&radius,anlPS,rad_psl,res3,res4)
+  res3=res
+  res4=res
+  res3@trXMinF = 0.
+  res3@trXMaxF = 900.
+  res3@trYMinF = 95000.
+  res3@trYMaxF = 102000.
+  res4@trXMinF = res3@trXMinF
+  res4@trXMaxF = res3@trXMaxF
+  res4@trYMinF = res3@trYMinF
+  res4@trYMaxF = res3@trYMaxF
+  res3@xyLineColor           = "red"
+  plot(1) = gsn_csm_x2y2(wks,rad_psl&radius,rad_psl&radius,anlPS,rad_psl,res3,res4)
 
-gsn_panel(wks,plot,(/2,1/),False)             ; now draw as one plot
+  gsn_panel(wks,plot,(/2,1/),False)             ; now draw as one plot
 
 end if
 
