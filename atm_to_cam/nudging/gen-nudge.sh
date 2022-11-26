@@ -25,13 +25,14 @@ CAM_TO_CAM=true   # Set to false for reanalysis -> CAM, otherwise true
 dryrun=false       # Use for debugging -- will generate parallel file but will not execute
 
 if ${CAM_TO_CAM} ; then
-  STYR=1989
-  ENYR=1989
-  STMON="aug"
-  STDAY=8
-  ENMON="aug"
-  ENDAY=22
+  STYR=2013
+  ENYR=2013
+  STMON="sep"
+  STDAY=9
+  ENMON="sep"
+  ENDAY=19
   HR_RES=6
+  DESCSTR="CAM5"
 else
   # NOTE, DO NOT NEED TO TOUCH!
   STYR=2005
@@ -41,12 +42,12 @@ else
   STMON="jan"
   ENMON="dec"
   HR_RES=1
+  DESCSTR="ERA5"
 fi
 
-#OUTDIR=/glade/u/home/zarzycki/scratch/nudge-E3SM/
-OUTDIR=/glade/scratch/zarzycki/ndg/
-
 BETACASTDIR=/glade/u/home/zarzycki/betacast/
+#OUTDIR=/glade/scratch/zarzycki/ndg/
+OUTDIR=/glade/p/univ/upsu0032/MPAS/ndg/
 
 #DYCORE="se"
 #GRIDSTR=ne30pg3
@@ -69,27 +70,41 @@ BETACASTDIR=/glade/u/home/zarzycki/betacast/
 # Example of CAM->CAM
 DYCORE="mpas"
 GRIDSTR=mpasa3-60-florida
-BNDTOPO=/glade/u/home/zarzycki/scratch/MPAS/3km_florida/x20.835586.florida.init.nc
+BNDTOPO=/glade/u/home/zarzycki/scratch/MPAS_OLD/3km_florida/x20.835586.florida.init.nc
 ####L58 BNDTOPO=/glade/u/home/zarzycki/work/cesmfiles/inic/x20.835586.florida.init.nc
 NUMLEVS=32
 WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_mpasa3-60-florida_patc.nc
 
-#INFILE=/glade/scratch/zarzycki/cam_to_cam/CHEY.VR28.NATL.EXT.CAM5.4CLM5.0.dtime900.cam.h2.2008-08-22-00000.nc
-#MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticext.ne30x4_TO_era5_0.25x0.25_patc.nc
-#MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticext.ne30x4/topo/topo_ne0np4natlanticext.ne30x4_smooth.nc
+### NOTE: BINLIST can take wildcards and will be expanded. Make sure variable is enclosed with quotes
+SUBNAME=CHEY.VR28.NATL.WAT.CAM5.4CLM5.0.dtime900.002
+BINLIST="/glade/u/home/zarzycki/scratch/cam_to_cam/raw_files/storm_1354/CHEY.VR28.NATL.WAT.CAM5.4CLM5.0.dtime900.002.cam.h2.2013-08-26-00000.nc"
+#COMPUTER=`echo $SUBNAME | cut -d. -f 1`
+GRID=`echo $SUBNAME | cut -d. -f 4`
+#NONGRID=`echo $SUBNAME | cut -d. -f 2-`
+GRIDLOWER=$(echo $GRID | sed 's/./\L&/g' )
+MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlantic${GRIDLOWER}.ne30x4_TO_era5_0.25x0.25_patc.nc
+MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlantic${GRIDLOWER}.ne30x4/topo/topo_ne0np4natlantic${GRIDLOWER}.ne30x4_smooth.nc
+
+#CORI.VR28.NATL.REF.CAM5.4CLM5.0.dtime900.003.cam.h2.2000-09-03-00000.nc
 
 #INFILE=/glade/scratch/zarzycki/cam_to_cam/CHEY.VR28.NATL.EXT.CAM5.4CLM5.0.dtime900.cam.h2.2008-08-22-00000.nc
 #MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc
 #MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc
 
-INFILE=/glade/u/home/zarzycki/scratch/cam_to_cam/CORI.VR28.NATL.WAT.CAM5.4CLM5.0.dtime900.003.cam.h2.1989-08-02-00000.nc
-MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticwat.ne30x4_TO_era5_0.25x0.25_patc.nc
-MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticwat.ne30x4/topo/topo_ne0np4natlanticwat.ne30x4_smooth.nc
+#INFILE=/glade/u/home/zarzycki/scratch/cam_to_cam/CORI.VR28.NATL.WAT.CAM5.4CLM5.0.dtime900.003.cam.h2.1989-08-02-00000.nc
+#MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticwat.ne30x4_TO_era5_0.25x0.25_patc.nc
+#MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticwat.ne30x4/topo/topo_ne0np4natlanticwat.ne30x4_smooth.nc
 
 THISDIR=${PWD}
 
 ## Append some subdir information for folders
 OUTDIR=${OUTDIR}/${DYCORE}_${GRIDSTR}_L${NUMLEVS}/
+
+if [[ -v SUBNAME ]] ; then
+  OUTDIR=${OUTDIR}/${SUBNAME}/
+else
+  OUTDIR=${OUTDIR}/ERA5/
+fi
 
 # GNUPARALLEL SETTINGS
 module load parallel
@@ -137,30 +152,38 @@ do
 
     # OUTFILETMP is what betacast writes, but then quickly finalize.
     # This gives us a check if the run stops due to wallclock, etc. and the file is only partially written...
-    OUTFILE=${OUTDIR}/ndg.ERA5.${GRIDSTR}.L${NUMLEVS}.cam2.i.$YYYY-$MM-$DD-$SSSSS.nc
+    OUTFILE=${OUTDIR}/ndg.${DESCSTR}.${GRIDSTR}.L${NUMLEVS}.cam2.i.$YYYY-$MM-$DD-$SSSSS.nc
     OUTFILETMP=${OUTFILE}.TMP.nc
     
     #4/4/22 After CESM2.2, nudging.F90 moved to PIO which doesn't support compression (I don't think...) ... supports floats, which are 25GB uncompressed vs 18GB compressed   
     if ${CAM_TO_CAM} ; then
       echo "Running CAM->CAM options"
-      NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; 
-          ncl -n atm_to_cam.ncl 
-          'datasource=\"CAM\"' 
-          write_floats=True 
-          add_cloud_vars=False 
-          compress_file=False 
-          mpas_as_cam=True 
-          numlevels=${NUMLEVS} 
-          YYYYMMDDHH=${YYYYMMDDHH} 
-          'dycore = \"'${DYCORE}'\"' 
-          'data_filename = \"'${INFILE}'\"' 
-          'wgt_filename=\"'${WGTNAME}'\"' 
-          'model_topo_file=\"'${BNDTOPO}'\"' 
-          'mod_remap_file=\"'${MODREMAPFILE}'\"' 
-          'mod_in_topo=\"'${MODINTOPO}'\"' 
-          'adjust_config=\"\"' 
-          'se_inic = \"'${OUTFILETMP}'\"' ; 
-          mv -v ${OUTFILETMP} ${OUTFILE} "
+      for INFILE in $BINLIST; do
+        echo $INFILE
+        
+        NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; 
+            ncl -n atm_to_cam.ncl 
+            'datasource=\"CAM\"' 
+            write_floats=True 
+            add_cloud_vars=False 
+            compress_file=False 
+            mpas_as_cam=True 
+            numlevels=${NUMLEVS} 
+            YYYYMMDDHH=${YYYYMMDDHH} 
+            'dycore = \"'${DYCORE}'\"' 
+            'data_filename = \"'${INFILE}'\"' 
+            'wgt_filename=\"'${WGTNAME}'\"' 
+            'model_topo_file=\"'${BNDTOPO}'\"' 
+            'mod_remap_file=\"'${MODREMAPFILE}'\"' 
+            'mod_in_topo=\"'${MODINTOPO}'\"' 
+            'adjust_config=\"\"' 
+            'se_inic = \"'${OUTFILETMP}'\"' ; 
+            mv -v ${OUTFILETMP} ${OUTFILE} "
+        # If file doesn't exist, we want to create, but if it does let's skip
+        if [ ! -f ${OUTFILE} ]; then
+          echo ${NCLCOMMAND} >> ${COMMANDFILE}
+        fi
+      done
     else
       echo "Running ERA5 -> CAM options"
       RDADIR=/glade/collections/rda/data/ds633.0/
@@ -181,10 +204,10 @@ do
           'adjust_config=\"-\"' 
           'se_inic = \"'${OUTFILETMP}'\"' ; 
           mv -v ${OUTFILETMP} ${OUTFILE} "
-    fi
-    # If file doesn't exist, we want to create, but if it does let's skip
-    if [ ! -f ${OUTFILE} ]; then
-      echo ${NCLCOMMAND} >> ${COMMANDFILE}
+      # If file doesn't exist, we want to create, but if it does let's skip
+      if [ ! -f ${OUTFILE} ]; then
+        echo ${NCLCOMMAND} >> ${COMMANDFILE}
+      fi
     fi
   done
 
