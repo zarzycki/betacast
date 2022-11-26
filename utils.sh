@@ -66,12 +66,12 @@ function read_bash_nl() {
   # parsing on whitespaces...
   echo "Reading namelist ${FILETOREAD}..."
   local inputstream=`cat ${FILETOREAD} | grep -v "^#"`
-  inputstream="${inputstream//=/\ =\ }"
+  inputstream="${inputstream//=/ = }"
   #echo $inputstream
   set -- $inputstream
   while [ $1 ]
    do
-     if [ "${2}" != "=" ] ; then echo "Uh oh!" ; exit ; fi
+     if [ "${2}" != "=" ] ; then echo "Uh oh, $1, $2, $3!" ; exit ; fi
      echo "NAMELIST: setting ${1} to ${3//___/ }"
      #eval $1=$3
      eval $1="${3//___/ }"  
