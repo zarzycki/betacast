@@ -4,6 +4,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 begin
 
 case  = keyword_values( pthi, "case", "string")
+basedir  = keyword_values( pthi, "basedir", "string")
 start_month = keyword_values( pthi, "start_month", "integer") 
 end_month = keyword_values( pthi, "end_month", "integer") 
 current_year = keyword_values( pthi, "current_year", "integer") 
@@ -73,9 +74,9 @@ ncol = dimsizes(lat)
 nlev = dimsizes(hyam)
 
 if (case .eq. "CAMC20C") ; Can only by used for attribution
-  deltaFilePS = addfile("/glade/work/alyssas/deltas/delta_ps_CAM5-1-1degree_All-Hist_est1_v2.0_1996-2016.nc_Climatology_2016-1996.nc","r")
-  deltaFileT  = addfile("/glade/work/alyssas/deltas/delta_ta_CAM5-1-1degree_All-Hist_est1_v2.0_1996-2016.nc_Climatology_2016-1996.nc","r")
-  deltaFileQ  = addfile("/glade/work/alyssas/deltas/delta_hus_CAM5-1-1degree_All-Hist_est1_v2.0_1996-2016.nc_Climatology_2016-1996.nc","r")
+  deltaFilePS = addfile(basedir+"/"+case+"_plev/delta_ps_CAM5-1-1degree_All-Hist_est1_v2.0_1996-2016.nc_Climatology_2016-1996.nc","r")
+  deltaFileT  = addfile(basedir+"/"+case+"_plev/delta_ta_CAM5-1-1degree_All-Hist_est1_v2.0_1996-2016.nc_Climatology_2016-1996.nc","r")
+  deltaFileQ  = addfile(basedir+"/"+case+"_plev/delta_hus_CAM5-1-1degree_All-Hist_est1_v2.0_1996-2016.nc_Climatology_2016-1996.nc","r")
   deltaPS_in  = deltaFilePS->delta_ps_Climatology_Monthly(start_month-1:end_month-1,0,:,:)
   deltaT_in   = deltaFileT->delta_ta_Climatology_Monthly(start_month-1:end_month-1,::-1,:,:)
   deltaQ_in   = deltaFileQ->delta_hus_Climatology_Monthly(start_month-1:end_month-1,::-1,:,:)
@@ -84,13 +85,13 @@ if (case .eq. "CAMC20C") ; Can only by used for attribution
   deltaQ      = dim_avg_n_Wrap(deltaQ_in,0)
 else if (case .eq. "CESMLENS") ; Can be used for attribution and future projections
   if (plevs) then
-    deltaFilePS     = addfile("/glade/work/kareed/CESM_LENS_deltas/ens_PS_anom.nc","r")
-    deltaFileT      = addfile("/glade/work/kareed/CESM_LENS_deltas/ens_T_anom.nc","r")
-    deltaFileQ      = addfile("/glade/work/kareed/CESM_LENS_deltas/ens_Q_anom.nc","r") 
+    deltaFilePS     = addfile(basedir+"/"+case+"_plev/ens_PS_anom.nc","r")
+    deltaFileT      = addfile(basedir+"/"+case+"_plev/ens_T_anom.nc","r")
+    deltaFileQ      = addfile(basedir+"/"+case+"_plev/ens_Q_anom.nc","r") 
   else
-    deltaFilePS     = addfile("/global/cfs/cdirs/m2637/betacast/deltas/PS/ens_PS_anom.nc","r")
-    deltaFileT      = addfile("/global/cfs/cdirs/m2637/betacast/deltas/T/ens_T_anom.nc","r")
-    deltaFileQ      = addfile("/global/cfs/cdirs/m2637/betacast/deltas/Q/ens_Q_anom.nc","r")
+    deltaFilePS     = addfile(basedir+"/"+case+"_mlev/PS/ens_PS_anom.nc","r")
+    deltaFileT      = addfile(basedir+"/"+case+"_mlev/T/ens_T_anom.nc","r")
+    deltaFileQ      = addfile(basedir+"/"+case+"_mlev/Q/ens_Q_anom.nc","r")
     hyam_in=deltaFileT->hyam
     hybm_in=deltaFileT->hybm
   end if
