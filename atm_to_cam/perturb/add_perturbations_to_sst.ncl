@@ -4,6 +4,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 begin
 
 case  = keyword_values( pthi, "case", "string")
+basedir  = keyword_values( pthi, "basedir", "string")
+
 adjust_ice  = keyword_values( pthi, "adjust_ice", "logical")
 output_sst_diag  = keyword_values( pthi, "output_sst_diag", "logical")
 
@@ -15,6 +17,7 @@ comp_year = keyword_values( pthi, "comp_year", "integer")
 ; print configurations
 print("************* Running SST perturbation code *************")
 print("Case: "+case)
+print("basedir: "+basedir)
 print("adjust_ice: "+adjust_ice)
 print("output_sst_diag: "+output_sst_diag)
 print("start_month: "+start_month)
@@ -34,11 +37,11 @@ ntimes=dimsizes(camFile->date)
 SST=camFile->SST_cpl
 
 if (case .eq. "CAMC20C") ; Can only by used for attribution
-  deltaFileSST = addfile("/glade/work/alyssas/deltas/delta_ts_CAM5-1-1degree_All-Hist_est1_v2.0_1996-2016.nc_Climatology_2016-1996.nc","r")
+  deltaFileSST = addfile(basedir+"/"+case+"_plev/delta_ts_CAM5-1-1degree_All-Hist_est1_v2.0_1996-2016.nc_Climatology_2016-1996.nc","r")
   deltaSST_in  = deltaFileSST->delta_ts_Climatology_Monthly(start_month-1:end_month-1,0,:,:)
   deltaSST     = dim_avg_n_Wrap(deltaSST_in,0)
 else if (case .eq. "CESMLENS") ; Can be used for attribution and future projections
-  deltaFileSST     = addfile("/global/cfs/cdirs/m2637/betacast/deltas/SST/ens_SST_anom.nc","r")
+  deltaFileSST     = addfile(basedir+"/"+case+"_plev/ens_SST_anom.nc","r")
   deltaSST_in      = deltaFileSST->SST(current_year*12-1920*12+start_month-1:current_year*12-1920*12+end_month-1,:,:)
   deltaSST_current = dim_avg_n_Wrap(deltaSST_in,0) 
   if (comp_year .lt. 1920) then

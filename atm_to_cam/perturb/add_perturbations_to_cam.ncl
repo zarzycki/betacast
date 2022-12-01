@@ -27,6 +27,7 @@ extra_diags_atm  = keyword_values( pthi, "extra_diags_atm", "logical")
 ; print configurations
 print("************* Running ATM perturbation code *************")
 print("Case: "+case)
+print("basedir: "+basedir)
 print("start_month: "+start_month)
 print("end_month: "+end_month)
 print("current_year: "+current_year)
