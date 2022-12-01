@@ -1,6 +1,6 @@
 # Betacast
 
-**Betacast** (originally a portmanteau of "beta" and "forecast") is a software package designed to easily initialize CIME-ized modeling systems in "numerical weather prediction" mode. The code is capable of running in realtime or hindcast mode and possesses tools for generating balanced initial conditions and configuring the model appropriately. **Please cite the below manuscript and this repository if you use Betacast in your research.**
+**Betacast** (originally a portmanteau of "beta" and "forecast") is a software package designed to easily initialize CIME-ized modeling systems in "numerical weather prediction" mode. The code is capable of running in realtime or hindcast mode and possesses tools for generating balanced initial conditions and configuring the model appropriately. **Please cite both the below manuscript and this repository if you use Betacast in your research.**
 
 [![DOI](https://zenodo.org/badge/31787694.svg)](https://zenodo.org/badge/latestdoi/31787694)
 
@@ -239,6 +239,55 @@ cd ~/betacast/atm_to_cam/getECMWFdata
 
 This ends the betacast workflow.
 
+## Running with the climate change 'deltas' code
+
+Thermodynamic deltas (e.g., warming signal or climate change fingerprints) that are derived from long-term climate integrations can be applied over the top of a Betacast analysis to simulate how a particular event would conditionally evolve under a different climate. Mechanistically, Betacast treats this as if it was just a regular forecast, except after generating the initial conditions two seperate scripts are run to overlay these fingerprints over the top of the atmospheric and ocean initial conditions in a consistent fashion.
+
+Some relevant reading:
+
+- M. F. Wehner, C. M. Zarzycki, and C. Patricola. Estimating the human influence on tropical cyclone intensity as the climate changes. In *Hurricane Risk*, pp. 235-260, Springer Books, 2019. 10.1007/978-3-030-02402-4_12
+- K. A. Reed, A. M. Stansfield, M. F. Wehner, and C. M. Zarzycki. Forecasted attribution of the human influence on Hurricane Florence. *Science Advances*, 6(1), eaaw9253, 2020. 10.1126/sciadv.aaw9253.
+
+🔴 **IMPORTANT NOTE**: This code generates deltas for the atmosphere and ocean/ice boundary. It does *not* generate initial conditions for the land surface. These need to be generated with the offline spinup process. See instructions below.
+
+To activate this code, the following bool must be selected in the primary namelist:
+
+```
+add_perturbs = true
+```
+
+and a seperate namelist containing information about how to apply the deltas must be generated and the full path to this secondary file be specified in the primary namelist:
+
+```
+perturb_namelist = /global/homes/c/czarzyck/betacast/namelists/perturb.sample.nl
+```
+
+`perturb_namelist` is a text file that is read by a routine that runs after atm_to_cam and sst_to_cam which contains the following variables (all are required, even if **False** or empty strings).
+  
+| Namelist Variable | Type | Description |
+| --- | --- | --- |
+| case | string | "Deltas" case (currently only CESMLENS supported) |
+| basedir | string | Base directory where `case` deltas are stored |
+| start_month | int | Path to where re/analysis + model initial conditions/forcing data is stored |
+| end_month | int | Path (top-level) to directory where CESM actively runs |
+| current_year | int | Reference year to calculate deltas from |
+| comp_year | int | Target year of deltas |
+| correct_sfc | bool | Shift entire T/Q vertical profile based on surface delta? (generally **False**) |
+| plevs | bool | Are we on pressure levels? (if **False**, means hybrid model levels) |
+| update_pressure | bool | Update PS based on PS deltas (generally **False**) |
+| update_winds | bool | Update winds based on some wind deltas or thermal wind (generally **False**) |
+| do_ps_corr | bool | Apply simple linear PS correction to attempt to minimize geostrophic shock? (generally **True**) |
+| esmf_remap | bool | Use ESMF remapping instead of NCL internal (generally **True**) |
+| keep_esmf | bool | Keep the ESMF files between calls to add_perturbations to CAM? (generally **True**) |
+| smooth_deltas | bool | Smooth deltas using a 9-point smoother? (generally **False** unless big resolution mismatch) |
+| smooth_delta_iter | int | If *smooth_deltas=True*, how many iterations to apply? (higher numbers mean more smoothing) |
+| output_atm_diag | bool | Output a separate diagnostics file with deltas and other info? |
+| extra_diags_atm | bool | Output additional diags? (currently just precipitable water) |
+| adjust_ice | bool | Adjust ice fraction based on deltas + freezing/melting? (generally **True**) |
+| output_sst_diag | bool | Output a separate diagnostics file with deltas and other info? |
+
+A template namelist is in the repo under `$BETACAST/namelists/perturb.sample.nl`. It is strongly suggested to just copy this file and edit individual keys as desired to ensure all required variables are present on the file. Betacast should print information regarding how the deltas (and their successful application) which should be verified by the user.
+
 ## Generating DATM files
 
 When nudging the land model to initialize CLM/ELM, we need 'forcing' files for DATM. While we can use some existing forcing files in the CESM/E3SM repo, it may be beneficial to initialize using ERA5 forcing. To do so, we need to generate the ERA5 forcing files and data streams for running with an I compset.
@@ -329,8 +378,4 @@ offset is the time offset in seconds to give to each stream of data. Normally it
 tintalgo is the time interpolation algorithm. For CLM we usually use one of three modes: coszen, nearest, or linear. We use coszen for solar data, nearest for precipitation data, and linear for everything else. If your data is half-hourly or hourly, nearest will work fine for everything. The coszen scaling is useful for longer periods (three hours or more) to try to get the solar to match the cosine of the solar zenith angle over that longer period of time. If you use linear for longer intervals, the solar will cut out at night-time anyway, and the straight line will be a poor approximation of the cosine of the solar zenith angle of actual solar data. nearest likewise would be bad for longer periods where it would be much higher than the actual values.
 
 - Note: For coszen the time-stamps of the data should correspond to the beginning of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it. 
-- Note: For nearest and linear the time-stamps of the data should correspond to the middle of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it. 
-
-## Generating 'deltas' for counterfactual simulations
-
-Todo
+- Note: For nearest and linear the time-stamps of the data should correspond to the middle of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it.
