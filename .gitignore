@@ -4,6 +4,9 @@ atm_to_cam/tcseed/config.unseed
 atm_to_cam/tcseed/seed.ape.nl
 atm_to_cam/tcseed/unseed.ape.nl
 
+## Nudging namelists
+atm_to_cam/nudging/ndg*nl
+
 cyclones_tempest*
 .SEED*
 BAK/

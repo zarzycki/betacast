@@ -11,7 +11,7 @@
 #PBS -N gen_nudge_betacast
 #PBS -A P93300642
 #PBS -l select=1:ncpus=36:mem=220GB
-#PBS -l walltime=24:00:00
+#PBS -l walltime=4:00:00
 #PBS -q casper
 #PBS -j oe
 
@@ -21,81 +21,48 @@
 # analysis throughput.
 # Current recommendation is 36 CPUs, 36 GnuP tasks, scale mem as needed w/ gridres
 
-CAM_TO_CAM=true   # Set to false for reanalysis -> CAM, otherwise true
-dryrun=false       # Use for debugging -- will generate parallel file but will not execute
+set -e
 
-if ${CAM_TO_CAM} ; then
-  STYR=2013
-  ENYR=2013
-  STMON="sep"
-  STDAY=9
-  ENMON="sep"
-  ENDAY=19
-  HR_RES=6
-  DESCSTR="CAM5"
-else
-  # NOTE, DO NOT NEED TO TOUCH!
-  STYR=2005
-  ENYR=2005
-  STDAY=1
-  ENDAY=31
-  STMON="jan"
-  ENMON="dec"
-  HR_RES=1
-  DESCSTR="ERA5"
+THISDIR=$PWD
+source ${THISDIR}/../../utils.sh   # Source external bash functions
+
+### Check if namelist was passed in as an argument, if yes, overwrite
+if [[ $# -gt 0 ]] ; then
+  NLFILE=${1}
 fi
 
-BETACASTDIR=/glade/u/home/zarzycki/betacast/
-#OUTDIR=/glade/scratch/zarzycki/ndg/
-OUTDIR=/glade/p/univ/upsu0032/MPAS/ndg/
+if [[ "$NLFILE" != /* ]] && [[ "$NLFILE" != ~* ]]; then NLFILE=${PWD}/${NLFILE}; fi
+echo $NLFILE
+read_bash_nl "${NLFILE}"
 
-#DYCORE="se"
-#GRIDSTR=ne30pg3
-#BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30pg3_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171014.nc
-#WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_ne30pg3_patc.nc
-#NUMLEVS=58
+if ${CAM_TO_CAM} ; then
+  echo "Doing CAM_TO_CAM, everything needs to be set in the namelist!"
+else
+  echo "Doing reanalysis, writing default input if not passed in via $NLFILE"
+  if [ -z ${STDAY+x} ]; then STDAY=1; fi
+  if [ -z ${ENDAY+x} ]; then ENDAY=31; fi
+  if [ -z ${STMON+x} ]; then STMON="jan"; fi
+  if [ -z ${ENMON+x} ]; then ENMON="dec"; fi
+  if [ -z ${HR_RES+x} ]; then HR_RES=1; fi
+  if [ -z ${DESCSTR+x} ]; then DESCSTR="ERA5"; fi
+fi
 
-#DYCORE="fv"
-#GRIDSTR=f09
-#BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/fv_0.9x1.25_nc3000_Nsw042_Nrs008_Co060_Fi001_ZR_sgh30_24km_GRNL_c170103.nc
-#WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5_0.25_TO_fv0.9x1.25_patc.nc
-#NUMLEVS=32
+# This block prints all timing inputs.
+# The set -/+u causes the code to exit with unbound vars
+set -u
+echo "CHECKING FOR UNBOUND VARIABLES!"
+echo "STYR: "$STYR"  ENYR: "$ENYR
+echo "STDAY: "$STDAY"  ENDAY: "$ENDAY"  STMON: "$STMON"  ENMON: "$ENMON"  HR_RES: "$HR_RES
+echo "DESCSTR: "$DESCSTR
+set +u
 
-#DYCORE="mpas"
-#GRIDSTR=mp120a
-#BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/inic/mpas/mpasa120.CFSR.L32.nc
-#WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_mpasa120_patc.nc
-#NUMLEVS=32
-
-# Example of CAM->CAM
-DYCORE="mpas"
-GRIDSTR=mpasa3-60-florida
-BNDTOPO=/glade/u/home/zarzycki/scratch/MPAS_OLD/3km_florida/x20.835586.florida.init.nc
-####L58 BNDTOPO=/glade/u/home/zarzycki/work/cesmfiles/inic/x20.835586.florida.init.nc
-NUMLEVS=32
-WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_mpasa3-60-florida_patc.nc
-
-### NOTE: BINLIST can take wildcards and will be expanded. Make sure variable is enclosed with quotes
-SUBNAME=CHEY.VR28.NATL.WAT.CAM5.4CLM5.0.dtime900.002
-BINLIST="/glade/u/home/zarzycki/scratch/cam_to_cam/raw_files/storm_1354/CHEY.VR28.NATL.WAT.CAM5.4CLM5.0.dtime900.002.cam.h2.2013-08-26-00000.nc"
-#COMPUTER=`echo $SUBNAME | cut -d. -f 1`
-GRID=`echo $SUBNAME | cut -d. -f 4`
-#NONGRID=`echo $SUBNAME | cut -d. -f 2-`
-GRIDLOWER=$(echo $GRID | sed 's/./\L&/g' )
-MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlantic${GRIDLOWER}.ne30x4_TO_era5_0.25x0.25_patc.nc
-MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlantic${GRIDLOWER}.ne30x4/topo/topo_ne0np4natlantic${GRIDLOWER}.ne30x4_smooth.nc
-
-#CORI.VR28.NATL.REF.CAM5.4CLM5.0.dtime900.003.cam.h2.2000-09-03-00000.nc
-
-#INFILE=/glade/scratch/zarzycki/cam_to_cam/CHEY.VR28.NATL.EXT.CAM5.4CLM5.0.dtime900.cam.h2.2008-08-22-00000.nc
-#MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc
-#MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc
-
-#INFILE=/glade/u/home/zarzycki/scratch/cam_to_cam/CORI.VR28.NATL.WAT.CAM5.4CLM5.0.dtime900.003.cam.h2.1989-08-02-00000.nc
-#MODREMAPFILE=/glade/u/home/zarzycki/betacast/remapping/map_ne0np4natlanticwat.ne30x4_TO_era5_0.25x0.25_patc.nc
-#MODINTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticwat.ne30x4/topo/topo_ne0np4natlanticwat.ne30x4_smooth.nc
-
-THISDIR=${PWD}
+# Special block of code to handle Hyperion data
+if [[ -v SUBNAME ]] ; then
+  GRID=`echo $SUBNAME | cut -d. -f 4`
+  GRIDLOWER=$(echo $GRID | sed 's/./\L&/g' )
+  MODREMAPFILE="${MODREMAPFILE//\$GRIDLOWER/$GRIDLOWER}"
+  MODINTOPO="${MODINTOPO//\$GRIDLOWER/$GRIDLOWER}"
+fi
 
 ## Append some subdir information for folders
 OUTDIR=${OUTDIR}/${DYCORE}_${GRIDSTR}_L${NUMLEVS}/
@@ -186,11 +153,11 @@ do
       done
     else
       echo "Running ERA5 -> CAM options"
-      RDADIR=/glade/collections/rda/data/ds633.0/
       INFILE=${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc
       NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; 
           ncl -n atm_to_cam.ncl 
           'datasource=\"ERA5RDA\"' 
+          'RDADIR=\"'${RDADIR}'\"' 
           write_floats=True 
           add_cloud_vars=False 
           compress_file=False 
