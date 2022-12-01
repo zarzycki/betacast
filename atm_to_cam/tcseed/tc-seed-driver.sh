@@ -23,6 +23,7 @@ WHICHSED="sed"
 if [ -z ${CIMEsubstring+x} ]; then CIMEsubstring=""; fi
 if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
 if [ -z ${NSEEDS+x} ]; then NSEEDS=0; fi
+if [ -z ${MAXTIME+x} ]; then MAXTIME=99999999; fi
 
 ############################### RUN MODEL ############################### 
 
@@ -75,6 +76,9 @@ cd $DRIVER_DIRECTORY
 
 # Get most recent file for tracking
 MOSTRECENT=`ls --color=never ${path_to_rundir}/*.cam.${HTRACKSTR}.*.nc -r | head -n 1`
+
+# Get most recent YYYYMMDD
+YYYYMMDD=$(get_YYYYMMDD_from_hfile "$MOSTRECENT" "$HTRACKSTR")
 
 # Do TE to find candidates in final timeslice
 STR_DETECT="--verbosity 0 --in_connect ${CONNECTDAT} --out ${TEMPESTFILE} --closedcontourcmd PSL,300.0,5.0,0;_DIFF(Z300,Z500),-6.0,5.0,1.0 --minlat -25.0 --maxlat 25.0 --mergedist 6.0 --searchbymin PSL --outputcmd PSL,min,0"
@@ -166,8 +170,21 @@ if ${st_archive_ontheway} ; then
   set +e ; ./case.st_archive ; set -e
 fi
 
+## Check to see if we've exceeded our max time
+if [[ ${YYYYMMDD} -ge ${MAXTIME} ]] ; then
+  echo "Model time ${YYYYMMDD} has exceeded MAXTIME: ${MAXTIME}"
+  echo "... EXITING!"
+  exit
+else
+  echo "Model time ${YYYYMMDD} is before MAXTIME: ${MAXTIME}"
+fi
+
+
 ############################### RESUB SCRIPT ############################### 
 
 cd $DRIVER_DIRECTORY ; pwd
 
-exec ./master.sh "$CONFIG_NAMELIST"
+# cleanup any BAK files
+rm -v ${vortex_namelist}.BAK
+
+exec ./tc-seed-driver.sh "$CONFIG_NAMELIST"

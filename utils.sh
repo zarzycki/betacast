@@ -66,17 +66,27 @@ function read_bash_nl() {
   # parsing on whitespaces...
   echo "Reading namelist ${FILETOREAD}..."
   local inputstream=`cat ${FILETOREAD} | grep -v "^#"`
-  inputstream="${inputstream//=/\ =\ }"
+  inputstream="${inputstream//=/ = }"
   #echo $inputstream
   set -- $inputstream
   while [ $1 ]
    do
-     if [ "${2}" != "=" ] ; then echo "Uh oh!" ; exit ; fi
+     if [ "${2}" != "=" ] ; then echo "Uh oh, $1, $2, $3!" ; exit ; fi
      echo "NAMELIST: setting ${1} to ${3//___/ }"
      #eval $1=$3
      eval $1="${3//___/ }"  
      shift 3
    done
+}
+
+
+
+function get_YYYYMMDD_from_hfile() {
+  local FILE=$1
+  local DELIM=$2
+  local var2=${FILE#*${DELIM}.}
+  local THEDATE=$(echo $var2 | cut -c1-4)$(echo $var2 | cut -c6-7)$(echo $var2 | cut -c9-10)
+  echo $THEDATE
 }
 
 

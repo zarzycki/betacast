@@ -1,8 +1,9 @@
 begin
 
-sfile="/global/homes/c/czarzyck/m2637/betacast/som/docn_files/sst_HadOIBl_bc_1x1_1850_2021_c120422.nc"
+;sfile="/glade/u/home/zarzycki/work/cesm2_2_0/components/cam/tools/icesst/bcgen/final_sst_cice.mon.mean.COBE2.EOFnn.nc"
 WHICH_H = "GODAS"   ; Z16 or GODAS
-WHICH_Q = "NONE"   ; Z16 or NONE
+WHICH_Q = "Z16"   ; Z16 or NONE
+copy_ice_cov_if_avail=True   ; do we want to copy ice if it's on the input?
 
 ; get fields from SST stream
 s = addfile(sfile,"r")
@@ -13,6 +14,17 @@ nlat = SST_cpl_dims(1)
 nlon = SST_cpl_dims(2)
 lat = SST_cpl&lat
 lon = SST_cpl&lon
+
+; if we want to copy ice and it's available, let's load and then populate to new file
+if (copy_ice_cov_if_avail .and. isfilevar(s, "ice_cov")) then
+  copy_ice = True
+else
+  copy_ice = False
+end if
+
+if (copy_ice) then
+  ice_cov = s->ice_cov
+end if
 
 ; get boundary layer heights
 if (WHICH_H .eq. "Z16") then
@@ -86,6 +98,9 @@ fileattdef( ncdf, fAtt )            ; copy file attributes
 
 filedimdef(ncdf,"time",-1,True) 
 
+if (copy_ice) then
+  ncdf->ice_cov=ice_cov
+end if
 ncdf->SST_cpl=SST_cpl
 ncdf->hblt=hblt_full
 ncdf->qdp=qdp_full

@@ -229,7 +229,11 @@ EOF
 
 ### USER! Edit this block if using CLM and need to inject any CLM specific mods (e.g., fsurdat, etc.)
 cat > user_nl_clm <<EOF
-!finidat=''
+!use_init_interp = .true.
+!fsurdat='/glade/u/home/zarzycki/work/cesmfiles/clm_surfdata_5_0/surfdata_mpasa3-60-florida_hist_16pfts_Irrig_CMIP6_simyr2000_c220728.nc'
+!finidat='/glade/u/home/zarzycki/scratch/NM-ICLM45-ne30_20080830_0060/run/NM-ICLM45-ne30_20080830_0060.clm2.r.2008-08-30-00000.nc'
+!do_transient_pfts = .false.
+!check_finidat_fsurdat_consistency = .false.
 EOF
 
 # remove any "incorrect" user nl files depending on model system
