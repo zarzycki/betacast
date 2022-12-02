@@ -1,7 +1,7 @@
 #!/bin/bash
 #>################################################################
-#>#PBS -N gen_nudge_betacast 
-#>#PBS -A P93300642 
+#>#PBS -N gen_nudge_betacast
+#>#PBS -A P93300642
 #>#PBS -l walltime=11:59:00
 #>#PBS -q regular
 #>#PBS -j oe
@@ -10,7 +10,7 @@
 
 #PBS -N gen_nudge_betacast
 #PBS -A P93300642
-#PBS -l select=1:ncpus=36:mem=220GB
+#PBS -l select=1:ncpus=12:mem=80GB
 #PBS -l walltime=4:00:00
 #PBS -q casper
 #PBS -j oe
@@ -113,7 +113,7 @@ do
     HHBASE=10#${HH}
     SS=$(( 3600*HHBASE ))
     printf -v SSSSS "%05d" $SS
-  
+
     ## Begin betacast block
     YYYYMMDDHH=${f}
 
@@ -121,30 +121,30 @@ do
     # This gives us a check if the run stops due to wallclock, etc. and the file is only partially written...
     OUTFILE=${OUTDIR}/ndg.${DESCSTR}.${GRIDSTR}.L${NUMLEVS}.cam2.i.$YYYY-$MM-$DD-$SSSSS.nc
     OUTFILETMP=${OUTFILE}.TMP.nc
-    
-    #4/4/22 After CESM2.2, nudging.F90 moved to PIO which doesn't support compression (I don't think...) ... supports floats, which are 25GB uncompressed vs 18GB compressed   
+
+    #4/4/22 After CESM2.2, nudging.F90 moved to PIO which doesn't support compression (I don't think...) ... supports floats, which are 25GB uncompressed vs 18GB compressed
     if ${CAM_TO_CAM} ; then
       echo "Running CAM->CAM options"
       for INFILE in $BINLIST; do
         echo $INFILE
-        
-        NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; 
-            ncl -n atm_to_cam.ncl 
-            'datasource=\"CAM\"' 
-            write_floats=True 
-            add_cloud_vars=False 
-            compress_file=False 
-            mpas_as_cam=True 
-            numlevels=${NUMLEVS} 
-            YYYYMMDDHH=${YYYYMMDDHH} 
-            'dycore = \"'${DYCORE}'\"' 
-            'data_filename = \"'${INFILE}'\"' 
-            'wgt_filename=\"'${WGTNAME}'\"' 
-            'model_topo_file=\"'${BNDTOPO}'\"' 
-            'mod_remap_file=\"'${MODREMAPFILE}'\"' 
-            'mod_in_topo=\"'${MODINTOPO}'\"' 
-            'adjust_config=\"\"' 
-            'se_inic = \"'${OUTFILETMP}'\"' ; 
+
+        NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ;
+            ncl -n atm_to_cam.ncl
+            'datasource=\"CAM\"'
+            write_floats=True
+            add_cloud_vars=False
+            compress_file=False
+            mpas_as_cam=True
+            numlevels=${NUMLEVS}
+            YYYYMMDDHH=${YYYYMMDDHH}
+            'dycore = \"'${DYCORE}'\"'
+            'data_filename = \"'${INFILE}'\"'
+            'wgt_filename=\"'${WGTNAME}'\"'
+            'model_topo_file=\"'${BNDTOPO}'\"'
+            'mod_remap_file=\"'${MODREMAPFILE}'\"'
+            'mod_in_topo=\"'${MODINTOPO}'\"'
+            'adjust_config=\"\"'
+            'se_inic = \"'${OUTFILETMP}'\"' ;
             mv -v ${OUTFILETMP} ${OUTFILE} "
         # If file doesn't exist, we want to create, but if it does let's skip
         if [ ! -f ${OUTFILE} ]; then
@@ -154,22 +154,22 @@ do
     else
       echo "Running ERA5 -> CAM options"
       INFILE=${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc
-      NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ; 
-          ncl -n atm_to_cam.ncl 
-          'datasource=\"ERA5RDA\"' 
-          'RDADIR=\"'${RDADIR}'\"' 
-          write_floats=True 
-          add_cloud_vars=False 
-          compress_file=False 
-          mpas_as_cam=True 
-          numlevels=${NUMLEVS} 
-          YYYYMMDDHH=${YYYYMMDDHH} 
-          'dycore = \"'${DYCORE}'\"' 
-          'data_filename = \"'${INFILE}'\"' 
-          'wgt_filename=\"'${WGTNAME}'\"' 
-          'model_topo_file=\"'${BNDTOPO}'\"' 
-          'adjust_config=\"-\"' 
-          'se_inic = \"'${OUTFILETMP}'\"' ; 
+      NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ;
+          ncl -n atm_to_cam.ncl
+          'datasource=\"ERA5RDA\"'
+          'RDADIR=\"'${RDADIR}'\"'
+          write_floats=True
+          add_cloud_vars=False
+          compress_file=False
+          mpas_as_cam=True
+          numlevels=${NUMLEVS}
+          YYYYMMDDHH=${YYYYMMDDHH}
+          'dycore = \"'${DYCORE}'\"'
+          'data_filename = \"'${INFILE}'\"'
+          'wgt_filename=\"'${WGTNAME}'\"'
+          'model_topo_file=\"'${BNDTOPO}'\"'
+          'adjust_config=\"-\"'
+          'se_inic = \"'${OUTFILETMP}'\"' ;
           mv -v ${OUTFILETMP} ${OUTFILE} "
       # If file doesn't exist, we want to create, but if it does let's skip
       if [ ! -f ${OUTFILE} ]; then
