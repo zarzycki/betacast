@@ -21,7 +21,7 @@ check_bool() {
 
   # Convert to lowercase
   var_totest=`echo ${var_totest,,}`
-  
+
   if [ "${var_totest}" == "0" ] ; then
     #echo "$var_totest"
     echo "* WARNING: Setting $var_string from 0 (as set in namelist) to false."
@@ -74,7 +74,7 @@ function read_bash_nl() {
      if [ "${2}" != "=" ] ; then echo "Uh oh, $1, $2, $3!" ; exit ; fi
      echo "NAMELIST: setting ${1} to ${3//___/ }"
      #eval $1=$3
-     eval $1="${3//___/ }"  
+     eval $1="${3//___/ }"
      shift 3
    done
 }
@@ -131,7 +131,7 @@ run_CIME () {
   # 1 path_to_run_dir
   # 2 ${CIMEsubstring}
   # 3 ${CIMEbatchargs}
-  
+
   echo "run_CIME: path_to_rundir: "$1
   echo "run_CIME: CIMEsubstring: "$2
   echo "run_CIME: CIMEbatchargs: "$3
@@ -165,7 +165,7 @@ run_CIME2 () {
   # 1 path_to_run_dir
   # 2 ${CIMEsubstring}
   # 3 ${CIMEbatchargs}
-  
+
   echo "run_CIME: path_to_rundir: "$1
   echo "run_CIME: CIMEsubstring: "$2
   echo "run_CIME: CIMEbatchargs: "$3
@@ -173,7 +173,7 @@ run_CIME2 () {
   # Get number of log .gz files for sleeping
 
   local CASESTR=""
-  
+
   echo "SUBMITTING FORECAST RUN"
   set +e ; ./case.submit $2 --batch-args "${3}" ; set -e
 
@@ -186,10 +186,10 @@ run_CIME2 () {
   while [ $STATUS == 1 ]
   do
     if [ -f "${1}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
-    
+
     # Get the last valid line from the CaseStatus file...
     CASESTR=`grep "^20" CaseStatus | tail -1`
-    
+
     if [[ "$CASESTR" == *"case.run success"* ]]; then
       STATUS=0
     elif [[ "$CASESTR" == *"case.run error"* ]]; then
@@ -197,10 +197,10 @@ run_CIME2 () {
     else
       STATUS=1
     fi
-    
+
     sleep 10 ; echo "Sleeping... STATUS: $STATUS -- $(date '+%Y%m%d %H:%M:%S')"
   done
-  
+
   if [ $STATUS -eq 0 ]; then
     echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved"
     sleep 30
@@ -215,7 +215,7 @@ compress_history () {
   # Compress files using lossless compression
   echo "Compressing model history files..."
   cd $1
-  for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 -O $f $f ; done
+  for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 --rad -a -O $f $f ; done
   )
 }
 
@@ -237,7 +237,7 @@ archive_nudging () {
 }
 
 #tmparchivecdir = 1
-#path_to_case =2 
+#path_to_case =2
 #compress_history_nc = 3
 #atmName = 4
 #lndName = 5
