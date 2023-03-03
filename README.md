@@ -241,7 +241,7 @@ This ends the betacast workflow.
 
 ## Running with the climate change 'deltas' code
 
-Thermodynamic deltas (e.g., warming signal or climate change fingerprints) that are derived from long-term climate integrations can be applied over the top of a Betacast analysis to simulate how a particular event would conditionally evolve under a different climate. Mechanistically, Betacast treats this as if it was just a regular forecast, except after generating the initial conditions two seperate scripts are run to overlay these fingerprints over the top of the atmospheric and ocean initial conditions in a consistent fashion.
+Thermodynamic deltas (e.g., warming signal, climate change fingerprints, pseudo-global warming forcing) that are derived from long-term climate integrations can be applied over the top of a Betacast analysis to simulate how a particular event would conditionally evolve under a different climate. Mechanistically, Betacast treats this as if it was just a regular forecast, except after generating the initial conditions two seperate scripts are run to overlay these fingerprints over the top of the atmospheric and ocean initial conditions in a consistent fashion.
 
 Some relevant reading:
 
