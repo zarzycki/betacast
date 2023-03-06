@@ -1,6 +1,22 @@
-# IGNORE BELOW FOR THE TIME BEING! -cmz on 5/27/21
+# Generating a CLM initial condition for a CESM forecast
 
-## Generating a CLM initial condition for a CESM forecast
+Betacast uses analysis/observations to initialize the atmosphere, data ocean, and data ice models, but is not able to interpolate land surface initial conditions at this time. The preferred method of initializing the land surface for an initial betacast run is to 'spin up' the land surface model by forcing it with observed atmospheric fluxes, which allows the land surface to asymptote to a state in balance with observed atmospheric forcing. In CESM and E3SM, this is known as an I compset.
+
+For many betacasts run in succession, betacast will use a short forecast from a previous betacast (e.g., the 12Z Jan 1 betacast would use the +12 hr land forecast from the 00Z Jan 1 betacast) which is stored in the `landstart` subdirectory within `${CASE}/run`. However, for a brand new betacast (or set of betacasts) an initial land file must be generated to be passed into CLM/ELM as `finidat`.
+
+This script automates that process.
+
+The main process is this.
+
+1. Edit XXXXXXXX
+2. (optional) ensure ERA5 DATM files are available on your machine
+3. Run `XXXXXXX`
+
+An example of running auto-script.sh to create initial conditions 
+
+Within the XXX block, one must set some user settings. Either the existing Cheyenne or Cori blocks can be modified or a new one can be added.
+
+
 
 | Namelist Variable | Description |
 | --- | --- |
