@@ -1,3 +1,7 @@
+## Slab ocean stuff
+# ALCC files
+sst_cice*.nc
+
 ## Seeding/unseeding nl
 atm_to_cam/tcseed/config.seed
 atm_to_cam/tcseed/config.unseed
