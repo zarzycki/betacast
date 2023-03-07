@@ -1155,6 +1155,8 @@ if $dotracking ; then
   
   ### If we have vitals, run tracking
   if [ -f ${TCVITFILE} ] && [[ ! -z $(cat ${TCVITFILE}) ]] ; then  # if file does exist (i.e., it was downloaded) and isn't empty, run tracker
+    echo "Found a TCvitals with at least one storm, running tracking code"
+    echo ${TCVITFILE} ; head -100 ${TCVITFILE}
     (set -x; /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} \
       ${casename} \
       ${TCVITFILE} \
@@ -1167,6 +1169,8 @@ if $dotracking ; then
       ${track_ATCFTECH} \
       ${TE_SERIAL_DIR} )
     cp -v trajs.trajectories.txt.${casename}.png ./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png
+  else
+    echo "No TCvitals file exists and/or no storms on said TCvitals file, no reason to run the tracking code"
   fi
   
   # Return to where we were...
