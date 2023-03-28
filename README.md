@@ -17,7 +17,7 @@ Reference: C. M. Zarzycki and C. Jablonowski. Experimental tropical cyclone fore
     3. Edit/create output streams file.
 4. Set up Betacast data folder structure.
 5. If running historical simulations, edit dates.txt
-    1. Pre-stage atmospheric data.
+    1. Pre-stage atmospheric data if necessary.
 6. Decide how to handle land initialization.
 7. Run Betacast.
 
