@@ -8,29 +8,30 @@ set -e
 source ../utils.sh
 
 # Usage:
-#./auto-script.sh MODELSYSTEM DOERA5 DATE_YYYYMMDD NMONTHS NCYCLES ANOMYEAR
+#./auto-script.sh MODELSYSTEM DOERA5 DATE_YYYYMMDD NMONTHS NCYCLES ANOMYEAR NORMYEAR NAMELIST
 # CESM
-#./auto-script.sh 0 0 20200103 36 1 -1 NAMELIST.MACHINE
+#./auto-script.sh 0 0 20200103 36 1 -1 -1 NAMELIST.MACHINE
 # E3SM
-#./auto-script.sh 1 0 19960113 12 1 2080 NAMELIST.MACHINE
+#./auto-script.sh 1 0 19960113 12 1 2018 1920 NAMELIST.MACHINE
 
-if [[ $# -ne 7 ]] ; then echo "Need 7 inputs, got $#, exiting..." ; exit ; fi
-if [ ! -s $7 ]; then echo "Namelist is empty, exiting..." ; exit ; fi
+if [[ $# -ne 8 ]] ; then echo "Need 8 inputs, got $#, exiting..." ; exit ; fi
+if [ ! -s $8 ]; then echo "Namelist is empty, exiting..." ; exit ; fi
 
 ### User settings
 modelSystem=${1}         # 0 = CESM/E3SMv1, 1 = E3SMv2
 doERA5=${2}              # Use ERA5 DATM? 0 = yes, 1 = no (internal CRUNCEP)
 FORECASTDATE=${3}        # What is the date you want to spin up for (00Z)
 NMONTHSSPIN=${4}         # Duration of spinup (somewhere b/w 3-12 months seems reasonable)
-NCYCLES=${5} 
+NCYCLES=${5}
 BETACAST_ANOMYEAR=${6}
-NAMELISTFILE=${7}
+BETACAST_REFYEAR=${7}
+NAMELISTFILE=${8}
 
 ### Check if BETACAST_ANOMYEAR is positive integer -- if yes, add deltas, if no, nothing
 if [ $BETACAST_ANOMYEAR -lt 1 ]; then
   addDeltas=1 ; echo "We are NOT adding deltas..."
 else
-  addDeltas=0 ; echo "We ARE adding deltas..." 
+  addDeltas=0 ; echo "We ARE adding deltas..."
 fi
 
 # Read the namelist
@@ -162,14 +163,14 @@ if [ $doERA5 -eq 0 ]; then
   echo "Injecting ERA5 DATM streams"
   cp ${BETACAST}/land-spinup/streams/user_datm.streams.txt.CLMCRUNCEPv7* .
   #REPLACEDIR
-  sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_STREAMBASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.Solar 
-  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.Solar 
-  sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_STREAMBASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.Precip 
-  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.Precip 
-  sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_STREAMBASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW 
-  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW  
+  sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_STREAMBASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.Solar
+  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.Solar
+  sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_STREAMBASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.Precip
+  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.Precip
+  sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_STREAMBASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW
+  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW
   ./xmlchange DATM_CLMNCEP_YR_ALIGN=${ERA5STYR}
-  
+
   if [ $NCYCLES -lt 2 ]; then
     ### NO CYCLE
     ./xmlchange DATM_CLMNCEP_YR_START=${ERA5STYR}
@@ -178,21 +179,38 @@ if [ $doERA5 -eq 0 ]; then
     FORECASTYEARM1=${ERA5STYR}
     FORECASTYEAR=${ERA5ENYR}
   fi
-  
+
 fi
 
 if [ $addDeltas -eq 0 ]; then
+
+
   echo "Injecting anomaly DATM streams"
   cp ${BETACAST}/land-spinup/streams/user_datm.streams.txt.Anomaly.* .
   #REPLACEDIR
   sed -i "s?\${BETACAST_ANOMBASE}?${BETACAST_ANOMBASE}?g" user_datm.streams.txt.Anomaly.Forcing.Humidity
-  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Humidity 
+  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Humidity
   sed -i "s?\${BETACAST_ANOMBASE}?${BETACAST_ANOMBASE}?g" user_datm.streams.txt.Anomaly.Forcing.Temperature
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Temperature
   sed -i "s?\${BETACAST_ANOMBASE}?${BETACAST_ANOMBASE}?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
   sed -i "s?\${BETACAST_ANOMBASE}?${BETACAST_ANOMBASE}?g" user_datm.streams.txt.Anomaly.Forcing.Precip
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Precip
+
+  if [ $BETACAST_REFYEAR -gt 0 ]; then
+    # run ncl to normalize things
+    echo "Running with normalized deltas"
+    ncl ${BETACAST}/land-spinup/normalize-datm-deltas.ncl 'current_year='${BETACAST_ANOMYEAR}'' 'basedir="'${BETACAST_ANOMBASE}'"'
+    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_${BETACAST_ANOMYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Humidity
+    sed -i "s?ens_TBOT_anom.nc?ens_TBOT_${BETACAST_ANOMYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Temperature
+    sed -i "s?ens_PRECT_anom.nc?ens_PRECT_${BETACAST_ANOMYEAR}ref_anom.nc?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
+    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_${BETACAST_ANOMYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Precip
+  else
+    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Humidity
+    sed -i "s?ens_TBOT_anom.nc?ens_TBOT_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Temperature
+    sed -i "s?ens_PRECT_anom.nc?ens_PRECT_anom.nc?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
+    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Precip
+  fi
 
   # Need to replace pres aero stream in some cases where it is transient
   cp ${BETACAST}/land-spinup/streams/user_datm.streams.txt.presaero.clim_2000 .
