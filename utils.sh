@@ -215,7 +215,7 @@ compress_history () {
   # Compress files using lossless compression
   echo "Compressing model history files..."
   cd $1
-  for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 --rad -a -O $f $f ; done
+  for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 --rad --no_abc -O $f $f ; done
   )
 }
 
