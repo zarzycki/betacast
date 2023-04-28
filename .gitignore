@@ -11,6 +11,9 @@ atm_to_cam/tcseed/unseed.ape.nl
 ## Nudging namelists
 atm_to_cam/nudging/ndg*nl
 
+## Perturb grids
+atm_to_cam/perturb/grids/
+
 cyclones_tempest*
 .SEED*
 BAK/
