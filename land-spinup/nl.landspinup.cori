@@ -1,19 +1,15 @@
 ### ELM on Cori
-#CIMEROOT=~/clean/E3SM-20210824/
-#CIMEROOT=~/E3SM-dev/
-#CIMEROOT=~/scratch/E3SM-tmp/E3SM/
-CIMEROOT=/global/homes/c/czarzyck/E3SM-20221014/
+CIMEROOT=/global/homes/c/czarzyck/E3SM-20220616/
 PATHTOCASE=~/I-compsets
-ICASENAME=RoS-ICLM45-ne0alcc30x4_ne0alcc30x4
+ICASENAME=RoS-ICLM45-ne30-101
 PROJECT=m2637
 MACHINE=cori-knl
 NNODES=12
-#RESOL=ne30_ne30
-#RESOL=ne0wus30x8_ne0wus30x8_t12
-RESOL=ne0alcc30x4_ne0alcc30x4
-#RESOL=ne0conus30x8_ne0conus30x8_t12
+#RESOL=ne0wus30x32_ne0wus30x32_t12
+RESOL=ne30_g16
 RUNQUEUE=regular
 WALLCLOCK="11:57:00"
 ### Only required if doERA5 = 0
 BETACAST=/global/homes/c/czarzyck/betacast/
-BETACAST_DATM_FORCING_BASE=/global/homes/c/czarzyck/scratch/DATM_FORCING/
+BETACAST_DATM_FORCING_BASE=/global/cfs/cdirs/m2637/DATM_FORCING/
+
