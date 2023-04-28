@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
-#PBS -N forcing-gen 
-#PBS -A UNSB0017
+#PBS -N forcing-gen
+#PBS -A UPSU0032
 #PBS -l select=1:ncpus=4:mpiprocs=4:mem=80GB
 #PBS -l walltime=24:00:00
 #PBS -q casper
@@ -10,8 +10,8 @@
 module load parallel
 module load ncl
 
-STYR=1997
-ENYR=2017
+STYR=2021
+ENYR=2022
 NUMCORES=4
 TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt
@@ -37,7 +37,7 @@ do
 done
 
 if [[ ${ERR} != "0" ]] ; then
-  echo "Found errors, not running gen script..."  
+  echo "Found errors, not running gen script..."
 else
   echo "Good to go!"
   parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
