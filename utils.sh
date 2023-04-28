@@ -54,8 +54,6 @@ check_bool() {
 }
 ### -----------------------------------------------------------------------------------
 
-
-
 function read_bash_nl() {
 
   local FILETOREAD=$1
@@ -79,6 +77,19 @@ function read_bash_nl() {
    done
 }
 
+### -----------------------------------------------------------------------------------
+
+# Check if a file exists, if not exit
+# Usage: exit_file_no_exist $OUTPUTSTREAMS
+
+function exit_file_no_exist() {
+  if [ ! -f "$1" ]; then
+    echo "CHECK_EXIST: File $1 does not exist, exiting..."
+    exit 1
+  fi
+}
+
+### -----------------------------------------------------------------------------------
 
 
 function get_YYYYMMDD_from_hfile() {
@@ -89,6 +100,7 @@ function get_YYYYMMDD_from_hfile() {
   echo $THEDATE
 }
 
+### -----------------------------------------------------------------------------------
 
 
 sanitize_file () {
@@ -165,27 +177,29 @@ run_CIME2 () {
   # 1 path_to_run_dir
   # 2 ${CIMEsubstring}
   # 3 ${CIMEbatchargs}
+  # 4 exit_on_error
 
-  echo "run_CIME: path_to_rundir: "$1
-  echo "run_CIME: CIMEsubstring: "$2
-  echo "run_CIME: CIMEbatchargs: "$3
+  echo "run_CIME2: path_to_rundir: "$1
+  echo "run_CIME2: CIMEsubstring: "$2
+  echo "run_CIME2: CIMEbatchargs: "$3
+  echo "run_CIME2: exit_on_error: "$4
 
   # Get number of log .gz files for sleeping
 
   local CASESTR=""
 
-  echo "SUBMITTING FORECAST RUN"
+  echo "RUN_CIME2: SUBMITTING FORECAST RUN"
   set +e ; ./case.submit $2 --batch-args "${3}" ; set -e
 
   ## Set up NUKEing
   if [ -f "${1}/NUKE" ] ; then rm -v $1/NUKE ; sleep 5 ; fi
-  echo "To NUKE, run \"touch ${1}/NUKE\" "
+  echo "RUN_CIME2: To NUKE, run \"touch ${1}/NUKE\" "
 
   ## Hold script while log files from filter run haven't been archived yet
   STATUS=1
   while [ $STATUS == 1 ]
   do
-    if [ -f "${1}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
+    if [ -f "${1}/NUKE" ] ; then echo "RUN_CIME2: Nuke sequence initiated, exiting betacast" ; exit ; fi
 
     # Get the last valid line from the CaseStatus file...
     CASESTR=`grep "^20" CaseStatus | tail -1`
@@ -198,14 +212,18 @@ run_CIME2 () {
       STATUS=1
     fi
 
-    sleep 10 ; echo "Sleeping... STATUS: $STATUS -- $(date '+%Y%m%d %H:%M:%S')"
+    sleep 10 ; echo "RUN_CIME2: Sleeping... STATUS: $STATUS -- $(date '+%Y%m%d %H:%M:%S')"
   done
 
   if [ $STATUS -eq 0 ]; then
-    echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved"
+    echo "RUN_CIME2: Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved"
     sleep 30
   else
-    echo "Uh oh, something wrong!"
+    echo "RUN_CIME2: Uh oh, something wrong!"
+    if [ $4 = true ]; then
+      echo "RUN_CIME2: Exiting because of error with model run, check log files in $path_to_rundir"
+      exit 1
+    fi
   fi
 }
 

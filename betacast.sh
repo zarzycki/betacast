@@ -2,11 +2,11 @@
 
 ##=======================================================================
 #PBS -N wx-driver
-#PBS -A P54048000 
+#PBS -A P54048000
 #PBS -l walltime=6:00:00
 #PBS -q share
 #PBS -k oe
-#PBS -m a 
+#PBS -m a
 #PBS -M zarzycki@ucar.edu
 #PBS -l select=1:ncpus=8
 ##=======================================================================
@@ -23,7 +23,7 @@
 # but see above for example of PBS options to submit to batch nodes
 #
 # Details can be found in:
-# C. M. Zarzycki and C. Jablonowski (2015), Experimental tropical cyclone forecasts 
+# C. M. Zarzycki and C. Jablonowski (2015), Experimental tropical cyclone forecasts
 # using a variable-resolution global model. Mon. Weat. Rev., 143(10), 4012–4037.
 # doi:10.1175/MWR-D-15-0159.1.
 ###################################################################################
@@ -43,6 +43,9 @@ OUTPUTSTREAMS=${3}
 if [[ "$MACHINEFILE" != /* ]] && [[ "$MACHINEFILE" != ~* ]]; then MACHINEFILE=${PWD}/${MACHINEFILE}; fi
 if [[ "$NAMELISTFILE" != /* ]] && [[ "$NAMELISTFILE" != ~* ]]; then NAMELISTFILE=${PWD}/${NAMELISTFILE}; fi
 if [[ "$OUTPUTSTREAMS" != /* ]] && [[ "$OUTPUTSTREAMS" != ~* ]]; then OUTPUTSTREAMS=${PWD}/${OUTPUTSTREAMS}; fi
+exit_file_no_exist $MACHINEFILE
+exit_file_no_exist $NAMELISTFILE
+exit_file_no_exist $OUTPUTSTREAMS
 echo $MACHINEFILE; echo $NAMELISTFILE; echo $OUTPUTSTREAMS
 
 # Read namelists
@@ -77,6 +80,7 @@ if [ -z ${compress_history_nc+x} ]; then compress_history_nc=true; fi
 if [ -z ${add_vortex+x} ]; then add_vortex=false; fi
 if [ -z ${vortex_namelist+x} ]; then vortex_namelist=""; fi
 if [ -z ${save_nudging_files+x} ]; then save_nudging_files=false; fi
+if [ -z ${override_rest_check+x} ]; then override_rest_check=false; fi
 ### Some defaults infrequently set
 if [ -z ${doFilter+x} ]; then doFilter=false; fi
 if [ -z ${filterOnly+x} ]; then filterOnly=false; fi
@@ -161,6 +165,16 @@ check_bool "keep_land_restarts" $keep_land_restarts
 check_bool "predict_docn" $predict_docn
 check_bool "archive_inic" $archive_inic
 check_bool "compress_history_nc" $compress_history_nc
+check_bool "override_rest_check" $override_rest_check
+
+if [ $override_rest_check = false ]; then
+  echo "Checking for SourceMods permiting additional restart writes for land model"
+  echo "This check can be ignored with override_rest_check = true in the namelist."
+  exit_file_no_exist $path_to_case/SourceMods/src.${lndName}/lnd_comp_mct.F90
+  if [ $do_runoff = true ]; then
+    exit_file_no_exist $path_to_case/SourceMods/src.${rofName}/rof_comp_mct.F90
+  fi
+fi
 
 ###################################################################################
 
@@ -205,7 +219,7 @@ if [ $islive = true ] ; then    # Find most recent GFS forecast
   currtime=`date -u +%H%M`
   machzone=`date +%z`
   twodaysago=`date --date='2 days ago' -u +"%Y%m%d"`
-  
+
   ## Use currtime to figure out what is the latest cycle we have access to
   if [ $currtime -lt 0328 ] ; then
     echo "12Z cycle"
@@ -260,14 +274,14 @@ else     # if not live, draw from head of dates.txt file
 
   echo "Using dates in: "${datesfile}
   longdate=$(head -n 1 ${datesfile})
-  
+
   # Do some simple error trapping on date string to ensure validity
   if [ -z "$longdate" ]; then { echo "Date string passed in is empty, exiting..." ; exit 91; } ; fi
   if [ ${#longdate} -ne 10 ]; then { echo "Malformed date string, $longdate is ${#longdate} characters, needs 10 (YYYYMMDDHH). Exiting..." ; exit 92; } ; fi
   if [[ -n $(echo $longdate | tr -d '[0-9]') ]]; then { echo "Malformed date string, $longdate contains non-numeric values. Exiting..." ; exit 93; } ; fi
-  
+
   echo "Getting parsed time from $longdate"
-  parse_YYYYMMDDHH $longdate    
+  parse_YYYYMMDDHH $longdate
   echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
   # Do some error trapping on returned time values
   if (( yearstr > 3000 || yearstr < 1 )); then { echo "Year set to $yearstr, this sounds wrong, exiting..." ; exit 94; } ; fi
@@ -353,14 +367,14 @@ fi
 
 if $runmodel ; then
 
-############################### GET DYCORE INFO ############################### 
+############################### GET DYCORE INFO ###############################
 
 cd $path_to_case
 DYCORE=`./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs`
 echo "DYCORE: "$DYCORE
 
 if [ $debug = false ] ; then
-############################### GET ATM DATA ############################### 
+############################### GET ATM DATA ###############################
 
   if [ $atmDataType -eq 1 ] ; then
     echo "Using GFS forecast ICs"
@@ -401,7 +415,7 @@ if [ $debug = false ] ; then
       fi
       mv $gfsFTPFile ${LOCALGFSFILE}
     fi
-  elif [ $atmDataType -eq 2 ] ; then  
+  elif [ $atmDataType -eq 2 ] ; then
     echo "Using ERA-Interim forecast ICs"
     echo "Cding to ERA-Interim interpolation directory"
     mkdir -p $era_files_path
@@ -415,7 +429,7 @@ if [ $debug = false ] ; then
       mv -v ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc
       rm -f ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc
     fi
-  elif [ $atmDataType -eq 3 ] ; then  
+  elif [ $atmDataType -eq 3 ] ; then
     echo "Using CFSR ICs"
     echo "Cding to GFS interpolation directory since they are practically the same thing"
     mkdir -p $gfs_files_path
@@ -454,7 +468,7 @@ if [ $debug = false ] ; then
       mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 ${LOCALCFSRFILE}
       rm pgbhnl.gdas.*
     fi
-  elif [ $atmDataType -eq 4 ] ; then  
+  elif [ $atmDataType -eq 4 ] ; then
     echo "Using ERA5 forecast ICs"
     echo "Cding to ERA5 interpolation directory"
     mkdir -p $era_files_path
@@ -470,7 +484,7 @@ if [ $debug = false ] ; then
       elif [[ "$MACHINEFILE" == *cori* ]]; then
         echo "We are on Cori, so even though we lack a local file, we can use RDA"
         ERA5RDA=1
-        RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/    
+        RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
       else
         echo "support broken for auto download ERA, please prestage!"
         exit
@@ -481,7 +495,7 @@ if [ $debug = false ] ; then
     exit 1
   fi
 
-############################### GET SST / NCL ############################### 
+############################### GET SST / NCL ###############################
 
   if [ ${sstDataType} -eq 1 ] ; then
     SSTTYPE=GDAS
@@ -516,7 +530,7 @@ if [ $debug = false ] ; then
     sstFile='gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
     mv ${sstFTPFile} ${sstFile}
     iceFile=''   # do not need icefile since ice stored on sstfile
-  elif [ ${sstDataType} -eq 2 ] ; then  
+  elif [ ${sstDataType} -eq 2 ] ; then
     echo "ERA SST not quite supported yet..." ; exit 1
   elif [ ${sstDataType} -eq 3 ] ; then
     SSTTYPE=NOAAOI
@@ -537,7 +551,7 @@ if [ $debug = false ] ; then
           echo "Cannot get file, will wait 2 min and scrape again"
           sleep 120
         fi
-      done        
+      done
     fi
     iceFile=icec.day.mean.${yearstr}.v2.nc
     if [ ! -f ${sst_files_path}/${iceFile} ] ; then
@@ -552,7 +566,7 @@ if [ $debug = false ] ; then
           echo "Cannot get file, will wait 2 min and scrape again"
           sleep 120
         fi
-      done        
+      done
     fi
   else
       echo "Incorrect SST data type entered" ; exit 1
@@ -578,14 +592,14 @@ if [ $debug = false ] ; then
   # Removed 4/18/22 since this can be done inside sst_interp.ncl
   #ncatted -O -a units,time,o,c,"days since 0001-01-01 00:00:00" ${sstFileIC} ${sstFileIC}
 
-  ############################### ATM NCL ############################### 
+  ############################### ATM NCL ###############################
 
   set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
   ### We can probably clean this up by merging the above sed commands into command line arguments
   ### then put this if/else statement up inside the whole get data structure above
   if [ $atmDataType -eq 1 ] ; then
     echo "Cding to GFS interpolation directory"
-    cd $atm_to_cam_path 
+    cd $atm_to_cam_path
     echo "Doing NCL"
     (set -x; ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
         numlevels=${numLevels} \
@@ -608,7 +622,7 @@ if [ $debug = false ] ; then
        'se_inic = "'${sePreFilterIC}'"' )
   elif [ $atmDataType -eq 3 ] ; then
     echo "CD ing to interpolation directory"
-    cd $atm_to_cam_path 
+    cd $atm_to_cam_path
     (set -x; ncl -n atm_to_cam.ncl 'datasource="CFSR"'     \
       numlevels=${numLevels} \
       YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
@@ -654,49 +668,49 @@ if [ $debug = false ] ; then
   if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
   echo "ATM NCL completed successfully"
   set -e # Turn error checking back on
-  
+
 fi #End debug if statement
 
-############################### #### ############################### 
+############################### #### ###############################
 ##### ADD OR REMOVE VORTEX
 
 if ${add_vortex} ; then
-  cd $atm_to_cam_path/tcseed 
+  cd $atm_to_cam_path/tcseed
   set +e
   echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
-  
+
   (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' )
   if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
-  
+
   (set -x; ncl -n seed-tc-in-ncdata.ncl   'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' )
   if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
-  
+
   set -e
 fi
 
-############################### #### ############################### 
+############################### #### ###############################
 ##### ADD WHITE NOISE PERTURBATIONS
 
 if ${add_noise} ; then
   set +e
   echo "Adding white noise to initial condition"
-  cd $atm_to_cam_path 
+  cd $atm_to_cam_path
   (set -x; ncl -n perturb_white_noise.ncl 'basFileName = "'${sePreFilterIC}'"' )
   set -e
 fi
 
-############################### #### ############################### 
+############################### #### ###############################
 ##### ADD PERTURBATIONS
 
 if ${add_perturbs} ; then
   echo "Adding perturbations"
 
 #   cp /glade/scratch/zarzycki/apply-haiyan-perturb/sst_1x1_Nat-Hist-CMIP5-est1-v1-0.nc ${sstFileIC}
-# 
+#
 #   cd $atm_to_cam_path
-# 
+#
 #   sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
-# 
+#
 #   set +e
 #   ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
 #     'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"'
@@ -707,12 +721,12 @@ if ${add_perturbs} ; then
 #   fi
 #   echo "ATM NCL completed successfully"
 #   set -e # Turn error checking back on
-# 
+#
 #   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
-  
+
   cd $atm_to_cam_path/perturb
   set +e
-  
+
   ## Add perturbations to SST file
   sstFileIC_WPERT=${sstFileIC}_PERT.nc
   (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
@@ -731,7 +745,7 @@ if ${add_perturbs} ; then
   (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
      'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
      'pthi="'${perturb_namelist}'"' )
-     
+
   if [[ $? -ne 9 ]]
   then
    echo "NCL exited with non-9 error code"
@@ -740,23 +754,23 @@ if ${add_perturbs} ; then
   echo "ATM NCL completed successfully"
 
   set -e # Turn error checking back on
- 
-  # move temp perturb files to overwrite unperturbed files 
+
+  # move temp perturb files to overwrite unperturbed files
   mv ${sstFileIC_WPERT} ${sstFileIC}
   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
 fi
 
 cd $path_to_case
-############################### SETUP AND QUERY ############################### 
+############################### SETUP AND QUERY ###############################
 
-############################### CISM SETUP ############################### 
+############################### CISM SETUP ###############################
 
 if [ -f user_nl_cism ]; then
   sed -i '/dt_count/d' user_nl_cism
   echo "dt_count = 8" >> user_nl_cism
 fi
 
-############################### CLM SETUP ############################### 
+############################### CLM SETUP ###############################
 
 ## TEMPORARY CLM -> LAND FIX
 ## Check if clmstart exists but landstart doesn't, move if that is the case
@@ -836,7 +850,7 @@ else
   exit 1
 fi
 
-############################### ROF SETUP ############################### 
+############################### ROF SETUP ###############################
 
 if [ $do_runoff = true ]; then
 
@@ -844,7 +858,7 @@ if [ $do_runoff = true ]; then
 
   # Delete any existing input data
   sed -i '/.*finidat_rtm/d' user_nl_${rofName}
-  
+
   # We want to check ${landdir} for land restart files. If so, use those.
   rofrestartfile=${landdir}/${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
   echo $rofrestartfile
@@ -871,7 +885,7 @@ if [ $do_runoff = true ]; then
 
 fi
 
-############################### GENERIC CAM SETUP ############################### 
+############################### GENERIC CAM SETUP ###############################
 
 ./xmlchange PROJECT=${PROJECTID}
 
@@ -885,7 +899,7 @@ echo "Standardizing streams for SST"
 ./xmlchange SSTICE_YEAR_START=1,SSTICE_YEAR_END=1
 echo "Setting projectID and queue"
 ./xmlchange --force JOB_QUEUE=${RUNQUEUE},PROJECT=${PROJECTID}
-####### 
+#######
 if [ "$land_spinup" = true ] ; then
   ./xmlchange REST_OPTION=ndays,REST_N=1
 fi
@@ -898,7 +912,7 @@ echo "Update env_run.xml with runtime parameters"
 
 SEINIC=${sePreFilterIC}
 
-############################### (IF) FILTER SETUP ############################### 
+############################### (IF) FILTER SETUP ###############################
 
 if $doFilter ; then
   # If filtering, need to change these options
@@ -957,16 +971,16 @@ if $doFilter ; then
   ./xmlchange --force JOB_QUEUE=${FILTERQUEUE}
 
   if [ $debug = false ] ; then
-  
+
     echo "Begin call to filter-run"
-    run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs"
+    run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs" true
 
     ## Run NCL filter
     cd $filter_path
     echo "Running filter"
     cp ${sePreFilterIC} ${sePostFilterIC}
     filtfile_name=${casename}.${atmName}.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
-    set +e 
+    set +e
     (set -x; ncl lowmemfilter.ncl \
      endhour=${filterHourLength} tcut=${filtTcut} \
     'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
@@ -1009,7 +1023,7 @@ if $doFilter ; then
   SEINIC=${sePostFilterIC}
 fi
 
-############################### "ACTUAL" FORECAST RUN ############################### 
+############################### "ACTUAL" FORECAST RUN ###############################
 
 ## Initial modification of user_nl_atm
 sed -i '/.*nhtfrq/d' user_nl_${atmName}
@@ -1072,7 +1086,7 @@ echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
 
 if [ $debug = false ] ; then
   echo "Begin call to forecast run"
-  run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs"
+  run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs" true
 fi
 
 fi # end run model
@@ -1139,10 +1153,10 @@ fi
 mv -v $tmparchivecdir ${ARCHIVEDIR}/${ARCHIVESUBDIR}
 
 if $dotracking ; then
-  
+
   # Go to cyclone tracking folder...
   cd ${sewxscriptsdir}/cyclone-tracking/
-  
+
   # Set a few things that are hardcoded
   TCVITFOLDER=./fin-tcvitals/
   TCVITFILE=${TCVITFOLDER}/tcvitals.${yearstr}${monthstr}${daystr}${cyclestr}
@@ -1152,7 +1166,7 @@ if $dotracking ; then
   (set -x
   /bin/bash ./get-vitals.sh ${yearstr}${monthstr}${daystr}${cyclestr} ${TCVITFOLDER} \
   )
-  
+
   ### If we have vitals, run tracking
   if [ -f ${TCVITFILE} ] && [[ ! -z $(cat ${TCVITFILE}) ]] ; then  # if file does exist (i.e., it was downloaded) and isn't empty, run tracker
     echo "Found a TCvitals with at least one storm, running tracking code"
@@ -1172,7 +1186,7 @@ if $dotracking ; then
   else
     echo "No TCvitals file exists and/or no storms on said TCvitals file, no reason to run the tracking code"
   fi
-  
+
   # Return to where we were...
   cd $path_to_nc_files
 fi
@@ -1203,10 +1217,10 @@ if [ $islive = false ] ; then
   #Remove top line from dates file
   tail -n +2 ${datesfile} > ${datesfile}.2
   mv -v ${datesfile}.2 ${datesfile}
-  
+
   AUTORESUB="yes"
   if [ $AUTORESUB == "yes" ]; then
-    echo "*-*-*-* Automatically resubbing next date!" 
+    echo "*-*-*-* Automatically resubbing next date!"
     exec ./betacast.sh ${MACHINEFILE} ${NAMELISTFILE} ${OUTPUTSTREAMS}
   fi
 fi
