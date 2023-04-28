@@ -81,7 +81,7 @@ echo "Starting at: "${STARTDATE}
 if [ $doERA5 -eq 0 ]; then
   echo "Using ERA5 DATM"
   ERA5STYR=1990
-  ERA5ENYR=2020
+  ERA5ENYR=2022
 else
   echo "Using CRUNCEP DATM"
 fi
