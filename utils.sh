@@ -20,7 +20,7 @@ check_bool() {
   cborig=$2
 
   # Convert to lowercase
-  var_totest=`echo ${var_totest,,}`
+  var_totest=$(echo ${var_totest,,})
 
   if [ "${var_totest}" == "0" ] ; then
     #echo "$var_totest"
@@ -63,7 +63,7 @@ function read_bash_nl() {
   # Note, ___ will be converted to a space. Namelists cannot have whitespace due to
   # parsing on whitespaces...
   echo "Reading namelist ${FILETOREAD}..."
-  local inputstream=`cat ${FILETOREAD} | grep -v "^#"`
+  local inputstream=$(cat ${FILETOREAD} | grep -v "^#")
   inputstream="${inputstream//=/ = }"
   #echo $inputstream
   set -- $inputstream
@@ -150,7 +150,7 @@ run_CIME () {
 
   # Get number of log .gz files for sleeping
   echo "Running again!" > $1/testrunning.gz
-  local numlogfiles=`ls ${1}/*.gz | wc -l`
+  local numlogfiles=$(ls ${1}/*.gz | wc -l)
   echo "run_CIME: numlogfiles: $numlogfiles"
 
   echo "SUBMITTING FORECAST RUN"
@@ -161,7 +161,7 @@ run_CIME () {
   echo "To NUKE, run \"touch ${1}/NUKE\" "
 
   ## Hold script while log files from filter run haven't been archived yet
-  while [ `ls ${1}/*.gz | wc -l` == $numlogfiles ]
+  while [ $(ls ${1}/*.gz | wc -l) == $numlogfiles ]
   do
     if [ -f "${1}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
     sleep 10 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
@@ -202,7 +202,7 @@ run_CIME2 () {
     if [ -f "${1}/NUKE" ] ; then echo "RUN_CIME2: Nuke sequence initiated, exiting betacast" ; exit ; fi
 
     # Get the last valid line from the CaseStatus file...
-    CASESTR=`grep "^20" CaseStatus | tail -1`
+    CASESTR=$(grep "^20" CaseStatus | tail -1)
 
     if [[ "$CASESTR" == *"case.run success"* ]]; then
       STATUS=0
@@ -267,20 +267,20 @@ archive_inic () {
   mkdir -p $1/inic
 
   # Copy LND initial conditions
-  ARCFILE=`grep ^finidat $2/user_nl_$5 | cut -d "=" -f2`
+  ARCFILE=$(grep ^finidat $2/user_nl_$5 | cut -d "=" -f2)
   strip_quotes ARCFILE
   echo "Found initial file: "$ARCFILE
   cp -v $ARCFILE $1/inic
 
   # Copy ATM initial conditions
-  ARCFILE=`grep ^ncdata $2/user_nl_$4 | cut -d "=" -f2`
+  ARCFILE=$(grep ^ncdata $2/user_nl_$4 | cut -d "=" -f2)
   strip_quotes ARCFILE
   echo "Found initial file: "$ARCFILE
   cp -v $ARCFILE $1/inic
 
   # Copy ROF initial conditions
   if [ $do_runoff = true ]; then
-    ARCFILE=`grep ^finidat_rtm $2/user_nl_$6 | cut -d "=" -f2`
+    ARCFILE=$(grep ^finidat_rtm $2/user_nl_$6 | cut -d "=" -f2)
     strip_quotes ARCFILE
     echo "Found initial file: "$ARCFILE
     cp -v $ARCFILE $1/inic
