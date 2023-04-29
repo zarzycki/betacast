@@ -182,10 +182,10 @@ fi
 # if USERSTAB is 0, use internal calcs.
 # if USERSTAB is <0, use se_nsplit=-1
 # If USERSTAB >0, use the value in seconds for dt_dyn and calculate nsplit accordingly from DTIME
-USERSTABTF=`python -c "print('TRUE' if ${USERSTAB} > 0 else 'FALSE')"`
+USERSTABTF=$(python -c "print('TRUE' if ${USERSTAB} > 0 else 'FALSE')")
 if [ ${USERSTABTF} == 'FALSE' ] ; then
-  if [ `python -c "print('TRUE' if ${USERSTAB} < -0.001 else 'FALSE')"` == 'FALSE' ]; then
-    STABILITY=`python -c "print(30./${FINERES}*450.)"`
+  if [ $(python -c "print('TRUE' if ${USERSTAB} < -0.001 else 'FALSE')") == 'FALSE' ]; then
+    STABILITY=$(python -c "print(30./${FINERES}*450.)")
     VALIDSTABVAL=true
     echo "Dynamic stability for ne${FINERES} to be ${STABILITY} seconds"
   else
@@ -205,28 +205,28 @@ mkdir -p ${pathToINICfiles}
 mkdir -p ${pathToSSTfiles}
 
 # Set timestamp for backing up files, etc.
-timestamp=`date +%Y%m%d.%H%M`
-uniqtime=`date +"%s%N"`
+timestamp=$(date +%Y%m%d.%H%M)
+uniqtime=$(date +"%s%N")
 
 echo "We are using ${casename} for the case"
 
 if [ $islive = true ] ; then    # Find most recent GFS forecast
   ## Here we get two digit strings for UTC time for month, day, year
   ## We also get current time in hoursminutes (because the GFS output lags by 3.5 hours)
-  monthstr=`date -u +%m`
-  daystr=`date -u +%d`
-  yearstr=`date -u +%Y`
-  currtime=`date -u +%H%M`
-  machzone=`date +%z`
-  twodaysago=`date --date='2 days ago' -u +"%Y%m%d"`
+  monthstr=$(date -u +%m)
+  daystr=$(date -u +%d)
+  yearstr=$(date -u +%Y)
+  currtime=$(date -u +%H%M)
+  machzone=$(date +%z)
+  twodaysago=$(date --date='2 days ago' -u +"%Y%m%d")
 
   ## Use currtime to figure out what is the latest cycle we have access to
   if [ $currtime -lt 0328 ] ; then
     echo "12Z cycle"
-    monthstr=`date --date="yesterday" -u +%m`
-    daystr=`date --date="yesterday" -u +%d`
-    yearstr=`date --date="yesterday" -u +%Y`
-    twodaysago=`date --date='3 days ago' -u +"%Y%m%d"`
+    monthstr=$(date --date="yesterday" -u +%m)
+    daystr=$(date --date="yesterday" -u +%d)
+    yearstr=$(date --date="yesterday" -u +%Y)
+    twodaysago=$(date --date='3 days ago' -u +"%Y%m%d")
     cyclestr=12
   elif [ $currtime -lt 0928 ] ; then
     echo "00Z cycle"
@@ -322,9 +322,9 @@ if [ $islive = true ] ; then
   if [ $currtime -lt 0555 ]
   then
     echo "SSTs are previous days 18Z"
-    sstmonthstr=`date --date="yesterday" -u +%m`
-    sstdaystr=`date --date="yesterday" -u +%d`
-    sstyearstr=`date --date="yesterday" -u +%Y`
+    sstmonthstr=$(date --date="yesterday" -u +%m)
+    sstdaystr=$(date --date="yesterday" -u +%d)
+    sstyearstr=$(date --date="yesterday" -u +%Y)
     sstcyclestr=18
   elif [ $currtime -lt 1155 ]
   then
@@ -353,9 +353,9 @@ else
   sstcyclestr=$cyclestr
 fi
 
-yestmonthstr=`date --date="yesterday" -u +%m`
-yestdaystr=`date --date="yesterday" -u +%d`
-yestyearstr=`date --date="yesterday" -u +%Y`
+yestmonthstr=$(date --date="yesterday" -u +%m)
+yestdaystr=$(date --date="yesterday" -u +%d)
+yestyearstr=$(date --date="yesterday" -u +%Y)
 
 echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds) for ATM init. data"
 echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST init. data"
@@ -370,7 +370,7 @@ if $runmodel ; then
 ############################### GET DYCORE INFO ###############################
 
 cd $path_to_case
-DYCORE=`./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs`
+DYCORE=$(./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs)
 echo "DYCORE: "$DYCORE
 
 if [ $debug = false ] ; then
@@ -400,7 +400,7 @@ if [ $debug = false ] ; then
         error=1
         while [ $error != 0 ] ; do
           wget -nv --read-timeout=30 $gfsFTPPath$gfsFTPFile
-          error=`echo $?`
+          error=$(echo $?)
           if [ $error -ne 0 ] ; then
             echo "Cannot get file, will wait 2 min and scrape again"
             sleep 120
@@ -450,7 +450,7 @@ if [ $debug = false ] ; then
       done
       #echo $index
       if [[ "$index" -eq "$zero" ]] ; then
-        ENCUTARR[${zero}]=`date -d "$monthstr/1 + 1 month - 1 day" "+%d"`
+        ENCUTARR[${zero}]=$(date -d "$monthstr/1 + 1 month - 1 day" "+%d")
         echo "Last day of month ($monthstr) is $ENCUTARR[${zero}]"
       fi
       ## NEED TO IMPLEMENT LEAP YEAR FIX
@@ -520,7 +520,7 @@ if [ $debug = false ] ; then
     while [ $error != 0 ]
     do
       wget -nv --read-timeout=30 -nv $sstFTPPath$sstFTPFile
-      error=`echo $?`
+      error=$(echo $?)
       if [ $error -ne 0 ]
       then
         echo "Cannot get file, will wait 2 min and scrape again"
@@ -545,7 +545,7 @@ if [ $debug = false ] ; then
       while [ $error != 0 ]
       do
         wget -nv ${sstFTPPath}/${sstFile}
-        error=`echo $?`
+        error=$(echo $?)
         if [ $error -ne 0 ]
         then
           echo "Cannot get file, will wait 2 min and scrape again"
@@ -560,7 +560,7 @@ if [ $debug = false ] ; then
       error=1
       while [ $error != 0 ] ; do
         wget -nv ${sstFTPPath}/${iceFile}
-        error=`echo $?`
+        error=$(echo $?)
         if [ $error -ne 0 ]
         then
           echo "Cannot get file, will wait 2 min and scrape again"
@@ -814,7 +814,7 @@ if [ ${landrestartfile} ] ; then
   echo "finidat='${landrestartfile}'" >> user_nl_${lndName}
   #sed -i 's?.*finidat.*?finidat='"'${landrestartfile}'"'?' user_nl_${lndName}
 else
-  rawlandrestartfile=`ls ${landrawdir}/*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc || true`   # check for file, suppress failed ls error if true
+  rawlandrestartfile=$(ls ${landrawdir}/*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc || true)   # check for file, suppress failed ls error if true
   echo "rawlandrestartfile: ${rawlandrestartfile}"
   if [ ! -z ${rawlandrestartfile} ]; then   # if rawlandrestartfile string is NOT empty, add it.
     sed -i '/.*finidat/d' user_nl_${lndName}
@@ -934,7 +934,7 @@ if $doFilter ; then
         echo "se_nsplit=-1" >> user_nl_${atmName}
       else
         # Add se_nsplit based off of dtime=450 and stability
-        SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(450/${STABILITY})))"`
+        SE_NSPLIT=$(python -c "from math import ceil; print(int(ceil(450/${STABILITY})))")
         echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
         echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
       fi
@@ -1044,7 +1044,7 @@ fi
 cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
 
 # Calculate timestep stability criteria
-ATM_NCPL=`python -c "print(int(86400/${DTIME}))"`
+ATM_NCPL=$(python -c "print(int(86400/${DTIME}))")
 echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
 if [[ "$DYCORE" == "se" ]]; then
   if [ "$use_nsplit" = true ]; then # if trad. SE nsplit timestepping
@@ -1055,7 +1055,7 @@ if [[ "$DYCORE" == "se" ]]; then
       echo "se_nsplit=-1" >> user_nl_${atmName}
     else
       # Add se_nsplit based off of dtime and stability
-      SE_NSPLIT=`python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))"`
+      SE_NSPLIT=$(python -c "from math import ceil; print(int(ceil(${DTIME}/${STABILITY})))")
       echo "SE_NSPLIT: $SE_NSPLIT   STABILITY: $STABILITY   "
       echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
     fi
