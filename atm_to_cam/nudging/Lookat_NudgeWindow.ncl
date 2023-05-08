@@ -8,12 +8,16 @@ begin
    print("nlev="+nlev)
    print("=====")
   else
-   print("Using Default number of Vertical Levels: nlev = 32")
+   print("Using Default number of Vertical Levels: nlev = 58")
    nlev = 32
   end if
   printVarSummary(nlev)
 
-  
+  use_nclev=True
+  lev_template = "../templates/L"+nlev+"template.nc"
+  lt = addfile(lev_template,"r")
+  nclev = lt->lev
+
   ; Read in Window paramters from namelist
   ;----------------------------------------
   Nudge_Hwin_lo=0.
@@ -32,15 +36,15 @@ begin
   Nudge_Vwin_Hdelta=0.
   Nudge_Hwin_Invert = False
   Nudge_Vwin_Invert = False
-  
+
   pthi="user_nl_cam"
-  
-   Nudge_Hwin_Invert = keyword_values( pthi, "Nudge_Hwin_Invert", "logical")     
-   Nudge_Vwin_Invert = keyword_values( pthi, "Nudge_Vwin_Invert", "logical") 
-   
-   Nudge_Hwin_lat0 = keyword_values( pthi, "Nudge_Hwin_lat0", "float")   
+
+   Nudge_Hwin_Invert = keyword_values( pthi, "Nudge_Hwin_Invert", "logical")
+   Nudge_Vwin_Invert = keyword_values( pthi, "Nudge_Vwin_Invert", "logical")
+
+   Nudge_Hwin_lat0 = keyword_values( pthi, "Nudge_Hwin_lat0", "float")
    Nudge_Hwin_lon0      = keyword_values( pthi, "Nudge_Hwin_lon0", "float")
-   
+
    Nudge_Hwin_latWidth  = keyword_values( pthi, "Nudge_Hwin_latWidth", "float")
    Nudge_Hwin_lonWidth  = keyword_values( pthi, "Nudge_Hwin_lonWidth", "float")
 
@@ -49,7 +53,7 @@ begin
 
    Nudge_Vwin_Lindex  = keyword_values( pthi, "Nudge_Vwin_Lindex", "float")
    Nudge_Vwin_Hindex  = keyword_values( pthi, "Nudge_Vwin_Hindex", "float")
-   
+
    Nudge_Vwin_Ldelta  = keyword_values( pthi, "Nudge_Vwin_Ldelta", "float")
    Nudge_Vwin_Hdelta  = keyword_values( pthi, "Nudge_Vwin_Hdelta", "float")
 
@@ -134,13 +138,13 @@ begin
   lonx     = (lon - lon0)
   lonx     = where((lonx.le.-180.),(lonx+360.),lonx)
   lonx     = where((lonx.gt. 180.),(lonx-360.),lonx)
-  lon0_min = -(lon_width/2.) 
-  lon0_max =  (lon_width/2.) 
+  lon0_min = -(lon_width/2.)
+  lon0_max =  (lon_width/2.)
   lon_lo   = (lonx - lon0_min)/lon_delta
   lon_hi   = (lon0_max - lonx)/lon_delta
 
-  lat0_min = lat0 - (lat_width/2.) 
-  lat0_max = lat0 + (lat_width/2.) 
+  lat0_min = lat0 - (lat_width/2.)
+  lat0_max = lat0 + (lat_width/2.)
   lat_lo   = (lat - lat0_min)/lat_delta
   lat_hi   = (lat0_max - lat)/lat_delta
 
@@ -252,7 +256,7 @@ begin
   wks = gsn_open_wks("x11","Wcoef")
 ;  wks = gsn_open_wks("X11","Wcoef")
 
-  gsn_define_colormap(wks,"BlAqGrYeOrRe") 
+  gsn_define_colormap(wks,"BlAqGrYeOrRe")
   Hplot = new(3,graphic)
 
   ilat = minind(abs(lat(:)-lat0))
@@ -295,33 +299,47 @@ begin
   Vres@gsnDraw      = False
   Vres@gsnFrame     = False
   Vres@tiMainString = "Vertical Window Profile"
-  Vres@tiYAxisString= "Model Level Index"
-  Vres@trXMinF      = -0.1
-  Vres@trXMaxF      = 1.1
-  Vres@trYMinF      = lev(0)
-  Vres@trYMaxF      = lev(nlev-1)
+  Vres@tiXAxisString= "Nudging strength"
+  Vres@trXMinF      = -0.05
+  Vres@trXMaxF      = 1.05
+  if (use_nclev) then
+    Vres@trYMinF = nclev(0)
+    Vres@trYMaxF = nclev(nlev-1)
+    Vres@tmYLMode = "Manual"
+    Vres@tmYLTickSpacingF  = 100.0
+    Vres@tmYLTickStartF  = 0.0
+    Vres@tiYAxisString= "Approx model plev"
+  else
+    Vres@trYMinF = lev(0)
+    Vres@trYMaxF = lev(nlev-1)
+    Vres@tiYAxisString= "Model Level Index"
+  end if
   Vres@trYReverse   = True
-  
+
   ; Marker settings
   Vres@xyMarkLineMode = "MarkLines"
   Vres@xyMarker      = 16
   Vres@xyMarkerColor = "red"
-  
+
   ; Underlying grid
-  Vres@tmXMajorGrid                = True          ; implement x grid 
+  Vres@tmXMajorGrid                = True          ; implement x grid
   Vres@tmXMajorGridThicknessF      = 1.0           ; 2.0 is default
   Vres@tmXMajorGridLineDashPattern = 2             ; select short dash lines
   Vres@tmYMajorGrid                = True          ; implement y grid
   Vres@tmYMajorGridThicknessF      = 1.0           ; 2.0 is default
   Vres@tmYMajorGridLineDashPattern = 2             ; select short dash lines
-  Vres@tmXMinorGrid                = True          ; implement x grid 
+  Vres@tmXMinorGrid                = True          ; implement x grid
   Vres@tmXMinorGridThicknessF      = 1.0           ; 2.0 is default
   Vres@tmXMinorGridLineDashPattern = 2             ; select short dash lines
   Vres@tmYMinorGrid                = True          ; implement y grid
   Vres@tmYMinorGridThicknessF      = 1.0           ; 2.0 is default
   Vres@tmYMinorGridLineDashPattern = 2             ; select short dash lines
- 
-  Vplot(0) = gsn_csm_xy(wks,Vcoef,Vcoef&lev,Vres)
+  if (use_nclev) then
+    Vplot(0) = gsn_csm_xy(wks,Vcoef,nclev,Vres)
+  else
+    Vplot(0) = gsn_csm_xy(wks,Vcoef,Vcoef&lev,Vres)
+  end if
+
   gsn_panel(wks,Vplot,(/1/),Pres)
 
 end
