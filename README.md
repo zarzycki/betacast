@@ -123,14 +123,14 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | Namelist Variable | Description |
 | --- | --- |
 | ARCHIVEDIR | Top-level directory for archiving runs (ARCHIVEDIR/CASE/YYYYMMDDHH). Do not set for default archive in rundir. |
-| debug | Setting to 1 adds debugging options. Otherwise leave at 0 |
-| islive | if 1 then pull GDAS/GFS from server in real-time, 0 is "hindcast" mode |
-| datestemplate | If islive = 0, dates.XXX.txt file to cp if Betacast cannot find an existing dates file |
+| debug | Setting to true (1) adds debugging options. Otherwise leave at false (0) |
+| islive | if true (1) then pull GDAS/GFS from server in real-time, false (0) is "hindcast" mode |
+| datestemplate | If islive = false, dates.XXX.txt file to copy if Betacast cannot find an existing dates file |
 | runmodel | Unused, set to "true" |
 | archive_inic | Add (NCO-compressed) initial conditions for component models to archive directory (0 = no (default), 1 = yes) |
 | compress_history_nc | Use NCO lossless compression to compress history files (0 = no (default), 1 = yes) |
 | modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2 (defaults to 0 if empty or not included) |
-| do_runoff | Include runoff model files. 0 = no, 1 = yes (defaults to 0 if empty or not included) |
+| do_runoff | Include runoff model files (false/true) (defaults to false if empty or not included) |
 | atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5 |
 | sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI |
 | numLevels | 72 -> E3SMv1, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 |
@@ -142,11 +142,11 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | numHoursSEStart | Centerpoint of filter duration (leave at 3), only used if doFilter |
 | filterHourLength | Filter duration (leave at 6), only used if doFilter |
 | filtTcut | Cut setting for filter (leave at 6), only used if doFilter |
-| add_perturbs | Add PGW perturbations for counterfactual runs (leave at false) |
+| add_perturbs | Add PGW perturbations for counterfactual runs? Leave at false generally. |
 | perturb_namelist | Path to "perturbation" namelist for counterfactual climate simulations |
 | add_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) |
 | land_spinup | Cycle land spinup only (unsupported currently, leave false) |
-| keep_land_restarts | 0 = delete land restart files, 1 = archive land restart files (possibly overwriting those in ${CASE}/run/landstart |
+| keep_land_restarts | 0 = delete land/rof restart files, 1 = archive land/rof restart files (possibly overwriting those in ${CASE}/run/landstart) |
 | save_nudging_files | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
 | predict_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |
