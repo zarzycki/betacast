@@ -105,7 +105,7 @@ grb_file = addfile(data_filename,"r")
 
 print("---------------------------------------------------------")
 print("Loading lat/lon/lev")
-if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
+if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "HWRF") then
   dNames=getfilevardims(grb_file,"CLWMR_P0_L100_GLL0")
   cldlevName=dNames(0)
   delete(dNames)
@@ -176,19 +176,19 @@ nlon = dimsizes(grblon)
 
 print("---------------------------------------------------------")
 print("Loading variables")
-if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
+if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "HWRF") then
   ps = grb_file->PRES_P0_L1_GLL0(:,:)
   p0   = 100000.
   t_gfs = grb_file->TMP_P0_L100_GLL0(:,:,:)
   u_gfs = grb_file->UGRD_P0_L100_GLL0(:,:,:)
-  v_gfs = grb_file->VGRD_P0_L100_GLL0(:,:,:)  
+  v_gfs = grb_file->VGRD_P0_L100_GLL0(:,:,:)
   if (dycore .eq. "mpas") then
     w_gfs = grb_file->VVEL_P0_L100_GLL0(:,:,:)
     w_is_omega    = True
     z_gfs = grb_file->HGT_P0_L100_GLL0(:,:,:)
     z_is_phi      = False
   end if
-  
+
   ; interpolate u, v, and w to t levels
   dNames:=getfilevardims(grb_file,"TMP_P0_L100_GLL0")
   templevName=dNames(0)
@@ -207,7 +207,7 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
       w_gfs := int2p_n(grb_file->$windlevName$,w_gfs,grblev,2,0)
     end if
   end if
-  
+
   rh_gfs_native = grb_file->RH_P0_L100_GLL0(:,:,:)
   cldmix_gfs_native = grb_file->CLWMR_P0_L100_GLL0(:,:,:)
   print("Interpolating GRIB to uniform vertical levels")
@@ -216,16 +216,16 @@ if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
   delete(rh_gfs_native)
   delete(cldmix_gfs_native)
   print("Calculating q from RH")
-  q_gfs = mixhum_ptrh(conform(t_gfs,grblev,0)*0.01, t_gfs , rh_gfs, 2 ) ; specific humidity (g/kg)  
+  q_gfs = mixhum_ptrh(conform(t_gfs,grblev,0)*0.01, t_gfs , rh_gfs, 2 ) ; specific humidity (g/kg)
   print("Sorting bad values")
-  cldmix_gfs = where(ismissing(cldmix_gfs),0,cldmix_gfs) 
-  cldmix_gfs = where(cldmix_gfs.gt.0.01,0,cldmix_gfs)    
+  cldmix_gfs = where(ismissing(cldmix_gfs),0,cldmix_gfs)
+  cldmix_gfs = where(cldmix_gfs.gt.0.01,0,cldmix_gfs)
   print("seperating cloud ice and water")
    ; If T > 0 C, water, if less than < 0, ice
   cldice_gfs = cldmix_gfs
   cldliq_gfs = cldmix_gfs
-  cldice_gfs = where(t_gfs.gt.273.15,0,cldice_gfs) 
-  cldliq_gfs = where(t_gfs.gt.273.15,cldliq_gfs,0)    
+  cldice_gfs = where(t_gfs.gt.273.15,0,cldice_gfs)
+  cldliq_gfs = where(t_gfs.gt.273.15,cldliq_gfs,0)
   delete(cldmix_gfs)
   delete(rh_gfs)
 end if
@@ -237,14 +237,14 @@ if (datasource .eq. "RAP") then
   p0   = 100000.
   t_gfs = grb_file->TMP_P0_L100_GLC0(:,:,:)
   u_gfs = grb_file->UGRD_P0_L100_GLC0(:,:,:)
-  v_gfs = grb_file->VGRD_P0_L100_GLC0(:,:,:)  
+  v_gfs = grb_file->VGRD_P0_L100_GLC0(:,:,:)
   if (dycore .eq. "mpas") then
     w_gfs = grb_file->VVEL_P0_L100_GLC0(:,:,:)
     w_is_omega    = True
     z_gfs = grb_file->HGT_P0_L100_GLC0(:,:,:)
     z_is_phi      = False
   end if
-  
+
   ; interpolate u, v, and w to t levels
   dNames:=getfilevardims(grb_file,"TMP_P0_L100_GLC0")
   templevName=dNames(0)
@@ -261,7 +261,7 @@ if (datasource .eq. "RAP") then
     print("interpolating w wind from "+dimsizes(grb_file->$windlevName$)+" to "+dimsizes(grblev)+" levels")
     w_gfs := int2p_n(grb_file->$windlevName$,w_gfs,grblev,2,0)
   end if
-    
+
   rh_gfs_native = grb_file->RH_P0_L100_GLC0(:,:,:)
   cldmix_gfs_native = grb_file->RH_P0_L100_GLC0(:,:,:)
   cldmix_gfs_native = 0.0
@@ -271,10 +271,10 @@ if (datasource .eq. "RAP") then
   delete(rh_gfs_native)
   delete(cldmix_gfs_native)
   print("Calculating q from RH")
-  q_gfs = mixhum_ptrh(conform(t_gfs,grblev,0)*0.01, t_gfs , rh_gfs, 2 ) ; specific humidity (g/kg)  
+  q_gfs = mixhum_ptrh(conform(t_gfs,grblev,0)*0.01, t_gfs , rh_gfs, 2 ) ; specific humidity (g/kg)
   print("Sorting bad values")
-  cldmix_gfs = where(ismissing(cldmix_gfs),0,cldmix_gfs) 
-  cldmix_gfs = where(cldmix_gfs.gt.0.01,0,cldmix_gfs)    
+  cldmix_gfs = where(ismissing(cldmix_gfs),0,cldmix_gfs)
+  cldmix_gfs = where(cldmix_gfs.gt.0.01,0,cldmix_gfs)
   print("seperating cloud ice and water")
   cldice_gfs = cldmix_gfs
   cldliq_gfs = cldmix_gfs
@@ -302,7 +302,7 @@ if (datasource .eq. "ERA5RDA") then
   ; define some stuff that is static
   p0   = 100000.
   opt=0
-  
+
   ; go through var by var, get relevant file, extract time
   rda_find     := systemfunc("ls "+sf_dir+"/e5.oper.an.sfc.128_134_sp.ll025sc."+yearstr+monthstr+"0100_*.nc")
   print(rda_find+"")
@@ -359,7 +359,7 @@ if (datasource .eq. "ERA5RDA") then
   opt@return_type = typeof(rda_time)
   rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
   cldice_gfs    = rda_file->CIWC(closest_val(rda_thistime,rda_time),:,:,:)
-  
+
   if (dycore .eq. "mpas") then
     rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_135_w.ll025sc."+yearstr+monthstr+daystr+"00_*.nc")
     print(rda_find+"")
@@ -369,7 +369,7 @@ if (datasource .eq. "ERA5RDA") then
     rda_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,rda_time@units,opt)
     w_gfs         = rda_file->W(closest_val(rda_thistime,rda_time),:,:,:)
     w_is_omega    = True
-  
+
     rda_find     := systemfunc("ls "+pl_dir+"/e5.oper.an.pl.128_129_z.ll025sc."+yearstr+monthstr+daystr+"00_*.nc")
     print(rda_find+"")
     rda_file     := addfile(rda_find,"r")
@@ -390,15 +390,15 @@ if (datasource .eq. "CAM") then
 
   ; if CAM downscale + MPAS, we need to smooth omega field
   ; 35 seems to work OK with 0.25deg rll data
-  
+
   w_smooth_iter = 1
-  
+
   cam_time := grb_file->time
   opt=0
   opt@return_type = typeof(cam_time)
   cam_thistime := cd_inv_calendar(toint(yearstr),toint(monthstr),toint(daystr),toint(cyclestr),0,0,cam_time@units,opt)
   delete(opt)
-  
+
   if (cam_thistime .lt. min(cam_time) .or. cam_thistime .gt. max(cam_time)) then
     print("ERROR: cam_thistime falls outside range of cam_time array")
     print("cam_thistime: "+cam_thistime+"    "+cd_calendar(cam_thistime, 3))
@@ -406,7 +406,7 @@ if (datasource .eq. "CAM") then
     print("max(cam_time): "+max(cam_time)+"    "+max(cd_calendar(cam_time, 3)))
     exit
   end if
-  
+
   ps_mod = grb_file->PS(closest_val(cam_thistime,cam_time),:)
   p0   = 100000.
   t_mod = grb_file->T(closest_val(cam_thistime,cam_time),:,:)
@@ -417,12 +417,12 @@ if (datasource .eq. "CAM") then
   cldliq_mod = t_mod
   cldice_mod = 0.0
   cldliq_mod = 0.0
-  
+
   print("CAM: Using mod_in_topo: "+mod_in_topo)
-  
+
   mod_in_topo_f = addfile(mod_in_topo,"r")
   phis_mod=mod_in_topo_f->PHIS
-    
+
   ; remap from CAM to lat-lon
   Opt         = True
   ps  = ESMF_regrid_with_weights(ps_mod,mod_remap_file,Opt)
@@ -435,7 +435,7 @@ if (datasource .eq. "CAM") then
   phis_rll  = ESMF_regrid_with_weights(phis_mod,mod_remap_file,Opt)
   delete([/ps_mod,t_mod,u_mod,v_mod,q_mod,phis_mod,cldliq_mod,cldice_mod/])
   delete(Opt)
-  
+
   ; get relevant vert coeffs from CAM file
   hyam=grb_file->hyam
   hybm=grb_file->hybm
@@ -456,16 +456,16 @@ if (datasource .eq. "CAM") then
     ; remove omega poleward of OMEGA_LAT_THRESH to deal with singularity
     OMEGA_LAT_THRESH=88.0
     omega_rll = where(abs(conform(omega_rll,omega_rll&lat,1)).gt.OMEGA_LAT_THRESH,0.0,omega_rll)
-  
+
     ; calculate Z
     tkv_rll = t_rll
-    tkv_rll = t_rll*(1.+0.61*q_rll)  
+    tkv_rll = t_rll*(1.+0.61*q_rll)
     ;z_rll = hydro (p3d_rll,tkv_rll,phis_rll/9.80655)
     z_rll = cz2ccm(ps,phis_rll,tkv_rll,p0,hyam(::-1),hybm(::-1),hyai(::-1),hybi(::-1))
     copy_VarCoords(t_rll,z_rll)
   end if
 
-  ; interpolation settings  
+  ; interpolation settings
   P0mb=p0/100.                          ; p0 in mb
   intyp = 2                             ; 1=linear, 2=log, 3=log-log
   kxtrp = True                          ; True=extrapolate
@@ -476,13 +476,13 @@ if (datasource .eq. "CAM") then
   t_gfs := vinth2p_ecmwf(t_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
                  1,kxtrp,1,tbot_mod,phis_rll)
   u_gfs := vinth2p_ecmwf(u_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
-                 1,kxtrp,0,tbot_mod,phis_rll)               
+                 1,kxtrp,0,tbot_mod,phis_rll)
   v_gfs := vinth2p_ecmwf(v_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
-                 1,kxtrp,0,tbot_mod,phis_rll)      
+                 1,kxtrp,0,tbot_mod,phis_rll)
   q_gfs := vinth2p_ecmwf(q_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
                  1,kxtrp,0,tbot_mod,phis_rll)
   cldice_gfs := vinth2p_ecmwf(cldice_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
-                 1,kxtrp,0,tbot_mod,phis_rll)       
+                 1,kxtrp,0,tbot_mod,phis_rll)
   cldliq_gfs := vinth2p_ecmwf(cldliq_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
                  1,kxtrp,0,tbot_mod,phis_rll)
   if (dycore .eq. "mpas") then
@@ -493,22 +493,22 @@ if (datasource .eq. "CAM") then
                    1,kxtrp,-1,tbot_mod,phis_rll)
     z_is_phi = False
   end if
-  
+
   if (debug) then
     system("/bin/rm -f mpas2_debug.nc")   ; remove any pre-existing file
     ncdf = addfile("mpas2_debug.nc" ,"c")  ; open output netCDF file
     fAtt               = True            ; assign file attributes
     fAtt@creation_date = systemfunc ("date")
     fileattdef( ncdf, fAtt )            ; copy file attributes
-    filedimdef(ncdf,"time",-1,True) 
+    filedimdef(ncdf,"time",-1,True)
     ncdf->w_gfs = w_gfs
     ncdf->omega_rll = omega_rll
   end if
-  
+
   ; NOTE: we do not delete phis_rll and tbot_mod which may be used for hydro adjustment
   delete([/kxtrp,intyp,P0mb/])
   delete([/t_rll,u_rll,v_rll,q_rll,cldice_rll,cldliq_rll/])
-  delete([/hyam,hybm,hyai,hybi,mod_lev/])       
+  delete([/hyam,hybm,hyai,hybi,mod_lev/])
   delete([/cam_time,cam_thistime/])
   if (dycore .eq. "mpas") then
     delete([/z_rll,omega_rll/])
@@ -554,7 +554,7 @@ if (dycore .eq. "mpas") then
   if (z_is_phi) then
     ;phis_sfc = grb_file->Z(0,:,:)
     ;z_gfs = z_gfs - conform(z_gfs,phis_sfc,(/1,2/))
-    z_gfs = z_gfs / grav  
+    z_gfs = z_gfs / grav
   end if
 
   ; potential temperature is calculated using full pressure and actual T
@@ -592,7 +592,7 @@ if (dycore .ne. "mpas") then
   ilev = fC->ilev
 
   print("Interpolating to CAM hybrid coordinates")
-  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA" .or. datasource .eq. "RAP" .or. datasource .eq. "CAM") then
+  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "ERA5" .or. datasource .eq. "ERA5RDA" .or. datasource .eq. "RAP" .or. datasource .eq. "HWRF" .or. datasource .eq. "CAM") then
     print("Using pressure to hybrid interpolation")
     t_cam = pres2hybrid_Wrap(grblev,ps,p0,t_gfs,hya,hyb,1)
     u_cam = pres2hybrid_Wrap(grblev,ps,p0,u_gfs,hya,hyb,1)
@@ -679,7 +679,7 @@ if (dycore .ne. "mpas") then
 
 else   ; if mpas
   print("We are doing MPAS!")
-  
+
   ; First, we have to load the MPAS init file and get the zgrid.
   mpasf=addfile(mpasfile,"r")
   print("getting zgrid from "+mpasfile)
@@ -720,7 +720,7 @@ else   ; if mpas
   theta_fv  = ESMF_regrid_with_weights(theta_cam,wgt_filename,Opt)
   rho_fv  = ESMF_regrid_with_weights(rho_cam,wgt_filename,Opt)
   w_fv  = ESMF_regrid_with_weights(w_cam,wgt_filename,Opt)
-  
+
   ; now vertical interpolation
   t_wrf = new((/mpas_nlev,mpas_ncell/),"double")
   rho_wrf = new((/mpas_nlev,mpas_ncell/),"double")
@@ -761,7 +761,7 @@ else   ; if mpas
     w_fv!1 = "ncol"
     z_fv!0 = "lev"
     z_fv!1 = "ncol"
-    
+
     t_wrf!0 = "newlev"
     t_wrf!1 = "ncol"
     u_wrf!0 = "newlev"
@@ -772,14 +772,14 @@ else   ; if mpas
     w_wrf!1 = "ncol"
     mpas_z!1 = "newlevi"
     mpas_z!0 = "ncol"
-        
+
     debugfile="/glade/scratch/zarzycki/mpas_interp_check.nc"
     system("/bin/rm -f "+debugfile)   ; remove any pre-existing file
     ncdf = addfile(debugfile ,"c")  ; open output netCDF file
     fAtt               = True            ; assign file attributes
     fAtt@creation_date = systemfunc ("date")
     fileattdef( ncdf, fAtt )            ; copy file attributes
-    filedimdef(ncdf,"time",-1,True) 
+    filedimdef(ncdf,"time",-1,True)
     ncdf->t_fv = t_fv
     ncdf->u_fv = u_fv
     ncdf->w_fv = w_fv
@@ -789,13 +789,13 @@ else   ; if mpas
     ncdf->u_wrf = u_wrf
     ncdf->w_wrf = w_wrf
     ncdf->q_wrf = q_wrf
-    ncdf->z_wrf = mpas_z(newlevi|:,ncol|:) 
+    ncdf->z_wrf = mpas_z(newlevi|:,ncol|:)
     exit
   end if
-  
+
   ; delete the analysis data that is on the MPAS grid since we now have interpolated MPAS + vert
   delete([/theta_fv,rho_fv,w_fv,q_fv,u_fv,v_fv/])
- 
+
   print("Setting lower BC for W so flow can't go through surface")
   w_wrf(:,0) = 0.0
 
@@ -846,18 +846,18 @@ else   ; if mpas
     fAtt               = True            ; assign file attributes
     fAtt@creation_date = systemfunc ("date")
     fileattdef( ncdf, fAtt )            ; copy file attributes
-    filedimdef(ncdf,"time",-1,True) 
+    filedimdef(ncdf,"time",-1,True)
     ncdf->theta_wrf = theta_wrf
     ncdf->rho_wrf = rho_wrf
     ncdf->w_wrf = w_wrf
     ncdf->q_wrf = q_wrf
     ncdf->uNorm_wrf = uNorm_wrf
   end if
-  
+
   if (mpas_as_cam) then
-    
+
     print("Writing MPAS as CAM file, presumably for nudging")
-    
+
     ; take _wrf vars, add time coord for writing -- also flip vert index!
     u_fv_dbl_time  = add_time_define_precision(u_wrf(::-1,:),write_type,True)
     v_fv_dbl_time  = add_time_define_precision(v_wrf(::-1,:),write_type,True)
@@ -874,7 +874,7 @@ else   ; if mpas
     fAtt               = True            ; assign file attributes
     fAtt@creation_date = systemfunc ("date")
     fileattdef( ncdf, fAtt )            ; copy file attributes
-    filedimdef(ncdf,"time",-1,True) 
+    filedimdef(ncdf,"time",-1,True)
     ncdf->U  = u_fv_dbl_time
     ncdf->V  = v_fv_dbl_time
     ncdf->T  = t_fv_dbl_time
@@ -882,11 +882,11 @@ else   ; if mpas
     ncdf->PS = ps_fv_dbl_time
 
   else
-  
+
     print("Writing MPAS fields to a copy of existing init file")
     system("/bin/rm -f -v "+se_inic)   ; remove any pre-existing file
     system("cp -v "+mpasfile+" "+se_inic)   ; remove any pre-existing file
-    
+
     nc = addfile(se_inic ,"w")  ; open output netCDF file
     ; use totype and typeof, because we are overwriting an existing nc file
     ; and type mismatch will not work (i.e., we can't specify float v double)
@@ -900,13 +900,13 @@ else   ; if mpas
     nc->theta(0,:,:) = (/ totype( theta_wrf(ncol|:,lev|:), typeof(nc->theta) ) /)
     print("(over)writing w...")
     nc->w(0,:,:)     = (/ totype( w_wrf(ncol|:,ilev|:), typeof(nc->w)        ) /)
-    
+
   end if
-  
+
   wallClockElapseTime(wcStrt, "Total runtime", 0)
   print("done with MPAS, now exiting gracefully...")
   status_exit(9)
-  
+
 end if
 
 sePS = ps_fv
@@ -923,9 +923,13 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
   print("tempadjustflag set to: "+tempadjustflag)
 
   ; load additional fields from reanalysis
-  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR") then
+  if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "HWRF") then
     topo_data = grb_file->HGT_P0_L1_GLL0(:,:)    ; gpm
-    sfct_data = grb_file->TMP_P0_L104_GLL0(:,:)  ; 0.995 sigma T in K
+    if (datasource .eq. "HWRF") then
+      sfct_data = grb_file->TMP_P0_L103_GLL0(:,:)  ; 2mT in K
+    else
+      sfct_data = grb_file->TMP_P0_L104_GLL0(:,:)  ; 0.995 sigma T in K
+    end if
     ; correct topo from gpm to m2/s2
     topo_data = topo_data * grav
   else if (datasource .eq. "RAP") then
@@ -954,19 +958,19 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
   end if
   end if
   end if
-  
+
   ; regrid to model grid
   topo_data_SE = ESMF_regrid_with_weights(topo_data,wgt_filename,Opt)
   sfct_data_SE = ESMF_regrid_with_weights(sfct_data,wgt_filename,Opt)
 
   ; load model orography
   ttfile = addfile(model_topo_file,"r")
-  
+
   if (dycore .eq. "se") then
     ; if SE, the PHIS field that matches ncol can live in either PHIS or PHIS_d
     if (isfilevar(ttfile, "PHIS") .and. dimsizes(ttfile->PHIS) .eq. dim_sePS(0)) then
       print("SE: Using PHIS for topo adjustment")
-      topo_model_SE = ttfile->PHIS     ;ncol  
+      topo_model_SE = ttfile->PHIS     ;ncol
     else if (isfilevar(ttfile, "PHIS_d") .and. dimsizes(ttfile->PHIS_d) .eq. dim_sePS(0)) then
       print("SE: Using PHIS_d for topo adjustment")
       topo_model_SE = ttfile->PHIS_d     ;ncol
@@ -980,7 +984,7 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
     print("Using PHIS for topo adjustment")
     topo_model_SE = ttfile->PHIS
   end if
-  
+
   ; unpack FV
   if (dycore .eq. "fv") then
     print("unpacking fv vars")
@@ -999,16 +1003,16 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
   else
     ncol=dim_sePS(0)
   end if
-  
+
   ; check number of columns corrected
   vert_corrs = 0
   tcorriter=0
-      
+
   do kk = 0,ncol-1
     if (.not.ismissing(sfct_data_SE(kk)))  ; check if missing (useful for regional data)
       ; get difference in geopotential
       deltaPhi = topo_data_SE(kk) - topo_model_SE(kk)
-    
+
       ; estimate "model's" surface temperature
       Tsfc_fv = sfct_data_SE(kk) + gamma_s * (deltaPhi / grav)
 
@@ -1019,7 +1023,7 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
       else
         Tlayermean = ( (1.-lwr_coef)*Tsfc_fv + lwr_coef*sfct_data_SE(kk) )
       end if
-    
+
       ; correct very warm and very cold layer means based on Trenberth 1993
       if (Tlayermean .lt. 255.0) then
         Tlayermean = (255.0 + Tlayermean)/2.
@@ -1040,9 +1044,9 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
       if (mod(kk,10000) .eq. 0) then
         print("Correcting PS: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
       end if
-    
+
       ; correct T by shifting Tbot "down" the same delta
-      if (tempadjustflag .eq. "a")    
+      if (tempadjustflag .eq. "a")
         if (dycore .eq. "fv")
           if (mod(kk,10000) .eq. 0) then
             print("WARNING: tempadjust not supported for FV")
@@ -1058,20 +1062,20 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
           end if
         end if
       end if
-    
+
       ; correct other state variables!
       vert_interp_thresh = 0.1   ; ps corr diff (Pa) req. to interp vert profiles
       extrap_threshold = 5000.   ; maximum ps corr diff (Pa) to allow xtrp
       if ( abs(ps_orig-ps_fv(kk)) .gt. vert_interp_thresh) then
         pm_orig = hya*p0 + hyb*ps_orig
         pm_corr = hya*p0 + hyb*ps_fv(kk)
-      
+
         if ( abs(ps_orig-ps_fv(kk)) .gt. extrap_threshold) then
           linlog = 2    ; no extrapolation outside of orig levs
         else
           linlog = -2   ; allow extrapolation
         end if
-      
+
         tmp := int2p(pm_orig,t_fv(:,kk),pm_corr,linlog)
         t_fv(:,kk) = where(ismissing(tmp),t_fv(:,kk),tmp)
 
@@ -1080,19 +1084,19 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
 
         tmp := int2p(pm_orig,u_fv(:,kk),pm_corr,linlog)
         u_fv(:,kk) = where(ismissing(tmp),u_fv(:,kk),tmp)
-      
+
         tmp := int2p(pm_orig,v_fv(:,kk),pm_corr,linlog)
         v_fv(:,kk) = where(ismissing(tmp),v_fv(:,kk),tmp)
-      
+
         ; we'll try to speed things up a bit here if we aren't writing cloud_vars
         if (add_cloud_vars) then
           tmp := int2p(pm_orig,cldice_fv(:,kk),pm_corr,linlog)
           cldice_fv(:,kk) = where(ismissing(tmp),cldice_fv(:,kk),tmp)
-      
+
           tmp := int2p(pm_orig,cldliq_fv(:,kk),pm_corr,linlog)
           cldliq_fv(:,kk) = where(ismissing(tmp),cldliq_fv(:,kk),tmp)
         end if
-        
+
         vert_corrs = vert_corrs+1
         delete(tmp)
       end if
@@ -1162,9 +1166,9 @@ end if
 
 
 if (dycore .eq. "se") then
-  
+
   ncol=dim_sePS(0)
-  
+
   print("Correcting time records and converting to "+write_type+"s")
   ps_fv_dbl_time     = add_time_define_precision(ps_fv,write_type,True)
   u_fv_dbl_time      = add_time_define_precision(u_fv,write_type,True)
@@ -1173,7 +1177,7 @@ if (dycore .eq. "se") then
   q_fv_dbl_time      = add_time_define_precision(q_fv,write_type,True)
   cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv,write_type,True)
   cldice_fv_dbl_time = add_time_define_precision(cldice_fv,write_type,True)
-  
+
   ; set coordinates and attributes for se lat/lon arrays
   selat!0 = "ncol"
   selon!0 = "ncol"
@@ -1188,27 +1192,27 @@ else if (dycore .eq. "fv") then
 
   nlat=dim_sePS(0)
   nlon=dim_sePS(1)
-  
+
   print("FV: need to interpolate u/v to slat/slon")
   nslat=nlat-1
   nslon=nlon
   slat=new(nslat,"double")
   slon=new(nslon,"double")
-  
+
   lat=todouble(fspan(-90.,90.,nlat))
   dellon=360./nlon
   lon=todouble(fspan(0,360.-dellon,nlon))
-  
+
   slat(:)=todouble((lat(0:nlat-2)+lat(1:nlat-1))/2.0)
   slon = todouble(lon-(dellon/2.))
-  
+
   print("FV: getting weights")
   w_stag=latRegWgt(slat,"double",0)
-  
+
   print("FV: interpolating FV staggered")
   u_fv_slat = linint2(lon,lat,u_fv,True,lon,slat,0) ;(ntim,mlat,mlon)
   v_fv_slon = linint2(lon,lat,v_fv,True,slon,lat,0)
-  
+
   print("Correcting time records and converting to "+write_type+"s")
   ps_fv_dbl_time     = add_time_define_precision(ps_fv,write_type,False)
   u_fv_dbl_time      = add_time_define_precision(u_fv,write_type,False)
@@ -1219,28 +1223,28 @@ else if (dycore .eq. "fv") then
   q_fv_dbl_time      = add_time_define_precision(q_fv,write_type,False)
   cldliq_fv_dbl_time = add_time_define_precision(cldliq_fv,write_type,False)
   cldice_fv_dbl_time = add_time_define_precision(cldice_fv,write_type,False)
-  
+
   ; Correct dim names for staggered coords
   us_fv_dbl_time!2 = "slat"
   vs_fv_dbl_time!3 = "slon"
-  
+
   ; Adjust units
   cldice_fv_dbl_time@units="kg/kg"
   cldliq_fv_dbl_time@units="kg/kg"
   q_fv_dbl_time@units="kg/kg"
-  
+
   lat!0="lat"
   lat&lat=lat
   lat@units="degrees_north"
-  
+
   lon!0="lon"
   lon&lon=lon
   lon@units="degrees_east"
-  
+
   slat!0="slat"
   slat&slat=slat
   slat@units="degrees_north"
-  
+
   slon!0="slon"
   slon&slon=slon
   slon@units="degrees_east"
@@ -1317,7 +1321,7 @@ else
 end if
 
 system("/bin/rm -f -v "+se_inic)   ; remove any pre-existing file
-fout = addfile(se_inic,"c")  ; open output netCDF file   
+fout = addfile(se_inic,"c")  ; open output netCDF file
 
 ;===================================================================
 ; explicitly declare file definition mode. Improve efficiency.
@@ -1328,15 +1332,15 @@ setfileoption(fout,"DefineMode",True)
 ; create global attributes of the file
 ;===================================================================
 fAtt               = True            ; assign file attributes
-fAtt@title         = "Betacast-generated ncdata file"  
+fAtt@title         = "Betacast-generated ncdata file"
 fAtt@source_file   = data_filename
 fAtt@wgt_file      = wgt_filename
 fAtt@init_date     = YYYYMMDDHH
-;fAtt@Conventions   = "None"   
-fAtt@creation_date = systemfunc ("date")       
+;fAtt@Conventions   = "None"
+fAtt@creation_date = systemfunc ("date")
 fAtt@dycore        = dycore
 fAtt@datasource    = datasource
-fileattdef( fout, fAtt )            ; copy file attributes    
+fileattdef( fout, fAtt )            ; copy file attributes
 
 ;===================================================================
 ; predefine the coordinate variables and their dimensionality
@@ -1346,12 +1350,12 @@ print("predefine the coordinate variables and their dimensionality")
 nlev=dimsizes(lev)
 nilev=nlev+1
 if (dycore .eq. "fv") then
-  dimNames = (/"time", "lat", "slat", "lon", "slon", "lev", "ilev"/)  
-  dimSizes = (/ -1   ,  dimsizes(lat),dimsizes(slat),dimsizes(lon),dimsizes(slon), nlev, nilev /) 
+  dimNames = (/"time", "lat", "slat", "lon", "slon", "lev", "ilev"/)
+  dimSizes = (/ -1   ,  dimsizes(lat),dimsizes(slat),dimsizes(lon),dimsizes(slon), nlev, nilev /)
   dimUnlim = (/ True , False, False, False, False, False, False/)
 else
-  dimNames = (/"time", "ncol", "lev", "ilev"/)  
-  dimSizes = (/ -1   ,  ncol,  nlev, nilev /) 
+  dimNames = (/"time", "ncol", "lev", "ilev"/)
+  dimSizes = (/ -1   ,  ncol,  nlev, nilev /)
   dimUnlim = (/ True , False, False, False/)
 end if
 filedimdef(fout,dimNames,dimSizes,dimUnlim)
@@ -1360,34 +1364,34 @@ filedimdef(fout,dimNames,dimSizes,dimUnlim)
 ; predefine the the dimensionality of the variables to be written out
 ;===================================================================
 print("predefine the the dimensionality of the variables to be written out")
-filevardef(fout, "lev"   ,typeof(lev),getvardims(lev) )      
+filevardef(fout, "lev"   ,typeof(lev),getvardims(lev) )
 filevardef(fout, "ilev"  ,typeof(ilev),getvardims(ilev) )
-filevardef(fout, "time"  ,typeof(time),getvardims(time) )    
+filevardef(fout, "time"  ,typeof(time),getvardims(time) )
 if (dycore .eq. "fv") then
-  filevardef(fout, "lat"  ,typeof(lat),getvardims(lat))                          
+  filevardef(fout, "lat"  ,typeof(lat),getvardims(lat))
   filevardef(fout, "lon"  ,typeof(lon),getvardims(lon))
-  filevardef(fout, "slat" ,typeof(slat),getvardims(slat))                          
+  filevardef(fout, "slat" ,typeof(slat),getvardims(slat))
   filevardef(fout, "slon" ,typeof(slon),getvardims(slon))
-else                       
-  filevardef(fout, "lat"  ,typeof(selat),getvardims(selat))                          
+else
+  filevardef(fout, "lat"  ,typeof(selat),getvardims(selat))
   filevardef(fout, "lon"  ,typeof(selon),getvardims(selon))
 end if
-filevardef(fout, "hyam"  ,typeof(hya),getvardims(hya))         
-filevardef(fout, "hybm"  ,typeof(hyb),getvardims(hyb))         
-filevardef(fout, "hyai"  ,typeof(hyai),getvardims(hyai))         
-filevardef(fout, "hybi"  ,typeof(hyb),getvardims(hybi))      
+filevardef(fout, "hyam"  ,typeof(hya),getvardims(hya))
+filevardef(fout, "hybm"  ,typeof(hyb),getvardims(hyb))
+filevardef(fout, "hyai"  ,typeof(hyai),getvardims(hyai))
+filevardef(fout, "hybi"  ,typeof(hyb),getvardims(hybi))
 filevardef(fout, "PS"    ,typeof(ps_fv_dbl_time)  ,getvardims(ps_fv_dbl_time))
 if (dycore .eq. "fv") then
-  filevardef(fout, "US"    ,typeof(us_fv_dbl_time)  ,getvardims(us_fv_dbl_time))    
-  filevardef(fout, "VS"   ,typeof(vs_fv_dbl_time) ,getvardims(vs_fv_dbl_time))  
+  filevardef(fout, "US"    ,typeof(us_fv_dbl_time)  ,getvardims(us_fv_dbl_time))
+  filevardef(fout, "VS"   ,typeof(vs_fv_dbl_time) ,getvardims(vs_fv_dbl_time))
 end if
-filevardef(fout, "U"    ,typeof(u_fv_dbl_time)  ,getvardims(u_fv_dbl_time))    
-filevardef(fout, "V"   ,typeof(v_fv_dbl_time) ,getvardims(v_fv_dbl_time))  
-filevardef(fout, "T",typeof(t_fv_dbl_time),getvardims(t_fv_dbl_time))  
+filevardef(fout, "U"    ,typeof(u_fv_dbl_time)  ,getvardims(u_fv_dbl_time))
+filevardef(fout, "V"   ,typeof(v_fv_dbl_time) ,getvardims(v_fv_dbl_time))
+filevardef(fout, "T",typeof(t_fv_dbl_time),getvardims(t_fv_dbl_time))
 filevardef(fout, "Q",typeof(q_fv_dbl_time),getvardims(q_fv_dbl_time))
 if (add_cloud_vars) then
-  filevardef(fout, "CLDLIQ",typeof(cldliq_fv_dbl_time),getvardims(cldliq_fv_dbl_time))  
-  filevardef(fout, "CLDICE",typeof(cldice_fv_dbl_time),getvardims(cldice_fv_dbl_time))  
+  filevardef(fout, "CLDLIQ",typeof(cldliq_fv_dbl_time),getvardims(cldliq_fv_dbl_time))
+  filevardef(fout, "CLDICE",typeof(cldice_fv_dbl_time),getvardims(cldice_fv_dbl_time))
 end if
 
 ;====================================================================
@@ -1402,7 +1406,7 @@ if (dycore .eq. "fv") then
   filevarattdef(fout,"lon",lon)
   filevarattdef(fout,"slat",slat)
   filevarattdef(fout,"slon",slon)
-else                       
+else
   filevarattdef(fout,"lat",selat)
   filevarattdef(fout,"lon",selon)
 end if
@@ -1412,12 +1416,12 @@ filevarattdef(fout,"hyai",hyai)
 filevarattdef(fout,"hybi",hybi)
 filevarattdef(fout,"PS" ,ps_fv_dbl_time)
 if (dycore .eq. "fv") then
-  filevarattdef(fout,"US"  ,us_fv_dbl_time) 
+  filevarattdef(fout,"US"  ,us_fv_dbl_time)
   filevarattdef(fout,"VS"  ,vs_fv_dbl_time)
 end if
-filevarattdef(fout,"U"  ,u_fv_dbl_time) 
+filevarattdef(fout,"U"  ,u_fv_dbl_time)
 filevarattdef(fout,"V"  ,v_fv_dbl_time)
-filevarattdef(fout,"T"  ,t_fv_dbl_time) 
+filevarattdef(fout,"T"  ,t_fv_dbl_time)
 filevarattdef(fout,"Q"   ,q_fv_dbl_time)
 if (add_cloud_vars) then
   filevarattdef(fout,"CLDLIQ",cldliq_fv_dbl_time)
@@ -1433,23 +1437,23 @@ setfileoption(fout,"DefineMode",False)
 ; been predefined.
 ;====================================================================
 print("output the data values")
-fout->PS   = (/ps_fv_dbl_time/)  
-if (dycore .eq. "fv") then 
+fout->PS   = (/ps_fv_dbl_time/)
+if (dycore .eq. "fv") then
   fout->US    = (/us_fv_dbl_time/)
   fout->VS    = (/vs_fv_dbl_time/)
 end if
 fout->U    = (/u_fv_dbl_time/)
 fout->V    = (/v_fv_dbl_time/)
-fout->T    = (/t_fv_dbl_time/) 
+fout->T    = (/t_fv_dbl_time/)
 fout->Q      = (/q_fv_dbl_time/)
 if (add_cloud_vars) then
   fout->CLDLIQ  = (/cldliq_fv_dbl_time/)
   fout->CLDICE  = (/cldice_fv_dbl_time/)
 end if
-fout->hyam   = (/hya/)     
+fout->hyam   = (/hya/)
 fout->hybm    = (/hyb/)
 fout->hyai    = (/hyai/)
-fout->hybi    = (/hybi/) 
+fout->hybi    = (/hybi/)
 fout->lev     = (/lev/)
 fout->ilev    = (/ilev/)
 fout->time    = (/time/)
@@ -1458,7 +1462,7 @@ if (dycore .eq. "fv") then
   fout->lon   = (/lon/)
   fout->slat  = (/slat/)
   fout->slon  = (/slon/)
-else                       
+else
   fout->lat   = (/selat/)
   fout->lon   = (/selon/)
 end if
