@@ -235,7 +235,7 @@ cd ~/betacast/atm_to_cam/getECMWFdata
 
 ### 7. Run Betacast
 
-```$ ./betacast.sh machine_files/machine.cheyenne namelists/nl.conus30x8 output_streams/output.generic```
+```$ ./betacast.sh machine_files/machine.cheyenne namelists/nl.ne30.chey output_streams/output.generic```
 
 This ends the betacast workflow.
 
@@ -399,7 +399,7 @@ Invoking `./auto-script.sh` should configure, build, and submit the I compset. T
 CASENAME=RoS-F2010C5-ne0conus30x8-001-PI
 ICASENAME=RoS-ICLM45-ne0conus30x8-ERA5
 
-# Define 
+# Define
 LANDFILEDIR=/global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/${CASENAME}/run/landstart/
 ICASEDIR=/global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/${ICASENAME}/run/
 
@@ -441,7 +441,7 @@ perturb_namelist = /global/homes/c/czarzyck/betacast/namelists/perturb.sample.nl
 ```
 
 `perturb_namelist` is a text file that is read by a routine that runs after atm_to_cam and sst_to_cam which contains the following variables (all are required, even if **False** or empty strings).
-  
+
 | Namelist Variable | Type | Description |
 | --- | --- | --- |
 | case | string | "Deltas" case (currently only CESMLENS supported) |
@@ -556,11 +556,11 @@ ncdiff tmp_date.nc ~/scratch/RoS-ICLM45-f09/run/RoS-ICLM45-f09.clm2.h0.1992-08-0
 
 ##### offset (in the stream file)
 
-offset is the time offset in seconds to give to each stream of data. Normally it is NOT used because the time-stamps for data is set correctly for each stream of data. Note, the offset may NEED to be adjusted depending on the taxmode described above, or it may need to be adjusted to account for data that is time-stamped at the END of an interval rather than the middle or beginning of interval. The offset can is set in the stream file rather than on the stream namelist. For data with a taxmode method of coszen the time-stamp needs to be for the beginning of the interval, while for other data it should be the midpoint. The offset can be used to adjust the time-stamps to get the data to line up correctly. 
-    
+offset is the time offset in seconds to give to each stream of data. Normally it is NOT used because the time-stamps for data is set correctly for each stream of data. Note, the offset may NEED to be adjusted depending on the taxmode described above, or it may need to be adjusted to account for data that is time-stamped at the END of an interval rather than the middle or beginning of interval. The offset can is set in the stream file rather than on the stream namelist. For data with a taxmode method of coszen the time-stamp needs to be for the beginning of the interval, while for other data it should be the midpoint. The offset can be used to adjust the time-stamps to get the data to line up correctly.
+
 ##### tintalgo
 
 tintalgo is the time interpolation algorithm. For CLM we usually use one of three modes: coszen, nearest, or linear. We use coszen for solar data, nearest for precipitation data, and linear for everything else. If your data is half-hourly or hourly, nearest will work fine for everything. The coszen scaling is useful for longer periods (three hours or more) to try to get the solar to match the cosine of the solar zenith angle over that longer period of time. If you use linear for longer intervals, the solar will cut out at night-time anyway, and the straight line will be a poor approximation of the cosine of the solar zenith angle of actual solar data. nearest likewise would be bad for longer periods where it would be much higher than the actual values.
 
-- Note: For coszen the time-stamps of the data should correspond to the beginning of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it. 
+- Note: For coszen the time-stamps of the data should correspond to the beginning of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it.
 - Note: For nearest and linear the time-stamps of the data should correspond to the middle of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it.
