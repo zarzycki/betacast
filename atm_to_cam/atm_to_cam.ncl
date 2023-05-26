@@ -644,10 +644,12 @@ if (dycore .ne. "mpas") then
   copy_VarCoords(t_cam,v_cam)
 
   print("Interpolating horizontal to CAM")
-  Opt         = True
+  Opt = True
 
   ; Here we need to keep VarCoords on to extract lat/lon
   Opt@CopyVarCoords = True
+  ;Opt@CopyVarAtts = False
+  ;Opt@Debug = False
   ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
   if (dycore .ne. "fv") then
     selat=todouble(ps_fv@lat1d)
@@ -702,7 +704,7 @@ else   ; if mpas
   w_cam = w_gfs
 
   print("Interpolating horizontal to "+dycore)
-  Opt         = True
+  Opt = True
   ; Here we need to keep VarCoords on to extract lat/lon
   Opt@CopyVarCoords = True
   ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
@@ -1269,7 +1271,7 @@ q_fv_dbl_time=where(q_fv_dbl_time.le.qthresh,0.0,q_fv_dbl_time)
 if(any(ismissing(q_fv_dbl_time))) then
   print("Q is missing data...")
 end if
-if (datasource .ne. "RAP") then
+if (datasource .ne. "RAP" .and. datasource .ne. "HWRF") then
   print("Filling q in global dataset")
   q_fv_dbl_time = where(ismissing(q_fv_dbl_time),0.0,q_fv_dbl_time)
 end if
