@@ -2,6 +2,10 @@ begin
 
 maxLev = 100.
 
+print("Base_file is: "+base_file)
+print("top_file is: "+top_file)
+print("maxLev is: "+maxLev)
+
 f1 = addfile(base_file,"w")
 f2 = addfile(top_file,"r")
 
@@ -28,6 +32,8 @@ Q_base = where(.not.ismissing(Q_rgm),Q_rgm,Q_base)
 U_base = where(.not.ismissing(U_rgm),U_rgm,U_base)
 V_base = where(.not.ismissing(V_rgm),V_rgm,V_base)
 PS_base = where(.not.ismissing(PS_rgm),PS_rgm,PS_base)
+
+print("Number of missing values in top_file is: "+num(ismissing(PS_rgm)))
 
 f1->T = T_base
 f1->Q = Q_base
