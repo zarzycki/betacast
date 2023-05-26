@@ -5,34 +5,59 @@ begin
 ; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 ; ============= User settings
 
-; hrrr_3km_scrip.nc, era5_0.25x0.25, gfs_0.50x0.50, gfs_0.25x0.25, rap_13km, hrrr_3km
-anlgrid="era5_0.25x0.25" 
+; hrrr_3km_scrip.nc, era5_0.25x0.25, gfs_0.50x0.50, gfs_0.25x0.25, rap_13km, hrrr_3km, hwrf_storm
+anlgrid="gfs_0.25x0.25"
+anlgridpath="./anl_scrip/"
 
 ; shortname for grid (for naming purposes)
-dstGridName="ne0np4natlanticwat.ne30x4"
+dstGridName="ne120np4"
 ; full path to model SCRIP file
-;dstGridFile="/glade/p/cesmdata/inputdata/share/scripgrids/ne30pg3_scrip_170611.nc"
-dstGridFile="/glade/work/zarzycki/grids/scrip/ne0np4natlanticwat.ne30x4.g_scrip.nc"
+dstGridFile="/glade/work/zarzycki/grids/scrip/ne120np4_SCRIP.nc"
+;dstGridFile="./model_scrip/ne30np4_091226_pentagons.nc"
+;dstGridFile="/glade/work/zarzycki/grids/scrip/ne0np4natlanticwat.ne30x4.g_scrip.nc"
 ;dstGridFile="./rrm.x4_ESMF.nc"
 
 ; where to save the map file?
 wgtFileDir="./"
 
 ; set this flag to True if you need to generated a CAM->ANL grid (mainly for model downscaling)
-flip_model_and_analysis=True
+flip_model_and_analysis=False
+
+; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+; ============= possible CLI
+
+; check if things are brought in
+if isvar("ANLGRID")
+  anlgrid=ANLGRID
+end if
+if isvar("ANLGRIDPATH")
+  anlgridpath=ANLGRIDPATH
+end if
+if isvar("DSTGRIDNAME")
+  dstGridName=DSTGRIDNAME
+end if
+if isvar("DSTGRIDFILE")
+  dstGridFile=DSTGRIDFILE
+end if
+if isvar("WGTFILEDIR")
+  wgtFileDir=WGTFILEDIR
+end if
+if isvar("FLIP_MODEL_AND_ANALYSIS")
+  flip_model_and_analysis=FLIP_MODEL_AND_ANALYSIS
+end if
 
 ; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 ; ============= do not edit below this line
 
-if (anlgrid .ne. "era5_0.25x0.25" .and. anlgrid .ne. "gfs_0.25x0.25" .and. anlgrid .ne. "gfs_0.50x0.50" .and. anlgrid .ne. "rap_13km" .and. anlgrid .ne. "hrrr_3km") then
+if (anlgrid .ne. "era5_0.25x0.25" .and. anlgrid .ne. "gfs_0.25x0.25" .and. anlgrid .ne. "gfs_0.50x0.50" .and. anlgrid .ne. "rap_13km" .and. anlgrid .ne. "hrrr_3km" .and. anlgrid .ne. "hwrf_storm") then
   print("unsupported analysis grid!   : "+anlgrid)
   exit
 end if
-srcGridFile="./anl_scrip/"+anlgrid+"_scrip.nc"
+srcGridFile=anlgridpath+"/"+anlgrid+"_scrip.nc"
 
 ; if using a regional grid, ensure that ESMF knows that...
 regionalGrid=False
-if (anlgrid .eq. "rap_13km" .or. anlgrid .eq. "hrrr_3km") then
+if (anlgrid .eq. "rap_13km" .or. anlgrid .eq. "hrrr_3km" .or. anlgrid .eq. "hwrf_storm") then
   regionalGrid=True
 end if
 
@@ -56,11 +81,11 @@ print("determined input grid type to be: "+dstType)
 
 if (dstType .eq. "model") then
   print("Generating grid file for model!")
-  
+
   if ( .not. isfilevar(f, "lat") .or. .not. isfilevar(f, "lon")) then
     print("dst file not ESMF or SCRIP nor does it have lat/lon coords, existing!")
   end if
-  
+
   lat=f->lat
   lon=f->lon
 
@@ -71,7 +96,7 @@ if (dstType .eq. "model") then
   Opt_se@Title          = "SE Grid"
   seGridName = "grid_se.nc"
   unstructured_to_ESMF(seGridName,lat,lon,Opt_se)
-  
+
   delete(Opt_se)
   delete(lat)
   delete(lon)
@@ -125,10 +150,10 @@ if (dstType .eq. "model" .or. dstType .eq. "esmf") then
       dstGridName = seGridName
     end if
   else
-    Opt@SrcESMF = True 
+    Opt@SrcESMF = True
     if (dstType .eq. "model") then
       srcGridName = seGridName
-    end if 
+    end if
   end if
 end if
 
