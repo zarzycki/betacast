@@ -81,6 +81,7 @@ if [ -z ${add_vortex+x} ]; then add_vortex=false; fi
 if [ -z ${vortex_namelist+x} ]; then vortex_namelist=""; fi
 if [ -z ${save_nudging_files+x} ]; then save_nudging_files=false; fi
 if [ -z ${override_rest_check+x} ]; then override_rest_check=false; fi
+if [ -z ${override_rest_check+x} ]; then tararchivedir=true; fi
 ### Some defaults infrequently set
 if [ -z ${doFilter+x} ]; then doFilter=false; fi
 if [ -z ${filterOnly+x} ]; then filterOnly=false; fi
@@ -1209,6 +1210,12 @@ fi
 # Let's do this last so all the above scripts can operate on uncompressed files
 if [ $compress_history_nc = true ]; then
   compress_history "${ARCHIVEDIR}/${ARCHIVESUBDIR}"
+fi
+
+# Tar archive files so they are contained in a single directory
+if $tararchivedir ; then
+  tar -cvf ${ARCHIVEDIR}/${ARCHIVESUBDIR}.tar -C ${ARCHIVEDIR} ${ARCHIVESUBDIR}
+  rm -rfv ${ARCHIVEDIR}/${ARCHIVESUBDIR} || true
 fi
 
 ### If not live and the run has made it here successively, delete top line of datesfile
