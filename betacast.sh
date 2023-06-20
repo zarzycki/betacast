@@ -81,7 +81,7 @@ if [ -z ${add_vortex+x} ]; then add_vortex=false; fi
 if [ -z ${vortex_namelist+x} ]; then vortex_namelist=""; fi
 if [ -z ${save_nudging_files+x} ]; then save_nudging_files=false; fi
 if [ -z ${override_rest_check+x} ]; then override_rest_check=false; fi
-if [ -z ${override_rest_check+x} ]; then tararchivedir=true; fi
+if [ -z ${tararchivedir+x} ]; then tararchivedir=true; fi
 ### Some defaults infrequently set
 if [ -z ${doFilter+x} ]; then doFilter=false; fi
 if [ -z ${filterOnly+x} ]; then filterOnly=false; fi
