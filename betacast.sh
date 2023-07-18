@@ -482,7 +482,7 @@ if [ $debug = false ] ; then
         echo "We are on Cheyenne, so even though we lack a local file, we can use RDA"
         ERA5RDA=1
         RDADIR=/glade/collections/rda/data/ds633.0/
-      elif [[ "$MACHINEFILE" == *cori* ]]; then
+      elif [[ "$MACHINEFILE" == *pm* ]]; then
         echo "We are on Cori, so even though we lack a local file, we can use RDA"
         ERA5RDA=1
         RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
