@@ -130,11 +130,11 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | archive_inic | Add (NCO-compressed) initial conditions for component models to archive directory (0 = no (default), 1 = yes) |
 | compress_history_nc | Use NCO lossless compression to compress history files (0 = no (default), 1 = yes) |
 | tararchivedir | Should the archive folder be tarred?  (0 = no, 1 = yes (default)) |
-| modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2 (defaults to 0 if empty or not included) |
+| modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2+/SCREAM (defaults to 0 if empty or not included) |
 | do_runoff | Include runoff model files (false/true) (defaults to false if empty or not included) |
 | atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5 |
 | sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI |
-| numLevels | 72 -> E3SMv1, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 |
+| numLevels | 128 -> SCREAM, 72 -> E3SM, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 |
 | numdays | How long for forecast to run (in days) |
 | adjust_topo | Full path to a *model* (i.e., bnd_topo) topography file. If a valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. |
 | adjust_flags | Hydrostatic adjustment options. Currently "a" (include TBOT adjustment) and "-" (PS adjustment only) are supported. Only applied with valid adjust_topo file. |
@@ -148,6 +148,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | add_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) |
 | land_spinup | Cycle land spinup only (unsupported currently, leave false) |
 | keep_land_restarts | 0 = delete land/rof restart files, 1 = archive land/rof restart files (possibly overwriting those in ${CASE}/run/landstart) |
+| override_rest_check | If true, overrides internal check for SourceMods for lnd/rof restarts (default: false) |
 | save_nudging_files | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
 | predict_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |
