@@ -538,7 +538,7 @@ if [ $debug = false ] ; then
     echo "Using NOAAOI SSTs"
     mkdir -p ${sst_files_path}
     cd ${sst_files_path}
-    sstFile=sst.day.mean.${yearstr}.v2.nc
+    sstFile=sst.day.mean.${yearstr}.nc
     if [ ! -f ${sst_files_path}/${sstFile} ] ; then
       echo "NOAAOI file doesn't exist, need to download"
       sstFTPPath=ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/
@@ -554,7 +554,7 @@ if [ $debug = false ] ; then
         fi
       done
     fi
-    iceFile=icec.day.mean.${yearstr}.v2.nc
+    iceFile=icec.day.mean.${yearstr}.nc
     if [ ! -f ${sst_files_path}/${iceFile} ] ; then
       echo "NOAAOI file doesn't exist, need to download"
       sstFTPPath=ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/
