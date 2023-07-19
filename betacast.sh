@@ -82,6 +82,7 @@ if [ -z ${vortex_namelist+x} ]; then vortex_namelist=""; fi
 if [ -z ${save_nudging_files+x} ]; then save_nudging_files=false; fi
 if [ -z ${override_rest_check+x} ]; then override_rest_check=false; fi
 if [ -z ${tararchivedir+x} ]; then tararchivedir=true; fi
+if [ -z ${docnres+x} ]; then docnres="180x360"; fi
 ### Some defaults infrequently set
 if [ -z ${doFilter+x} ]; then doFilter=false; fi
 if [ -z ${filterOnly+x} ]; then filterOnly=false; fi
@@ -121,6 +122,10 @@ else
   mkdir -v -p ${ARCHIVEDIR}
 fi
 echo "Files will be archived in ${ARCHIVEDIR}/YYYYMMDDHH/"
+
+# Update SST filename based on docnres
+sstFileIC=${sstFileIC/DOCNRES/$docnres}
+echo "Actual sstFileIC: ${sstFileIC}"
 
 ### ERROR CHECKING BLOCK! #########################################################
 
@@ -171,9 +176,9 @@ check_bool "override_rest_check" $override_rest_check
 if [ $override_rest_check = false ]; then
   echo "Checking for SourceMods permiting additional restart writes for land model"
   echo "This check can be ignored with override_rest_check = true in the namelist."
-  exit_file_no_exist $path_to_case/SourceMods/src.${lndName}/lnd_comp_mct.F90
+  exit_files_no_exist $path_to_case/SourceMods/src.${lndName}/lnd_comp_mct.F90 $path_to_case/SourceMods/src.${lndName}/lnd_comp_nuopc.F90
   if [ $do_runoff = true ]; then
-    exit_file_no_exist $path_to_case/SourceMods/src.${rofName}/rof_comp_mct.F90
+    exit_files_no_exist $path_to_case/SourceMods/src.${rofName}/rof_comp_mct.F90 $path_to_case/SourceMods/src.${rofName}/rof_comp_nuopc.F90
   fi
 fi
 
@@ -576,22 +581,26 @@ if [ $debug = false ] ; then
   # Switch bash bool to int for NCL input
   if [ $predict_docn = true ]; then INT_PREDICT_DOCN=1; else INT_PREDICT_DOCN=0; fi
 
-  set +e
   cd ${sst_to_cam_path}
+  sst_domain_file=${sst_to_cam_path}/domains/domain.ocn.${docnres}.nc
+  # check if domain exists
+  if [ ! -f "$sst_domain_file" ]; then
+    echo "Creating SST domain file for: ${docnres}"
+    set +e
+    (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' )
+    check_ncl_exit "gen-sst-domain.ncl"
+    set -e
+  fi
+  # need
   (set -x; ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
     predict_docn=${INT_PREDICT_DOCN} \
+    'inputres="'${docnres}'"' \
     'datasource="'${SSTTYPE}'"' \
     'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
     'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
     'SST_write_file = "'${sstFileIC}'"' )
-  if [[ $? -ne 9 ]] ; then
-    echo "NCL exited with non-9 error code"
-    exit 240
-  fi
-  echo "SST NCL completed successfully"
+  check_ncl_exit "sst_interp.ncl"
   set -e # Turn error checking back on
-  # Removed 4/18/22 since this can be done inside sst_interp.ncl
-  #ncatted -O -a units,time,o,c,"days since 0001-01-01 00:00:00" ${sstFileIC} ${sstFileIC}
 
   ############################### ATM NCL ###############################
 
@@ -892,6 +901,8 @@ fi
 
 echo "Turning off archiving and restart file output in env_run.xml"
 ./xmlchange DOUT_S=FALSE,REST_OPTION=nyears,REST_N=9999
+echo "Setting SST domain file"
+./xmlchange SSTICE_GRID_FILENAME="${sst_domain_file}"
 echo "Setting SST from default to our SST"
 ./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
 echo "Setting GLC coupling to handle forecasts across calendar years"
