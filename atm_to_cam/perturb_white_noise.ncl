@@ -1,8 +1,3 @@
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
-
 begin
 
 pertMag=0.002
@@ -43,5 +38,8 @@ print("new PSmax: "+max(ps))
 basFile->PS=ps
 basFile->T=t
 basFile->Q=q
+
+print("... done")
+status_exit(9)
 
 end
