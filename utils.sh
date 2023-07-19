@@ -101,6 +101,18 @@ function exit_files_no_exist() {
   exit 1
 }
 
+
+function check_ncl_exit() {
+  local ncl_script_name=$1
+  if [[ $? -ne 9 ]]; then
+    echo "${ncl_script_name} exited with non-9 error code"
+    exit 240
+  else
+    echo "${ncl_script_name} exited successfully"
+  fi
+}
+
+
 ### -----------------------------------------------------------------------------------
 
 
