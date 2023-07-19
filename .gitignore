@@ -1,3 +1,6 @@
+## DOCN stuff
+domain.ocn.*.nc
+
 ## Slab ocean stuff
 # ALCC files
 sst_cice*.nc
