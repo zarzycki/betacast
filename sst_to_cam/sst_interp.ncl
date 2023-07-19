@@ -1,10 +1,4 @@
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-
 begin
-
-; Last updated 9/7/2017 by Colin Zarzycki
 
 ; This file takes either GDAS SST or NOAAOI SST and interpolates to 1x1 SST datafile for
 ; use in CESM F compsets as a datastream.
@@ -15,10 +9,12 @@ begin
 
 ; NOAAOI EXAMPLE
 ;ncl sst_interp.ncl 'initdate="2015033000"' \
+;      predict_docn=0 \
+;      'inputres="180x360"' \
 ;      'datasource="NOAAOI"' \
-;      'sstDataFile = "/glade/p/work/zarzycki/NOAAOI/sst.day.mean.2015.v2.nc"' \
-;      'iceDataFile = "/glade/p/work/zarzycki/NOAAOI/icec.day.mean.2015.v2.nc"' \
-;      'SST_write_file = "/glade/p/work/zarzycki/NOAAOI/sst_1x1.nc"'
+;      'sstDataFile = "/glade/work/zarzycki/sewx/SST/sst.day.mean.2015.nc"' \
+;      'iceDataFile = "/glade/work/zarzycki/sewx/SST/icec.day.mean.2015.nc"' \
+;      'SST_write_file = "/glade/work/zarzycki/sewx/SST/sst_1x1.nc"'
 
 ;initdate=2012082400
 ;SST_write_dir = "/glade/p/work/zarzycki/sewx/SST/"
@@ -32,6 +28,12 @@ smooth_iter=3    ; if yes, number of iters?
 ; constants (don't change!)
 KtoC=273.15
 
+; if inputres wasn't defined on the command line, default to 1deg for backwards compat
+if (.not. isvar("inputres")) then
+  inputres="180x360"
+end if
+print("inputres set to: "+inputres)
+
 ; Note: copy_orig = True is the old way where a file was copied and then overwritten
 ; Much "smarter" to just do this from scratch...
 copy_orig = False
@@ -40,11 +42,11 @@ if (copy_orig) then
   system("cp ./sst_1x1.nc "+SST_write_file)
   readinFile=SST_write_file
 else
-  readinFile="./sst_1x1.nc"
+  readinFile="./domains/domain.ocn."+inputres+".nc"
 end if
 
 if (.not. isvar("predict_docn")) then
-  do_anom=False  
+  do_anom=False
 else
   if (toint(predict_docn) .eq. 1) then
     do_anom=True ; this superimposes the observed SST + ice onto the climatological seasonal cycle
@@ -68,7 +70,7 @@ dd=toint(tst_dtime(2))
 hh=toint(tst_dtime(3))
 
 ; Load SST files that we want to overwrite
-print("Writing 1x1 SSTs")
+print("Writing "+inputres+" SSTs")
 if (copy_orig) then
   in = addfile(SST_write_file,"w")
 else
@@ -105,8 +107,13 @@ else
 end if
 end if
 
-fvlat  = in->lat
-fvlon  = in->lon
+fvlat  = in->yc
+fvlon  = in->xc
+fvlat!0="lat"
+fvlon!0="lon"
+fvlat&lat = fvlat
+fvlon&lon = fvlon
+
 numfvlat = dimsizes(fvlat)
 numfvlon = dimsizes(fvlon)
 
@@ -155,7 +162,7 @@ if (do_anom) then
   daily_time = fspan (0.0, 364.0, 365)
   daily_time@units = "days since 0000-01-01 00:00:00"
   daily_time@calendar = "365_day"
-  
+
   ; read monthly climo SST and interp to daily SST
   climo_SST = in->SST_cpl
   climo_SST_daily = linint1_n_Wrap (climo_SST&time, climo_SST, True, daily_time, 0, 0)
@@ -168,21 +175,21 @@ if (do_anom) then
   ; calculate sst_anom as observed SST - that day's climo
   sst_anom = sst_fv_dbl
   sst_anom = sst_fv_dbl - climo_SST_daily(doyint,:,:)
-  
+
   ; project that anomaly onto the monthly values
   do i = 0,11
     sst_fv_dbl_time(i,:,:) = climo_SST(i,:,:) + sst_anom(:,:)
   end do
-  
+
 else
 
   print("SST_TO_CAM: Creating time-invariant SST forcing")
   do i = 0,11
     sst_fv_dbl_time(i,:,:) = sst_fv_dbl
   end do
-  
+
 end if
-  
+
 print("Sorting bad ice")
 do i = 0,dimsizes(fvlat)-1
   do j = 0,dimsizes(fvlon)-1
@@ -209,10 +216,10 @@ if (do_anom) then
 
   climo_ice = in->ice_cov
   climo_ice_daily = linint1_n_Wrap (climo_ice&time, climo_ice, True, daily_time, 0, 0)
-  
+
   ice_anom = ice_fv_dbl
   ice_anom = ice_fv_dbl - climo_ice_daily(doyint,:,:)
-  
+
   do i = 0,11
     ice_fv_dbl_time(i,:,:) = climo_ice(i,:,:) + ice_anom(:,:)
   end do
@@ -230,8 +237,22 @@ ice_fv_dbl_time = where(ice_fv_dbl_time .gt. 1.0,1.0,ice_fv_dbl_time)
 ice_fv_dbl_time = where(ice_fv_dbl_time .lt. 0.0,0.0,ice_fv_dbl_time)
 
 ; change units from yr 0000 to 0001
-nc_time = in->time
+;nc_time = in->time
+nc_time = todouble((/15.5, 45, 74.5, 105, 135.5, 166, 196.5, 227.5, 258, 288.5, 319, 349.5/))
 nc_time@units="days since 0001-01-01 00:00:00"
+nc_time@calendar="365_day"
+nc_time!0="time"
+nc_time&time=nc_time
+
+nc_date = (/ 116, 215, 316, 416, 516, 616, 716, 816, 916, 1016, 1116, 1216 /)
+nc_date@long_name = "current date (YYYYMMDD)"
+nc_date!0="time"
+nc_date&time=nc_time
+
+nc_datesec = (/43200, 0, 43200, 0, 43200, 0, 43200, 43200, 0, 43200, 0, 43200/)
+nc_datesec@long_name = "current seconds of current date"
+nc_datesec!0="time"
+nc_datesec&time=nc_time
 
 date = new(1,integer)
 datasec = new(1,integer)
@@ -272,20 +293,17 @@ if (copy_orig) then
 else
   system("/bin/rm -f -v "+SST_write_file)
   out = addfile(SST_write_file,"c")
-       
+
   fAtt               = True
   fAtt@creation_date = systemfunc ("date")
   fileattdef(out, fAtt)
-  filedimdef(out,"time",-1,True) 
-  
-  ; copy over some vars. Not sure top 2 are needed.
-  out->date = in->date
-  out->datesec = in->datesec
-  out->lat = in->lat
-  out->lon = in->lon
-  
-  ; updated time coord with new units
+  filedimdef(out,"time",-1,True)
+
+  out->date = nc_date
   out->time = nc_time
+  out->datesec = nc_datesec
+  out->lat = fvlat
+  out->lon = fvlon
 
   ; output SST and ice fields
   out->SST_cpl = sst_fv_dbl_time
@@ -296,10 +314,10 @@ else
 
 end if
 
-; for debugging 
+; for debugging
 ;system("/bin/rm -f simple.nc")   ; remove any pre-existing file
 ;ncdf = addfile("simple.nc" ,"c")  ; open output netCDF file
-;filedimdef(ncdf,"time",-1,True) 
+;filedimdef(ncdf,"time",-1,True)
 ;ncdf->climo_SST_daily = climo_SST_daily
 ;ncdf->sst_snapshot = sst_fv_dbl
 ;ncdf->ice_snapshot = ice_fv_dbl
