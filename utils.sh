@@ -89,6 +89,18 @@ function exit_file_no_exist() {
   fi
 }
 
+# Usage: exit_files_no_exist $path_to_case/SourceMods/src.${lndName}/lnd_comp_mct.F90 $path_to_case/SourceMods/src.${lndName}/lnd_comp_nuopc.F90
+function exit_files_no_exist() {
+  for checkthisfile in "$@"; do
+    if [ -f "$checkthisfile" ]; then
+      return 0  # Exit the function, not the script, as soon as we find an existing file
+    fi
+  done
+  # If we've got here, none of the files exist
+  echo "CHECK_EXIST: None of the specified files exist, exiting..."
+  exit 1
+}
+
 ### -----------------------------------------------------------------------------------
 
 
