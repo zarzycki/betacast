@@ -39,4 +39,8 @@ fileattdef( ncdf, fAtt )            ; copy file attributes
 ncdf->yc = lat
 ncdf->xc = lon
 
+print("GEN_SST_DOMAIN: done")
+
+status_exit(9)
+
 end
