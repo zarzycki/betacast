@@ -132,19 +132,26 @@ sst_fv = linmsg(sst_fv,-1)
 sst_fv = linmsg_n(sst_fv,-1,0)
 
 print("Sorting bad SST")
-do i = 0,dimsizes(fvlat)-1
-  do j = 0,dimsizes(fvlon)-1
-      if (ismissing(sst_fv(i,j))) then
-        print("Found missing SST, setting to "+TTHRESH)
-        sst_fv(i,j) = TTHRESH
-      else if (sst_fv(i,j) .gt. 500) then
-        print("Found bad value, setting to "+TTHRESH)
-        sst_fv(i,j) = TTHRESH
-      end if
-      end if
-    sst_fv(i,j) = sst_fv(i,j); - 273.15
-  end do
-end do
+
+; NEW vectorized
+sst_fv = where(ismissing(sst_fv),TTHRESH,sst_fv)
+sst_fv = where(sst_fv .gt. 500,TTHRESH,sst_fv)
+;sst_fv = sst_fv - 273.15
+
+; OLD loop
+;do i = 0,dimsizes(fvlat)-1
+;  do j = 0,dimsizes(fvlon)-1
+;      if (ismissing(sst_fv(i,j))) then
+;        print("Found missing SST, setting to "+TTHRESH)
+;        sst_fv(i,j) = TTHRESH
+;      else if (sst_fv(i,j) .gt. 500) then
+;        print("Found bad value, setting to "+TTHRESH)
+;        sst_fv(i,j) = TTHRESH
+;      end if
+;      end if
+;    sst_fv(i,j) = sst_fv(i,j); - 273.15
+;  end do
+;end do
 
 print("Converting SST floats to doubles")
 sst_fv_dbl = tofloat(sst_fv)
@@ -157,6 +164,15 @@ sst_fv_dbl_time = new((/12,numfvlat,numfvlon/),float)
 
 if (do_anom) then
 
+  ; currently only support inputres = 180x360, in future do linint to fvlat/fvlon for
+  ; other resolutions
+  if (inputres .ne. "180x360") then
+    print("do_anom only permits inputres = 180x360, you specified: "+inputres)
+    status_exit(4)
+  end if
+
+  in_climo = addfile("sst_1x1.nc","r")
+
   print("SST_TO_CAM: Creating observationally-consistent seasonal cycle")
   ; create daily time array
   daily_time = fspan (0.0, 364.0, 365)
@@ -164,7 +180,7 @@ if (do_anom) then
   daily_time@calendar = "365_day"
 
   ; read monthly climo SST and interp to daily SST
-  climo_SST = in->SST_cpl
+  climo_SST = in_climo->SST_cpl
   climo_SST_daily = linint1_n_Wrap (climo_SST&time, climo_SST, True, daily_time, 0, 0)
 
   ; get DoY for the forecast day
@@ -191,18 +207,25 @@ else
 end if
 
 print("Sorting bad ice")
-do i = 0,dimsizes(fvlat)-1
-  do j = 0,dimsizes(fvlon)-1
-    if (ismissing(ice_fv(i,j))) then
-      ;print("Found missing ice")
-      ice_fv(i,j) = 0.0
-    else if (ice_fv(i,j) .gt. 500) then
-      print("Found bad ice, setting to 1.0")
-      ice_fv(i,j) = 1.0
-    end if
-    end if
-  end do
-end do
+
+; NEW vectorized
+ice_fv = where(ismissing(ice_fv),0.0,ice_fv)
+ice_fv = where(ice_fv .gt. 500,1.0,ice_fv)
+
+; OLD loop
+;print("Sorting bad ice")
+;do i = 0,dimsizes(fvlat)-1
+;  do j = 0,dimsizes(fvlon)-1
+;    if (ismissing(ice_fv(i,j))) then
+;      ;print("Found missing ice")
+;      ice_fv(i,j) = 0.0
+;    else if (ice_fv(i,j) .gt. 500) then
+;      print("Found bad ice, setting to 1.0")
+;      ice_fv(i,j) = 1.0
+;    end if
+;    end if
+;  end do
+;end do
 
 print("Converting ICE floats to doubles")
 ice_fv_dbl = tofloat(ice_fv)
@@ -214,7 +237,7 @@ ice_fv_dbl_time = new((/12,numfvlat,numfvlon/),float)
 
 if (do_anom) then
 
-  climo_ice = in->ice_cov
+  climo_ice = in_climo->ice_cov
   climo_ice_daily = linint1_n_Wrap (climo_ice&time, climo_ice, True, daily_time, 0, 0)
 
   ice_anom = ice_fv_dbl
