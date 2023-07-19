@@ -4,7 +4,9 @@ load "helpers.ncl"
 
 begin
 
-wcStrt = systemfunc("date")
+;wcStrt = systemfunc("date")
+quote  = inttochar(34)
+wcStrt = systemfunc("date "+quote+"+%a %b %d %T %Z %Y"+quote)
 
 ; Inputs needed
 ; machineid (integer)
