@@ -587,19 +587,19 @@ if [ $debug = false ] ; then
   if [ ! -f "$sst_domain_file" ]; then
     echo "Creating SST domain file for: ${docnres}"
     set +e
-    (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' )
-    check_ncl_exit "gen-sst-domain.ncl"
+    (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' ) ; exit_status=$?
+    check_ncl_exit "gen-sst-domain.ncl" $exit_status
     set -e
   fi
-  # need
+  set +e
   (set -x; ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
     predict_docn=${INT_PREDICT_DOCN} \
     'inputres="'${docnres}'"' \
     'datasource="'${SSTTYPE}'"' \
     'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
     'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
-    'SST_write_file = "'${sstFileIC}'"' )
-  check_ncl_exit "sst_interp.ncl"
+    'SST_write_file = "'${sstFileIC}'"' ) ; exit_status=$?
+  check_ncl_exit "sst_interp.ncl" $exit_status
   set -e # Turn error checking back on
 
   ############################### ATM NCL ###############################
@@ -619,7 +619,7 @@ if [ $debug = false ] ; then
        'wgt_filename="'${anl2mdlWeights}'"' \
        'model_topo_file="'${adjust_topo-}'"' \
        'adjust_config="'${adjust_flags-}'"' \
-       'se_inic = "'${sePreFilterIC}'"' )
+       'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
   elif [ $atmDataType -eq 2 ] ; then
     echo "CD ing to ERA-interim interpolation directory"
     cd $atm_to_cam_path
@@ -629,7 +629,7 @@ if [ $debug = false ] ; then
          'dycore="'${DYCORE}'"' \
        'data_filename = "/glade/p/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
        'wgt_filename="/glade/p/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
-       'se_inic = "'${sePreFilterIC}'"' )
+       'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
   elif [ $atmDataType -eq 3 ] ; then
     echo "CD ing to interpolation directory"
     cd $atm_to_cam_path
@@ -641,7 +641,7 @@ if [ $debug = false ] ; then
      'wgt_filename="'${anl2mdlWeights}'"' \
      'model_topo_file="'${adjust_topo-}'"' \
      'adjust_config="'${adjust_flags-}'"' \
-     'se_inic = "'${sePreFilterIC}'"' )
+     'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
   elif [ $atmDataType -eq 4 ] ; then
     echo "CD ing to ERA5 interpolation directory"
     cd $atm_to_cam_path
@@ -655,7 +655,7 @@ if [ $debug = false ] ; then
          'wgt_filename="'${anl2mdlWeights}'"' \
          'model_topo_file="'${adjust_topo-}'"' \
          'adjust_config="'${adjust_flags-}'"' \
-         'se_inic = "'${sePreFilterIC}'"' )
+         'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
     else
       (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5"'     \
           numlevels=${numLevels} \
@@ -665,7 +665,7 @@ if [ $debug = false ] ; then
          'wgt_filename="'${anl2mdlWeights}'"' \
          'model_topo_file="'${adjust_topo-}'"' \
          'adjust_config="'${adjust_flags-}'"' \
-         'se_inic = "'${sePreFilterIC}'"' )
+         'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
     fi
   else
     echo "Incorrect model IC entered"
@@ -675,8 +675,7 @@ if [ $debug = false ] ; then
   # if successful! However, this means we have to check if code is successful with
   # something other than zero. Generally, if NCL fails expect a 0 return, but lets
   # be safe and call everything non-9.
-  if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
-  echo "ATM NCL completed successfully"
+  check_ncl_exit "atm_to_cam.ncl" $exit_status
   set -e # Turn error checking back on
 
 fi #End debug if statement
@@ -689,11 +688,11 @@ if ${add_vortex} ; then
   set +e
   echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
 
-  (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' )
-  if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
+  (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
+  check_ncl_exit "find-tc-fill-params.ncl" $exit_status
 
-  (set -x; ncl -n seed-tc-in-ncdata.ncl   'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' )
-  if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
+  (set -x; ncl -n seed-tc-in-ncdata.ncl   'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
+  check_ncl_exit "seed-tc-in-ncdata.ncl" $exit_status
 
   set -e
 fi
@@ -705,7 +704,8 @@ if ${add_noise} ; then
   set +e
   echo "Adding white noise to initial condition"
   cd $atm_to_cam_path
-  (set -x; ncl -n perturb_white_noise.ncl 'basFileName = "'${sePreFilterIC}'"' )
+  (set -x; ncl -n perturb_white_noise.ncl 'basFileName = "'${sePreFilterIC}'"' ) ; exit_status=$?
+  check_ncl_exit "perturb_white_noise.ncl" $exit_status
   set -e
 fi
 
@@ -735,32 +735,23 @@ if ${add_perturbs} ; then
 #   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
 
   cd $atm_to_cam_path/perturb
+
   set +e
 
   ## Add perturbations to SST file
   sstFileIC_WPERT=${sstFileIC}_PERT.nc
   (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
      'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' \
-     'pthi="'${perturb_namelist}'"' )
-
-  if [[ $? -ne 9 ]]
-  then
-    echo "NCL exited with non-9 error code"
-    exit 240
-  fi
+     'pthi="'${perturb_namelist}'"' ) ; exit_status=$?
+  check_ncl_exit "add_perturbations_to_sst.ncl" $exit_status
   echo "SST perturbations added successfully"
 
   ## Add perturbations to ATM file
   sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
   (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
      'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
-     'pthi="'${perturb_namelist}'"' )
-
-  if [[ $? -ne 9 ]]
-  then
-   echo "NCL exited with non-9 error code"
-   exit 240
-  fi
+     'pthi="'${perturb_namelist}'"' ) ; exit_status=$?
+  check_ncl_exit "add_perturbations_to_cam.ncl" $exit_status
   echo "ATM NCL completed successfully"
 
   set -e # Turn error checking back on
@@ -996,11 +987,8 @@ if $doFilter ; then
     (set -x; ncl lowmemfilter.ncl \
      endhour=${filterHourLength} tcut=${filtTcut} \
     'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
-    'writefile_name = "'${sePostFilterIC}'"' )
-    if [[ $? -ne 9 ]] ; then
-      echo "NCL exited with non-9 error code"
-      exit 240
-    fi
+    'writefile_name = "'${sePostFilterIC}'"' ) ; exit_status=$?
+    check_ncl_exit "lowmemfilter.ncl" $exit_status
     set -e
   fi  # debug
 
