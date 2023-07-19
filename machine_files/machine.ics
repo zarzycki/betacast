@@ -12,7 +12,7 @@ sePostFilterIC = ${pathToINICfiles}/${casename}_INIC_filter.nc
 
 # SST path and file
 pathToSSTfiles = ${path_to_inputdata}/SST/
-sstFileIC = ${pathToSSTfiles}/sst_${casename}_1x1.nc
+sstFileIC = ${pathToSSTfiles}/sst_${casename}_DOCNRES.nc
 
 # subdirs for observational/analysis data
 gfs_files_path = ${path_to_inputdata}/GFS/
