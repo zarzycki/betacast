@@ -82,6 +82,7 @@ if [ -z ${vortex_namelist+x} ]; then vortex_namelist=""; fi
 if [ -z ${save_nudging_files+x} ]; then save_nudging_files=false; fi
 if [ -z ${override_rest_check+x} ]; then override_rest_check=false; fi
 if [ -z ${tararchivedir+x} ]; then tararchivedir=true; fi
+if [ -z ${docnres+x} ]; then docnres="180x360"; fi
 ### Some defaults infrequently set
 if [ -z ${doFilter+x} ]; then doFilter=false; fi
 if [ -z ${filterOnly+x} ]; then filterOnly=false; fi
@@ -121,6 +122,10 @@ else
   mkdir -v -p ${ARCHIVEDIR}
 fi
 echo "Files will be archived in ${ARCHIVEDIR}/YYYYMMDDHH/"
+
+# Update SST filename based on docnres
+sstFileIC=${sstFileIC/DOCNRES/$docnres}
+echo "Actual sstFileIC: ${sstFileIC}"
 
 ### ERROR CHECKING BLOCK! #########################################################
 
@@ -171,9 +176,9 @@ check_bool "override_rest_check" $override_rest_check
 if [ $override_rest_check = false ]; then
   echo "Checking for SourceMods permiting additional restart writes for land model"
   echo "This check can be ignored with override_rest_check = true in the namelist."
-  exit_file_no_exist $path_to_case/SourceMods/src.${lndName}/lnd_comp_mct.F90
+  exit_files_no_exist $path_to_case/SourceMods/src.${lndName}/lnd_comp_mct.F90 $path_to_case/SourceMods/src.${lndName}/lnd_comp_nuopc.F90
   if [ $do_runoff = true ]; then
-    exit_file_no_exist $path_to_case/SourceMods/src.${rofName}/rof_comp_mct.F90
+    exit_files_no_exist $path_to_case/SourceMods/src.${rofName}/rof_comp_mct.F90 $path_to_case/SourceMods/src.${rofName}/rof_comp_nuopc.F90
   fi
 fi
 
@@ -576,22 +581,26 @@ if [ $debug = false ] ; then
   # Switch bash bool to int for NCL input
   if [ $predict_docn = true ]; then INT_PREDICT_DOCN=1; else INT_PREDICT_DOCN=0; fi
 
-  set +e
   cd ${sst_to_cam_path}
+  sst_domain_file=${sst_to_cam_path}/domains/domain.ocn.${docnres}.nc
+  # check if domain exists
+  if [ ! -f "$sst_domain_file" ]; then
+    echo "Creating SST domain file for: ${docnres}"
+    set +e
+    (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' ) ; exit_status=$?
+    check_ncl_exit "gen-sst-domain.ncl" $exit_status
+    set -e
+  fi
+  set +e
   (set -x; ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
     predict_docn=${INT_PREDICT_DOCN} \
+    'inputres="'${docnres}'"' \
     'datasource="'${SSTTYPE}'"' \
     'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
     'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
-    'SST_write_file = "'${sstFileIC}'"' )
-  if [[ $? -ne 9 ]] ; then
-    echo "NCL exited with non-9 error code"
-    exit 240
-  fi
-  echo "SST NCL completed successfully"
+    'SST_write_file = "'${sstFileIC}'"' ) ; exit_status=$?
+  check_ncl_exit "sst_interp.ncl" $exit_status
   set -e # Turn error checking back on
-  # Removed 4/18/22 since this can be done inside sst_interp.ncl
-  #ncatted -O -a units,time,o,c,"days since 0001-01-01 00:00:00" ${sstFileIC} ${sstFileIC}
 
   ############################### ATM NCL ###############################
 
@@ -610,7 +619,7 @@ if [ $debug = false ] ; then
        'wgt_filename="'${anl2mdlWeights}'"' \
        'model_topo_file="'${adjust_topo-}'"' \
        'adjust_config="'${adjust_flags-}'"' \
-       'se_inic = "'${sePreFilterIC}'"' )
+       'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
   elif [ $atmDataType -eq 2 ] ; then
     echo "CD ing to ERA-interim interpolation directory"
     cd $atm_to_cam_path
@@ -620,7 +629,7 @@ if [ $debug = false ] ; then
          'dycore="'${DYCORE}'"' \
        'data_filename = "/glade/p/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
        'wgt_filename="/glade/p/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
-       'se_inic = "'${sePreFilterIC}'"' )
+       'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
   elif [ $atmDataType -eq 3 ] ; then
     echo "CD ing to interpolation directory"
     cd $atm_to_cam_path
@@ -632,7 +641,7 @@ if [ $debug = false ] ; then
      'wgt_filename="'${anl2mdlWeights}'"' \
      'model_topo_file="'${adjust_topo-}'"' \
      'adjust_config="'${adjust_flags-}'"' \
-     'se_inic = "'${sePreFilterIC}'"' )
+     'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
   elif [ $atmDataType -eq 4 ] ; then
     echo "CD ing to ERA5 interpolation directory"
     cd $atm_to_cam_path
@@ -646,7 +655,7 @@ if [ $debug = false ] ; then
          'wgt_filename="'${anl2mdlWeights}'"' \
          'model_topo_file="'${adjust_topo-}'"' \
          'adjust_config="'${adjust_flags-}'"' \
-         'se_inic = "'${sePreFilterIC}'"' )
+         'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
     else
       (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5"'     \
           numlevels=${numLevels} \
@@ -656,7 +665,7 @@ if [ $debug = false ] ; then
          'wgt_filename="'${anl2mdlWeights}'"' \
          'model_topo_file="'${adjust_topo-}'"' \
          'adjust_config="'${adjust_flags-}'"' \
-         'se_inic = "'${sePreFilterIC}'"' )
+         'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
     fi
   else
     echo "Incorrect model IC entered"
@@ -666,8 +675,7 @@ if [ $debug = false ] ; then
   # if successful! However, this means we have to check if code is successful with
   # something other than zero. Generally, if NCL fails expect a 0 return, but lets
   # be safe and call everything non-9.
-  if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
-  echo "ATM NCL completed successfully"
+  check_ncl_exit "atm_to_cam.ncl" $exit_status
   set -e # Turn error checking back on
 
 fi #End debug if statement
@@ -680,11 +688,11 @@ if ${add_vortex} ; then
   set +e
   echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
 
-  (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' )
-  if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
+  (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
+  check_ncl_exit "find-tc-fill-params.ncl" $exit_status
 
-  (set -x; ncl -n seed-tc-in-ncdata.ncl   'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' )
-  if [[ $? -ne 9 ]] ; then echo "NCL exited with non-9 error code" ; exit 240 ; fi
+  (set -x; ncl -n seed-tc-in-ncdata.ncl   'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
+  check_ncl_exit "seed-tc-in-ncdata.ncl" $exit_status
 
   set -e
 fi
@@ -696,7 +704,8 @@ if ${add_noise} ; then
   set +e
   echo "Adding white noise to initial condition"
   cd $atm_to_cam_path
-  (set -x; ncl -n perturb_white_noise.ncl 'basFileName = "'${sePreFilterIC}'"' )
+  (set -x; ncl -n perturb_white_noise.ncl 'basFileName = "'${sePreFilterIC}'"' ) ; exit_status=$?
+  check_ncl_exit "perturb_white_noise.ncl" $exit_status
   set -e
 fi
 
@@ -726,32 +735,23 @@ if ${add_perturbs} ; then
 #   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
 
   cd $atm_to_cam_path/perturb
+
   set +e
 
   ## Add perturbations to SST file
   sstFileIC_WPERT=${sstFileIC}_PERT.nc
   (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
      'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' \
-     'pthi="'${perturb_namelist}'"' )
-
-  if [[ $? -ne 9 ]]
-  then
-    echo "NCL exited with non-9 error code"
-    exit 240
-  fi
+     'pthi="'${perturb_namelist}'"' ) ; exit_status=$?
+  check_ncl_exit "add_perturbations_to_sst.ncl" $exit_status
   echo "SST perturbations added successfully"
 
   ## Add perturbations to ATM file
   sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
   (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
      'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
-     'pthi="'${perturb_namelist}'"' )
-
-  if [[ $? -ne 9 ]]
-  then
-   echo "NCL exited with non-9 error code"
-   exit 240
-  fi
+     'pthi="'${perturb_namelist}'"' ) ; exit_status=$?
+  check_ncl_exit "add_perturbations_to_cam.ncl" $exit_status
   echo "ATM NCL completed successfully"
 
   set -e # Turn error checking back on
@@ -892,6 +892,8 @@ fi
 
 echo "Turning off archiving and restart file output in env_run.xml"
 ./xmlchange DOUT_S=FALSE,REST_OPTION=nyears,REST_N=9999
+echo "Setting SST domain file"
+./xmlchange SSTICE_GRID_FILENAME="${sst_domain_file}"
 echo "Setting SST from default to our SST"
 ./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
 echo "Setting GLC coupling to handle forecasts across calendar years"
@@ -985,11 +987,8 @@ if $doFilter ; then
     (set -x; ncl lowmemfilter.ncl \
      endhour=${filterHourLength} tcut=${filtTcut} \
     'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
-    'writefile_name = "'${sePostFilterIC}'"' )
-    if [[ $? -ne 9 ]] ; then
-      echo "NCL exited with non-9 error code"
-      exit 240
-    fi
+    'writefile_name = "'${sePostFilterIC}'"' ) ; exit_status=$?
+    check_ncl_exit "lowmemfilter.ncl" $exit_status
     set -e
   fi  # debug
 
