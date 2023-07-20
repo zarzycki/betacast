@@ -4,7 +4,6 @@ load "helpers.ncl"
 
 begin
 
-;wcStrt = systemfunc("date")
 quote  = inttochar(34)
 wcStrt = systemfunc("date "+quote+"+%a %b %d %T %Z %Y"+quote)
 
@@ -1009,13 +1008,26 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
   end if
 
   ; check number of columns corrected
-  vert_corrs = 0
+  vert_corrs=0
   tcorriter=0
+  correct_or_not=topo_data_SE
+  correct_or_not=0
 
   do kk = 0,ncol-1
     if (.not.ismissing(sfct_data_SE(kk)))  ; check if missing (useful for regional data)
-      ; get difference in geopotential
+
+      if (mod(kk,10000) .eq. 0) then
+        percentage = 100. * (tofloat(kk) / tofloat(ncol-1))
+        print("Done with "+percentage+" %  of correction loop")
+      end if
+
+      ; get difference in geopotential, skip if difference is small
       deltaPhi = topo_data_SE(kk) - topo_model_SE(kk)
+      if (abs(deltaPhi) .lt. 10.0) then
+        continue
+      end if
+
+      correct_or_not(kk)=1
 
       ; estimate "model's" surface temperature
       Tsfc_fv = sfct_data_SE(kk) + gamma_s * (deltaPhi / grav)
@@ -1045,9 +1057,9 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
       beta = exp( tofloat(deltaPhi) / tofloat(Rd) / tofloat(Tlayermean) )
       ps_fv(kk) = ps_fv(kk) * beta
 
-      if (mod(kk,10000) .eq. 0) then
-        print("Correcting PS: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
-      end if
+      ;if (mod(kk,10000) .eq. 0) then
+      ;  print("Correcting PS: "+kk+" of "+(ncol-1)+"   from "+ps_orig+" to "+ps_fv(kk))
+      ;end if
 
       ; correct T by shifting Tbot "down" the same delta
       if (tempadjustflag .eq. "a")
@@ -1061,9 +1073,9 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
           t_orig = t_fv(nlev-1,kk)
           delT = Tsfc_fv - sfct_data_SE(kk)
           t_fv(nlev-1,kk) = t_fv(nlev-1,kk) + tofloat(delT)
-          if (mod(kk,10000) .eq. 0) then
-            print("Correcting TBOT: "+kk+" of "+(ncol-1)+"   from "+t_orig+" to "+t_fv(nlev-1,kk))
-          end if
+          ;if (mod(kk,10000) .eq. 0) then
+          ;  print("Correcting TBOT: "+kk+" of "+(ncol-1)+"   from "+t_orig+" to "+t_fv(nlev-1,kk))
+          ;end if
         end if
       end if
 
@@ -1166,6 +1178,9 @@ if (dycore .eq. "fv") then
   v_fv := ncol_to_latlon(v_fv,dim_sePS(0),dim_sePS(1))
   cldice_fv := ncol_to_latlon(cldice_fv,dim_sePS(0),dim_sePS(1))
   cldliq_fv := ncol_to_latlon(cldliq_fv,dim_sePS(0),dim_sePS(1))
+  if (isvar("correct_or_not"))
+    correct_or_not := ncol_to_latlon(correct_or_not,dim_sePS(0),dim_sePS(1))
+  end if
 end if
 
 
@@ -1191,6 +1206,11 @@ if (dycore .eq. "se") then
   selon@_FillValue = -900.
   selon@long_name = "longitude"
   selon@units = "degrees_east"
+
+  ; set settings for debug vars
+  if (isvar("correct_or_not"))
+    correct_or_not!0 = "ncol"
+  end if
 
 else if (dycore .eq. "fv") then
 
@@ -1253,6 +1273,14 @@ else if (dycore .eq. "fv") then
   slon&slon=slon
   slon@units="degrees_east"
 
+  ; set settings for debug vars
+  if (isvar("correct_or_not"))
+    correct_or_not!0 = "lat"
+    correct_or_not!1 = "lon"
+    correct_or_not&lat=lat
+    correct_or_not&lat=lat
+  end if
+
 else
   print("unsupported dycore")
   exit
@@ -1271,7 +1299,8 @@ q_fv_dbl_time=where(q_fv_dbl_time.gt.qthresh,0.0,q_fv_dbl_time)
 qthresh=1.0e-12
 q_fv_dbl_time=where(q_fv_dbl_time.le.qthresh,0.0,q_fv_dbl_time)
 if(any(ismissing(q_fv_dbl_time))) then
-  print("Q is missing data...")
+  print("WARNING: Q is missing data...")
+  print("This is expected for a regional dataset, but not desirable for a global one")
 end if
 if (datasource .ne. "RAP" .and. datasource .ne. "HWRF") then
   print("Filling q in global dataset")
@@ -1397,6 +1426,9 @@ if (add_cloud_vars) then
   filevardef(fout, "CLDLIQ",typeof(cldliq_fv_dbl_time),getvardims(cldliq_fv_dbl_time))
   filevardef(fout, "CLDICE",typeof(cldice_fv_dbl_time),getvardims(cldice_fv_dbl_time))
 end if
+if (isvar("correct_or_not"))
+  filevardef(fout, "correct_or_not",typeof(correct_or_not),getvardims(correct_or_not))
+end if
 
 ;====================================================================
 ; Copy attributes associated with each variable to the file
@@ -1431,6 +1463,9 @@ if (add_cloud_vars) then
   filevarattdef(fout,"CLDLIQ",cldliq_fv_dbl_time)
   filevarattdef(fout,"CLDICE",cldice_fv_dbl_time)
 end if
+if (isvar("correct_or_not"))
+  filevarattdef(fout,"correct_or_not",correct_or_not)
+end if
 ;===================================================================
 ; explicitly exit file definition mode. **NOT REQUIRED**
 ;===================================================================
@@ -1453,6 +1488,9 @@ fout->Q      = (/q_fv_dbl_time/)
 if (add_cloud_vars) then
   fout->CLDLIQ  = (/cldliq_fv_dbl_time/)
   fout->CLDICE  = (/cldice_fv_dbl_time/)
+end if
+if (isvar("correct_or_not"))
+  fout->correct_or_not   = (/correct_or_not/)
 end if
 fout->hyam   = (/hya/)
 fout->hybm    = (/hyb/)
