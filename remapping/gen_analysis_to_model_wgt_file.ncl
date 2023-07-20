@@ -6,13 +6,13 @@ begin
 ; ============= User settings
 
 ; hrrr_3km_scrip.nc, era5_0.25x0.25, gfs_0.50x0.50, gfs_0.25x0.25, rap_13km, hrrr_3km, hwrf_storm
-anlgrid="gfs_0.25x0.25"
+anlgrid="era5_0.25x0.25"
 anlgridpath="./anl_scrip/"
 
 ; shortname for grid (for naming purposes)
-dstGridName="ne120np4"
+dstGridName="Guam_ne128x8_lon145W_lat15N_np4"
 ; full path to model SCRIP file
-dstGridFile="/glade/work/zarzycki/grids/scrip/ne120np4_SCRIP.nc"
+dstGridFile="/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/grids/scrip/Guam_ne128x8_lon145W_lat15N_np4_SCRIP.nc"
 ;dstGridFile="./model_scrip/ne30np4_091226_pentagons.nc"
 ;dstGridFile="/glade/work/zarzycki/grids/scrip/ne0np4natlanticwat.ne30x4.g_scrip.nc"
 ;dstGridFile="./rrm.x4_ESMF.nc"
@@ -170,4 +170,6 @@ end if
 
 print("successfully generated...   "+wgtFileDir+"/"+wgtFileName)
 
+print("done")
+status_exit(9)
 end

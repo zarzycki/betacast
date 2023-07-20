@@ -55,4 +55,6 @@ Opt@Title          = metatitle
 
 rectilinear_to_SCRIP(dstDir+"/"+dstGridName,lat,lon,Opt)
 
+print("done")
+status_exit(9)
 end
