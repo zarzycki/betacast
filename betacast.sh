@@ -93,6 +93,9 @@ if [ -z ${FILTERWALLCLOCK+x} ]; then FILTERWALLCLOCK="00:29:00"; fi
 if [ -z ${FILTERQUEUE+x} ]; then FILTERQUEUE="batch"; fi
 if [ -z ${use_nsplit+x} ]; then use_nsplit="true"; fi
 
+
+
+
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
 if [ $modelSystem -eq 0 ]; then
@@ -113,6 +116,10 @@ else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
 fi
+
+# Are we running with frankengrid?
+do_frankengrid="false"
+if [ -n ${regional_src+x} ]; then do_frankengrid="true"; fi
 
 # Figure out where to archive
 if [ -z ${ARCHIVEDIR+x} ] || [[ -z "${ARCHIVEDIR// }" ]] ; then
@@ -677,6 +684,58 @@ if [ $debug = false ] ; then
   # be safe and call everything non-9.
   check_ncl_exit "atm_to_cam.ncl" $exit_status
   set -e # Turn error checking back on
+
+  if ${do_frankengrid} ; then
+
+    # Fill in "templated" information from regional_src
+    regional_src=${regional_src/YYYY/$yearstr}
+    regional_src=${regional_src/MM/$monthstr}
+    regional_src=${regional_src/DD/$daystr}
+    regional_src=${regional_src/HH/$cyclestr}
+
+    echo "Doing Frankengrid with $regional_src"
+
+    TMPWGTFILE="./map_hwrf_storm_TO_modelgrid_patc.nc"
+
+    set +e # Turn error checking off for NCL
+    echo "Generating a temporary SCRIP file for HWRF"
+    (set -x; ncl ../remapping/gen_reglatlon_SCRIP.ncl \
+      'DSTGRIDNAME="hwrf_storm_scrip.nc"' \
+      'DSTDIR="./"' \
+      'SRCFILENAME="'${regional_src}'"' ) ; exit_status=$?
+    check_ncl_exit "gen_reglatlon_SCRIP.ncl" $exit_status
+
+    echo "Generating a temporary map file for HWRF"
+    (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
+      'ANLGRID="hwrf_storm"' \
+      'DSTGRIDNAME="modelgrid"' \
+      'ANLGRIDPATH="./"' \
+      'WGTFILEDIR="./"' \
+      'DSTGRIDFILE="'${model_scrip}'"' ) ; exit_status=$?
+    check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
+
+    echo "Generating regional Frankengrid for HWRF"
+    (set -x; ncl -n atm_to_cam.ncl 'datasource="HWRF"' \
+      'dycore="'${DYCORE}'"' \
+      numlevels=${numLevels} \
+      YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+      'data_filename = "'${regional_src}'"' \
+      'wgt_filename="'${TMPWGTFILE}'"' \
+      'adjust_config=""' \
+      'se_inic = "'${sePreFilterIC}_reg.nc'"' ) ; exit_status=$?
+    check_ncl_exit "atm_to_cam.ncl" $exit_status
+    set -e # Turn error checking back on
+
+    echo "Overlay regional file on top of basefile"
+    cp -v ${sePreFilterIC} ${sePreFilterIC}_base.nc
+    python overlay.py "${sePreFilterIC}" "${sePreFilterIC}_reg.nc" --maxLev 80.
+
+    echo "Cleaning up temporary ESMF files"
+    rm -v $TMPWGTFILE
+    rm -v hwrf_storm_scrip.nc
+    rm -v ${sePreFilterIC}_reg.nc
+
+  fi
 
 fi #End debug if statement
 
