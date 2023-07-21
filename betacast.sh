@@ -358,6 +358,7 @@ echo "DYCORE: "$DYCORE
 if [ $debug = false ] ; then
 ############################### GET ATM DATA ###############################
   RDADIR=""
+  ERA5RDA=0 # Set whether or not ERA5 is local (0 = local, 1 = RDA)
 
   if [ $atmDataType -eq 1 ] ; then
     echo "Using GFS forecast ICs"
@@ -457,7 +458,6 @@ if [ $debug = false ] ; then
     mkdir -p $era_files_path
     cd $era_files_path
     LOCALGFSFILE=ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-    ERA5RDA=0  # Set whether or not ERA5 is local (0 = local, 1 = RDA)
     if [ ! -f ${LOCALGFSFILE} ]; then
       echo "cannot find: ${era_files_path}/${LOCALGFSFILE}"
       if [[ "$MACHINEFILE" == *cheyenne* ]]; then
