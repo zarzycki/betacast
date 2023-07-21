@@ -569,13 +569,15 @@ if [ $debug = false ] ; then
     set -e
   fi
   set +e
-  (set -x; ncl sst_interp.ncl 'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
-    predict_docn=${INT_PREDICT_DOCN} \
-    'inputres="'${docnres}'"' \
-    'datasource="'${SSTTYPE}'"' \
-    'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
-    'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
-    'SST_write_file = "'${sstFileIC}'"' ) ; exit_status=$?
+  (set -x; ncl sst_interp.ncl \
+      'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
+      predict_docn=${INT_PREDICT_DOCN} \
+      'inputres="'${docnres}'"' \
+      'datasource="'${SSTTYPE}'"' \
+      'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
+      'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
+      'SST_write_file = "'${sstFileIC}'"' \
+      ) ; exit_status=$?
   check_ncl_exit "sst_interp.ncl" $exit_status
   set -e # Turn error checking back on
 
@@ -1211,12 +1213,7 @@ fi
 
 # Timing statistics
 script_end=$(date +%s)
-script_elapsed=$((script_end - script_start))
-elapsed_days=$((script_elapsed/86400))
-elapsed_hours=$((script_elapsed/3600%24))
-elapsed_minutes=$((script_elapsed/60%60))
-elapsed_seconds=$((script_elapsed%60))
-echo "Time elapsed: $elapsed_days days, $elapsed_hours hours, $elapsed_minutes minutes, $elapsed_seconds seconds"
+print_elapsed_time "$script_start" "$script_end"
 
 ### If not live and the run has made it here successively, delete top line of datesfile
 if [ $islive = false ] ; then

@@ -7,7 +7,7 @@
 # Usage: dump_vars 1
 # Creates vars001.txt
 function dump_vars {
-  N=$(printf "%03d" $1)
+  local N=$(printf "%03d" $1)
   set | awk -F= '/^\w/ {print $1}' > "vars${N}.txt"
 }
 
@@ -440,3 +440,21 @@ delete_leftovers () {
   rm -f -v *initial_hist*.nc
   )
 }
+
+# Usage:
+# script_start=$(date +%s)
+# script_end=$(date +%s)
+# print_elapsed_time "$script_start" "$script_end"
+function print_elapsed_time() {
+    local time_start=$1
+    local time_end=$2
+
+    local time_elapsed=$((time_end - time_start))
+    local elapsed_days=$((time_elapsed/86400))
+    local elapsed_hours=$((time_elapsed/3600%24))
+    local elapsed_minutes=$((time_elapsed/60%60))
+    local elapsed_seconds=$((time_elapsed%60))
+
+    echo "TIME ELAPSED: $elapsed_days days, $elapsed_hours hours, $elapsed_minutes minutes, $elapsed_seconds seconds"
+}
+
