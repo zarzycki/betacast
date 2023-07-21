@@ -357,6 +357,7 @@ echo "DYCORE: "$DYCORE
 
 if [ $debug = false ] ; then
 ############################### GET ATM DATA ###############################
+  RDADIR=""
 
   if [ $atmDataType -eq 1 ] ; then
     echo "Using GFS forecast ICs"
@@ -579,79 +580,42 @@ if [ $debug = false ] ; then
 
   ############################### ATM NCL ###############################
 
+  declare -A atm_data_sources=(
+    ["1"]="GFS"
+    ["2"]="ERAI"
+    ["3"]="CFSR"
+    ["4"]="ERA5"
+  )
+
+  declare -A atm_file_paths=(
+    ["1"]="${gfs_files_path}/gfs_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
+    ["2"]="${era_files_path}/ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
+    ["3"]="${gfs_files_path}/cfsr_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
+    ["4"]="${era_files_path}/ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
+  )
+
+  if [ $ERA5RDA -eq 1 ] ; then
+    atm_file_paths["4"]="${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
+  fi
+
+  echo "cd'ing to interpolation directory"
+  cd $atm_to_cam_path
+  echo "Doing atm_to_cam"
   set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
-  ### We can probably clean this up by merging the above sed commands into command line arguments
-  ### then put this if/else statement up inside the whole get data structure above
-  if [ $atmDataType -eq 1 ] ; then
-    echo "Cding to GFS interpolation directory"
-    cd $atm_to_cam_path
-    echo "Doing NCL"
-    (set -x; ncl -n atm_to_cam.ncl 'datasource="GFS"'     \
-        numlevels=${numLevels} \
-        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-         'dycore="'${DYCORE}'"' \
-       'data_filename = "'$gfs_files_path'/gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
-       'wgt_filename="'${anl2mdlWeights}'"' \
-       'model_topo_file="'${adjust_topo-}'"' \
-       'adjust_config="'${adjust_flags-}'"' \
-       'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
-  elif [ $atmDataType -eq 2 ] ; then
-    echo "CD ing to ERA-interim interpolation directory"
-    cd $atm_to_cam_path
-    (set -x; ncl -n atm_to_cam.ncl 'datasource="ERAI"'     \
-        numlevels=${numLevels} \
-        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-         'dycore="'${DYCORE}'"' \
-       'data_filename = "/glade/p/work/zarzycki/getECMWFdata/ERA-Int_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
-       'wgt_filename="/glade/p/work/zarzycki/getECMWFdata/ERA_to_uniform_60_patch.nc"' \
-       'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
-  elif [ $atmDataType -eq 3 ] ; then
-    echo "CD ing to interpolation directory"
-    cd $atm_to_cam_path
-    (set -x; ncl -n atm_to_cam.ncl 'datasource="CFSR"'     \
+  (set -x; ncl -n atm_to_cam.ncl \
+      'datasource="'${atm_data_sources[$atmDataType]}'"' \
       numlevels=${numLevels} \
       YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-     'dycore="'${DYCORE}'"' \
-     'data_filename = "'$gfs_files_path'/cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2"'  \
-     'wgt_filename="'${anl2mdlWeights}'"' \
-     'model_topo_file="'${adjust_topo-}'"' \
-     'adjust_config="'${adjust_flags-}'"' \
-     'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
-  elif [ $atmDataType -eq 4 ] ; then
-    echo "CD ing to ERA5 interpolation directory"
-    cd $atm_to_cam_path
-    if [ $ERA5RDA -eq 1 ] ; then
-      (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5RDA"'     \
-          numlevels=${numLevels} \
-          YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-         'dycore="'${DYCORE}'"' \
-         'data_filename = "'${RDADIR}'/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"'  \
-         'RDADIR="'${RDADIR}'"' \
-         'wgt_filename="'${anl2mdlWeights}'"' \
-         'model_topo_file="'${adjust_topo-}'"' \
-         'adjust_config="'${adjust_flags-}'"' \
-         'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
-    else
-      (set -x; ncl -n atm_to_cam.ncl 'datasource="ERA5"'     \
-          numlevels=${numLevels} \
-          YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-         'dycore="'${DYCORE}'"' \
-         'data_filename = "'$era_files_path'/ERA5_'$yearstr$monthstr$daystr$cyclestr'.nc"'  \
-         'wgt_filename="'${anl2mdlWeights}'"' \
-         'model_topo_file="'${adjust_topo-}'"' \
-         'adjust_config="'${adjust_flags-}'"' \
-         'se_inic = "'${sePreFilterIC}'"' ) ; exit_status=$?
-    fi
-  else
-    echo "Incorrect model IC entered"
-    exit 1
-  fi
-  # Since NCL doesn't return non-zero codes, I have NCL returning a non-zero code
-  # if successful! However, this means we have to check if code is successful with
-  # something other than zero. Generally, if NCL fails expect a 0 return, but lets
-  # be safe and call everything non-9.
+      'dycore="'${DYCORE}'"' \
+      'data_filename="'${atm_file_paths[$atmDataType]}'"' \
+      'RDADIR="'${RDADIR}'"' \
+      'wgt_filename="'${anl2mdlWeights}'"' \
+      'model_topo_file="'${adjust_topo-}'"' \
+      'adjust_config="'${adjust_flags-}'"' \
+      'se_inic = "'${sePreFilterIC}'"'
+      ) ; exit_status=$?
   check_ncl_exit "atm_to_cam.ncl" $exit_status
-  set -e # Turn error checking back on
+  set -e
 
   if ${do_frankengrid} ; then
 
