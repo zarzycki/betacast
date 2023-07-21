@@ -67,7 +67,7 @@ newfiles=`ls ${runDir}/_*h0*-00000.nc ${runDir}/_*h0*-21600.nc ${runDir}/_*h0*-4
 for f in $newfiles; do
   echo "Processing $f"
   ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec iniday=$daystr inimon=$monthstr iniyear=$yearstr 'filename="'${f}'"' 'wgt_file="'${nclweightfile}'"' > ncl.output 2>&1
-  if [ grep FileReadVar ncl.output ]; then
+  if grep -q "FileReadVar" ncl.output; then
     sleep 5
     echo "Found an error"
     ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec iniday=$daystr inimon=$monthstr iniyear=$yearstr 'filename="'${f}'"' 'wgt_file="'${nclweightfile}'"'
