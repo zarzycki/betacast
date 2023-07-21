@@ -13,6 +13,20 @@ function dump_vars {
 
 ### -----------------------------------------------------------------------------------
 
+check_python_dependency() {
+  local PKG_NAME=$1
+  if python -c "import pkgutil; exit(not pkgutil.find_loader('$PKG_NAME'))"; then
+    echo "CHECK_PYTHON_DEPS: $PKG_NAME found"
+  else
+    echo "CHECK_PYTHON_DEPS: $PKG_NAME NOT found"
+    echo "$> conda install $PKG_NAME"
+    echo "or otherwise... exiting..."
+    exit 24
+  fi
+}
+
+### -----------------------------------------------------------------------------------
+
 # Strip surrounding quotes from string [$1: variable name]
 function strip_quotes() {
   local -n var="$1"

@@ -28,6 +28,7 @@
 # doi:10.1175/MWR-D-15-0159.1.
 ###################################################################################
 
+script_start=$(date +%s)
 set -e
 #set -v
 
@@ -117,7 +118,7 @@ fi
 # Are we running with frankengrid?
 do_frankengrid=false
 if [ -n "${regional_src+x}" ]; then do_frankengrid=true ; fi
-echo "********* do_frankengrid set to: $do_frankengrid"
+echo "do_frankengrid set to: $do_frankengrid"
 
 # Figure out where to archive
 if [ -z ${ARCHIVEDIR+x} ] || [[ -z "${ARCHIVEDIR// }" ]] ; then
@@ -166,6 +167,16 @@ if ! type ncks &> /dev/null ; then
   echo "WARNING: ncks does not exist, cannot compress. Setting compress_history_nc to 0 (false)"
   echo "WARNING: if you'd like remedy, make sure ncks is in your path when betacast.sh is invoked"
   compress_history_nc=0
+fi
+
+# Check Python version for 3+
+python -c 'import sys; exit(sys.version_info.major != 3)' && echo "CHECK_PYTHON: Python 3 found" || { echo "CHECK_PYTHON: Please install Python 3+"; exit 25; }
+
+# Check Python package dependencies
+if ${do_frankengrid} ; then
+  check_python_dependency numpy
+  check_python_dependency netCDF4
+  check_python_dependency sklearn
 fi
 
 # Adjust bools (for backwards compatibility, 0 = false and 1 = true)
@@ -219,13 +230,15 @@ uniqtime=$(date +"%s%N")
 
 echo "We are using ${casename} for the case"
 
+# Get the current time
+currtime=$(date -u +%H%M)
+
 if [ $islive = true ] ; then    # Find most recent GFS forecast
   ## Here we get two digit strings for UTC time for month, day, year
   ## We also get current time in hoursminutes (because the GFS output lags by 3.5 hours)
   monthstr=$(date -u +%m)
   daystr=$(date -u +%d)
   yearstr=$(date -u +%Y)
-  currtime=$(date -u +%H%M)
 
   ## Use currtime to figure out what is the latest cycle we have access to
   if [ $currtime -lt 0328 ] ; then
@@ -1231,6 +1244,15 @@ if $tararchivedir ; then
   rm -rfv ${ARCHIVEDIR}/${ARCHIVESUBDIR} || true
 fi
 
+# Timing statistics
+script_end=$(date +%s)
+script_elapsed=$((script_end - script_start))
+elapsed_days=$((script_elapsed/86400))
+elapsed_hours=$((script_elapsed/3600%24))
+elapsed_minutes=$((script_elapsed/60%60))
+elapsed_seconds=$((script_elapsed%60))
+echo "Time elapsed: $elapsed_days days, $elapsed_hours hours, $elapsed_minutes minutes, $elapsed_seconds seconds"
+
 ### If not live and the run has made it here successively, delete top line of datesfile
 if [ $islive = false ] ; then
   cd ${sewxscriptsdir}
@@ -1245,6 +1267,6 @@ if [ $islive = false ] ; then
   fi
 fi
 
-echo "DONE"
+echo "DONE at $(date)"
 
 exit 0
