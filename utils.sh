@@ -2,6 +2,17 @@
 
 ### -----------------------------------------------------------------------------------
 
+# This function allows you to create "checkpoints" in the driver script to see
+# what vars are being defined globally in each block of code.
+# Usage: dump_vars 1
+# Creates vars001.txt
+function dump_vars {
+  N=$(printf "%03d" $1)
+  set | awk -F= '/^\w/ {print $1}' > "vars${N}.txt"
+}
+
+### -----------------------------------------------------------------------------------
+
 # Strip surrounding quotes from string [$1: variable name]
 function strip_quotes() {
   local -n var="$1"
@@ -13,11 +24,10 @@ function strip_quotes() {
 # Usage: check_bool "do_tracking" $do_tracking
 check_bool() {
 
-  local cborig
+  local var_string=$1
+  local var_totest=$2
+  local cborig=$2
   local cbnew
-  var_string=$1
-  var_totest=$2
-  cborig=$2
 
   # Convert to lowercase
   var_totest=$(echo ${var_totest,,})
@@ -91,6 +101,7 @@ function exit_file_no_exist() {
 
 # Usage: exit_files_no_exist $path_to_case/SourceMods/src.${lndName}/lnd_comp_mct.F90 $path_to_case/SourceMods/src.${lndName}/lnd_comp_nuopc.F90
 function exit_files_no_exist() {
+  local checkthisfile
   for checkthisfile in "$@"; do
     if [ -f "$checkthisfile" ]; then
       return 0  # Exit the function, not the script, as soon as we find an existing file
@@ -158,6 +169,58 @@ get_cyclestrsec () {
   do
     cyclestrsec="0"$cyclestrsec
   done
+}
+
+
+
+function getSSTtime() {
+  local islive=$1
+  local currtime=$2
+  local monthstr=$3
+  local daystr=$4
+  local yearstr=$5
+  local cyclestr=$6
+
+  if [ $islive = true ] ; then
+    ## Use currtime to figure out what SST we can download
+    ## Current GDAS SST appears 555 after cycle time
+    ## First guess is today's dates!
+    sstmonthstr=$monthstr
+    sstdaystr=$daystr
+    sstyearstr=$yearstr
+    if [ $currtime -lt 0555 ] ; then
+      echo "SSTs are previous days 18Z"
+      sstmonthstr=$(date --date="yesterday" -u +%m)
+      sstdaystr=$(date --date="yesterday" -u +%d)
+      sstyearstr=$(date --date="yesterday" -u +%Y)
+      sstcyclestr=18
+    elif [ $currtime -lt 1155 ] ; then
+      echo "SSTs are current days 00Z"
+      sstcyclestr=00
+    elif [ $currtime -lt 1755 ] ; then
+      echo "SSTs are current days 06Z"
+      sstcyclestr=06
+    elif [ $currtime -lt 2355 ] ; then
+      echo "SSTs are current days 12Z"
+      sstcyclestr=12
+    elif [ $currtime -ge 2355 ] ; then
+      echo "SSTs are current days 18Z"
+      sstcyclestr=18
+    else
+      echo "Can't figure out start time"
+      exit 1
+    fi
+  else
+    sstmonthstr=$monthstr
+    sstdaystr=$daystr
+    sstyearstr=$yearstr
+    sstcyclestr=$cyclestr
+  fi
+  # Global variables set:
+  # sstmonthstr
+  # sstdaystr
+  # sstyearstr
+  # sstcyclestr
 }
 
 

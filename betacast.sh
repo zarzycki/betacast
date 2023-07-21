@@ -94,8 +94,6 @@ if [ -z ${FILTERQUEUE+x} ]; then FILTERQUEUE="batch"; fi
 if [ -z ${use_nsplit+x} ]; then use_nsplit="true"; fi
 
 
-
-
 ### Set correct E3SM/CESM split
 if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
 if [ $modelSystem -eq 0 ]; then
@@ -171,14 +169,12 @@ if ! type ncks &> /dev/null ; then
 fi
 
 # Adjust bools (for backwards compatibility, 0 = false and 1 = true)
-check_bool "islive" $islive
-check_bool "debug" $debug
-check_bool "do_runoff" $do_runoff
-check_bool "keep_land_restarts" $keep_land_restarts
-check_bool "predict_docn" $predict_docn
-check_bool "archive_inic" $archive_inic
-check_bool "compress_history_nc" $compress_history_nc
-check_bool "override_rest_check" $override_rest_check
+bools_to_check=("islive" "debug" "doFilter" "filterOnly" "do_runoff" "keep_land_restarts"
+       "predict_docn" "archive_inic" "compress_history_nc" "override_rest_check"
+       "tararchivedir" "save_nudging_files" "add_vortex")
+for bool_to_check in ${bools_to_check[@]}; do
+  check_bool $bool_to_check ${!bool_to_check}
+done
 
 if [ $override_rest_check = false ]; then
   echo "Checking for SourceMods permiting additional restart writes for land model"
@@ -230,8 +226,6 @@ if [ $islive = true ] ; then    # Find most recent GFS forecast
   daystr=$(date -u +%d)
   yearstr=$(date -u +%Y)
   currtime=$(date -u +%H%M)
-  machzone=$(date +%z)
-  twodaysago=$(date --date='2 days ago' -u +"%Y%m%d")
 
   ## Use currtime to figure out what is the latest cycle we have access to
   if [ $currtime -lt 0328 ] ; then
@@ -239,7 +233,6 @@ if [ $islive = true ] ; then    # Find most recent GFS forecast
     monthstr=$(date --date="yesterday" -u +%m)
     daystr=$(date --date="yesterday" -u +%d)
     yearstr=$(date --date="yesterday" -u +%Y)
-    twodaysago=$(date --date='3 days ago' -u +"%Y%m%d")
     cyclestr=12
   elif [ $currtime -lt 0928 ] ; then
     echo "00Z cycle"
@@ -305,6 +298,7 @@ fi
 get_cyclestrsec "$cyclestr"
 
 ## Figure out what the SE start time will be after filter
+## These values are *only* used if do_filter is true
 if [ $numHoursSEStart -lt 6 ] ; then
   let se_cyclestr=$cyclestr+03
   while [ ${#se_cyclestr} -lt 2 ];
@@ -325,46 +319,8 @@ else
   exit 1
 fi
 
-if [ $islive = true ] ; then
-  ## Use currtime to figure out what SST we can download
-  ## Current GDAS SST appears 555 after cycle time
-  ## First guess is today's dates!
-  sstmonthstr=$monthstr
-  sstdaystr=$daystr
-  sstyearstr=$yearstr
-  if [ $currtime -lt 0555 ]
-  then
-    echo "SSTs are previous days 18Z"
-    sstmonthstr=$(date --date="yesterday" -u +%m)
-    sstdaystr=$(date --date="yesterday" -u +%d)
-    sstyearstr=$(date --date="yesterday" -u +%Y)
-    sstcyclestr=18
-  elif [ $currtime -lt 1155 ]
-  then
-    echo "SSTs are current days 00Z"
-    sstcyclestr=00
-  elif [ $currtime -lt 1755 ]
-  then
-    echo "SSTs are current days 06Z"
-    sstcyclestr=06
-  elif [ $currtime -lt 2355 ]
-  then
-    echo "SSTs are current days 12Z"
-    sstcyclestr=12
-  elif [ $currtime -ge 2355 ]
-  then
-    echo "SSTs are current days 18Z"
-    sstcyclestr=18
-  else
-    echo "Can't figure out start time"
-    exit 1
-  fi
-else
-  sstmonthstr=$monthstr
-  sstdaystr=$daystr
-  sstyearstr=$yearstr
-  sstcyclestr=$cyclestr
-fi
+# Get time for pulling SST
+getSSTtime $islive $currtime $monthstr $daystr $yearstr $cyclestr
 
 yestmonthstr=$(date --date="yesterday" -u +%m)
 yestdaystr=$(date --date="yesterday" -u +%d)
@@ -520,7 +476,6 @@ if [ $debug = false ] ; then
     if [ $islive = true ] ; then
       # Here is where we get the "live" GDAS SST file
       rm -f gdas1*sstgrb*
-      #sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/sst.${yestyearstr}${yestmonthstr}${yestdaystr}/
       sstFTPPath=ftp://ftp.ncep.noaa.gov//pub/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/
       sstFTPFile='rtgssthr_grb_0.5.grib2'
       echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
