@@ -357,11 +357,12 @@ echo "DYCORE: "$DYCORE
 
 if [ $debug = false ] ; then
 ############################### GET ATM DATA ###############################
-  RDADIR=""
+
+  # Initialize any "global" variables needed when getting atmospheric data
+  RDADIR="" # Init to empty, but fill in if RDA available later
   ERA5RDA=0 # Set whether or not ERA5 is local (0 = local, 1 = RDA)
 
   if [ $atmDataType -eq 1 ] ; then
-    echo "Using GFS forecast ICs"
     echo "Getting GFS conditions"
     mkdir -p $gfs_files_path
     cd $gfs_files_path
@@ -580,13 +581,13 @@ if [ $debug = false ] ; then
 
   ############################### ATM NCL ###############################
 
+  # The keys are $atmDataType
   declare -A atm_data_sources=(
     ["1"]="GFS"
     ["2"]="ERAI"
     ["3"]="CFSR"
     ["4"]="ERA5"
   )
-
   declare -A atm_file_paths=(
     ["1"]="${gfs_files_path}/gfs_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
     ["2"]="${era_files_path}/ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
@@ -594,12 +595,12 @@ if [ $debug = false ] ; then
     ["4"]="${era_files_path}/ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
   )
 
+  # If ERA5RDA flag toggled, set value w/ key to RDA data
   if [ $ERA5RDA -eq 1 ] ; then
     atm_file_paths["4"]="${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
   fi
 
-  echo "cd'ing to interpolation directory"
-  cd $atm_to_cam_path
+  cd $atm_to_cam_path ; echo "cd'ing to interpolation directory"
   echo "Doing atm_to_cam"
   set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
   (set -x; ncl -n atm_to_cam.ncl \
