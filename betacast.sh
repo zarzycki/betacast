@@ -70,32 +70,31 @@ filter_path=${sewxscriptsdir}/filter
 ###################################################################################
 
 ### setting variables not included in namelist for backwards compat
-if [ -z ${CIMEbatchargs+x} ]; then CIMEbatchargs=""; fi
-if [ -z ${do_runoff+x} ]; then do_runoff=false; fi
-if [ -z ${keep_land_restarts+x} ]; then keep_land_restarts=true; fi
-if [ -z ${perturb_namelist+x} ]; then perturb_namelist=""; fi
-if [ -z ${predict_docn+x} ]; then predict_docn=false; fi
-if [ -z ${archive_inic+x} ]; then archive_inic=false; fi
-if [ -z ${compress_history_nc+x} ]; then compress_history_nc=true; fi
-if [ -z ${add_vortex+x} ]; then add_vortex=false; fi
-if [ -z ${vortex_namelist+x} ]; then vortex_namelist=""; fi
-if [ -z ${save_nudging_files+x} ]; then save_nudging_files=false; fi
-if [ -z ${override_rest_check+x} ]; then override_rest_check=false; fi
-if [ -z ${tararchivedir+x} ]; then tararchivedir=true; fi
-if [ -z ${docnres+x} ]; then docnres="180x360"; fi
+if [ -z "${CIMEbatchargs+x}" ]; then CIMEbatchargs=""; fi
+if [ -z "${do_runoff+x}" ]; then do_runoff=false; fi
+if [ -z "${keep_land_restarts+x}" ]; then keep_land_restarts=true; fi
+if [ -z "${perturb_namelist+x}" ]; then perturb_namelist=""; fi
+if [ -z "${predict_docn+x}" ]; then predict_docn=false; fi
+if [ -z "${archive_inic+x}" ]; then archive_inic=false; fi
+if [ -z "${compress_history_nc+x}" ]; then compress_history_nc=true; fi
+if [ -z "${add_vortex+x}" ]; then add_vortex=false; fi
+if [ -z "${vortex_namelist+x}" ]; then vortex_namelist=""; fi
+if [ -z "${save_nudging_files+x}" ]; then save_nudging_files=false; fi
+if [ -z "${override_rest_check+x}" ]; then override_rest_check=false; fi
+if [ -z "${tararchivedir+x}" ]; then tararchivedir=true; fi
+if [ -z "${docnres+x}" ]; then docnres="180x360"; fi
 ### Some defaults infrequently set
-if [ -z ${doFilter+x} ]; then doFilter=false; fi
-if [ -z ${filterOnly+x} ]; then filterOnly=false; fi
-if [ -z ${numHoursSEStart+x} ]; then numHoursSEStart=3; fi
-if [ -z ${filterHourLength+x} ]; then filterHourLength=6; fi
-if [ -z ${filtTcut+x} ]; then filtTcut=6; fi
-if [ -z ${FILTERWALLCLOCK+x} ]; then FILTERWALLCLOCK="00:29:00"; fi
-if [ -z ${FILTERQUEUE+x} ]; then FILTERQUEUE="batch"; fi
-if [ -z ${use_nsplit+x} ]; then use_nsplit="true"; fi
-
+if [ -z "${doFilter+x}" ]; then doFilter=false; fi
+if [ -z "${filterOnly+x}" ]; then filterOnly=false; fi
+if [ -z "${numHoursSEStart+x}" ]; then numHoursSEStart=3; fi
+if [ -z "${filterHourLength+x}" ]; then filterHourLength=6; fi
+if [ -z "${filtTcut+x}" ]; then filtTcut=6; fi
+if [ -z "${FILTERWALLCLOCK+x}" ]; then FILTERWALLCLOCK="00:29:00"; fi
+if [ -z "${FILTERQUEUE+x}" ]; then FILTERQUEUE="batch"; fi
+if [ -z "${use_nsplit+x}" ]; then use_nsplit="true"; fi
 
 ### Set correct E3SM/CESM split
-if [ -z ${modelSystem+x} ]; then modelSystem=0; fi
+if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi
 if [ $modelSystem -eq 0 ]; then
   echo "Using CESM"
   atmName="cam"
@@ -116,8 +115,9 @@ else
 fi
 
 # Are we running with frankengrid?
-do_frankengrid="false"
-if [ -n ${regional_src+x} ]; then do_frankengrid="true"; fi
+do_frankengrid=false
+if [ -n "${regional_src+x}" ]; then do_frankengrid=true ; fi
+echo "********* do_frankengrid set to: $do_frankengrid"
 
 # Figure out where to archive
 if [ -z ${ARCHIVEDIR+x} ] || [[ -z "${ARCHIVEDIR// }" ]] ; then
