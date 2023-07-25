@@ -54,6 +54,13 @@ print("extra_diags_atm: "+extra_diags_atm)
 
 print("****************************************************")
 
+if isvar("MAPFILEPATH")
+  mapfilepath=MAPFILEPATH+"/"
+else
+  mapfilepath="./"
+end if
+print("mapfilepath: "+mapfilepath)
+
 system("cp" + " " + BEFOREPERTFILE + " " + AFTERPERTFILE)
 fileName=AFTERPERTFILE
 camFile=addfile(fileName,"w")
@@ -134,7 +141,7 @@ deltaQ  = where(ismissing(deltaQ),0,deltaQ)
 deltaPS = where(ismissing(deltaPS),0,deltaPS)
 
 if (esmf_remap) then
-    print("Generating weights!")
+  print("Generating weights!")
   if (isfilepresent(gridfile)) then
     gridfilebasename = systemfunc("basename "+gridfile)
     gridfilebasename = str_sub_str(gridfilebasename,get_file_suffix(gridfilebasename,0),"")
@@ -147,7 +154,7 @@ if (esmf_remap) then
     Opt_se@PrintTimings   = True
     Opt_se@Title          = "SE Grid"
     seGridName = "grid_se_"+ncol+".nc"
-    if (.not. keep_esmf .or. .not.isfilepresent(seGridName)) then unstructured_to_ESMF(seGridName,lat,lon,Opt_se) end if
+    if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+seGridName)) then unstructured_to_ESMF(mapfilepath+seGridName,lat,lon,Opt_se) end if
   end if
 
   ; gen RLL grid
@@ -156,7 +163,7 @@ if (esmf_remap) then
   Opt_ll@PrintTimings   = True
   Opt_ll@Title          = "Deltas grid"
   llGridName="grid_deltas.nc"
-  if (.not. keep_esmf .or. .not.isfilepresent(llGridName)) then rectilinear_to_SCRIP(llGridName,deltaT&lat,deltaT&lon,Opt_ll) end if
+  if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+llGridName)) then rectilinear_to_SCRIP(mapfilepath+llGridName,deltaT&lat,deltaT&lon,Opt_ll) end if
 
   ;system ("echo $PATH")
   ;system ("echo $ESMFBINDIR")
@@ -170,22 +177,22 @@ if (esmf_remap) then
   if (isfilepresent(gridfile)) then
     Opt@SrcESMF        = False
     wgtFileName1 = "map_"+gridfilebasename+"_to_ll.nc"
-    if (.not. keep_esmf .or. .not.isfilepresent(wgtFileName1)) then ESMF_regrid_gen_weights(gridfile,llGridName,wgtFileName1,Opt) end if
+    if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+wgtFileName1)) then ESMF_regrid_gen_weights(gridfile,mapfilepath+llGridName,mapfilepath+wgtFileName1,Opt) end if
   else
     Opt@SrcESMF        = True
     wgtFileName1 = "map_se_"+ncol+"_to_ll.nc"
-    if (.not. keep_esmf .or. .not.isfilepresent(wgtFileName1)) then ESMF_regrid_gen_weights(seGridName,llGridName,wgtFileName1,Opt) end if
+    if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+wgtFileName1)) then ESMF_regrid_gen_weights(mapfilepath+seGridName,mapfilepath+llGridName,mapfilepath+wgtFileName1,Opt) end if
   end if
 
   Opt@SrcESMF        = False
   if (isfilepresent(gridfile)) then
     Opt@DstESMF        = False
     wgtFileName2 = "map_ll_to_"+gridfilebasename+".nc"
-    if (.not. keep_esmf .or. .not.isfilepresent(wgtFileName2)) then ESMF_regrid_gen_weights(llGridName,gridfile,wgtFileName2,Opt) end if
+    if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+wgtFileName2)) then ESMF_regrid_gen_weights(mapfilepath+llGridName,gridfile,mapfilepath+wgtFileName2,Opt) end if
   else
     Opt@DstESMF        = True
     wgtFileName2 = "map_ll_to_se_"+ncol+".nc"
-    if (.not. keep_esmf .or. .not.isfilepresent(wgtFileName2)) then ESMF_regrid_gen_weights(llGridName,seGridName,wgtFileName2,Opt) end if
+    if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+wgtFileName2)) then ESMF_regrid_gen_weights(mapfilepath+llGridName,mapfilepath+seGridName,mapfilepath+wgtFileName2,Opt) end if
   end if
 
   delete(Opt)
@@ -194,7 +201,7 @@ end if
 print("Beginning PS to lat-lon interp...")
 if (esmf_remap) then
   Opt                = True
-  PS_deltaGrid = ESMF_regrid_with_weights(PS(0,:),wgtFileName1,Opt)
+  PS_deltaGrid = ESMF_regrid_with_weights(PS(0,:),mapfilepath+wgtFileName1,Opt)
   delete(Opt)
 else
   PS_deltaGrid=dsgrid2(lat,lon,PS(0,:),deltaT&lat,deltaT&lon)
@@ -242,9 +249,9 @@ end if
 print("Beginning lat-lon to SE interp")
 if (esmf_remap) then
   Opt                = True
-  deltaTCAM_interp  = ESMF_regrid_with_weights(deltaTCAM,wgtFileName2,Opt)
-  deltaQCAM_interp  = ESMF_regrid_with_weights(deltaQCAM,wgtFileName2,Opt)
-  deltaPSCAM_interp = ESMF_regrid_with_weights(deltaPSCAM,wgtFileName2,Opt)
+  deltaTCAM_interp  = ESMF_regrid_with_weights(deltaTCAM,mapfilepath+wgtFileName2,Opt)
+  deltaQCAM_interp  = ESMF_regrid_with_weights(deltaQCAM,mapfilepath+wgtFileName2,Opt)
+  deltaPSCAM_interp = ESMF_regrid_with_weights(deltaPSCAM,mapfilepath+wgtFileName2,Opt)
   delete(Opt)
 else
   deltaTCAM_interp  = linint2_points_Wrap(deltaTCAM&lon,deltaTCAM&lat,deltaTCAM,True,lon,lat,0)
@@ -291,7 +298,7 @@ if (do_ps_corr) then
 
   print("Remap to RLL")
   if (esmf_remap) then
-    Tsign_deltaGrid=ESMF_regrid_with_weights(Tsign,wgtFileName1,False)
+    Tsign_deltaGrid=ESMF_regrid_with_weights(Tsign,mapfilepath+wgtFileName1,False)
   else
     Tsign_deltaGrid=dsgrid2(lat,lon,Tsign,deltaPSCAM&lat,deltaPSCAM&lon)
   end if
@@ -307,7 +314,7 @@ if (do_ps_corr) then
   print("Remap to SE")
   ; back to native
   if (esmf_remap) then
-    Tsign = ESMF_regrid_with_weights(Tsign_deltaGrid,wgtFileName2,False)
+    Tsign = ESMF_regrid_with_weights(Tsign_deltaGrid,mapfilepath+wgtFileName2,False)
   else
     Tsign = linint2_points_Wrap(deltaPSCAM&lon,deltaPSCAM&lat,Tsign_deltaGrid,True,lon,lat,0)
   end if
@@ -435,9 +442,9 @@ if (output_atm_diag) then
   if (do_ps_corr) then
     Opt=True
     if (esmf_remap) then
-      ncdf->Tanom  = ESMF_regrid_with_weights(Tanom,wgtFileName1,Opt)
-      ncdf->Tsign  = ESMF_regrid_with_weights(Tsign,wgtFileName1,Opt)
-      ncdf->PScorr = ESMF_regrid_with_weights(PScorr,wgtFileName1,Opt)
+      ncdf->Tanom  = ESMF_regrid_with_weights(Tanom,mapfilepath+wgtFileName1,Opt)
+      ncdf->Tsign  = ESMF_regrid_with_weights(Tsign,mapfilepath+wgtFileName1,Opt)
+      ncdf->PScorr = ESMF_regrid_with_weights(PScorr,mapfilepath+wgtFileName1,Opt)
       delete(Opt)
     else
       ncdf->Tanom   = dsgrid2(lat,lon,Tanom, deltaPSCAM&lat,deltaPSCAM&lon)
