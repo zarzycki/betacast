@@ -84,6 +84,7 @@ if [ -z "${save_nudging_files+x}" ]; then save_nudging_files=false; fi
 if [ -z "${override_rest_check+x}" ]; then override_rest_check=false; fi
 if [ -z "${tararchivedir+x}" ]; then tararchivedir=true; fi
 if [ -z "${docnres+x}" ]; then docnres="180x360"; fi
+if [ -z "${modelgridfile+x}" ]; then modelgridfile=""; fi
 ### Some defaults infrequently set
 if [ -z "${doFilter+x}" ]; then doFilter=false; fi
 if [ -z "${filterOnly+x}" ]; then filterOnly=false; fi
@@ -744,6 +745,7 @@ if ${add_perturbs} ; then
   sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
   (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
      'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
+     'gridfile = "'${modelgridfile}'"' \
      'pthi="'${perturb_namelist}'"' ) ; exit_status=$?
   check_ncl_exit "add_perturbations_to_cam.ncl" $exit_status
   echo "ATM NCL completed successfully"
