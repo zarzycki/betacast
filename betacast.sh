@@ -85,6 +85,7 @@ if [ -z "${override_rest_check+x}" ]; then override_rest_check=false; fi
 if [ -z "${tararchivedir+x}" ]; then tararchivedir=true; fi
 if [ -z "${docnres+x}" ]; then docnres="180x360"; fi
 if [ -z "${modelgridfile+x}" ]; then modelgridfile=""; fi
+if [ -z "${anl2mdlWeights+x}" ]; then anl2mdlWeights=""; fi
 ### Some defaults infrequently set
 if [ -z "${doFilter+x}" ]; then doFilter=false; fi
 if [ -z "${filterOnly+x}" ]; then filterOnly=false; fi
@@ -224,6 +225,9 @@ echo "VALIDSTABVAL is set to "${VALIDSTABVAL}
 ## Create paths to generate initial files if they don't exist...
 mkdir -p ${pathToINICfiles}
 mkdir -p ${pathToSSTfiles}
+
+# Set mapping file directory and make if needed
+mapping_files_path=${path_to_inputdata}/mapping/ ; mkdir -p ${mapping_files_path}
 
 # Set timestamp for backing up files, etc.
 timestamp=$(date +%Y%m%d.%H%M)
@@ -591,6 +595,12 @@ if [ $debug = false ] ; then
     ["3"]="CFSR"
     ["4"]="ERA5"
   )
+  declare -A atm_data_glob_anl=(
+    ["1"]="gfs_0.25x0.25"
+    ["2"]=""
+    ["3"]="gfs_0.50x0.50"
+    ["4"]="era5_0.25x0.25"
+  )
   declare -A atm_file_paths=(
     ["1"]="${gfs_files_path}/gfs_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
     ["2"]="${era_files_path}/ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
@@ -604,6 +614,42 @@ if [ $debug = false ] ; then
   fi
 
   cd $atm_to_cam_path ; echo "cd'ing to interpolation directory"
+
+  # Figure out which anl2mdlWeights we want to use. If the user gave us one
+  # we will just use that, otherwise we'll hope they gave us modelgridfile (SCRIP)
+  # and we will use that if not generated. Once it's been generated, keep reusing until
+  # purged from the mapping directory
+  if [[ -z "${anl2mdlWeights}" || ! -e "${anl2mdlWeights}" ]]; then
+    echo "User did not explicitly specify anl2mdlWeights, trying to generate from SCRIP grid"
+    if [ ! -f ${modelgridfile} ]; then
+      echo "modelgridfile --> ${modelgridfile} does not exist, exiting"
+      echo "specify this as a SCRIP file in the namelist or anl2mdlWeights"
+      exit 19
+    fi
+    # Get name without suffix
+    modelgridshortname=$(basename "${modelgridfile%.*}")
+    # Define new anl2mdlWeights
+    anl2mdlWeights=${mapping_files_path}/map_${atm_data_glob_anl[$atmDataType]}_TO_${modelgridshortname}_patc.nc
+    # Check if anl2mdlWeights exist or not, if not try to generate them
+    if [ ! -f ${anl2mdlWeights} ]; then
+      echo "Writing anl2mdlWeights --> ${anl2mdlWeights}"
+      set +e
+      (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
+        'ANLGRID="'${atm_data_glob_anl[$atmDataType]}'"' \
+        'ANLGRIDPATH="../remapping/anl_scrip/"' \
+        'DSTGRIDNAME="'${modelgridshortname}'"' \
+        'DSTGRIDFILE="'${modelgridfile}'"' \
+        'WGTFILEDIR="'${mapping_files_path}'"' \
+         ) ; exit_status=$?
+      check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
+      set -e
+    else
+      echo "Betacast-generated anl2mdlWeights --> ${anl2mdlWeights} already exists, using those!"
+    fi
+  else
+    echo "User has provided anl2mdlWeights --> ${anl2mdlWeights}, using those!"
+  fi
+
   echo "Doing atm_to_cam"
   set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
   (set -x; ncl -n atm_to_cam.ncl \
@@ -746,6 +792,7 @@ if ${add_perturbs} ; then
   (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
      'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
      'gridfile = "'${modelgridfile}'"' \
+     'MAPFILEPATH = "'${mapping_files_path}'"' \
      'pthi="'${perturb_namelist}'"' ) ; exit_status=$?
   check_ncl_exit "add_perturbations_to_cam.ncl" $exit_status
   echo "ATM NCL completed successfully"
