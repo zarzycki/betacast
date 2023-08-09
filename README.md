@@ -48,7 +48,7 @@ ${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} nuopc clm
 ./case.submit
 ```
 
-NOTE: The above uses the "nuopc" driver. Releases <=CESM2.2 will use "mct" by default.
+NOTE: The above uses the "nuopc" driver. Releases <=CESM2.2 use "mct" by default.
 
 **E3SMv2 example:**
 
@@ -136,32 +136,32 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | islive | if true (1) then pull GDAS/GFS from server in real-time, false (0) is "hindcast" mode |
 | datestemplate | If islive = false, dates.XXX.txt file to copy if Betacast cannot find an existing dates file |
 | runmodel | Unused, set to "true" |
-| archive_inic | Add (NCO-compressed) initial conditions for component models to archive directory (0 = no (default), 1 = yes) |
-| compress_history_nc | Use NCO lossless compression to compress history files (0 = no (default), 1 = yes) |
+| archive\_inic | Add (NCO-compressed) initial conditions for component models to archive directory (0 = no (default), 1 = yes) |
+| compress\_history\_nc | Use NCO lossless compression to compress history files (0 = no (default), 1 = yes) |
 | tararchivedir | Should the archive folder be tarred?  (0 = no, 1 = yes (default)) |
 | modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2+/SCREAM (defaults to 0 if empty or not included) |
-| cime_coupler | Which driver to use? Can be "mct" or "nuopc". Default is "mct" if not specified. |
-| do_runoff | Include runoff model files (false/true) (defaults to false if empty or not included) |
+| cime\_coupler | Which driver to use? Can be "mct" or "nuopc". Default is "mct" if not specified. |
+| do\_runoff | Include runoff model files (false/true) (defaults to false if empty or not included) |
 | atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5 |
 | sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI |
 | numLevels | 128 -> SCREAM, 72 -> E3SM, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 |
 | numdays | How long for forecast to run (in days) |
-| adjust_topo | Full path to a *model* (i.e., bnd_topo) topography file. If a valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. |
-| adjust_flags | Hydrostatic adjustment options. Currently "a" (include TBOT adjustment) and "-" (PS adjustment only) are supported. Only applied with valid adjust_topo file. |
+| adjust\_topo | Full path to a *model* (i.e., bnd\_topo) topography file. If a valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. |
+| adjust\_flags | Hydrostatic adjustment options. Currently "a" (include TBOT adjustment) and "-" (PS adjustment only) are supported. Only applied with valid adjust\_topo file. |
 | doFilter | Should we apply offline forward DFI? Generally "false" for diffusive dycores and/or SE/HOMME with hydrostatic adjustment. Set to "true" if using SE with no adjustment (or unbalanced IC from another source) to minimize GW noise during first ~72 hours. |
 | filterOnly | Exit code after the filter run if doFilter=true (useful for producing ncdata for ensembles) |
 | numHoursSEStart | Centerpoint of filter duration (leave at 3), only used if doFilter |
 | filterHourLength | Filter duration (leave at 6), only used if doFilter |
 | filtTcut | Cut setting for filter (leave at 6), only used if doFilter |
-| add_perturbs | Add PGW perturbations for counterfactual runs? Leave at false generally. |
-| perturb_namelist | Path to "perturbation" namelist for counterfactual climate simulations |
-| add_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) |
-| land_spinup | Cycle land spinup only (unsupported currently, leave false) |
-| keep_land_restarts | 0 = delete land/rof restart files, 1 = archive land/rof restart files (possibly overwriting those in ${CASE}/run/landstart) |
-| override_rest_check | If true, overrides internal check for SourceMods for lnd/rof restarts (default: false) |
-| save_nudging_files | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs |
+| add\_perturbs | Add PGW perturbations for counterfactual runs? Leave at false generally. |
+| perturb\_namelist | Path to "perturbation" namelist for counterfactual climate simulations |
+| add\_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) |
+| land\_spinup | Cycle land spinup only (unsupported currently, leave false) |
+| keep\_land\_restarts | 0 = delete land/rof restart files, 1 = archive land/rof restart files (possibly overwriting those in ${CASE}/run/landstart) |
+| override\_rest\_check | If true, overrides internal check for SourceMods for lnd/rof restarts (default: false) |
+| save\_nudging\_files | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
-| predict_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |
+| predict\_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |
 | anl2mdlWeights | Full path name of weights file for analysis -> model regridding (see previous section) |
 | PROJECTID | Project ID for run submissions |
 | FILTERWALLCLOCK | Wall clock time for filter run |
@@ -172,7 +172,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | DTIME | Physics timestep (in seconds) |
 | FINERES | Finest resolution of SE grid |
 | USERSTAB | Required dynamics timestep (in s), negative values try internal calculation, but use with caution |
-| use_nsplit | If true, use the CESM/E3SMv1 SE/HOMME nsplit timestep logic, if false apply new E3SMv2 se_tstep parameter (equal to USERSTAB) |
+| use\_nsplit | If true, use the CESM/E3SMv1 SE/HOMME nsplit timestep logic, if false apply new E3SMv2 se\_tstep parameter (equal to USERSTAB) |
 | sendplots | Are we going to send live output to some external server? (generally false unless you are CMZ) |
 | nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) |
 | dotracking | Do online TC tracking and process to ATCF format? |
@@ -218,7 +218,7 @@ Workflow when `islive` is false is:
 
 1. Look for `{BETACAST}/dates/dates.${CASENAME}.txt`.
 2. If not **1**, look for `{BETACAST}/dates.${CASENAME}.txt`.
-3. If not **2**, look for `datestemplate` in namelist *AND* that `datestemplate` exists. If yes, copy.
+3. If not **2**, look for `datestemplate` in namelist *AND* that `datestemplate` exists. If yes, copy to `{BETACAST}/dates/dates.${CASENAME}.txt`.
 4. If not **1**, **2**, or **3**, exit.
 
 ### 5.1. Pre-stage atmospheric analysis data (optional)
@@ -265,7 +265,7 @@ This tool takes a 3-D analysis field from supported reanalysis products (CFSR, E
 4. Set up command line options for atm_to_cam.ncl
 5. Using the below examples as a template, run `atm_to_cam.ncl`.
 
-### Command line options for atm_to_cam.ncl
+### Command line options for atm\_to\_cam.ncl
 
 | Namelist Variable | Type | Description | Default | Required? |
 | --- | --- | --- | --- | --- |
@@ -274,17 +274,17 @@ This tool takes a 3-D analysis field from supported reanalysis products (CFSR, E
 | YYYYMMDDHH | Int | Initialization date in YYYYMMDDHH format | | Y |
 | dycore | Str | fv, se, mpas | se | N |
 | RDADIR | Str | Base path to RDA folder | "" | N |
-| data_filename | Str | Full path to file containing initial information | | Y |
-| wgt_filename | Str | Full path to ESMF weight file from ANL -> MOD | | Y |
-| mpas_as_cam | Bool | If true, write MPAS in CAM physics output (ncol, for nudging), if false write MPAS in MPAS-A format (nCells, for init) | false | N |
-| compress_file | Bool | If true, will attempt NetCDF "chunking" compression within NCL | false | N |
-| write_floats | Bool | If true, write outputs as single instead of double precision | false | N |
-| add_cloud_vars | Bool | If true, add CLDICE and CLDLIQ to output file | true | N |
-| adjust_config | String | String defining how to perform hydro adjustment: if string is not empty, will do config. If "a" also try and correct TBOT in addition to PS | "" | N |
-| model_topo_file | String | If MPAS, an MPAS inic file, otherwise a file containing PHIS for FV or SE | "" | N |
-| se_inic | String | Full path of file to write as output | | Y |
-| mod_in_topo | Str | Full path to PHIS field from *downscaling* MOD for pressure surface calculation purposes | "" | N |
-| mod_remap_file | Str | Full path to ESMF weight file that goes *downscaling* MOD -> ANL | "" | N |
+| data\_filename | Str | Full path to file containing initial information | | Y |
+| wgt\_filename | Str | Full path to ESMF weight file from ANL -> MOD | | Y |
+| mpas\_as\_cam | Bool | If true, write MPAS in CAM physics output (ncol, for nudging), if false write MPAS in MPAS-A format (nCells, for init) | false | N |
+| compress\_file | Bool | If true, will attempt NetCDF "chunking" compression within NCL | false | N |
+| write\_floats | Bool | If true, write outputs as single instead of double precision | false | N |
+| add\_cloud\_vars | Bool | If true, add CLDICE and CLDLIQ to output file | true | N |
+| adjust\_config | String | String defining how to perform hydro adjustment: if string is not empty, will do config. If "a" also try and correct TBOT in addition to PS | "" | N |
+| model\_topo\_file | String | If MPAS, an MPAS inic file, otherwise a file containing PHIS for FV or SE | "" | N |
+| se\_inic | String | Full path of file to write as output | | Y |
+| mod\_in\_topo | Str | Full path to PHIS field from *downscaling* MOD for pressure surface calculation purposes | "" | N |
+| mod\_remap\_file | Str | Full path to ESMF weight file that goes *downscaling* MOD -> ANL | "" | N |
 
 ### Examples
 
@@ -458,23 +458,23 @@ perturb_namelist = /global/homes/c/czarzyck/betacast/namelists/perturb.sample.nl
 | --- | --- | --- |
 | case | string | "Deltas" case (currently only CESMLENS supported) |
 | basedir | string | Base directory where `case` deltas are stored |
-| start_month | int | Path to where re/analysis + model initial conditions/forcing data is stored |
-| end_month | int | Path (top-level) to directory where CESM actively runs |
-| current_year | int | Reference year to calculate deltas from |
-| comp_year | int | Target year of deltas |
-| correct_sfc | bool | Shift entire T/Q vertical profile based on surface delta? (generally **False**) |
+| start\_month | int | Path to where re/analysis + model initial conditions/forcing data is stored |
+| end\_month | int | Path (top-level) to directory where CESM actively runs |
+| current\_year | int | Reference year to calculate deltas from |
+| comp\_year | int | Target year of deltas |
+| correct\_sfc | bool | Shift entire T/Q vertical profile based on surface delta? (generally **False**) |
 | plevs | bool | Are we on pressure levels? (if **False**, means hybrid model levels) |
-| update_pressure | bool | Update PS based on PS deltas (generally **False**) |
-| update_winds | bool | Update winds based on some wind deltas or thermal wind (generally **False**) |
-| do_ps_corr | bool | Apply simple linear PS correction to attempt to minimize geostrophic shock? (generally **True**) |
-| esmf_remap | bool | Use ESMF remapping instead of NCL internal (generally **True**) |
-| keep_esmf | bool | Keep the ESMF files between calls to add_perturbations to CAM? (generally **True**) |
-| smooth_deltas | bool | Smooth deltas using a 9-point smoother? (generally **False** unless big resolution mismatch) |
-| smooth_delta_iter | int | If *smooth_deltas=True*, how many iterations to apply? (higher numbers mean more smoothing) |
-| output_atm_diag | bool | Output a separate diagnostics file with deltas and other info? |
-| extra_diags_atm | bool | Output additional diags? (currently just precipitable water) |
-| adjust_ice | bool | Adjust ice fraction based on deltas + freezing/melting? (generally **True**) |
-| output_sst_diag | bool | Output a separate diagnostics file with deltas and other info? |
+| update\_pressure | bool | Update PS based on PS deltas (generally **False**) |
+| update\_winds | bool | Update winds based on some wind deltas or thermal wind (generally **False**) |
+| do\_ps\_corr | bool | Apply simple linear PS correction to attempt to minimize geostrophic shock? (generally **True**) |
+| esmf\_remap | bool | Use ESMF remapping instead of NCL internal (generally **True**) |
+| keep\_esmf | bool | Keep the ESMF files between calls to add\_perturbations to CAM? (generally **True**) |
+| smooth\_deltas | bool | Smooth deltas using a 9-point smoother? (generally **False** unless big resolution mismatch) |
+| smooth\_delta\_iter | int | If *smooth\_deltas=True*, how many iterations to apply? (higher numbers mean more smoothing) |
+| output\_atm\_diag | bool | Output a separate diagnostics file with deltas and other info? |
+| extra\_diags\_atm | bool | Output additional diags? (currently just precipitable water) |
+| adjust\_ice | bool | Adjust ice fraction based on deltas + freezing/melting? (generally **True**) |
+| output\_sst\_diag | bool | Output a separate diagnostics file with deltas and other info? |
 
 A template namelist is in the repo under `$BETACAST/namelists/perturb.sample.nl`. It is strongly suggested to just copy this file and edit individual keys as desired to ensure all required variables are present on the file. Betacast should print information regarding how the deltas (and their successful application) which should be verified by the user.
 
