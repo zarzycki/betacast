@@ -14,7 +14,7 @@ htmlFolder=/storage/home/cmz5202/sw/betacast/html_for_upload/
 twodaysago=20120821
 
 echo "SSHings..."
-ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${yearstr}${monthstr}${daystr}${cyclestr} ; \ 
+ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${yearstr}${monthstr}${daystr}${cyclestr} ; \
   cd /home/colinzar/www/www/current2/ ; \
   cp *cfg *html ${yearstr}${monthstr}${daystr}${cyclestr} ; \
   rm ${yearstr}${monthstr}${daystr}${cyclestr}/index.html "
@@ -31,7 +31,7 @@ if [ ! -f index.html ]; then
   rm _index*.html
   scp index.html colinzar@colinzarzycki.com:/home/colinzar/www/www/current2
 fi
-  
+
 filenames=`ls ${runDir}/*am.h0.*.nc`
 numfiles=`ls ${runDir}/*am.h0.*.nc | wc -l`
 echo $numfiles
@@ -53,7 +53,7 @@ for i in `seq 1 ${numfiles}`; do
     ncks -A -v ${VARS} ${runDir}/sum${i}.nc ${thisFile}
     rm ${runDir}/sum${i}.nc ${runDir}/tmpfile2.nc
   fi
-done 
+done
 
 sleep 5
 echo "Found at least one file"
@@ -102,9 +102,9 @@ do
       cat orig_${item}_${basin}_files.txt tocat_${item}_${basin}_files.txt > ${item}_${basin}_files_nopath.txt
       rm tocat_${item}_${basin}_files.txt orig_${item}_${basin}_files.txt
     fi
-    
+
     cp -v ${item}_${basin}_files_nopath.txt ${item}_${basin}_files.txt
-    #sed -i.bak 's/^/##/' ${item}files.txt        
+    #sed -i.bak 's/^/##/' ${item}files.txt
   done
 done
 

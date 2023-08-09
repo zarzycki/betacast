@@ -298,8 +298,8 @@ run_CIME2 () {
   echo "RUN_CIME2: To NUKE, run \"touch ${1}/NUKE\" "
 
   ## Hold script while log files from filter run haven't been archived yet
-  STATUS=1
-  while [ $STATUS == 1 ]
+  CIMESTATUS=1
+  while [ $CIMESTATUS == 1 ]
   do
     if [ -f "${1}/NUKE" ] ; then echo "RUN_CIME2: Nuke sequence initiated, exiting betacast" ; exit ; fi
 
@@ -307,17 +307,17 @@ run_CIME2 () {
     CASESTR=$(grep "^20" CaseStatus | tail -1)
 
     if [[ "$CASESTR" == *"case.run success"* ]]; then
-      STATUS=0
+      CIMESTATUS=0
     elif [[ "$CASESTR" == *"case.run error"* ]]; then
-      STATUS=99
+      CIMESTATUS=99
     else
-      STATUS=1
+      CIMESTATUS=1
     fi
 
-    sleep 10 ; echo "RUN_CIME2: Sleeping... STATUS: $STATUS -- $(date '+%Y%m%d %H:%M:%S')"
+    sleep 10 ; echo "RUN_CIME2: Sleeping... CIMESTATUS: $CIMESTATUS -- $(date '+%Y%m%d %H:%M:%S')"
   done
 
-  if [ $STATUS -eq 0 ]; then
+  if [ $CIMESTATUS -eq 0 ]; then
     echo "RUN_CIME2: Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved"
     sleep 30
   else
@@ -458,3 +458,6 @@ function print_elapsed_time() {
     echo "TIME ELAPSED: $elapsed_days days, $elapsed_hours hours, $elapsed_minutes minutes, $elapsed_seconds seconds"
 }
 
+#### NCO functions!
+# ncdmnsz $dmn_nm $fl_nm : What is dimension size?
+function ncdmnsz { ncks --trd -m -M ${2} | grep -E -i ": ${1}, size =" | cut -f 7 -d ' ' | uniq ; }

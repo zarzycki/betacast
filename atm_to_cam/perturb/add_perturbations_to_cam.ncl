@@ -5,10 +5,10 @@ begin
 
 case  = keyword_values( pthi, "case", "string")
 basedir  = keyword_values( pthi, "basedir", "string")
-start_month = keyword_values( pthi, "start_month", "integer") 
-end_month = keyword_values( pthi, "end_month", "integer") 
-current_year = keyword_values( pthi, "current_year", "integer") 
-comp_year = keyword_values( pthi, "comp_year", "integer") 
+start_month = keyword_values( pthi, "start_month", "integer")
+end_month = keyword_values( pthi, "end_month", "integer")
+current_year = keyword_values( pthi, "current_year", "integer")
+comp_year = keyword_values( pthi, "comp_year", "integer")
 
 correct_sfc  = keyword_values( pthi, "correct_sfc", "logical")
 plevs  = keyword_values( pthi, "plevs", "logical")
@@ -54,6 +54,13 @@ print("extra_diags_atm: "+extra_diags_atm)
 
 print("****************************************************")
 
+if isvar("MAPFILEPATH")
+  mapfilepath=MAPFILEPATH+"/"
+else
+  mapfilepath="./"
+end if
+print("mapfilepath: "+mapfilepath)
+
 system("cp" + " " + BEFOREPERTFILE + " " + AFTERPERTFILE)
 fileName=AFTERPERTFILE
 camFile=addfile(fileName,"w")
@@ -88,7 +95,7 @@ else if (case .eq. "CESMLENS") ; Can be used for attribution and future projecti
   if (plevs) then
     deltaFilePS     = addfile(basedir+"/"+case+"_plev/ens_PS_anom.nc","r")
     deltaFileT      = addfile(basedir+"/"+case+"_plev/ens_T_anom.nc","r")
-    deltaFileQ      = addfile(basedir+"/"+case+"_plev/ens_Q_anom.nc","r") 
+    deltaFileQ      = addfile(basedir+"/"+case+"_plev/ens_Q_anom.nc","r")
   else
     deltaFilePS     = addfile(basedir+"/"+case+"_mlev/PS/ens_PS_anom.nc","r")
     deltaFileT      = addfile(basedir+"/"+case+"_mlev/T/ens_T_anom.nc","r")
@@ -135,13 +142,20 @@ deltaPS = where(ismissing(deltaPS),0,deltaPS)
 
 if (esmf_remap) then
   print("Generating weights!")
-  ; gen SE grid
-  Opt_se               = True
-  Opt_se@ForceOverwrite = True
-  Opt_se@PrintTimings   = True
-  Opt_se@Title          = "SE Grid"
-  seGridName = "grid_se_"+ncol+".nc"
-  if (.not. keep_esmf .or. .not.isfilepresent(seGridName)) then unstructured_to_ESMF(seGridName,lat,lon,Opt_se) end if
+  if (isfilepresent(gridfile)) then
+    gridfilebasename = systemfunc("basename "+gridfile)
+    gridfilebasename = str_sub_str(gridfilebasename,get_file_suffix(gridfilebasename,0),"")
+    print("Using existing SCRIP grid: "+gridfilebasename)
+  else
+    print ("No gridfile available, generating one using unstructured_to_ESMF")
+    ; gen SE grid
+    Opt_se               = True
+    Opt_se@ForceOverwrite = True
+    Opt_se@PrintTimings   = True
+    Opt_se@Title          = "SE Grid"
+    seGridName = "grid_se_"+ncol+".nc"
+    if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+seGridName)) then unstructured_to_ESMF(mapfilepath+seGridName,lat,lon,Opt_se) end if
+  end if
 
   ; gen RLL grid
   Opt_ll = True
@@ -149,7 +163,7 @@ if (esmf_remap) then
   Opt_ll@PrintTimings   = True
   Opt_ll@Title          = "Deltas grid"
   llGridName="grid_deltas.nc"
-  if (.not. keep_esmf .or. .not.isfilepresent(llGridName)) then rectilinear_to_SCRIP(llGridName,deltaT&lat,deltaT&lon,Opt_ll) end if
+  if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+llGridName)) then rectilinear_to_SCRIP(mapfilepath+llGridName,deltaT&lat,deltaT&lon,Opt_ll) end if
 
   ;system ("echo $PATH")
   ;system ("echo $ESMFBINDIR")
@@ -159,23 +173,35 @@ if (esmf_remap) then
   Opt@InterpMethod         = "patch"
   Opt@ForceOverwrite       = True
   Opt@PrintTimings         = True
-  Opt@SrcESMF        = True    
   Opt@DstESMF        = False
-  wgtFileName1 = "map_se_"+ncol+"_to_ll.nc"
-  if (.not. keep_esmf .or. .not.isfilepresent(wgtFileName1)) then ESMF_regrid_gen_weights(seGridName,llGridName,wgtFileName1,Opt) end if
-  
-  Opt@SrcESMF        = False    
-  Opt@DstESMF        = True
-  wgtFileName2 = "map_ll_to_se_"+ncol+".nc"
-  if (.not. keep_esmf .or. .not.isfilepresent(wgtFileName2)) then ESMF_regrid_gen_weights(llGridName,seGridName,wgtFileName2,Opt) end if
-  
+  if (isfilepresent(gridfile)) then
+    Opt@SrcESMF        = False
+    wgtFileName1 = "map_"+gridfilebasename+"_to_ll.nc"
+    if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+wgtFileName1)) then ESMF_regrid_gen_weights(gridfile,mapfilepath+llGridName,mapfilepath+wgtFileName1,Opt) end if
+  else
+    Opt@SrcESMF        = True
+    wgtFileName1 = "map_se_"+ncol+"_to_ll.nc"
+    if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+wgtFileName1)) then ESMF_regrid_gen_weights(mapfilepath+seGridName,mapfilepath+llGridName,mapfilepath+wgtFileName1,Opt) end if
+  end if
+
+  Opt@SrcESMF        = False
+  if (isfilepresent(gridfile)) then
+    Opt@DstESMF        = False
+    wgtFileName2 = "map_ll_to_"+gridfilebasename+".nc"
+    if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+wgtFileName2)) then ESMF_regrid_gen_weights(mapfilepath+llGridName,gridfile,mapfilepath+wgtFileName2,Opt) end if
+  else
+    Opt@DstESMF        = True
+    wgtFileName2 = "map_ll_to_se_"+ncol+".nc"
+    if (.not. keep_esmf .or. .not.isfilepresent(mapfilepath+wgtFileName2)) then ESMF_regrid_gen_weights(mapfilepath+llGridName,mapfilepath+seGridName,mapfilepath+wgtFileName2,Opt) end if
+  end if
+
   delete(Opt)
 end if
 
 print("Beginning PS to lat-lon interp...")
 if (esmf_remap) then
   Opt                = True
-  PS_deltaGrid = ESMF_regrid_with_weights(PS(0,:),wgtFileName1,Opt)
+  PS_deltaGrid = ESMF_regrid_with_weights(PS(0,:),mapfilepath+wgtFileName1,Opt)
   delete(Opt)
 else
   PS_deltaGrid=dsgrid2(lat,lon,PS(0,:),deltaT&lat,deltaT&lon)
@@ -186,7 +212,7 @@ print("Beginning vertical interp interp")
 if (case .eq. "CAMC20C")
   deltaTCAM  = pres2hybrid_Wrap(deltaT&plev,PS_deltaGrid,P0,deltaT,hyam,hybm,1)
   deltaQCAM  = pres2hybrid_Wrap(deltaQ&plev,PS_deltaGrid,P0,deltaQ,hyam,hybm,1)
-else if (case .eq. "CESMLENS") 
+else if (case .eq. "CESMLENS")
   if (plevs) then
     deltaTCAM  = pres2hybrid_Wrap(deltaT&plev,PS_deltaGrid,P0,deltaT,hyam,hybm,1)
     deltaQCAM  = pres2hybrid_Wrap(deltaQ&plev,PS_deltaGrid,P0,deltaQ,hyam,hybm,1)
@@ -211,11 +237,11 @@ if (smooth_deltas) then
     deltaPSCAM := smth9_Wrap(deltaPSCAM, 0.50, 0.25, True)
   end do
 end if
-  
+
 if (extra_diags_atm) then
   dp = dpres_hybrid_ccm(PS_deltaGrid,P0,hyai,hybi)   ; dp(ntime,klevi-1,nlat,nlon)
   copy_VarCoords(deltaQCAM,dp)    ; dp(time,lev,lat,lon)
-  pw = prcwater_dp(deltaQCAM(lat|:,lon|:,lev|:),dp(lat|:,lon|:,lev|:))    
+  pw = prcwater_dp(deltaQCAM(lat|:,lon|:,lev|:),dp(lat|:,lon|:,lev|:))
   pw@long_name = "total column precipitable water"
   pw@units     = "kg/m2"
 end if
@@ -223,9 +249,9 @@ end if
 print("Beginning lat-lon to SE interp")
 if (esmf_remap) then
   Opt                = True
-  deltaTCAM_interp  = ESMF_regrid_with_weights(deltaTCAM,wgtFileName2,Opt)
-  deltaQCAM_interp  = ESMF_regrid_with_weights(deltaQCAM,wgtFileName2,Opt)
-  deltaPSCAM_interp = ESMF_regrid_with_weights(deltaPSCAM,wgtFileName2,Opt)
+  deltaTCAM_interp  = ESMF_regrid_with_weights(deltaTCAM,mapfilepath+wgtFileName2,Opt)
+  deltaQCAM_interp  = ESMF_regrid_with_weights(deltaQCAM,mapfilepath+wgtFileName2,Opt)
+  deltaPSCAM_interp = ESMF_regrid_with_weights(deltaPSCAM,mapfilepath+wgtFileName2,Opt)
   delete(Opt)
 else
   deltaTCAM_interp  = linint2_points_Wrap(deltaTCAM&lon,deltaTCAM&lat,deltaTCAM,True,lon,lat,0)
@@ -245,14 +271,14 @@ if (do_ps_corr) then
   ;---> perform an empirical correction to PS with emphasis over low PS areas
   anom_scaling=3.0   ; vertical average reference Tanom for scaling (Tanom/anom_scaling)
   print("Doing empirical ps_corr with anom_scaling: "+anom_scaling)
-  
+
   print("Calculate pint and dpint")
   ; do weighted integral of deltaTCAM_interp
   dpint = deltaTCAM_interp
   dpint = 0.
   pint = new((/nlev+1,ncol/),typeof(hyai))
   pint = 0.
-  
+
   pint = conform(pint,hyai,0)*P0 + conform(pint,hybi,0)*conform(pint,PS(0,:),1)
   ;pint = hyai*P0 + hybi*PS(0,ii)
   dpint = pint(1:nlev,:) - pint(0:nlev-1,:)
@@ -260,19 +286,19 @@ if (do_ps_corr) then
   ;  pint = hyai*P0 + hybi*PS(0,ii)
   ;  dpint(:,ii) = pint(1:nlev) - pint(0:nlev-1)
   ;end do
-  
+
   print("Calculate weighted T anomaly and sign")
   Tanom = wgt_vertical_n(deltaTCAM_interp, dpint, 0, 0)
   ; Find where column is warmer and where is colder
   Tsign = where(Tanom .ge. 0.0, 1.0, -1.0)
-  
+
   ; Map native -> RLL to smooth
   printVarSummary(Tsign)
   printVarSummary(deltaPSCAM)
-  
+
   print("Remap to RLL")
   if (esmf_remap) then
-    Tsign_deltaGrid=ESMF_regrid_with_weights(Tsign,wgtFileName1,False)
+    Tsign_deltaGrid=ESMF_regrid_with_weights(Tsign,mapfilepath+wgtFileName1,False)
   else
     Tsign_deltaGrid=dsgrid2(lat,lon,Tsign,deltaPSCAM&lat,deltaPSCAM&lon)
   end if
@@ -282,13 +308,13 @@ if (do_ps_corr) then
   do ii = 0,smoothiter-1
     Tsign_deltaGrid := smth9(Tsign_deltaGrid, 0.50, 0.25, True)
   end do
-  
+
   print(num(ismissing(Tsign_deltaGrid)))
-  
+
   print("Remap to SE")
   ; back to native
   if (esmf_remap) then
-    Tsign = ESMF_regrid_with_weights(Tsign_deltaGrid,wgtFileName2,False)
+    Tsign = ESMF_regrid_with_weights(Tsign_deltaGrid,mapfilepath+wgtFileName2,False)
   else
     Tsign = linint2_points_Wrap(deltaPSCAM&lon,deltaPSCAM&lat,Tsign_deltaGrid,True,lon,lat,0)
   end if
@@ -315,12 +341,12 @@ if (do_ps_corr) then
     end do
     delete(Tsignorig)
   end if
-  
+
   print("after "+num(ismissing(Tsign)))
-  
+
   ; scale the multiplier based on the magnitude of the column anomaly.
   Tsign = Tsign * (abs(tofloat(Tanom))/anom_scaling)
-  
+
   print(num(ismissing(Tsign)))
 
   ; correction coefficients derived from ne30 run
@@ -329,12 +355,12 @@ if (do_ps_corr) then
   print("CORR: using dPSL = "+rc+"*PS + "+rc_intercept)
   ; generate PS corr based on PS and constants
   PScorr = PS(0,:)*rc+rc_intercept
-  
+
   print(num(ismissing(PScorr)))
 
   ; Scale correction by Tanom + heating/cooling
   PScorr = PScorr * Tsign
-  
+
   print(num(ismissing(PScorr)))
 
   PS(0,:)  = PS(0,:)  + PScorr
@@ -394,7 +420,7 @@ end if
 if (output_atm_diag) then
   diag_filename="deltas_atm.nc"
   print("outputting diags to "+diag_filename)
-  
+
   system("/bin/rm -f "+diag_filename)   ; remove any pre-existing file
   ncdf = addfile(diag_filename ,"c")  ; open output netCDF file
 
@@ -402,7 +428,7 @@ if (output_atm_diag) then
   fAtt@creation_date = systemfunc ("date")
   fileattdef( ncdf, fAtt )            ; copy file attributes
 
-  filedimdef(ncdf,"time",-1,True) 
+  filedimdef(ncdf,"time",-1,True)
 
   ncdf->PS_deltaGrid=PS_deltaGrid
   ncdf->deltaPSCAM=deltaPSCAM
@@ -412,13 +438,13 @@ if (output_atm_diag) then
   if (extra_diags_atm) then
     ncdf->pw=pw
   end if
-  
+
   if (do_ps_corr) then
     Opt=True
     if (esmf_remap) then
-      ncdf->Tanom  = ESMF_regrid_with_weights(Tanom,wgtFileName1,Opt)
-      ncdf->Tsign  = ESMF_regrid_with_weights(Tsign,wgtFileName1,Opt)
-      ncdf->PScorr = ESMF_regrid_with_weights(PScorr,wgtFileName1,Opt)
+      ncdf->Tanom  = ESMF_regrid_with_weights(Tanom,mapfilepath+wgtFileName1,Opt)
+      ncdf->Tsign  = ESMF_regrid_with_weights(Tsign,mapfilepath+wgtFileName1,Opt)
+      ncdf->PScorr = ESMF_regrid_with_weights(PScorr,mapfilepath+wgtFileName1,Opt)
       delete(Opt)
     else
       ncdf->Tanom   = dsgrid2(lat,lon,Tanom, deltaPSCAM&lat,deltaPSCAM&lon)

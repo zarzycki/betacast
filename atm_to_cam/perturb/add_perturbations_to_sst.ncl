@@ -42,13 +42,13 @@ if (case .eq. "CAMC20C") ; Can only by used for attribution
   deltaSST     = dim_avg_n_Wrap(deltaSST_in,0)
 else if (case .eq. "CESMLENS") ; Can be used for attribution and future projections
   deltaFileSST     = addfile(basedir+"/"+case+"_plev/ens_SST_anom.nc","r")
-  deltaSST_in      = deltaFileSST->SST(current_year*12-1920*12+start_month-1:current_year*12-1920*12+end_month-1,:,:)
+  deltaSST_in      = deltaFileSST->TS(current_year*12-1920*12+start_month-1:current_year*12-1920*12+end_month-1,:,:)
   deltaSST_current = dim_avg_n_Wrap(deltaSST_in,0) 
   if (comp_year .lt. 1920) then
     deltaSST_comp = deltaSST_current
     deltaSST_comp = 0.0     
   else
-    deltaSST_in   = deltaFileSST->SST(comp_year*12-1920*12+start_month-1:comp_year*12-1920*12+end_month-1,:,:)
+    deltaSST_in   = deltaFileSST->TS(comp_year*12-1920*12+start_month-1:comp_year*12-1920*12+end_month-1,:,:)
     deltaSST_comp = dim_avg_n_Wrap(deltaSST_in,0)
   end if  
   deltaSST = deltaSST_comp - deltaSST_current 
