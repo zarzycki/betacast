@@ -446,18 +446,29 @@ delete_leftovers () {
 # script_end=$(date +%s)
 # print_elapsed_time "$script_start" "$script_end"
 function print_elapsed_time() {
-    local time_start=$1
-    local time_end=$2
+  local time_start=$1
+  local time_end=$2
 
-    local time_elapsed=$((time_end - time_start))
-    local elapsed_days=$((time_elapsed/86400))
-    local elapsed_hours=$((time_elapsed/3600%24))
-    local elapsed_minutes=$((time_elapsed/60%60))
-    local elapsed_seconds=$((time_elapsed%60))
+  local time_elapsed=$((time_end - time_start))
+  local elapsed_days=$((time_elapsed/86400))
+  local elapsed_hours=$((time_elapsed/3600%24))
+  local elapsed_minutes=$((time_elapsed/60%60))
+  local elapsed_seconds=$((time_elapsed%60))
 
-    echo "TIME ELAPSED: $elapsed_days days, $elapsed_hours hours, $elapsed_minutes minutes, $elapsed_seconds seconds"
+  echo "TIME ELAPSED: $elapsed_days days, $elapsed_hours hours, $elapsed_minutes minutes, $elapsed_seconds seconds"
+}
+
+function compress_single_file() {
+  local filename="$1"
+  if ! type ncks &> /dev/null ; then
+    echo "ncks was NOT FOUND, no compression performed"
+  else
+    echo "ncks compressing: $filename"
+    ncks -O -4 -L 1 "${filename}" "${filename}"
+  fi
 }
 
 #### NCO functions!
 # ncdmnsz $dmn_nm $fl_nm : What is dimension size?
 function ncdmnsz { ncks --trd -m -M ${2} | grep -E -i ": ${1}, size =" | cut -f 7 -d ' ' | uniq ; }
+

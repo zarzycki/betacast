@@ -96,6 +96,7 @@ if [ -z "${filtTcut+x}" ]; then filtTcut=6; fi
 if [ -z "${FILTERWALLCLOCK+x}" ]; then FILTERWALLCLOCK="00:29:00"; fi
 if [ -z "${FILTERQUEUE+x}" ]; then FILTERQUEUE="batch"; fi
 if [ -z "${use_nsplit+x}" ]; then use_nsplit="true"; fi
+if [ -z "${cime_coupler+x}" ]; then cime_coupler="mct"; fi
 
 ### Set correct E3SM/CESM split
 if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi
@@ -157,19 +158,28 @@ if [ -z ${anl2mdlWeights+x} ] && [ ${gfs2seWeights+x} ] ; then
   anl2mdlWeights=$gfs2seWeights
 fi
 
-# Check if ncks exists
+# Check if ncl exists
 if ! type ncl &> /dev/null ; then
   echo "ERROR: ncl does not exist. Make sure ncl is in your path when betacast is invoked"
   exit 1
 fi
 
 # Check if ncks exists for compression
+ncks_exists=true
 if ! type ncks &> /dev/null ; then
   #echo "ERROR: ncks does not exist. Make sure ncks is in your path when betacast is invoked"
   #exit 1
   echo "WARNING: ncks does not exist, cannot compress. Setting compress_history_nc to 0 (false)"
   echo "WARNING: if you'd like remedy, make sure ncks is in your path when betacast.sh is invoked"
   compress_history_nc=0
+  ncks_exists=false
+fi
+
+# If we are using nuopc, we need to generate an ESMF mesh
+if [ "${cime_coupler}" == "nuopc" ] && ! type ESMF_Scrip2Unstruct &> /dev/null; then
+    echo "ERROR: ESMF_Scrip2Unstruct does not exist, which is needed when cime_coupler is: ${cime_coupler}"
+    echo "ERROR: Install via conda/mamba or from source and add to PATH"
+    exit 1
 fi
 
 # Check Python version for 3+
@@ -563,14 +573,25 @@ if [ $debug = false ] ; then
 
   cd ${sst_to_cam_path}
   sst_domain_file=${sst_to_cam_path}/domains/domain.ocn.${docnres}.nc
-  # check if domain exists
-  if [ ! -f "$sst_domain_file" ]; then
+  sst_scrip_file=${sst_to_cam_path}/domains/scrip.ocn.${docnres}.nc
+  sst_ESMF_file=${sst_to_cam_path}/domains/ESMF.ocn.${docnres}.nc
+
+  # check if domain or SCRIP exist, if one is missing create both domain and scrip
+  if [ ! -f "$sst_domain_file" ] || [ ! -f "$sst_scrip_file" ]; then
     echo "Creating SST domain file for: ${docnres}"
     set +e
     (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' ) ; exit_status=$?
     check_ncl_exit "gen-sst-domain.ncl" $exit_status
     set -e
+    compress_single_file "${sst_scrip_file}"
   fi
+  # if the CIME coupler is nuopc, we need to generate a scrip file
+  if [ "${cime_coupler}" == "nuopc" ] && [ ! -f "$sst_ESMF_file" ]; then
+    ESMF_Scrip2Unstruct ${sst_scrip_file} ${sst_ESMF_file} 0 ; rm -fv PET0.ESMF_LogFile
+    compress_single_file "${sst_ESMF_file}"
+  fi
+
+  # Now generate the SST/ice datastream
   set +e
   (set -x; ncl sst_interp.ncl \
       'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
@@ -935,7 +956,11 @@ fi
 echo "Turning off archiving and restart file output in env_run.xml"
 ./xmlchange DOUT_S=FALSE,REST_OPTION=nyears,REST_N=9999
 echo "Setting SST domain file"
-./xmlchange SSTICE_GRID_FILENAME="${sst_domain_file}"
+if [ "${cime_coupler}" == "nuopc" ] ; then
+  ./xmlchange SSTICE_MESH_FILENAME="${sst_ESMF_file}"
+else
+  ./xmlchange SSTICE_GRID_FILENAME="${sst_domain_file}"
+fi
 echo "Setting SST from default to our SST"
 ./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
 echo "Setting GLC coupling to handle forecasts across calendar years"
