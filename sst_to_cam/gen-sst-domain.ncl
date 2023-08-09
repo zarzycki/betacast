@@ -47,6 +47,14 @@ fileattdef( ncdf, fAtt )            ; copy file attributes
 ncdf->yc = lat
 ncdf->xc = lon
 
+; write out SCRIP grid
+
+filename = str_sub_str(filename,"domain.ocn","scrip.ocn")
+Opt=True
+Opt@Debug=True
+Opt@ForceOverwrite=True
+rectilinear_to_SCRIP(filename,lat,lon,Opt)
+
 print("GEN_SST_DOMAIN: done")
 
 status_exit(9)
