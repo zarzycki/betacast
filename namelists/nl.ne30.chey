@@ -1,77 +1,74 @@
-# 0 = no debug, 1 = debug
-  debug = 0
+### ----- Case settings
 
-# 0 no, using historical data - 1 yes, running live
-  islive = 0
+  casename = F-betacast-F2000climo
+  PROJECTID = P93300642
+  RUNWALLCLOCK = 04:09:00
+  RUNQUEUE = regular
+  datestemplate = "dates.testing.txt"
 
-# 0 send plots to external server, no, 1 yes
-  sendplots = false
+### ----- Basic settings
 
-#SSSS
-  dotracking = false
-
+  debug = false
+  islive = false
   runmodel = true
+  land_spinup = false
+  usingCIME = true
+  cime_coupler = nuopc
 
-### GFS analysis available from 8/2004 onward
-### CFSR analysis available from 1979 to Mar 2011
-### Use NOAAOI unless running real-time
-# 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
-  atmDataType = 4
+### ----- Forecast settings
 
+  numdays = 5
+
+### ----- SST/ice settings
+
+# SST/ice data source
 # 1 = GDAS, 2 = ERA, 3 = NOAAOI
   sstDataType = 3
 
-# Do we want to predict docn with anoms? 0 = yes, 1 = no. 1 is default behavior
-  predict_docn = 0
+  predict_docn = false
 
-# 72 -> E3SM, 58 -> CAM7 physics, 32 -> CAM6 physics, 30 -> CAM5 physics, 26 -> CAM4 physics
+### ----- Atmospheric component settings
+
+# Atmospheric data source
+# 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR, 4 = ERA5
+  atmDataType = 4
+
+# Weight file for going from GFS -> VR-SE
+  anl2mdlWeights = /glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_ne30_patc.nc
+
+# nlev: 128 -> SCREAM, 72 -> E3SM, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4
   numLevels = 32
-
-#forecast length (in days)
-  numdays = 5
 
 # Adjustment settings
   adjust_topo = /glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc
   #adjust_flags = a
 
-#true/false, needs to be lowercase
-  doFilter = false
+# Timestepping and stability
+  DTIME = 1800.0
+  FINERES = 30
+  USERSTAB = 900.0
 
-#if true, exits after filter (generates init data)
-  filterOnly = false
+### ----- Land component settings
 
-  numHoursSEStart = 3
-  filterHourLength = 6
-  filtTcut = 6
+# Repo of 1deg CLM inic for "cold starts"
+  landrawdir = /glade/u/home/zarzycki/scratch/for-truesdale/clmstart/
+
+### ----- Counterfactuals
 
 # Add perturbations from climate forcing run -- right now only works with M. Wehner data
   add_perturbs = false
   add_noise = false
 
-  land_spinup = false
+### ----- Visualization and post-processing
 
-# Case name
-  casename = F-betacast-F2000climo
-
-# Weight file for going from GFS -> VR-SE
-  anl2mdlWeights = /glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_ne30_patc.nc
+  sendplots = false
+  dotracking = false
 
 # File for plotting in NCL (native grid to some sort of RLL)
   nclPlotWeights = NULL
 
-# Repo of 1deg CLM inic for "cold starts"
-  landrawdir = /glade/u/home/zarzycki/scratch/for-truesdale/clmstart/
+### ----- Archival settings
 
-# Timing settings
-  PROJECTID = P93300642
-  FILTERWALLCLOCK = 00:29:00
-  FILTERQUEUE = premium
-  RUNWALLCLOCK = 04:09:00
-  RUNQUEUE = economy
-
-  usingCIME = true
-  cime_coupler = nuopc
-
-  DTIME = 1800.0
-  FINERES = 30
-  USERSTAB = 900.0
+  archive_inic = true
+  compress_history_nc = true
+  tararchivedir = true
