@@ -1,5 +1,7 @@
 ## DOCN stuff
 domain.ocn.*.nc
+scrip.ocn.*.nc
+ESMF.ocn.*.nc
 
 ## Slab ocean stuff
 # ALCC files
