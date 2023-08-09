@@ -370,22 +370,34 @@ archive_inic () {
 
   # Copy LND initial conditions
   ARCFILE=$(grep ^finidat $2/user_nl_$5 | cut -d "=" -f2)
-  strip_quotes ARCFILE
-  echo "Found initial file: "$ARCFILE
-  cp -v $ARCFILE $1/inic
+  if [[ -n "$ARCFILE" ]]; then
+    strip_quotes ARCFILE
+    echo "Found land initial file: $ARCFILE"
+    cp -v "$ARCFILE" "$1/inic"
+  else
+    echo "Land ARCFILE not found in $2/user_nl_$5"
+  fi
 
   # Copy ATM initial conditions
   ARCFILE=$(grep ^ncdata $2/user_nl_$4 | cut -d "=" -f2)
-  strip_quotes ARCFILE
-  echo "Found initial file: "$ARCFILE
-  cp -v $ARCFILE $1/inic
+  if [[ -n "$ARCFILE" ]]; then
+    strip_quotes ARCFILE
+    echo "Found atm initial file: $ARCFILE"
+    cp -v "$ARCFILE" "$1/inic"
+  else
+    echo "Atm ARCFILE not found in $2/user_nl_$4"
+  fi
 
   # Copy ROF initial conditions
   if [ $do_runoff = true ]; then
     ARCFILE=$(grep ^finidat_rtm $2/user_nl_$6 | cut -d "=" -f2)
-    strip_quotes ARCFILE
-    echo "Found initial file: "$ARCFILE
-    cp -v $ARCFILE $1/inic
+    if [[ -n "$ARCFILE" ]]; then
+      strip_quotes ARCFILE
+      echo "Found rof initial file: $ARCFILE"
+      cp -v "$ARCFILE" "$1/inic"
+    else
+      echo "rof ARCFILE not found in $2/user_nl_$6"
+    fi
   fi
 
   # Copy SST conditions
