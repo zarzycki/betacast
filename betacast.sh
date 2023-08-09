@@ -873,6 +873,7 @@ fi
 echo "landrestartfile: ${landrestartfile}"
 
 ## Now modify user_nl_${lndName}
+./xmlchange ${lndName^^}_FORCE_COLDSTART=off
 if [ ${landrestartfile} ] ; then
   sed -i '/.*finidat/d' user_nl_${lndName}
   echo "finidat='${landrestartfile}'" >> user_nl_${lndName}
@@ -893,7 +894,7 @@ else
       echo "WARNING: Land file DOES NOT EXIST, will use arbitrary user_nl_${lndName} already in folder"
       echo "!!!!!!!!!!!!!"
       sed -i '/.*finidat/d' user_nl_${lndName}
-      ./xmlchange CLM_FORCE_COLDSTART=on
+      ./xmlchange ${lndName^^}_FORCE_COLDSTART=on
       #exit
       #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_${lndName}
     fi
