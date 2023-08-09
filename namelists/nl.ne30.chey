@@ -13,7 +13,7 @@
   runmodel = true
 
 ### GFS analysis available from 8/2004 onward
-### CFSR analysis available from 1979 to Mar 2011          
+### CFSR analysis available from 1979 to Mar 2011
 ### Use NOAAOI unless running real-time
 # 1 = GFS analysis, 2 = ERA-interim, 3 = CFSR
   atmDataType = 4
@@ -63,13 +63,14 @@
   landrawdir = /glade/u/home/zarzycki/scratch/for-truesdale/clmstart/
 
 # Timing settings
-  PROJECTID = P93300642 
+  PROJECTID = P93300642
   FILTERWALLCLOCK = 00:29:00
   FILTERQUEUE = premium
   RUNWALLCLOCK = 04:09:00
   RUNQUEUE = economy
 
   usingCIME = true
+  cime_coupler = nuopc
 
   DTIME = 1800.0
   FINERES = 30
