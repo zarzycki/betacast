@@ -31,15 +31,24 @@ This step just requires a built and tested case of CESM. Any source mods or othe
 
 **CESM example:**
 
+<!--
+MODELROOT=/glade/u/home/zarzycki/work/cam_20230623/
+BETACAST=~/betacast/
+PROJECTID=P93300642
+CASESDIR=~/tests-betacast/
+-->
+
 ```
-$ cd ~/work/cesm-release/cime/scripts
-$ ./create_newcase --case ~/F-betacast-F2000climo --compset F2000climo --res ne30_g16 --mach cheyenne --project UNSB0017 --run-unsupported
-$ cd ~/F-betacast-F2000climo
-$ ./case.setup
-$ ### patch land mods for restart
-$ ./case.build
-$ ./case.submit
+cd ${MODELROOT}/cime/scripts
+./create_newcase --case ${CASESDIR}/F-betacast-F2000climo --compset F2000climo --res ne30_g16 --mach cheyenne --project ${PROJECTID} --run-unsupported
+cd ${CASESDIR}/F-betacast-F2000climo
+./case.setup
+${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} nuopc clm
+./case.build
+./case.submit
 ```
+
+NOTE: The above uses the "nuopc" driver. Releases <=CESM2.2 will use "mct" by default.
 
 **E3SMv2 example:**
 
@@ -58,7 +67,7 @@ $ ./case.submit
 
 Some notes:
 
-1. In the "### patch" step, a small modification is made to the land model to enforce restart files to be printed every 12 hours. This is done since the land model is initialized via nudging with the atmosphere in this framework. This patch can be applied by copying CESM or E3SM's `lnd_comp_mct.F90` (from the land model source code) into `$CASEDIR/SourceMods/src.clm` (or equivalent) and running
+1. In the "patch-sfc-mods" step, a small modification is made to the land model to enforce restart files to be printed every 12 hours. This is done since the land model is initialized via nudging with the atmosphere in this framework. A shell script `${BETACAST}/tools/patch-sfc-mods.sh` has been created to ease this application, which takes the Betacast directory, top-level model directory, driver (mct or nuopc) and model component (e.g., elm, clm, mosart, rtm) as inputs. These patches can be manually applied by copying CESM or E3SM's `lnd_comp_mct.F90` (from the land model source code) into `$CASEDIR/SourceMods/src.clm` (or equivalent) and running
 `$ patch lnd_comp_mct.F90 < ${BETACAST}/patches/lnd_comp_mct.patch`
 over the top of the file, which injects the correct logic. A similar procedure is used if you want runoff model restart files using `rof_comp_mct.patch`. **This needs to be done before the `./case.build` step.**
 2. For E3SM, current suggested compsets are: F2010C5-CMIP6-HR (ne120, VR) and F2010C5-CMIP6-LR (ne30). For SCREAM, these are FSCREAM-LR and FSCREAM-HR, respectively.
@@ -70,7 +79,7 @@ over the top of the file, which injects the correct logic. A similar procedure i
 	      <lname>2010_EAM%CMIP6-HR_ELM%SPBC_CICE%PRES_DOCN%DOM_MOSART_SGLC_SWAV</lname>
 	    </compset>
 
-5. Empty note.
+5. More notes to come?
 
 ### 2. Generate an analysis/reanalysis to CAM weight file
 
@@ -111,9 +120,9 @@ In `${BETACAST}/machine_files` there are sample files that define where folders 
 
 | Namelist Variable | Description |
 | --- | --- |
-| path_to_case | Path to CESM "home" case directory |
-| path_to_inputdata | Path to where re/analysis + model initial conditions/forcing data is stored |
-| path_to_rundir | Path (top-level) to directory where CESM actively runs |
+| path\_to\_case | Path to CESM "home" case directory |
+| path\_to\_inputdata | Path to where re/analysis + model initial conditions/forcing data is stored |
+| path\_to\_rundir | Path (top-level) to directory where CESM actively runs |
 | sewxscriptsdir | Path to betacast repo (i.e., `${BETACAST}`) |
 
 ### 3.2 Edit namelist file for your particular case
@@ -131,6 +140,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | compress_history_nc | Use NCO lossless compression to compress history files (0 = no (default), 1 = yes) |
 | tararchivedir | Should the archive folder be tarred?  (0 = no, 1 = yes (default)) |
 | modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2+/SCREAM (defaults to 0 if empty or not included) |
+| cime_coupler | Which driver to use? Can be "mct" or "nuopc". Default is "mct" if not specified. |
 | do_runoff | Include runoff model files (false/true) (defaults to false if empty or not included) |
 | atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5 |
 | sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI |
