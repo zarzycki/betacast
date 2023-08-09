@@ -599,6 +599,7 @@ if [ $debug = false ] ; then
 
   # If ERA5RDA flag toggled, set value w/ key to RDA data
   if [ $ERA5RDA -eq 1 ] ; then
+    atm_data_sources["4"]="ERA5RDA"
     atm_file_paths["4"]="${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
   fi
 
