@@ -978,7 +978,7 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
       print("SE: Using PHIS_d for topo adjustment")
       topo_model_SE = ttfile->PHIS_d     ;ncol
     else
-      print("SE: Cannot find valid PHIS or PHIS_d with dimensions that match ncol: "+ncol)
+      print("SE: Cannot find valid PHIS or PHIS_d with dimensions that match ncol: "+dim_sePS(0))
       exit
     end if
     end if
