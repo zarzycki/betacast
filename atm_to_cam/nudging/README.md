@@ -12,6 +12,12 @@ If run on the command line, the code will look for the first command line option
 ./gen-nudge.sh ndg.era5.nl 
 ```
 
+SLURM can handle
+
+```
+sbatch gen-nudge.sh ndg.era5.nl 
+```
+
 | Namelist Variable | Description | CAM_TO_CAM |
 | --- | --- | --- |
 | CAM_TO_CAM | Are we running the "downscaling" code for CAM? If **false** -> re/analysis | |

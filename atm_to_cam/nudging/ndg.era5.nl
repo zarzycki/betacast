@@ -1,17 +1,25 @@
 CAM_TO_CAM=false
 dryrun=false
 
-STYR=2022
-ENYR=2022
+STYR=2021
+ENYR=2021
 HR_RES=6
-STMON="sep"
-STDAY=25
-ENMON="oct"
-ENDAY=2
+STMON="jun"
+STDAY=30
+ENMON="aug"
+ENDAY=3
 
-BETACASTDIR=/glade/u/home/zarzycki/betacast/
-OUTDIR=/glade/p/univ/upsu0032/MPAS/ndg/
-RDADIR=/glade/collections/rda/data/ds633.0/
+####### PATHS ETC PER MACHINE
+
+#BETACASTDIR=/glade/u/home/zarzycki/betacast/
+#OUTDIR=/glade/p/univ/upsu0032/MPAS/ndg/
+#RDADIR=/glade/collections/rda/data/ds633.0/
+
+BETACASTDIR=/global/homes/c/czarzyck/betacast/
+OUTDIR=/pscratch/sd/c/czarzyck/ndg/
+RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
+
+####### MODEL CONFIGS
 
 #DYCORE="se"
 #GRIDSTR=ne30pg3
@@ -43,9 +51,14 @@ RDADIR=/glade/collections/rda/data/ds633.0/
 #WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_mpasa3-60-florida_patc.nc
 #NUMLEVS=32
 
-DYCORE="se"
-GRIDSTR=ne0np4natlanticref.ne30x4
-BNDTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc
-WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5-0.25_TO_ne0np4natlanticref.ne30x4_patc.nc
-NUMLEVS=32
+#DYCORE="se"
+#GRIDSTR=ne0np4natlanticref.ne30x4
+#BNDTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc
+#WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5-0.25_TO_ne0np4natlanticref.ne30x4_patc.nc
+#NUMLEVS=32
 
+DYCORE="se"
+GRIDSTR=ne0np4conus.ne30x8
+BNDTOPO=/global/homes/c/czarzyck/m2637/betacast/cesmfiles/topo/topo_ne0np4westernus.ne30x8_gtopo30_cycle_12_smooth_4e16.nc
+WGTNAME=/global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era5_0.25x0.25_TO_wus30x8_patc.nc
+NUMLEVS=72

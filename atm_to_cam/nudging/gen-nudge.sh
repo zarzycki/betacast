@@ -1,4 +1,7 @@
 #!/bin/bash
+
+#>################################################################
+#>#### Cheyenne
 #>################################################################
 #>#PBS -N gen_nudge_betacast
 #>#PBS -A P93300642
@@ -6,14 +9,32 @@
 #>#PBS -q regular
 #>#PBS -j oe
 #>#PBS -l select=1:ncpus=36:mem=109GB
+
+#>################################################################
+#>#### Casper
+#>################################################################
+#>#PBS -N gen_nudge_betacast
+#>#PBS -A P93300642
+#>#PBS -l select=1:ncpus=12:mem=80GB
+#>#PBS -l walltime=4:00:00
+#>#PBS -q casper
+#>#PBS -j oe
 #>################################################################
 
-#PBS -N gen_nudge_betacast
-#PBS -A P93300642
-#PBS -l select=1:ncpus=12:mem=80GB
-#PBS -l walltime=4:00:00
-#PBS -q casper
-#PBS -j oe
+#>################################################################
+#>#### PM-CPU interactive
+#>################################################################
+#>salloc --nodes 1 --qos interactive --time 01:00:00 --constraint cpu
+
+################################################################
+#### PMCPU
+################################################################
+#SBATCH --qos=debug
+#SBATCH --time=00:30:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=128
+#SBATCH --constraint=cpu
+################################################################
 
 ### CMZ NOTES:
 # 4/2/21: Cannot find a benefit to running over multiple Casper nodes
@@ -22,6 +43,25 @@
 # Current recommendation is 36 CPUs, 36 GnuP tasks, scale mem as needed w/ gridres
 
 set -e
+
+SERVER_NAME=$(hostname -A)
+echo $SERVER_NAME
+
+if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
+  echo "Using pm-cpu"
+  export NCARG_ROOT=/global/homes/c/czarzyck/.conda/pkgs/ncl-6.6.2-h3fdc804_41/
+  PATHTONCL=/global/homes/c/czarzyck/.conda/envs/e3sm_unified_1.8.1_nompi/bin/
+  module load parallel
+  NUMCORES=32
+elif [[ $SERVER_NAME == *"casper"* ]]; then
+  echo "Using Casper"
+  module load parallel
+  module load peak_memusage
+  NUMCORES=36
+else
+  echo "Unrecognized server. exiting"
+  exit
+fi
 
 THISDIR=$PWD
 source ${THISDIR}/../../utils.sh   # Source external bash functions
@@ -74,9 +114,6 @@ else
 fi
 
 # GNUPARALLEL SETTINGS
-module load parallel
-module load peak_memusage
-NUMCORES=36
 TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt
 
@@ -181,9 +218,16 @@ do
 done
 
 if [ $dryrun = false ] ; then
+
   # Launch GNU parallel
-  #parallel --jobs ${NUMCORES} -u --sshloginfile $PBS_NODEFILE --workdir $PWD < ${COMMANDFILE}
-  peak_memusage.exe parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
+  if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
+    parallel --jobs ${NUMCORES} < ${COMMANDFILE}
+  elif [[ $SERVER_NAME == *"otherstring"* ]]; then
+    peak_memusage.exe parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
+  else
+    echo "unknown" ; exit
+    #parallel --jobs ${NUMCORES} -u --sshloginfile $PBS_NODEFILE --workdir $PWD < ${COMMANDFILE}
+  fi
 
   # Cleanup
   rm ${COMMANDFILE}
