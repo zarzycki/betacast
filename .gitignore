@@ -22,6 +22,9 @@ atm_to_cam/perturb/grids/
 ## Output streams
 output_streams/*
 
+## Batch logs
+slurm*.out
+
 batch-clone2.sh
 land-spinup/batch-auto-alan.sh
 cyclones_tempest*
