@@ -1350,7 +1350,7 @@ if (isvar("compress_file") .and. compress_file) then
   setfileoption("nc","CompressionLevel",compress_level)
 else
   print("writing largefile with default compression settings")
-  setfileoption("nc","Format","LargeFile")
+  setfileoption("nc","Format","NetCDF4")
 end if
 
 system("/bin/rm -f -v "+se_inic)   ; remove any pre-existing file
