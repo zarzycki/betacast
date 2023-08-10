@@ -367,27 +367,26 @@ if (do_ps_corr) then
 end if
 
 ; Update arrays
-T(0,:,:) = T(0,:,:) + deltaTCAM_interp(:,:)
-Q(0,:,:) = Q(0,:,:) + deltaQCAM_interp(:,:)
+T(0,:,:) = T(0,:,:) + totype(deltaTCAM_interp(:,:),typeof(T))
+Q(0,:,:) = Q(0,:,:) + totype(deltaQCAM_interp(:,:),typeof(Q))
 if (update_pressure) then
-  PS(0,:)  = PS(0,:)  + deltaPSCAM_interp(:)
+  PS(0,:)  = PS(0,:)  + totype(deltaPSCAM_interp(:),typeof(PS))
 end if
 if (update_winds) then
-  U(0,:,:) = U(0,:,:) + deltaUCAM_interp(:,:)
-  V(0,:,:) = V(0,:,:) + deltaVCAM_interp(:,:)
+  U(0,:,:) = U(0,:,:) + totype(deltaUCAM_interp(:,:),typeof(U))
+  V(0,:,:) = V(0,:,:) + totype(deltaVCAM_interp(:,:),typeof(V))
 end if
 
 if (correct_sfc) then
   do ii = 0,nlev-1
-    T(0,ii,:) = T(0,ii,:) - deltaTCAM_interp(nlev-1,:)
-    Q(0,ii,:) = Q(0,ii,:) - deltaQCAM_interp(nlev-1,:)
+    T(0,ii,:) = T(0,ii,:) - totype(deltaTCAM_interp(nlev-1,:),typeof(T))
+    Q(0,ii,:) = Q(0,ii,:) - totype(deltaQCAM_interp(nlev-1,:),typeof(Q))
   end do
 end if
 
 ; where moisture is negative due to deltas, reset
 print("Reset "+num(Q.le.0)+" Q elements for being negative")
 Q=where(Q.le.0,1.0e-9,Q)
-
 
 if(any(ismissing(Q))) then
   print("Q data contains some missing values. Beware.")
