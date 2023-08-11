@@ -22,30 +22,57 @@ atm_to_cam/perturb/grids/
 ## Output streams
 output_streams/*
 
-## Batch logs
+## Logs
 slurm*.out
+log.*.out
+nohup*
+*.Log
+out.*
+timing.txt
 
+## Betacast namelists
+namelists/*
+!nl.ne30.cori
+!nl.ne30.chey
+perturb.*.nl
+
+## Model namelists
+user_nl_cam
+user_nl_eam
+
+## Local backups
+BAK/
+*.BAKx
+
+## HTML/viz code
+index.html
+index.HOLD
+upload_ncl.sh.*
+ncl.output
+html_for_upload/20*
+*.png
+
+## Tracking stuff
+cyclone-tracking/fin-atcf/
+cyclones_tempest*
+*.tcst
+trajectories.txt.*
+*syndata.tcvitals*
+atcf.*
+tcvitals*
+*dat
+
+## Misc.
 batch-clone2.sh
 land-spinup/batch-auto-alan.sh
-cyclones_tempest*
+.DS_Store
 .SEED*
-BAK/
-namelists/ATOMIC/
-*.BAK
-index.html
 FZRA/
 output.fzra
 output.jet*
-*.tcst
-timing.txt
-user_nl_cam
-.DS_Store
-cyclone-tracking/fin-atcf/
-namelists/WUS/
 *_ESMF.nc
 gen_nudge_betacast.o*
 commands*.txt
-perturb.*.nl
 deltas_*.nc
 map_*patc.nc
 forcing-gen.*
@@ -53,33 +80,16 @@ grid_deltas.nc
 grid_se_*.nc
 map_ll_to_se_*.nc
 map_se_*_to_ll.nc
-log.*.out
 !ERA-Int_SCRIP.nc
 !ERA-Interim_coordvars.nc
 atm_to_cam/getECMWFdata/*.nc
 *__pycache__*
 *_SCRIP.nc
-!nl.ne30.cori
-!nl.ne30.chey
-namelists/nl.*
 *.swp
 dates.*
 core-*
-index.HOLD
-trajectories.txt.*
-*syndata.tcvitals*
-atcf.*
-tcvitals*
-*dat
-upload_ncl.sh.*
-ncl.output
 *-NCEP.nc
 simple.nc
-nohup*
-html_for_upload/20*
-*.Log
 core.*
-*.png
-out.*
 *.grb
 *.grb2
