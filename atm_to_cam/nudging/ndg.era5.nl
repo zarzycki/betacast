@@ -5,9 +5,9 @@ STYR=2021
 ENYR=2021
 HR_RES=6
 STMON="jun"
-STDAY=30
-ENMON="aug"
-ENDAY=3
+STDAY=20
+ENMON="jul"
+ENDAY=18
 
 ####### PATHS ETC PER MACHINE
 
@@ -58,7 +58,13 @@ RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
 #NUMLEVS=32
 
 DYCORE="se"
-GRIDSTR=ne0np4conus.ne30x8
-BNDTOPO=/global/homes/c/czarzyck/m2637/betacast/cesmfiles/topo/topo_ne0np4westernus.ne30x8_gtopo30_cycle_12_smooth_4e16.nc
-WGTNAME=/global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era5_0.25x0.25_TO_wus30x8_patc.nc
+GRIDSTR=conus_30_x8
+BNDTOPO=/global/homes/c/czarzyck/m2637/betacast/cesmfiles/topo/topo_conus_30_x8_smooth.nc
+WGTNAME=/global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era0.25_TO_conus_30_x8_patc.nc
 NUMLEVS=72
+
+#DYCORE="se"
+#GRIDSTR=ne30np4
+#BNDTOPO=/global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc
+#WGTNAME=/global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era0.25_TO_ne30np4_patc.nc
+#NUMLEVS=72
