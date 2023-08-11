@@ -10,9 +10,9 @@ anlgrid="era5_0.25x0.25"
 anlgridpath="./anl_scrip/"
 
 ; shortname for grid (for naming purposes)
-dstGridName="Guam_ne128x8_lon145W_lat15N_np4"
+dstGridName="Philadelphia_TC_grid_v2_ne128x8_np4"
 ; full path to model SCRIP file
-dstGridFile="/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/grids/scrip/Guam_ne128x8_lon145W_lat15N_np4_SCRIP.nc"
+dstGridFile="/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/grids/scrip/Philadelphia_TC_grid_v2_ne128x8_np4_SCRIP.nc"
 ;dstGridFile="./model_scrip/ne30np4_091226_pentagons.nc"
 ;dstGridFile="/glade/work/zarzycki/grids/scrip/ne0np4natlanticwat.ne30x4.g_scrip.nc"
 ;dstGridFile="./rrm.x4_ESMF.nc"
@@ -134,6 +134,7 @@ Opt@PrintTimings         = True
 Opt@NoPETLog             = True
 Opt@RemovePETLog         = True
 Opt@Debug = True
+Opt@NetCDFType="netcdf4"
 
 if (regionalGrid) then
   if (.not.flip_model_and_analysis) then
@@ -166,6 +167,17 @@ delete(Opt)
 if (dstType .eq. "model") then
   print("removing online generated grid descriptor")
   system("rm "+seGridName)
+end if
+
+if (.not.ismissing(systemfunc("type ncks"))) then
+  print("NCO compressing: "+wgtFileDir+"/"+wgtFileName)
+  beforefilesize=tofloat(systemfunc("stat -c %s "+wgtFileDir+"/"+wgtFileName))
+  system("ncks -O -4 -L 1 "+wgtFileDir+"/"+wgtFileName+" "+wgtFileDir+"/"+wgtFileName)
+  afterfilesize=tofloat(systemfunc("stat -c %s "+wgtFileDir+"/"+wgtFileName))
+  compressionpercentage = 100.0 * (1 - afterfilesize/beforefilesize)
+  print("Compression percentage: "+compressionpercentage+" %")
+else
+  print("Cannot compress "+wgtFileDir+"/"+wgtFileName+", no ncks")
 end if
 
 print("successfully generated...   "+wgtFileDir+"/"+wgtFileName)
