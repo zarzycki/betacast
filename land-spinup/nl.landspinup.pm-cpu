@@ -1,0 +1,16 @@
+### ELM on Cori
+CIMEROOT=/global/homes/c/czarzyck/E3SM-20230714/
+PATHTOCASE=~/I-runs
+ICASENAME=PNW-ICLM45-RESSTRING-101
+PROJECT=m2637
+MACHINE=pm-cpu
+NNODES=12
+RESOL=ne0conus30x8_ne0conus30x8_t12
+RUNQUEUE=regular
+WALLCLOCK="11:57:00"
+#USER_FSURDAT="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2015_c201027.nc"
+#USER_FINIDAT=""
+### Only required if doERA5 = 0
+BETACAST=/global/homes/c/czarzyck/betacast/
+BETACAST_DATM_FORCING_BASE=/global/cfs/cdirs/m2637/DATM_FORCING/
+

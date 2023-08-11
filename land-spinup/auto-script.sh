@@ -36,6 +36,9 @@ fi
 
 # Read the namelist
 read_bash_nl "${NAMELISTFILE}"
+# Set user things to empty strings if not provided
+if [ -z "${USER_FSURDAT+x}" ]; then USER_FSURDAT=""; fi
+if [ -z "${USER_FINIDAT+x}" ]; then USER_FINIDAT=""; fi
 
 # Derived settings that should be same between all machines
 BETACAST_DATMDOMAIN=${BETACAST}/land-spinup/gen_datm/gen-datm/
@@ -108,6 +111,7 @@ elif [ ${#FORECASTDATE} -ne 8 ]; then
   exit 1
 fi
 
+ICASENAME=${ICASENAME/RESSTRING/$RESOL}
 ICASENAME=${ICASENAME}_${FORECASTDATE}_$(printf "%04d\n" $NMONTHSSPIN)
 if [ $addDeltas -eq 0 ]; then
   ICASENAME=${ICASENAME}_${BETACAST_ANOMYEAR}
@@ -137,6 +141,8 @@ echo "RESOL: "${RESOL}
 echo "RUNQUEUE: "${RUNQUEUE}
 echo "WALLCLOCK: "${WALLCLOCK}
 echo "ICASENAME: "${ICASENAME}
+echo "USER_FSURDAT: "${USER_FSURDAT}
+echo "USER_FINIDAT: "${USER_FINIDAT}
 echo "--------------------------------------------"
 sleep 10  # sleep to hold this on the interactive window for 10 sec
 
@@ -225,43 +231,43 @@ fi
 
 ### USER! Edit this block if using ELM and need to inject any ELM specific mods (e.g., fsurdat, etc.)
 cat > user_nl_elm <<EOF
-!fsurdat="/global/cfs/cdirs/e3sm/inputdata/lnd/clm2/surfdata_map/surfdata_ne30np4_simyr2000_c190730.nc"
-!fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2000_c201027.nc"
-!fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_CAL_VR7_simyr2000_c211213.nc"
-!fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_CAL_VR4_simyr2000_c211213.nc"
-!fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_CAL_VR4_simyr2000_c220531.nc"
-!fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/elm_surfdata/surfdata_ne0np4westernus.ne30x8_simyr2015_c220615.nc"
-fsurdat="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/elm_surfdata/surfdata_ne0np4westernus.ne30x32_simyr2015_c220615.nc"
-!
-!finidat="/global/homes/c/czarzyck/scratch/e3sm_scratch/cori-knl/RoS-F2010C5-ne0conus30x8-001-control/run//landstart//RoS-F2010C5-ne0conus30x8-001-control.elm.r.1996-01-15-00000.nc"
-finidat=''
-!
 do_transient_pfts = .false.
 check_finidat_fsurdat_consistency = .false.
-!
-hist_avgflag_pertape='A','I'
-hist_nhtfrq = 0,0
-hist_mfilt = 1,1
-hist_fincl2 = 'FSNO','H2OSNO','H2OSNO_TOP','QSNOMELT','QSNOFRZ','SNOW','SNOWDP','SNOWLIQ','SNOTTOPL','ERRH2OSNO','QSNWCPICE','FGR','FSM','QDRIP','ZBOT','TG','TV','TSA','SWup','SWdown','FIRA','FIRE','LWdown','LWup','TREFMNAV','TREFMXAV','Q2M','FPSN','FSH','Rnet','TLAI','FCTR','QOVER','RH','RH2M','SOILWATER_10CM','ZWT','TSOI_10CM','QSOIL','QVEGE','QVEGT','QTOPSOIL','Qstor','H2OCAN','H2OSFC','QH2OSFC','TWS','HC','SNOdTdzL','SNOW_SINKS','SNOW_SOURCES','SNOLIQFL','TH2OSFC','U10','QFLOOD','QRUNOFF','Qle','Qh','Qair','Tair','RAIN','SNO_Z','SNO_T'
+hist_avgflag_pertape='A','A'
+hist_nhtfrq = 0,-24
+hist_mfilt = 1,10
+hist_fincl2 = 'TSA','TBOT','RAIN','SNOW'
 EOF
 
 ### USER! Edit this block if using CLM and need to inject any CLM specific mods (e.g., fsurdat, etc.)
 cat > user_nl_clm <<EOF
-!use_init_interp = .true.
-!fsurdat='/glade/u/home/zarzycki/work/cesmfiles/clm_surfdata_5_0/surfdata_mpasa3-60-florida_hist_16pfts_Irrig_CMIP6_simyr2000_c220728.nc'
-!finidat='/glade/u/home/zarzycki/scratch/NM-ICLM45-ne30_20080830_0060/run/NM-ICLM45-ne30_20080830_0060.clm2.r.2008-08-30-00000.nc'
-!do_transient_pfts = .false.
 !check_finidat_fsurdat_consistency = .false.
+!use_init_interp = .true.
+!do_transient_pfts = .false.
 EOF
 
-# remove any "incorrect" user nl files depending on model system
 if [ $modelSystem -eq 0 ]; then
   rm -v user_nl_elm
+  modelSystemString="clm"
 elif [ $modelSystem -eq 1 ]; then
   rm -v user_nl_clm
+  modelSystemString="elm"
 else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
+fi
+
+## Do any injection into the remaining user_nl* file
+if [[ -n "$USER_FSURDAT" ]]; then
+  sed -i '/.*fsurdat/d' user_nl_${modelSystemString}
+  echo "fsurdat='${USER_FSURDAT}'" >> user_nl_${modelSystemString}
+fi
+
+if [[ -n "$USER_FINIDAT" ]]; then
+  sed -i '/.*finidat/d' user_nl_${modelSystemString}
+  echo "finidat='${USER_FINIDAT}'" >> user_nl_${modelSystemString}
+else
+  echo "finidat=''" >> user_nl_${modelSystemString}
 fi
 
 ./case.setup
