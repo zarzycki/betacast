@@ -87,6 +87,7 @@ if [ -z "${docnres+x}" ]; then docnres="180x360"; fi
 if [ -z "${modelgridfile+x}" ]; then modelgridfile=""; fi
 if [ -z "${anl2mdlWeights+x}" ]; then anl2mdlWeights=""; fi
 if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=1; fi
+if [ -z "${add_noise+x}" ]; then add_noise=false; fi
 ### Some defaults infrequently set
 if [ -z "${doFilter+x}" ]; then doFilter=false; fi
 if [ -z "${filterOnly+x}" ]; then filterOnly=false; fi
@@ -535,7 +536,9 @@ if [ $debug = false ] ; then
     mkdir -p ${sst_files_path}
     cd ${sst_files_path}
     sstFile=sst.day.mean.${yearstr}.nc
-    if [ ! -f "${sst_files_path}/${sstFile}" -o $(ncdmnsz time "${sst_files_path}/${sstFile}") -lt 365 ] ; then
+    if [ ! -f "${sst_files_path}/${sstFile}" ] || \
+       { [ -f "${sst_files_path}/${sstFile}" ] && [ $(ncdmnsz time "${sst_files_path}/${sstFile}") -lt 365 ]; }
+    then
       echo "NOAAOI SST file doesn't exist or has less than 365 timesteps, need to download"
       rm -f ${sst_files_path}/${sstFile}
       sstFTPPath=ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/
@@ -550,7 +553,9 @@ if [ $debug = false ] ; then
       done
     fi
     iceFile=icec.day.mean.${yearstr}.nc
-    if [ ! -f "${sst_files_path}/${iceFile}" -o $(ncdmnsz time "${sst_files_path}/${iceFile}") -lt 365 ] ; then
+    if [ ! -f "${sst_files_path}/${iceFile}" ] || \
+       { [ -f "${sst_files_path}/${iceFile}" ] && [ $(ncdmnsz time "${sst_files_path}/${iceFile}") -lt 365 ]; }
+    then
       echo "NOAAOI ice file doesn't exist or has less than 365 timesteps, need to download"
       rm -f ${sst_files_path}/${iceFile}
       sstFTPPath=ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/
