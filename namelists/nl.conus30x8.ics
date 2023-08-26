@@ -6,6 +6,7 @@ runmodel = true
 modelSystem = 0
 usingCIME = true
 compress_history_nc = true
+tararchivedir = true
 
 numdays = 7
 
@@ -15,7 +16,10 @@ numLevels = 30
 sstDataType = 1
 predict_docn = false
 
-anl2mdlWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
+CIMEMAXTRIES = 20
+
+modelgridfile = /storage/home/cmz5202/group/grids/scrip/conus_30_x8.g_scrip.nc
+##anl2mdlWeights = ~/work/maps/gfsmaps/map_gfs0.25_TO_conus_30_x8_patc.nc
 adjust_topo = /gpfs/group/cmz5202/default/ASD2017_files/atm/cam/topo/conus_30_x8_nc3000_Co060_Fi001_MulG_PF_CONUS_Nsw042_20170417.nc
 adjust_flags = 0
 
@@ -30,12 +34,12 @@ keep_land_restarts = true
 
 do_runoff = false
 
-#RUNWALLCLOCK = 02:58:00
-#PROJECTID = cmz5202_a_g_sc_default 
-#RUNQUEUE = batch
 RUNWALLCLOCK = 04:58:00
-PROJECTID = open 
-RUNQUEUE = open
+PROJECTID = cmz5202_a_g_sc_default
+RUNQUEUE = batch
+#RUNWALLCLOCK = 04:58:00
+#PROJECTID = open
+#RUNQUEUE = open
 
 DTIME = 600.0
 FINERES = 240
