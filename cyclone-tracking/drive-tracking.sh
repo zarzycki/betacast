@@ -21,8 +21,7 @@
 # $11 -- where is the TE noMPI binary on this system?
 ############ USER OPTIONS #####################
 
-if [ $# -eq 11 ] 
-then
+if [ $# -eq 11 ] ; then
   YYYYMMDDHH=${1}
   UQSTR=${2}
   TCVITFILE=${3}
@@ -45,7 +44,7 @@ TRAJFILE=trajectories.txt.${UQSTR}
 # Currently, code purges this ATCFTECH's record in YYYYMMDDHH ATCF file.
 # It keeps other models/ensembles, to allow for serial catting.
 # Setting this to true nukes whole thing each time tracker is invoked
-OVERWRITE_ATCF=false 
+OVERWRITE_ATCF=false
 
 ### Flag needed if using unstructured data (if not using unstruc data, empty string)
 CONNECTFLAG="--in_connect ${CONNECTFILE}"
@@ -58,14 +57,13 @@ FILES=`ls ${PATHTOFILES}/*.?am.${HSTREAMTRACK}.*.nc`
 
 # Loop over files to find candidate cyclones
 # Find ALL local min in PSL, merge within 3deg
-rm cyc.${UQSTR} trajectories.txt.${UQSTR}
+rm -v cyc.${UQSTR} trajectories.txt.${UQSTR}
 touch cyc.${UQSTR}
-for f in ${FILES[@]};
-do
+for f in ${FILES[@]}; do
   echo "Processing $f..."
   ${TEMPESTEXTREMESDIR}/bin/DetectNodes --verbosity 0 --timestride ${TIMESTRIDE} --in_data "${f}" ${CONNECTFLAG} --out cyc_tempest.${UQSTR} --mergedist 5.0 --searchbymin PSL --outputcmd "PSL,min,0;_VECMAG(UBOT,VBOT),max,2"
   cat cyc_tempest.${UQSTR} >> cyc.${UQSTR}
-  rm cyc_tempest.${UQSTR}
+  rm -v cyc_tempest.${UQSTR}
 done
 
 # Stitch candidate cyclones together
@@ -86,12 +84,15 @@ if [ -f ${TCVITFILE} ]; then
   export YYYYMMDDHH="${ATCFFILE:(-10)}"
   export ATCFFILEMERGE="./fin-atcf/atcf.tempest.${YYYYMMDDHH}"
   if [ "$OVERWRITE_ATCF" = true ]; then
-    cp ${ATCFFILE} ${ATCFFILEMERGE}  
+    cp ${ATCFFILE} ${ATCFFILEMERGE}
   else
-    # Delete all matching lines from the master ATCF if they exist!
-    sed -i "/${ATCFTECH}/d" ${ATCFFILEMERGE}
+    # First check to see if the master file exists
+    # Delete all matching lines from this model the master ATCF if they exist!
+    if [[ -e "${ATCFFILEMERGE}" ]]; then
+      sed -i "/${ATCFTECH}/d" ${ATCFFILEMERGE}
+    fi
     # Now concat new lines!
-    cat ${ATCFFILE} >> ${ATCFFILEMERGE}  
+    cat ${ATCFFILE} >> ${ATCFFILEMERGE}
   fi
   ncl plot_ATCF.ncl
   if [ "$SENDHTML" = true ]; then
@@ -99,7 +100,7 @@ if [ -f ${TCVITFILE} ]; then
     ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${YYYYMMDDHH} "
     scp enstraj.${YYYYMMDDHH}.png colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/${YYYYMMDDHH}/ens_traj.png
   fi
-  rm ${ATCFFILE}
+  rm -v ${ATCFFILE}
 fi
 
 # Cleanup
