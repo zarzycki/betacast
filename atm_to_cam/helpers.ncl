@@ -302,3 +302,32 @@ end
 
 
 
+;*************************************************************************
+
+undef ("print_and_return_varsize")
+function print_and_return_varsize(ps_fv:numeric,u_fv:numeric,v_fv:numeric,t_fv:numeric,q_fv:numeric)
+local ps_sz, u_sz, v_sz, t_sz, q_sz, max_size
+begin
+
+ps_sz = sizeof(ps_fv)
+u_sz = sizeof(u_fv)
+v_sz = sizeof(v_fv)
+t_sz = sizeof(t_fv)
+q_sz = sizeof(q_fv)
+
+print("~~~ VAR SIZES (bytes)")
+print("ps "+ps_sz)
+print(" u "+u_sz)
+print(" v "+v_sz)
+print(" t "+t_sz)
+print(" q "+q_sz)
+
+max_size = max((/ps_sz,u_sz,v_sz,t_sz,q_sz/))
+print(" var max size: "+max_size)
+
+return(max_size)
+
+end
+
+
+

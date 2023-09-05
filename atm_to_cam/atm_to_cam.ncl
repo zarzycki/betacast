@@ -1343,14 +1343,28 @@ end do
 
 print("Writing output file: "+se_inic)
 
+; return max var size in bytes
+var_max_size = print_and_return_varsize(ps_fv_dbl_time,u_fv_dbl_time,v_fv_dbl_time,t_fv_dbl_time,q_fv_dbl_time)
+; CMZ 9/5/23 --> E3SM supports NetCDF4, but CESM doesn't support NetCDF4 or NetCDF4Classic
+; 64bitoffset (i.e., LargeFile) is nc3 w/ support up to 4 GB per variable and supported by both
+; So let's check -- if largest var <4 GB, just write 64bitoffset for now. If larger, write netcdf4
+; one option is always to write_floats=True, which reduces size to 4byte per ncolxnlev point vs. 8
 if (isvar("compress_file") .and. compress_file) then
   compress_level=1
-  print("writing netcdf4 classic with compression level "+compress_level)
+  print("writing NetCDF4Classic with compression level "+compress_level)
   setfileoption("nc","Format","NetCDF4Classic")
   setfileoption("nc","CompressionLevel",compress_level)
 else
-  print("writing largefile with default compression settings")
-  setfileoption("nc","Format","NetCDF4")
+  ; check if size is very big (>4GB), go to NetCDF4
+  if (var_max_size .ge. 4e9) then
+    print("Var max size has exceeded 4 GB")
+    print("Suggest using write_floats=True if not doing so")
+    print("writing NetCDF4 with default compression settings")
+    setfileoption("nc","Format","NetCDF4")
+  else
+    print("writing LargeFile with default compression settings")
+    setfileoption("nc","Format","LargeFile")
+  end if
 end if
 
 system("/bin/rm -f -v "+se_inic)   ; remove any pre-existing file
