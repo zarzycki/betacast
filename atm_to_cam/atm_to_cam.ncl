@@ -1349,6 +1349,7 @@ var_max_size = print_and_return_varsize(ps_fv_dbl_time,u_fv_dbl_time,v_fv_dbl_ti
 ; 64bitoffset (i.e., LargeFile) is nc3 w/ support up to 4 GB per variable and supported by both
 ; So let's check -- if largest var <4 GB, just write 64bitoffset for now. If larger, write netcdf4
 ; one option is always to write_floats=True, which reduces size to 4byte per ncolxnlev point vs. 8
+; NOTE: size of 3-D var such as T = nlev*ncol*4 if float or nlev*ncol*8 if double (in bytes)
 if (isvar("compress_file") .and. compress_file) then
   compress_level=1
   print("writing NetCDF4Classic with compression level "+compress_level)
