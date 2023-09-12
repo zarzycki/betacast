@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#>################################################################
-#>#### Cheyenne
-#>################################################################
+################################################################
+#### Cheyenne
+################################################################
 #>#PBS -N gen_nudge_betacast
 #>#PBS -A P93300642
 #>#PBS -l walltime=11:59:00
@@ -10,30 +10,30 @@
 #>#PBS -j oe
 #>#PBS -l select=1:ncpus=36:mem=109GB
 
-#>################################################################
-#>#### Casper
-#>################################################################
-#>#PBS -N gen_nudge_betacast
-#>#PBS -A P93300642
-#>#PBS -l select=1:ncpus=12:mem=80GB
-#>#PBS -l walltime=4:00:00
-#>#PBS -q casper
-#>#PBS -j oe
-#>################################################################
+################################################################
+#### Casper
+################################################################
+#PBS -N gen_nudge_betacast
+#PBS -A P93300642
+#PBS -l select=1:ncpus=12:mem=80GB
+#PBS -l walltime=4:00:00
+#PBS -q casper@casper-pbs
+#PBS -j oe
+################################################################
 
-#>################################################################
-#>#### PM-CPU interactive
-#>################################################################
+################################################################
+#### PM-CPU interactive
+################################################################
 #>salloc --nodes 1 --qos interactive --time 01:00:00 --constraint cpu
 
 ################################################################
 #### PMCPU
 ################################################################
-#SBATCH --qos=debug
-#SBATCH --time=00:30:00
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=128
-#SBATCH --constraint=cpu
+#>#SBATCH --qos=debug
+#>#SBATCH --time=00:30:00
+#>#SBATCH --nodes=1
+#>#SBATCH --ntasks-per-node=128
+#>#SBATCH --constraint=cpu
 ################################################################
 
 ### CMZ NOTES:
@@ -53,7 +53,7 @@ if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
   PATHTONCL=/global/homes/c/czarzyck/.conda/envs/e3sm_unified_1.8.1_nompi/bin/
   module load parallel
   NUMCORES=32
-elif [[ $SERVER_NAME == *"casper"* ]]; then
+elif [[ $SERVER_NAME == *"casper"* ]] || [[ $SERVER_NAME == *"crhtc"* ]]; then
   echo "Using Casper"
   module load parallel
   module load peak_memusage
@@ -218,11 +218,11 @@ do
 done
 
 if [ $dryrun = false ] ; then
-
+  echo "Launching GNU parallel"
   # Launch GNU parallel
   if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
     parallel --jobs ${NUMCORES} < ${COMMANDFILE}
-  elif [[ $SERVER_NAME == *"otherstring"* ]]; then
+  elif [[ $SERVER_NAME == *"casper"* ]] || [[ $SERVER_NAME == *"crhtc"* ]]; then
     peak_memusage.exe parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
   else
     echo "unknown" ; exit
