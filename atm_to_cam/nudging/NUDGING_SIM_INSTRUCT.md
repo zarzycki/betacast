@@ -10,9 +10,14 @@ Create a case as you usually would.
 CESMROOT=/glade/work/zarzycki/cam_20230623/
 CASEDIR=/glade/u/home/zarzycki/CPT/FHIST-ne30pg3-ndg-ERA5-Q24-N23-x101
 
-$CESMROOT/cime/scripts/create_newcase --case "${CASEDIR}" --compset FHIST --res ne30pg3_ne30pg3_mg17 --mach cheyenne --pecount 432 --project P93300642 --run-unsupported
+$CESMROOT/cime/scripts/create_newcase --case "${CASEDIR}" --compset FHIST --res ne30pg3_ne30pg3_mg17 --mach cheyenne --pecount 864 --project P93300642 --run-unsupported
 
 cd "${CASEDIR}"
+
+## Go to 58 levels
+./xmlchange --append CAM_CONFIG_OPTS="-nlev 58"
+## ... or run with cam_dev (58 levs by default)
+#./xmlchange CAM_CONFIG_OPTS="-phys cam_dev"
 
 ## Specify start date
 ./xmlchange RUN_STARTDATE=2018-01-01
@@ -169,16 +174,18 @@ Then setup the case, build the model, and run:
 ./case.submit
 ```
 
-A couple notes:
+Some notes:
 
 - A full description of the nudging namelist options is [HERE](https://ncar.github.io/CAM/doc/build/html/users_guide/physics-modifications-via-the-namelist.html)
-- `Nudge_Vwin_Hindex` tells you the level index at which the nudging "stops" when counting from the top. However, `Nudge_Vwin_Hdelta` greater than 0.001 tapers the nudging a bit, such that XXXX.
+- `Nudge_Vwin_Hindex` tells you the level index at which the nudging "stops" when counting from the top. However, `Nudge_Vwin_Hdelta` greater than 0.001 tapers the nudging a bit. Set to 1.0 for example, tapers the nudging across approximately 5 levels (centered on `Nudge_Vwin_Hindex`). Experiment with the NCL script described below.
 - `Model_Times_Per_Day` should be set to `ATM_NCPL` from `env_run.xml`
 - `Nudge_Times_Per_Day` should be set to 24 (hourly), 8 (3-hourly), 4 (6-hourly), 2 (12-hourly) or 1 (daily). Chris Kruse found that nudging throughout the atmosphere all the way to the surface with 24-hourly caused problems near orography. Nudging to a certain level seems less problematic, although if 3-hourly data works, that would seem to be preferred.
 - `Nudge_?prof` should always be set to `2` unless you want nudging off (`0`) or just want nudging everywhere (`1`).
+- Reducing `Nudge_?coef` weakens the nudging strength and increasing it "bolts" the solution to the nudging target more strongly.
 - The `Nudge_Beg_Year` and `Nudge_End_Year`, etc. options should cover the range of nudging files you have generated. You can also modify them to have the nudging only be performed during parts of a simulation (i.e., specify a range smaller than the available nudging data range). However, if you specify a range that is larger than the available nudging range *and* attempt to get the model to integrate in that "bad" part of the range, it will fail.
+- Ensure the SST/ice streams, ncdata, and finidat are set consistently across the model components. Ideally one would initialize akin to an NWP model (i.e., a general free-running Betacast simulation) where the land and atm are consistent with the observations at RUN_STARTDATE. However, one can start with generic land and atm initial conditions and allow for spinup. Subjectively, the atmosphere takes about 14-21 days to fully lose initial condition signal (and be driven by nudging). The land should ideally be spun up for at least a season, but ideally a year since it's spinup will be akin to running a DATM model.
 
-### Generating nudging profile
+## Generating and evaluating the nudging profile
 
 You can evaluate the nudging profile by using an NCL tool. You can modify the `user_nl_cam` file iteratively and then place back in the case directory.
 
@@ -188,11 +195,14 @@ cp ~/PATHTOCASEDIR/user_nl_cam .
 ncl Lookat_NudgeWindow.ncl NLEV=58
 ```
 
-### Generating nudging files
+## Generating nudging target files
 
-The first step is to create nudging files from reanalysis. On Cheyenne this is easy using Betacast and the existing ERA5.
+The first step is to create nudging files from reanalysis. On Cheyenne this is easy using Betacast and the existing ERA5 stored in the RDA, although you could also generate nudging with GFS/CFSR using this workflow as well.
 
 ```
-## edit ndg.era5.nl
+cd $BETACAST/atm_to_cam/nudging
+## edit ndg.era5.nl to specify dates, etc.
 qsub -v NLFILE="ndg.era5.nl" gen-nudge.sh
 ```
+
+This spawns a Casper job which creates nudging files which can be invoked by `Nudge_Path` and `Nudge_File_Template`
