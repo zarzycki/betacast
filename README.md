@@ -27,6 +27,15 @@ The first step is to create a functional F compset. Broadly, this is **active at
 
 This step just requires a built and tested case of CESM. Any source mods or other specific namelist settings should be applied directly to this case. It is only necessary to show the model is stable for a few hours.
 
+First define:
+
+```
+MODELROOT <-- Top-level directory of CESM or E3SM sandbox
+BETACAST <-- Top-level path to Betacast
+PROJECTID <-- Project charging ID
+CASESDIR <-- Directory to store cases in
+```
+
 🔴 **IMPORTANT NOTE**: The resolution defined in this step *must* be the resolution you are using for your experiments since both CESM and E3SM determine atmospheric resolution at build time. For example, if you set up 1deg CESM configuration and then use 0.25deg grids/initial conditions the model will crash! See the `--res` flag and associated CESM documentation for more information about supported resolutions.
 
 **CESM example:**
@@ -52,17 +61,22 @@ NOTE: The above uses the "nuopc" driver. Releases <=CESM2.2 use "mct" by default
 
 **E3SMv2 example:**
 
+<!--
+MODELROOT=/global/homes/c/czarzyck/E3SM-20230714/
+BETACAST=~/betacast/
+PROJECTID=m2637
+CASESDIR=/global/homes/c/czarzyck/F-runs/
+-->
+
 ```
-$ cd ~/E3SM/cime/scripts
-$ ./create_newcase --case ~/F-betacast-FC5AV1C --compset F2010C5-CMIP6-LR --res ne30_ne30 --mach cori-knl --project m1637
-$ cd ~/F-betacast-FC5AV1C
-$ ./xmlchange CHARGE_ACCOUNT=m1637
-$ ./xmlchange NTASKS=-8
-$ ./xmlchange NTASKS_ESP=1
-$ ./case.setup
-$ ### patch land mods for restart
-$ ./case.build
-$ ./case.submit
+cd ${MODELROOT}/cime/scripts
+./create_newcase --case ${CASESDIR}/F-betacast-F2010-CICE --compset F2010-CICE --res ne30_g16 --mach pm-cpu --project ${PROJECTID}
+cd ${CASESDIR}/F-betacast-F2010-CICE
+./xmlchange NTASKS=-8,NTASKS_ESP=1,NTASKS_IAC=1
+./case.setup
+${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} mct elm
+./case.build
+./case.submit
 ```
 
 Some notes:
