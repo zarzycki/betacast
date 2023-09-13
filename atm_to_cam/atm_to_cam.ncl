@@ -916,14 +916,14 @@ sePS = ps_fv
 dim_sePS=dimsizes(sePS)
 
 if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_topo_file)) then
-  print("Performing hydrostatic correction for surface pressure using "+model_topo_file)
+  print("TOPOADJUST: Performing hydrostatic correction for surface pressure using "+model_topo_file)
 
   ; set flags for config
   tempadjustflag=""
   if (isvar("adjust_config") .and. adjust_config .ne. "") then
     tempadjustflag=str_get_cols(adjust_config,0,0)
   end if
-  print("tempadjustflag set to: "+tempadjustflag)
+  print("TOPOADJUST: tempadjustflag set to: "+tempadjustflag)
 
   ; load additional fields from reanalysis
   if (datasource .eq. "GFS" .or. datasource .eq. "CFSR" .or. datasource .eq. "HWRF") then
@@ -954,7 +954,7 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
     topo_data = phis_rll
     sfct_data = tbot_mod
   else
-    print("no avail reanalysis surface data for corr... exiting...")
+    print("TOPOADJUST: no avail reanalysis surface data for corr... exiting...")
     exit
   end if
   end if
@@ -972,25 +972,30 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
   if (dycore .eq. "se") then
     ; if SE, the PHIS field that matches ncol can live in either PHIS or PHIS_d
     if (isfilevar(ttfile, "PHIS") .and. dimsizes(ttfile->PHIS) .eq. dim_sePS(0)) then
-      print("SE: Using PHIS for topo adjustment")
+      print("TOPOADJUST_SE: Using PHIS for topo adjustment")
       topo_model_SE = ttfile->PHIS     ;ncol
     else if (isfilevar(ttfile, "PHIS_d") .and. dimsizes(ttfile->PHIS_d) .eq. dim_sePS(0)) then
-      print("SE: Using PHIS_d for topo adjustment")
+      print("TOPOADJUST_SE: Using PHIS_d for topo adjustment")
       topo_model_SE = ttfile->PHIS_d     ;ncol
+    else if (isfilevar(ttfile, "PHIS_gll") .and. dimsizes(ttfile->PHIS_gll) .eq. dim_sePS(0)) then
+      print("TOPOADJUST_SE: Using PHIS_gll for topo adjustment")
+      topo_model_SE = ttfile->PHIS_gll     ;ncol
     else
-      print("SE: Cannot find valid PHIS or PHIS_d with dimensions that match ncol: "+dim_sePS(0))
+      print("TOPOADJUST_SE: Topo error on: "+model_topo_file)
+      print("TOPOADJUST_SE: Cannot find valid PHIS or PHIS_d or PHIS_gll with dimensions that match ncol: "+dim_sePS(0))
       exit
+    end if
     end if
     end if
   else
     ; if not SE, we just assume user is smart and gave PHIS in correct dims
-    print("Using PHIS for topo adjustment")
+    print("TOPOADJUST_nonSE: Using PHIS for topo adjustment")
     topo_model_SE = ttfile->PHIS
   end if
 
   ; unpack FV
   if (dycore .eq. "fv") then
-    print("unpacking fv vars")
+    print("TOPOADJUST_FV: unpacking fv vars")
     topo_data_SE := ndtooned(topo_data_SE)
     sfct_data_SE := ndtooned(sfct_data_SE)
     topo_model_SE := ndtooned(topo_model_SE)
