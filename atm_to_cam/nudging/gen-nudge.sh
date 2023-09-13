@@ -16,7 +16,7 @@
 #PBS -N gen_nudge_betacast
 #PBS -A P93300642
 #PBS -l select=1:ncpus=12:mem=80GB
-#PBS -l walltime=4:00:00
+#PBS -l walltime=23:00:00
 #PBS -q casper@casper-pbs
 #PBS -j oe
 ################################################################
