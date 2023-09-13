@@ -8,7 +8,7 @@ Create a case as you usually would.
 
 ```
 CESMROOT=/glade/work/zarzycki/cam_20230623/
-CASEDIR=/glade/u/home/zarzycki/CPT/FHIST-ne30pg3-ndg-ERA5-Q24-N23-x101
+CASEDIR=/glade/u/home/zarzycki/CPT/FHIST-ne30pg3-ndg-ERA5-Q08-N39-x001
 
 $CESMROOT/cime/scripts/create_newcase --case "${CASEDIR}" --compset FHIST --res ne30pg3_ne30pg3_mg17 --mach cheyenne --pecount 864 --project P93300642 --run-unsupported
 
@@ -32,7 +32,7 @@ cd "${CASEDIR}"
 ./xmlchange SSTICE_DATA_FILENAME='$DIN_LOC_ROOT/atm/cam/sst/sst_HadOIBl_bc_1x1_1850_2022_c230628.nc'
 ```
 
-To run over the 2018-2022 time period (initialized on 2018-01-01) use these user\_nl\_cam and user\_nl\_clm files. The output streams can be modified as desired.
+To run over the 2018-2022 time period (initialized on 2018-01-01) use these user\_nl\_cam and user\_nl\_clm files. The output streams can be modified as desired. In addition, namelist settings can be altered (e.g., run with CPT modifications, modify timestepping, change other tuning parameters, etc.)
 
 #### user\_nl\_cam
 
@@ -183,6 +183,7 @@ Some notes:
 - `Nudge_?prof` should always be set to `2` unless you want nudging off (`0`) or just want nudging everywhere (`1`).
 - Reducing `Nudge_?coef` weakens the nudging strength and increasing it "bolts" the solution to the nudging target more strongly.
 - The `Nudge_Beg_Year` and `Nudge_End_Year`, etc. options should cover the range of nudging files you have generated. You can also modify them to have the nudging only be performed during parts of a simulation (i.e., specify a range smaller than the available nudging data range). However, if you specify a range that is larger than the available nudging range *and* attempt to get the model to integrate in that "bad" part of the range, it will fail.
+- Settle on a descriptive naming convention for each case (if running multiple) that includes information about any changes to the nudging setup. The one I have provided here is just an example, but specifies the compset (FHIST), atmosopheric grid (ne30pg3), that it's a nudging run (ndg), the target data (ERA5), the number of nudging steps per day (Q08 = 3-hourly nudging), the nudging level transition (N39 = level 39 ~ 690 hPa), and the experiment ID (x001).
 - Ensure the SST/ice streams, ncdata, and finidat are set consistently across the model components. Ideally one would initialize akin to an NWP model (i.e., a general free-running Betacast simulation) where the land and atm are consistent with the observations at RUN_STARTDATE. However, one can start with generic land and atm initial conditions and allow for spinup. Subjectively, the atmosphere takes about 14-21 days to fully lose initial condition signal (and be driven by nudging). The land should ideally be spun up for at least a season, but ideally a year since it's spinup will be akin to running a DATM model.
 
 ## Generating and evaluating the nudging profile
