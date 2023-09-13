@@ -24,7 +24,7 @@ output_streams/*
 
 ## Logs
 slurm*.out
-log.*.out
+log.*
 nohup*
 *.Log
 out.*
