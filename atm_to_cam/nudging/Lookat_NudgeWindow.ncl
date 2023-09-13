@@ -9,7 +9,7 @@ begin
    print("=====")
   else
    print("Using Default number of Vertical Levels: nlev = 58")
-   nlev = 32
+   nlev = 58
   end if
   printVarSummary(nlev)
 
