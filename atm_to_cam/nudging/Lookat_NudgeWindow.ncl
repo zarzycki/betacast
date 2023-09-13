@@ -253,11 +253,20 @@ begin
 ;-----------------
 ; GRAPH results
 ;-----------------
+
+; cmz, removed the paneling by default because it looks ugly, followed...
+; https://www.ncl.ucar.edu/Applications/Scripts/panel_20.ncl
+
+  do_panel=False
+
   wks = gsn_open_wks("x11","Wcoef")
 ;  wks = gsn_open_wks("X11","Wcoef")
 
   gsn_define_colormap(wks,"BlAqGrYeOrRe")
-  Hplot = new(3,graphic)
+
+  if (do_panel) then
+    Tplot = new(4,graphic)
+  end if
 
   ilat = minind(abs(lat(:)-lat0))
   ilon = minind(abs(lon(:)-lon0))
@@ -266,16 +275,44 @@ begin
   Xres = True
   Xres@gsnDraw      = False
   Xres@gsnFrame     = False
-  Xres@tiMainString = "Lat~B~0~N~ Zonal Window Profile"
+
+  ; common font heights/tick settings
+  Xres@tiMainFontHeightF = 0.012
+  Xres@tmEqualizeXYSizes = True
+  Xres@tmXBLabelFontHeightF = 0.01
+  Xres@tmXBMajorLengthF  = 0.008
+  Xres@tmXBMinorLengthF = 0.005
+
   Xres@trYMinF      = 0.
   Xres@trYMaxF      = 1.1
+
+  Xres@tiMainString = "Lat~B~0~N~ Zonal Window Profile"
   Xres@trXMinF      = min(lon)
   Xres@trXMaxF      = max(lon)
-  Hplot(0) = gsn_csm_xy(wks,Hprof_lon&lon,Hprof_lon,Xres)
+  if (.not. do_panel) then
+    Xres@vpXF             = 0.15
+    Xres@vpYF             = 0.96
+    Xres@vpWidthF         = 0.4
+    Xres@vpHeightF        = 0.2
+    Tplot0 = gsn_csm_xy(wks,Hprof_lon&lon,Hprof_lon,Xres)
+  else
+    Tplot(0) = gsn_csm_xy(wks,Hprof_lon&lon,Hprof_lon,Xres)
+  end if
+
   Xres@tiMainString = "Lon~B~0~N~ Meridional Window Profile"
   Xres@trXMinF      = min(lat)
   Xres@trXMaxF      = max(lat)
-  Hplot(1) = gsn_csm_xy(wks,Hprof_lat&lat,Hprof_lat,Xres)
+  if (.not. do_panel) then
+    Xres@vpXF             = 0.65
+    Xres@vpYF             = 0.96
+    Xres@vpWidthF         = 0.2
+    Xres@vpHeightF        = 0.2
+    Tplot1 = gsn_csm_xy(wks,Hprof_lat&lat,Hprof_lat,Xres)
+  else
+    Tplot(1) = gsn_csm_xy(wks,Hprof_lat&lat,Hprof_lat,Xres)
+  end if
+
+
 
   Cres = True
   Cres@gsnSpreadColors = True
@@ -287,17 +324,23 @@ begin
   Cres@cnMaxLevelValF  = 1.
   Cres@cnLevelSpacingF = 0.100
   Cres@mpCenterLonF    = 180.
-  Hplot(2) = gsn_csm_contour_map_ce(wks,Hcoef,Cres)
 
-  Pres                 = True
-  Pres@gsnPanelRowSpec = True
-  Pres@gsnPanelCenter  = True
-  gsn_panel(wks,Hplot,(/2,1/),Pres)
+  if (.not. do_panel) then
+    Cres@vpXF             = 0.25
+    Cres@vpYF             = 0.71
+    Cres@vpWidthF         = 0.5
+    Cres@vpHeightF        = 0.25
+    Tplot2 = gsn_csm_contour_map_ce(wks,Hcoef,Cres)
+  else
+    Tplot(2) = gsn_csm_contour_map_ce(wks,Hcoef,Cres)
+  end if
 
-  Vplot = new(1,graphic)
+
+
   Vres = True
   Vres@gsnDraw      = False
   Vres@gsnFrame     = False
+  Vres@tiMainFontHeightF = 0.012
   Vres@tiMainString = "Vertical Window Profile"
   Vres@tiXAxisString= "Nudging strength"
   Vres@trXMinF      = -0.05
@@ -334,12 +377,38 @@ begin
   Vres@tmYMinorGrid                = True          ; implement y grid
   Vres@tmYMinorGridThicknessF      = 1.0           ; 2.0 is default
   Vres@tmYMinorGridLineDashPattern = 2             ; select short dash lines
-  if (use_nclev) then
-    Vplot(0) = gsn_csm_xy(wks,Vcoef,nclev,Vres)
+
+  if (.not. do_panel) then
+    Vres@vpXF             = 0.36
+    Vres@vpYF             = 0.34
+    Vres@vpWidthF         = 0.28
+    Vres@vpHeightF        = 0.28
+    if (use_nclev) then
+      Tplot3 = gsn_csm_xy(wks,Vcoef,nclev,Vres)
+    else
+      Tplot3 = gsn_csm_xy(wks,Vcoef,Vcoef&lev,Vres)
+    end if
   else
-    Vplot(0) = gsn_csm_xy(wks,Vcoef,Vcoef&lev,Vres)
+    if (use_nclev) then
+      Tplot(3) = gsn_csm_xy(wks,Vcoef,nclev,Vres)
+    else
+      Tplot(3) = gsn_csm_xy(wks,Vcoef,Vcoef&lev,Vres)
+    end if
   end if
 
-  gsn_panel(wks,Vplot,(/1/),Pres)
+
+
+;drawNDCGrid(wks)
+if (.not. do_panel) then
+ psres = True
+ maximize_output(wks,psres)  ; calls draw and frame for you
+else
+  Pres                 = True
+  Pres@gsnPanelRowSpec = True
+  Pres@gsnPanelCenter  = True
+  Pres@gsnPanelDebug  = True
+  Pres@gsnMaximize  = True
+  gsn_panel(wks,Tplot,(/2,1,1/),Pres)
+end if
 
 end
