@@ -25,6 +25,8 @@ ncks -O -4 -L1 tmp.nc tmp.nc
 mv tmp.nc $BETACAST/atm_to_cam/topo_files/ne30np4_from_ne30pg3_gmted2010_modis_bedmachine_nc3000_Laplace0100_20230105.nc
 ```
 
+NOTE: compression is useful because the PHIS field has so many zeros that NCO/zlib can compress this file down to the MB scale for even ultra-high-resolution meshes.
+
 A smart strategy is just to name the file `neXXnpY_from_$PGTOPOFILENAME` so that we can guarentee a given topography file is matched to the GLL grid (e.g., if one creates a smoother PG topo field, it won't match as well to the above topo file on the GLL grid for ne30).
 
 Once these files are stashed in `$BETACAST/atm_to_cam/topo_files/` they can be used as `model_topo_file` when generating initial conditions on the GLL grid as long as the topography file remains the same.
