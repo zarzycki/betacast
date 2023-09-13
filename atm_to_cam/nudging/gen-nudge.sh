@@ -29,8 +29,8 @@
 ################################################################
 #### PMCPU
 ################################################################
-#>#SBATCH --qos=debug
-#>#SBATCH --time=00:30:00
+#>#SBATCH --qos=regular
+#>#SBATCH --time=5:00:00
 #>#SBATCH --nodes=1
 #>#SBATCH --ntasks-per-node=128
 #>#SBATCH --constraint=cpu
@@ -52,7 +52,7 @@ if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
   export NCARG_ROOT=/global/homes/c/czarzyck/.conda/pkgs/ncl-6.6.2-h3fdc804_41/
   PATHTONCL=/global/homes/c/czarzyck/.conda/envs/e3sm_unified_1.8.1_nompi/bin/
   module load parallel
-  NUMCORES=32
+  NUMCORES=12
 elif [[ $SERVER_NAME == *"casper"* ]] || [[ $SERVER_NAME == *"crhtc"* ]]; then
   echo "Using Casper"
   module load parallel

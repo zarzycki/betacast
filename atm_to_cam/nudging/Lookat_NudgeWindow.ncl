@@ -324,6 +324,9 @@ begin
   Cres@cnMaxLevelValF  = 1.
   Cres@cnLevelSpacingF = 0.100
   Cres@mpCenterLonF    = 180.
+  Cres@mpGridAndLimbOn=True
+  Cres@mpGridLatSpacingF=10.0
+  Cres@mpGridLonSpacingF=10.0
 
   if (.not. do_panel) then
     Cres@vpXF             = 0.25
