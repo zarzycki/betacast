@@ -34,16 +34,22 @@ begin
   Nudge_Vwin_Hindex=0.
   Nudge_Vwin_Ldelta=0.
   Nudge_Vwin_Hdelta=0.
-  Nudge_Hwin_Invert = False
-  Nudge_Vwin_Invert = False
+  Nudge_Hwin_Invert = "False"
+  Nudge_Vwin_Invert = "False"
 
   pthi="user_nl_cam"
 
-   Nudge_Hwin_Invert = keyword_values( pthi, "Nudge_Hwin_Invert", "logical")
-   Nudge_Vwin_Invert = keyword_values( pthi, "Nudge_Vwin_Invert", "logical")
+   Nudge_Hwin_Invert = keyword_values( pthi, "Nudge_Hwin_Invert", "string")
+   Nudge_Vwin_Invert = keyword_values( pthi, "Nudge_Vwin_Invert", "string")
 
-   Nudge_Hwin_lat0 = keyword_values( pthi, "Nudge_Hwin_lat0", "float")
-   Nudge_Hwin_lon0      = keyword_values( pthi, "Nudge_Hwin_lon0", "float")
+   Nudge_Hwin_lat0    = keyword_values( pthi, "Nudge_Hwin_lat0", "float")
+   Nudge_Hwin_lon0    = keyword_values( pthi, "Nudge_Hwin_lon0", "float")
+
+   Nudge_Vwin_lo      = keyword_values( pthi, "Nudge_Vwin_lo", "float")
+   Nudge_Vwin_hi      = keyword_values( pthi, "Nudge_Vwin_hi", "float")
+
+   Nudge_Hwin_lo      = keyword_values( pthi, "Nudge_Hwin_lo", "float")
+   Nudge_Hwin_hi      = keyword_values( pthi, "Nudge_Hwin_hi", "float")
 
    Nudge_Hwin_latWidth  = keyword_values( pthi, "Nudge_Hwin_latWidth", "float")
    Nudge_Hwin_lonWidth  = keyword_values( pthi, "Nudge_Hwin_lonWidth", "float")
@@ -66,6 +72,26 @@ begin
 ;                               Nudge_Vwin_Lindex,Nudge_Vwin_Hindex,    \
 ;                               Nudge_Vwin_Ldelta,Nudge_Vwin_Hdelta )
 
+
+; Here, we check to see if Nudge_Hwin_Invert (a string) is returned as "missing"
+; if it is, it means it wasn't in the namelist. If missing, ignore the var
+; If any other string, it means NCL read something in user_nl. Convert that to a bool
+; and then invert appropriately.
+; NOTE: Nudge_Hwin_Invert/Nudge_Vwin_Invert is only used in CAM as of 9/2023
+; so this block should never be evaluated for E3SM
+
+if (Nudge_Hwin_Invert .ne. "missing")
+
+  val=str_strip(Nudge_Hwin_Invert)
+  if (val.eq.".true." .or. val.eq.".TRUE." .or.  val.eq."TRUE" .or. \
+      val.eq.".T." .or. val.eq.".t."       .or.  val.eq."T"    .or. \
+      val.eq."True".or. val.eq.".True.") then
+    Nudge_Hwin_Invert := True
+  else
+    Nudge_Hwin_Invert := False
+  end if
+  delete(val)
+
   if(Nudge_Hwin_Invert) then
     Nudge_Hwin_lo= 1.0
     Nudge_Hwin_hi= 0.0
@@ -73,6 +99,19 @@ begin
     Nudge_Hwin_lo= 0.0
     Nudge_Hwin_hi= 1.0
   end if
+end if
+
+if (Nudge_Vwin_Invert .ne. "missing")
+
+  val=str_strip(Nudge_Vwin_Invert)
+  if (val.eq.".true." .or. val.eq.".TRUE." .or.  val.eq."TRUE" .or. \
+      val.eq.".T." .or. val.eq.".t."       .or.  val.eq."T"    .or. \
+      val.eq."True".or. val.eq.".True.") then
+    Nudge_Vwin_Invert := True
+  else
+    Nudge_Vwin_Invert := False
+  end if
+  delete(val)
 
   if(Nudge_Vwin_Invert) then
     Nudge_Vwin_lo= 1.0
@@ -81,6 +120,7 @@ begin
     Nudge_Vwin_lo= 0.0
     Nudge_Vwin_hi= 1.0
   end if
+end if
 
   print("Nudge_Hwin_lo="+Nudge_Hwin_lo)
   print("Nudge_Hwin_hi="+Nudge_Hwin_hi)
