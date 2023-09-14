@@ -59,7 +59,7 @@ avgflag_pertape='A','I','I','I','I'
 
 !! ---- NUDGING START
 Nudge_Model         = .true.
-Nudge_Path          = '/glade/scratch/zarzycki/ndg/se_ne30pg3_L58/ERA5/'
+Nudge_Path          = '/glade/p/univ/upsu0032/ndg/se_ne30pg3_L58/ERA5/'
 Nudge_File_Template = 'ndg.ERA5.ne30pg3.L58.cam2.i.%y-%m-%d-%s.nc'
 Nudge_Force_Opt     = 1
 Nudge_TimeScale_Opt = 0
