@@ -39,6 +39,8 @@ read_bash_nl "${NAMELISTFILE}"
 # Set user things to empty strings if not provided
 if [ -z "${USER_FSURDAT+x}" ]; then USER_FSURDAT=""; fi
 if [ -z "${USER_FINIDAT+x}" ]; then USER_FINIDAT=""; fi
+if [ -z "${USER_ICOMPSET+x}" ]; then USER_ICOMPSET=""; fi
+if [ -z "${USER_JOB_PRIORITY+x}" ]; then USER_JOB_PRIORITY=""; fi
 
 # Derived settings that should be same between all machines
 BETACAST_DATMDOMAIN=${BETACAST}/land-spinup/gen_datm/gen-datm/
@@ -58,6 +60,11 @@ else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
 fi
+if [[ -n "$USER_ICOMPSET" ]]; then
+  echo "*** OVERRIDING ICOMPSET WITH USER_ICOMPSET!"
+  COMPSET=$USER_ICOMPSET
+fi
+
 
 ### Do not edit below this line!
 ### Date logic
@@ -139,10 +146,12 @@ echo "MACHINE: "${MACHINE}
 echo "NNODES: "${NNODES}
 echo "RESOL: "${RESOL}
 echo "RUNQUEUE: "${RUNQUEUE}
+echo "USER_JOB_PRIORITY: "${USER_JOB_PRIORITY}
 echo "WALLCLOCK: "${WALLCLOCK}
 echo "ICASENAME: "${ICASENAME}
 echo "USER_FSURDAT: "${USER_FSURDAT}
 echo "USER_FINIDAT: "${USER_FINIDAT}
+echo "COMPSET: "${COMPSET}
 echo "--------------------------------------------"
 sleep 10  # sleep to hold this on the interactive window for 10 sec
 
@@ -185,12 +194,9 @@ if [ $doERA5 -eq 0 ]; then
     FORECASTYEARM1=${ERA5STYR}
     FORECASTYEAR=${ERA5ENYR}
   fi
-
 fi
 
 if [ $addDeltas -eq 0 ]; then
-
-
   echo "Injecting anomaly DATM streams"
   cp ${BETACAST}/land-spinup/streams/user_datm.streams.txt.Anomaly.* .
   #REPLACEDIR
@@ -267,7 +273,8 @@ if [[ -n "$USER_FINIDAT" ]]; then
   sed -i '/.*finidat/d' user_nl_${modelSystemString}
   echo "finidat='${USER_FINIDAT}'" >> user_nl_${modelSystemString}
 else
-  echo "finidat=''" >> user_nl_${modelSystemString}
+  #echo "finidat=''" >> user_nl_${modelSystemString}
+  ./xmlchange ${modelSystemString^^}_FORCE_COLDSTART="on"
 fi
 
 ./case.setup
@@ -288,6 +295,10 @@ set -e
 ./xmlchange JOB_WALLCLOCK_TIME=${WALLCLOCK}
 ./xmlchange CHARGE_ACCOUNT=${PROJECT}
 ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
+if [[ -n "$USER_JOB_PRIORITY" ]]; then
+  echo "Setting job priority based on user preference!"
+  ./xmlchange --force JOB_PRIORITY=${USER_JOB_PRIORITY}
+fi
 ./case.submit
 
 exit 0

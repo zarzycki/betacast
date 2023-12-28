@@ -1,0 +1,16 @@
+### CLM on Cheyenne
+### REQUIRED
+CIMEROOT=~/work/cesm_20231228
+PATHTOCASE=~/I-compsets
+ICASENAME=ECHO-spinup
+PROJECT=P93300642
+MACHINE=derecho
+NNODES=12
+RESOL=ne30_g16
+RUNQUEUE=main
+JOB_PRIORITY=economy
+WALLCLOCK="10:00:00"
+
+### Only required if doERA5 = 0
+BETACAST=/glade/u/home/zarzycki/betacast
+BETACAST_DATM_FORCING_BASE=/glade/p/cgd/amp/zarzycki/DATM_FORCING/
