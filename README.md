@@ -419,24 +419,24 @@ The namelist (ex: `nl.landspinup.cori`) includes the following settings, which a
 | BETACAST | Absolute path to Betacast (only used if doERA5 = 0) |
 | BETACAST\_DATM\_FORCING\_BASE | Path to DATM_FORCING files (only used if doERA5 = 0) |
 
-There are also optional settings that are not required but can be added to override various defaults that are either set by the model or set in the script.
+There are also optional settings that are not required but can be added to override various defaults that are either set by the model or set in the script. They are prefixed with `USER_`.
 
 | Namelist Variable | Description |
 | --- | --- |
-| USER_FSURDAT | Override default fsurdat file |
-| USER_FINIDAT | Override default (cold start) findat file |
-| USER_ICOMPSET | Override default I compset for either CLM/ELM |
-| JOB_PRIORITY | Override default job priority |
+| USER\_FSURDAT | Override default fsurdat file |
+| USER\_FINIDAT | Override default (cold start) findat file |
+| USER\_ICOMPSET | Override default I compset for either CLM/ELM |
+| USER\_JOB\_PRIORITY | Override default job priority |
 
 So the general workflow is:
 
 1. Ensure CLM/ELM is able to run (ex: do you have an `fsurdat` for the grid?).
 2. Edit `$MACHNAMELIST` as needed.
-3. (optional) Ensure [ERA5 DATM files](#era5_data_files) and/or anomalie files are available on your machine and the path is specified in `$MACHNAMELIST`.
+3. (optional) Ensure [ERA5 DATM files](#era5_data_files) and/or anomaly files are available on your machine and the path is specified in `$MACHNAMELIST`. NOTE: ERA5 DATM files are currently staged on Derecho/Glade and Perlmutter, ask Colin for locations.
 4. Run `./auto-script.sh` specifying the above command line options. Wait for model to configure, build, and submit.
-5. Pending successful completion of `auto-script`, stage initial files in `$CASENAME/landstart` for Betacast.
+5. Pending successful completion of `./auto-script`, stage initial files in `$CASENAME/landstart` for Betacast.
 
-Invoking `./auto-script.sh` should configure, build, and submit the I compset. The model will then run based on the scheduler. Following the (hopefully successful) run, the spunup land restart (i.e., initial condition) file will be located in the I compset directory and will need to be copied to the `landstart` subfolder in the coupled Betacast directory to be use pulled for initialization. A simple bash snippet is below, although one could also copy these files to a common directory and symlink them, etc.
+Invoking `./auto-script.sh` should configure, build, and submit the I compset. The model will then run (dependent on queue wait times, of course). Following the (hopefully successful) run, the spunup land/runoff restart (i.e., initial conditions) files will be located in the I compset directory (contains a `*.r.*.nc`) and will need to be copied to the `landstart` subfolder in the coupled Betacast directory to be use pulled for initialization. A simple bash snippet for taking a finished land spinup and staging for a full Betacast run is below, although one could also copy these files to a common directory and symlink them, etc.
 
 ```
 CASENAME=RoS-F2010C5-ne0conus30x8-001-PI
