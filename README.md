@@ -356,9 +356,9 @@ On Cheyenne (and when mirrored on other systems) Betacast can go directly to RDA
 <a name="lnd_initial_conditions"></a>
 ## Generating a CLM/ELM initial condition
 
-Betacast uses analysis/observations to initialize the atmosphere, data ocean, and data ice models, but is not able to interpolate land surface initial conditions at this time. The preferred method of initializing the land surface for an initial betacast run is to 'spin up' the land surface model by forcing it with observed atmospheric fluxes, which allows the land surface to asymptote to a state in balance with observed atmospheric forcing. In CESM and E3SM, this is known as an I compset.
+Betacast uses analysis/observations to initialize the atmosphere, data ocean, and data ice models, but is not able to interpolate land surface initial conditions at this time. The preferred method of initializing the land surface for an initial betacast run is to 'spin up' the land surface model by forcing it with observed atmospheric fluxes, which allows the land surface to asymptote to a state in balance with observed atmospheric forcing. Simply, we essentially create a "land reanalysis" where the assimilated observations are inputs from the atmosphere to the land system. In CESM and E3SM, forcing a prognostic land model with a data atmosphere is known as an I compset.
 
-For Betacasts run in succession, Betacast will use a short forecast from a previous betacast (e.g., the 12Z Jan 21 betacast would use the +12 hr land forecast from the 00Z Jan 21 betacast) which is stored in the `landstart` subdirectory within `${CASE}/run`. However, for a brand new Betacast (or set of Betacasts) an initial land file must be generated to be passed into CLM/ELM as `finidat`. To do this, Betacast runs a data atmosphere model that forces the land model.
+For Betacasts run in succession, Betacast will use the shortest possible forecast from a previous betacast (e.g., the 12Z Jan 21 betacast would use the +12 hr land forecast from the 00Z Jan 21 betacast) which is stored in the `landstart` subdirectory within `${CASE}/run`. However, for a brand new Betacast (or set of Betacasts) an initial land file must be generated to be passed into CLM/ELM as `finidat`. To do this, Betacast runs a data atmosphere model that forces the land model. A batch script is provided to help with this.
 
 The main process is:
 
@@ -377,7 +377,7 @@ where `auto-script` takes in eight command line inputs:
 | NMONTHS | Integer number of months to spinup (1-12) |
 | NCYCLES | Integer number of cycles to spinup (>=1) |
 | ANOMYEAR | Integer anomaly year (which year of anomalies to apply) |
-| REFYEAR | Integer reference year to correct anomalies (if negative, use raw anomalies) |
+| REFYEAR | Integer reference year to correct anomalies (if negative, use raw anomalies, ignored if ANOMYEAR < -1) |
 | MACHNAMELIST | Namelist file including machine or experiment specific settings |
 
 An example would be:
@@ -387,6 +387,14 @@ An example would be:
 ```
 
 This would spinup ELM/E3SM (1) using ERA5 DATM (0) for a Betacast initialization on Jan 13 1996 (19960113) using 12 months of spinup and 3 cycles. The deltas are taken from the year 2080 and corrected relative to the year 1996 and the namelist settings are specified in `nl.landspinup.cori`.
+
+Another example for CESM (on Derecho) for a historical reforecast is:
+
+```
+./auto-script.sh 0 0 20050828 12 1 -1 -1 nl.landspinup.derecho
+```
+
+which uses ERA5 to spinup up CLM for one year prior to Hurricane Katrina simulations to be initialized on August 28th, 2005. No anomalies/deltas are applied (denoted by the two `-1` values for `ANOMYEAR` and `REFYEAR`).
 
 The simplest land spinup, which should work natively on supported machines with standard CESM/E3SM data repositories (i.e., no ERA5, no anomalies) would be.
 
@@ -410,6 +418,15 @@ The namelist (ex: `nl.landspinup.cori`) includes the following settings, which a
 | NMONTHSSPIN | Integer number of months to spinup (1-12) |
 | BETACAST | Absolute path to Betacast (only used if doERA5 = 0) |
 | BETACAST\_DATM\_FORCING\_BASE | Path to DATM_FORCING files (only used if doERA5 = 0) |
+
+There are also optional settings that are not required but can be added to override various defaults that are either set by the model or set in the script.
+
+| Namelist Variable | Description |
+| --- | --- |
+| USER_FSURDAT | Override default fsurdat file |
+| USER_FINIDAT | Override default (cold start) findat file |
+| USER_ICOMPSET | Override default I compset for either CLM/ELM |
+| JOB_PRIORITY | Override default job priority |
 
 So the general workflow is:
 
