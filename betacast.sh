@@ -183,6 +183,15 @@ if [ "${cime_coupler}" == "nuopc" ] && ! type ESMF_Scrip2Unstruct &> /dev/null; 
     exit 1
 fi
 
+# Check to make sure required variables are provided by the user if we are using model-to-model
+if [[ "$atmDataType" -eq 9 ]]; then
+  if [[ -z "$m2m_topo_in" ]] || [[ -z "$m2m_parent_source" ]] || [[ -z "$m2m_remap_file" ]]; then
+    echo "ERROR: For m2m, one or more required variables (m2m_topo_in, m2m_parent_source, m2m_remap_file) are not defined."
+    echo "ERROR: Ensure these are defined in the Betacast namelist"
+    exit 1
+  fi
+fi
+
 # Check Python version for 3+
 python -c 'import sys; exit(sys.version_info.major != 3)' && echo "CHECK_PYTHON: Python 3 found" || { echo "CHECK_PYTHON: Please install Python 3+"; exit 25; }
 
@@ -569,8 +578,10 @@ if [ $debug = false ] ; then
         fi
       done
     fi
+  elif [ ${sstDataType} -eq 9 ] ; then
+    echo "User has specified a CESM/E3SM data stream"
   else
-      echo "Incorrect SST data type entered" ; exit 1
+    echo "Incorrect SST data type entered" ; exit 1
   fi
 
   # Switch bash bool to int for NCL input
@@ -618,18 +629,21 @@ if [ $debug = false ] ; then
     ["2"]="ERAI"
     ["3"]="CFSR"
     ["4"]="ERA5"
+    ["9"]="CAM"
   )
   declare -A atm_data_glob_anl=(
     ["1"]="gfs_0.25x0.25"
     ["2"]=""
     ["3"]="gfs_0.50x0.50"
     ["4"]="era5_0.25x0.25"
+    ["9"]=""
   )
   declare -A atm_file_paths=(
     ["1"]="${gfs_files_path}/gfs_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
     ["2"]="${era_files_path}/ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
     ["3"]="${gfs_files_path}/cfsr_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
     ["4"]="${era_files_path}/ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
+    ["9"]=""
   )
 
   # If ERA5RDA flag toggled, set value w/ key to RDA data
@@ -675,6 +689,32 @@ if [ $debug = false ] ; then
     echo "User has provided anl2mdlWeights --> ${anl2mdlWeights}, using those!"
   fi
 
+  if [[ "$atmDataType" -eq 9 ]]; then
+    # If do_model2model is true, then we need to find the file
+    if [[ -d "$m2m_parent_source" ]]; then
+      echo "m2m_parent_source ($m2m_parent_source) is provided as a dir of nc files."
+      set +e
+      (set -x; ncl find-time-file.ncl \
+        'DIR="'${m2m_parent_source}'"' \
+        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+        'UQSTR="'${uniqtime}'"' \
+         ) ; exit_status=$?
+      check_ncl_exit "find-time-file.ncl" $exit_status
+      set -e
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        atm_file_paths["9"]=$line
+        break # Exit after reading the first line
+      done < m2mfile.$uniqtime
+      [[ ! -f "${atm_file_paths["9"]}" ]] && { echo "File does not exist."; exit 1; }
+    elif [[ -f "$m2m_parent_source" ]]; then
+      echo "m2m_parent_source ($m2m_parent_source) is provided as a file."
+      atm_file_paths["9"]=$m2m_parent_source
+    else
+      echo "m2m_parent_source ($m2m_parent_source) is not a file or directory. Exiting."
+      exit 1
+    fi
+  fi
+
   echo "Doing atm_to_cam"
   set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
   (set -x; ncl -n atm_to_cam.ncl \
@@ -686,6 +726,8 @@ if [ $debug = false ] ; then
       'RDADIR="'${RDADIR}'"' \
       'wgt_filename="'${anl2mdlWeights}'"' \
       'model_topo_file="'${adjust_topo-}'"' \
+      'mod_remap_file="'${m2m_remap_file-}'"' \
+      'mod_in_topo="'${m2m_topo_in-}'"' \
       'adjust_config="'${adjust_flags-}'"' \
       'se_inic = "'${sePreFilterIC}'"'
       ) ; exit_status=$?
