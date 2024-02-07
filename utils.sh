@@ -480,6 +480,12 @@ function compress_single_file() {
   fi
 }
 
+# Timer function to measure execution time of another function
+# Usage: timer compress_history /path/to/directory
+timer() {
+  /usr/bin/time -f "Time elapsed for $1: %E ---> Maximum memory used: %M kilobytes" "$@" 2>&1
+}
+
 #### NCO functions!
 # ncdmnsz $dmn_nm $fl_nm : What is dimension size?
 function ncdmnsz { ncks --trd -m -M ${2} | grep -E -i ": ${1}, size =" | cut -f 7 -d ' ' | uniq ; }
