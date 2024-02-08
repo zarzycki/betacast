@@ -183,10 +183,19 @@ if [ "${cime_coupler}" == "nuopc" ] && ! type ESMF_Scrip2Unstruct &> /dev/null; 
     exit 1
 fi
 
-# Check to make sure required variables are provided by the user if we are using model-to-model
+# Check to make sure required ATM variables are provided by the user if we are using model-to-model
 if [[ "$atmDataType" -eq 9 ]]; then
   if [[ -z "$m2m_topo_in" ]] || [[ -z "$m2m_parent_source" ]] || [[ -z "$m2m_remap_file" ]]; then
-    echo "ERROR: For m2m, one or more required variables (m2m_topo_in, m2m_parent_source, m2m_remap_file) are not defined."
+    echo "ERROR: For m2m ATM, one or more required variables (m2m_topo_in, m2m_parent_source, m2m_remap_file) are not defined."
+    echo "ERROR: Ensure these are defined in the Betacast namelist"
+    exit 1
+  fi
+fi
+
+# Check to make sure required SST variables are provided by the user if we are using model-to-model
+if [[ "$sstDataType" -eq 9 ]]; then
+  if [[ -z "$m2m_sst_grid_filename" ]] || [[ -z "$m2m_sstice_data_filename" ]] || [[ -z "$m2m_sstice_year_align" ]] || [[ -z "$m2m_sstice_year_start" ]] || [[ -z "$m2m_sstice_year_end" ]]; then
+    echo "ERROR: For m2m SST, one or more required variables (m2m_sst_grid_filename, m2m_sstice_data_filename, m2m_sstice_year_align, m2m_sstice_year_start, m2m_sstice_year_end) are not defined."
     echo "ERROR: Ensure these are defined in the Betacast namelist"
     exit 1
   fi
@@ -379,6 +388,10 @@ if $runmodel ; then
 
 cd $path_to_case
 DYCORE=$(./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs)
+if [ -z "$DYCORE" ]; then
+  echo "Couldn't automagically figure out dycore, assuming SE/HOMME"
+  DYCORE="se"
+fi
 echo "DYCORE: "$DYCORE
 
 if [ $debug = false ] ; then
@@ -500,6 +513,8 @@ if [ $debug = false ] ; then
         exit
       fi
     fi
+  elif [ $atmDataType -eq 9 ] ; then
+    echo "User has specified a CESM/E3SM data file"
   else
     echo "Incorrect model IC entered"
     exit 1
@@ -584,42 +599,45 @@ if [ $debug = false ] ; then
     echo "Incorrect SST data type entered" ; exit 1
   fi
 
-  # Switch bash bool to int for NCL input
-  if [ $predict_docn = true ]; then INT_PREDICT_DOCN=1; else INT_PREDICT_DOCN=0; fi
+  # If not using data streams, we have to generate the SST forcing
+  if [ ${sstDataType} -ne 9 ] ; then
+    # Switch bash bool to int for NCL input
+    if [ $predict_docn = true ]; then INT_PREDICT_DOCN=1; else INT_PREDICT_DOCN=0; fi
 
-  cd ${sst_to_cam_path}
-  sst_domain_file=${sst_to_cam_path}/domains/domain.ocn.${docnres}.nc
-  sst_scrip_file=${sst_to_cam_path}/domains/scrip.ocn.${docnres}.nc
-  sst_ESMF_file=${sst_to_cam_path}/domains/ESMF.ocn.${docnres}.nc
+    cd ${sst_to_cam_path}
+    sst_domain_file=${sst_to_cam_path}/domains/domain.ocn.${docnres}.nc
+    sst_scrip_file=${sst_to_cam_path}/domains/scrip.ocn.${docnres}.nc
+    sst_ESMF_file=${sst_to_cam_path}/domains/ESMF.ocn.${docnres}.nc
 
-  # check if domain or SCRIP exist, if one is missing create both domain and scrip
-  if [ ! -f "$sst_domain_file" ] || [ ! -f "$sst_scrip_file" ]; then
-    echo "Creating SST domain file for: ${docnres}"
+    # check if domain or SCRIP exist, if one is missing create both domain and scrip
+    if [ ! -f "$sst_domain_file" ] || [ ! -f "$sst_scrip_file" ]; then
+      echo "Creating SST domain file for: ${docnres}"
+      set +e
+      (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' ) ; exit_status=$?
+      check_ncl_exit "gen-sst-domain.ncl" $exit_status
+      set -e
+      compress_single_file "${sst_scrip_file}"
+    fi
+    # if the CIME coupler is nuopc, we need to generate a scrip file
+    if [ "${cime_coupler}" == "nuopc" ] && [ ! -f "$sst_ESMF_file" ]; then
+      ESMF_Scrip2Unstruct ${sst_scrip_file} ${sst_ESMF_file} 0 ; rm -fv PET0.ESMF_LogFile
+      compress_single_file "${sst_ESMF_file}"
+    fi
+
+    # Now generate the SST/ice datastream
     set +e
-    (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' ) ; exit_status=$?
-    check_ncl_exit "gen-sst-domain.ncl" $exit_status
-    set -e
-    compress_single_file "${sst_scrip_file}"
+    (set -x; ncl sst_interp.ncl \
+        'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
+        predict_docn=${INT_PREDICT_DOCN} \
+        'inputres="'${docnres}'"' \
+        'datasource="'${SSTTYPE}'"' \
+        'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
+        'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
+        'SST_write_file = "'${sstFileIC}'"' \
+        ) ; exit_status=$?
+    check_ncl_exit "sst_interp.ncl" $exit_status
+    set -e # Turn error checking back on
   fi
-  # if the CIME coupler is nuopc, we need to generate a scrip file
-  if [ "${cime_coupler}" == "nuopc" ] && [ ! -f "$sst_ESMF_file" ]; then
-    ESMF_Scrip2Unstruct ${sst_scrip_file} ${sst_ESMF_file} 0 ; rm -fv PET0.ESMF_LogFile
-    compress_single_file "${sst_ESMF_file}"
-  fi
-
-  # Now generate the SST/ice datastream
-  set +e
-  (set -x; ncl sst_interp.ncl \
-      'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
-      predict_docn=${INT_PREDICT_DOCN} \
-      'inputres="'${docnres}'"' \
-      'datasource="'${SSTTYPE}'"' \
-      'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
-      'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
-      'SST_write_file = "'${sstFileIC}'"' \
-      ) ; exit_status=$?
-  check_ncl_exit "sst_interp.ncl" $exit_status
-  set -e # Turn error checking back on
 
   ############################### ATM NCL ###############################
 
@@ -1003,18 +1021,35 @@ fi
 
 echo "Turning off archiving and restart file output in env_run.xml"
 ./xmlchange DOUT_S=FALSE,REST_OPTION=nyears,REST_N=9999
-echo "Setting SST domain file"
-if [ "${cime_coupler}" == "nuopc" ] ; then
-  ./xmlchange SSTICE_MESH_FILENAME="${sst_ESMF_file}"
+
+if [ ${sstDataType} -ne 9 ] ; then
+  # We are using some sort of analysis SST
+  echo "Setting SST domain file"
+  if [ "${cime_coupler}" == "nuopc" ] ; then
+    ./xmlchange SSTICE_MESH_FILENAME="${sst_ESMF_file}"
+  else
+    ./xmlchange SSTICE_GRID_FILENAME="${sst_domain_file}"
+  fi
+  echo "Setting SST from default to our SST"
+  ./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
+  echo "Standardizing streams for SST"
+  ./xmlchange SSTICE_YEAR_START=1,SSTICE_YEAR_END=1
 else
-  ./xmlchange SSTICE_GRID_FILENAME="${sst_domain_file}"
+  # We already have a DOCN stream available to use (sstDataType 9)
+  echo "Reproducing previous DOCN configuration as specified by m2m_sst* in namelist"
+  if [ "${cime_coupler}" == "nuopc" ] ; then
+    ./xmlchange SSTICE_MESH_FILENAME="${m2m_sst_grid_filename}"
+  else
+    ./xmlchange SSTICE_GRID_FILENAME="${m2m_sst_grid_filename}"
+  fi
+  ./xmlchange SSTICE_DATA_FILENAME="${m2m_sstice_data_filename}"
+  ./xmlchange SSTICE_YEAR_ALIGN="${m2m_sstice_year_align}"
+  ./xmlchange SSTICE_YEAR_START="${m2m_sstice_year_start}"
+  ./xmlchange SSTICE_YEAR_END="${m2m_sstice_year_end}"
 fi
-echo "Setting SST from default to our SST"
-./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
+
 echo "Setting GLC coupling to handle forecasts across calendar years"
 ./xmlchange GLC_AVG_PERIOD="glc_coupling_period"
-echo "Standardizing streams for SST"
-./xmlchange SSTICE_YEAR_START=1,SSTICE_YEAR_END=1
 echo "Setting projectID and queue"
 ./xmlchange --force JOB_QUEUE=${RUNQUEUE},PROJECT=${PROJECTID}
 #######
@@ -1022,6 +1057,13 @@ if [ "$land_spinup" = true ] ; then
   ./xmlchange REST_OPTION=ndays,REST_N=1
 fi
 #######
+
+# Update name of atmospheric model if E3SM/SCREAM
+# CMZ, may need to just do this for all modeling systems
+#if [ $modelSystem -eq 1 ]; then
+#  atmName=$(./xmlquery COMP_ATM | sed 's/^[^\:]\+\://' | xargs)
+#  echo "Updating atmName to $atmName"
+#fi
 
 cp user_nl_${atmName} user_nl_${atmName}.BAK
 
