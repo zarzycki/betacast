@@ -23,7 +23,7 @@
      PRECTmms precn
    </variableNames>
    <filePath>
-     ${BETACAST_STREAMBASE}/Precip6Hrly
+     ${BETACAST_STREAMBASE}/Precip
    </filePath>
    <fileNames>
 CMZERA5.v0.c2021.0.5d.Prec.1990-01.nc
