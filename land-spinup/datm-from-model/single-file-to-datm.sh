@@ -62,6 +62,7 @@ ncatted -O -a units,PRECT,o,c,"mm/s" ${TMPprecip}
 
 echo "Renaming variables to match ERA5 streams"
 ncrename -v PS,PSRF ${TMPstate}
+ncrename -v PRECT,PRECTmms ${TMPprecip}
 
 echo "Deleting variables"
 ncks -O -x -v area,gw ${TMPsolar} ${TMPsolar}
