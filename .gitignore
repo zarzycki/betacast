@@ -35,6 +35,9 @@ namelists/*
 !nl.ne30.cori
 !nl.ne30.chey
 perturb.*.nl
+nl.landspinup*
+!nl.landspinup.pm-cpu
+!nl.landspinup.derecho
 
 ## Model namelists
 user_nl_cam
