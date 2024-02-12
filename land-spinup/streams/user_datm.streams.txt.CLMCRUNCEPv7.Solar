@@ -23,7 +23,7 @@
      FSDS swdn
    </variableNames>
    <filePath>
-     ${BETACAST_STREAMBASE}/Solr
+     ${BETACAST_STREAMBASE}/Solar
    </filePath>
    <fileNames>
    CMZERA5.v0.c2021.0.5d.Solar.1990-01.nc
