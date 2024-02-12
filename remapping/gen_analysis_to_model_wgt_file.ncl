@@ -10,9 +10,9 @@ anlgrid="era5_0.25x0.25"
 anlgridpath="./anl_scrip/"
 
 ; shortname for grid (for naming purposes)
-dstGridName="Philadelphia_TC_grid_v2_ne128x8_np4"
+dstGridName="Philadelphia_TC_grid_v2_ne128x8_pg2"
 ; full path to model SCRIP file
-dstGridFile="/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/grids/scrip/Philadelphia_TC_grid_v2_ne128x8_np4_SCRIP.nc"
+dstGridFile="/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/grids/scrip/Philadelphia_TC_grid_v2_ne128x8_pg2_SCRIP.nc"
 ;dstGridFile="./model_scrip/ne30np4_091226_pentagons.nc"
 ;dstGridFile="/glade/work/zarzycki/grids/scrip/ne0np4natlanticwat.ne30x4.g_scrip.nc"
 ;dstGridFile="./rrm.x4_ESMF.nc"
