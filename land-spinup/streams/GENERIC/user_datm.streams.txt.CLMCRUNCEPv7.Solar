@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<file id="stream" version="1.0">
+<dataSource>
+   GENERIC
+</dataSource>
+<domainInfo>
+  <variableNames>
+     time    time
+        xc      lon
+        yc      lat
+        area    area
+        mask    mask
+  </variableNames>
+  <filePath>
+	  ${BETACAST_DATMDOMAIN}
+  </filePath>
+  <fileNames>
+     era5-domain.nc
+  </fileNames>
+</domainInfo>
+<fieldInfo>
+   <variableNames>
+     FSDS swdn
+   </variableNames>
+   <filePath>
+     ${BETACAST_STREAMBASE}
+   </filePath>
+   <fileNames>
+FILES_HERE
+   </fileNames>
+   <offset>
+      -10800
+   </offset>
+</fieldInfo>
+</file>
