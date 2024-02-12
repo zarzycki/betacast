@@ -10,7 +10,7 @@
 ################################################################
 
 dryrun=false
-H5DIR=/pscratch/sd/c/czarzyck/hyperion/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900/h5/
+MODEL_DATASTREAM_DIR=/pscratch/sd/c/czarzyck/hyperion/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900/h5/
 SCRIPTDIR=$PWD
 
 SERVER_NAME=$(hostname -A)
@@ -37,7 +37,7 @@ fi
 TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt
 
-FILES=`find $H5DIR -type f -name "*.nc"`
+FILES=`find ${MODEL_DATASTREAM_DIR} -type f -name "*.nc"`
 
 for f in $FILES; do
   COMMAND="bash $SCRIPTDIR/single-file-to-datm.sh $f"
