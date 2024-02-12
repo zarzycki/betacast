@@ -21,17 +21,17 @@ echo "SOURCECASE: $SOURCECASE"
 OUTDIR=${OUTDIRBASE}/${SOURCECASE}
 
 mkdir -pv $OUTDIR
-mkdir -pv $OUTDIR/Solr/
+mkdir -pv $OUTDIR/Solar/
 mkdir -pv $OUTDIR/Precip/
-mkdir -pv $OUTDIR/TPHWL/
+mkdir -pv $OUTDIR/TPQW/
 
-TMPsolar=$OUTDIR/Solr/${SOURCEDATE}_solar.nc
+TMPsolar=$OUTDIR/Solar/${SOURCEDATE}_solar.nc
 TMPprecip=$OUTDIR/Precip/${SOURCEDATE}_precip.nc
-TMPstate=$OUTDIR/TPHWL/${SOURCEDATE}_state.nc
+TMPstate=$OUTDIR/TPQW/${SOURCEDATE}_state.nc
 
-FINALsolar=$OUTDIR/Solr/${SOURCECASE}_${SOURCEDATE}_Solr.nc
-FINALprecip=$OUTDIR/Precip/${SOURCECASE}_${SOURCEDATE}_Prec.nc
-FINALstate=$OUTDIR/TPHWL/${SOURCECASE}_${SOURCEDATE}_TPHWL.nc
+FINALsolar=$OUTDIR/Solar/${SOURCECASE}_${SOURCEDATE}_Solar.nc
+FINALprecip=$OUTDIR/Precip/${SOURCECASE}_${SOURCEDATE}_Precip.nc
+FINALstate=$OUTDIR/TPQW/${SOURCECASE}_${SOURCEDATE}_TPQW.nc
 
 if [[ -f "$FINALsolar" && -f "$FINALprecip" && -f "$FINALstate" ]]; then
   echo "All files for $SOURCEDATE already exist. Exiting script."
