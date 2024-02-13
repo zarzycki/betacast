@@ -8,9 +8,10 @@ MACHINE=derecho
 NNODES=12
 RESOL=ne30_g16
 RUNQUEUE=main
-JOB_PRIORITY=economy
+JOB_PRIORITY=regular
 WALLCLOCK="10:00:00"
-
-### Only required if doERA5 = 0
+### Only required if doERA5 = 0 or 2
 BETACAST=/glade/u/home/zarzycki/betacast
-BETACAST_DATM_FORCING_BASE=/glade/p/cgd/amp/zarzycki/DATM_FORCING/
+BETACAST_DATM_FORCING_BASE=/glade/p/cgd/amp/zarzycki/DATM_FORCING/ERA5/
+BETACAST_DATM_ANOMALY_BASE=/glade/p/cgd/amp/zarzycki/DATM_FORCING/ANOM_LENS/
+BUILD_ONLY=False
