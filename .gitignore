@@ -1,3 +1,8 @@
+# Grid things
+*.g
+*_stereo.png
+refine_map.dat
+
 ## DOCN stuff
 domain.ocn.*.nc
 scrip.ocn.*.nc
