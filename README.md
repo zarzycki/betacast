@@ -156,8 +156,8 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2+/SCREAM (defaults to 0 if empty or not included) |
 | cime\_coupler | Which driver to use? Can be "mct" or "nuopc". Default is "mct" if not specified. |
 | do\_runoff | Include runoff model files (false/true) (defaults to false if empty or not included) |
-| atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5 |
-| sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI |
+| atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5, 9 = CESM/E3SM |
+| sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI, 9 = CESM/E3SM |
 | numLevels | 128 -> SCREAM, 72 -> E3SM, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 |
 | numdays | How long for forecast to run (in days) |
 | adjust\_topo | Full path to a *model* (i.e., bnd\_topo) topography file. If a valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. |
@@ -190,6 +190,14 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | sendplots | Are we going to send live output to some external server? (generally false unless you are CMZ) |
 | nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) |
 | dotracking | Do online TC tracking and process to ATCF format? |
+| m2m\_parent\_source | Either a folder of files or file containing the YYYYMMDDHH when atmDataType=9 |
+| m2m\_remap\_file | ESMF remap file that goes from parent grid to intermediate grid (typically ERA5 0.25x0.25) |
+| m2m\_topo\_in | Topography file from parent simulation |
+| m2m\_sst\_grid\_filename | SST stream grid when reproducing DOCN run (sstDataType=9) |
+| m2m\_sstice\_data\_filename | SST stream data file when reproducing DOCN run (sstDataType=9) |
+| m2m\_sstice\_year\_align | SST stream align year when reproducing DOCN run (sstDataType=9) |
+| m2m\_sstice\_year\_start | SST stream start year when reproducing DOCN run (sstDataType=9) |
+| m2m\_sstice\_year\_end | SST stream end year when reproducing DOCN run (sstDataType=9) |
 
 ### 3.3 Edit output streams
 
@@ -418,6 +426,20 @@ The namelist (ex: `nl.landspinup.cori`) includes the following settings, which a
 | NMONTHSSPIN | Integer number of months to spinup (1-12) |
 | BETACAST | Absolute path to Betacast (only used if doERA5 = 0) |
 | BETACAST\_DATM\_FORCING\_BASE | Path to DATM_FORCING files (only used if doERA5 = 0) |
+| BETACAST\_DATM\_ANOMALY\_BASE | Path to anomaly forcing files |
+
+A few notes/tips/tricks:
+
+- `ICASENAME` can include a substring RESSTRING that will be replaced by `RESOL` inside the script. For example, `ICASENAME=Philly128x8-ICLM45-RESSTRING-101` will expand to: `Philly128x8-ICLM45-philly128x8pg2_philly128x8pg2-101_YYYYMMDD_SPINMON_ANOMYR/` where `RESOL=philly128x8pg2_philly128x8pg2`. This allows you to have multiple resolutions easily with the same base configuration.
+- `BETACAST_DATM_FORCING_BASE` refers to the top level directory where the DATM files are stored for either ERA5 or another dataset (e.g., CESM/E3SM forcing). Within this directory should be three folders entitled `Solar`, `Precip`, and `TPQW`, which contain data streams for FSDS, PRECIPmms, and all other variables.
+- Likewise, `BETACAST_DATM_ANOMALY_BASE` refers to the top level directory where the anomaly files are stored. Inside that directory are four files. Currently, only supported are ensemble mean anomalies from CESM1 LENS, but users can use these four files as templates for other model runs.
+
+```
+ens_FLDS_anom.nc
+ens_PRECT_anom.nc
+ens_QBOT_anom.nc
+ens_TBOT_anom.nc
+```
 
 There are also optional settings that are not required but can be added to override various defaults that are either set by the model or set in the script. They are prefixed with `USER_`.
 
@@ -427,6 +449,7 @@ There are also optional settings that are not required but can be added to overr
 | USER\_FINIDAT | Override default (cold start) findat file |
 | USER\_ICOMPSET | Override default I compset for either CLM/ELM |
 | USER\_JOB\_PRIORITY | Override default job priority |
+| BUILD\_ONLY | If passed in as true, script will not submit run (default internally is false) |
 
 So the general workflow is:
 
@@ -570,6 +593,30 @@ cp user_datm .
 ## tintalgo = "coszen", "linear", "linear", "linear", "lower"
 ```
 
+<a name="model_datm_files"></a>
+### Generating CESM/E3SM forcing files
+
+First, request 3-hourly (preferred) output for relevant fields on their own stream. These outputs are commonly used for forcing hydro models. Example:
+
+```
+fincl6='PS:I','TBOT:I','UBOT:I','VBOT:I','QBOT:I','FLDS:A','FSDS:A','PRECT:A'
+```
+
+Put all of these files (and only these files) in their own folder (`$MODEL_DATASTREAM_DIR`). Example:
+
+```
+/global/homes/c/czarzyck/scratch/hyperion/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900/h5
+```
+
+Edit `${BETACAST}/land-spinup/datm-from-model/single-file-to-datm.sh` as needed. Particular attention should be paid to the `MAPFILE` and `OUTDIRBASE` variables, although one should also check things like latitude ordering (always should be S->N, but ERA5 data and maps are N->S and need to be flipped using nco).
+
+Edit `${BETACAST}/land-spinup/datm-from-model/batch-model-to-datm.sh` as needed. Will need to be set up for specific machines if one takes advantage of GNU parallel (preferred). Particularly relevant file is `MODEL_DATASTREAM_DIR` which points to the directory holding all the raw model data as noted above. The script will spawn a set of commands which convert each single file to DATM-supported stream.
+
+When one invokes the land spinup code, the user should note that the dataset is "2" (from model) and pass in the `OUTDIRBASE` as `BETACAST_DATM_FORCING_BASE`. Example invocation:
+
+```
+./auto-script.sh 1 2 19860101 12 1 -1 -1 nl.landspinup.pm-cpu 
+```
 
 <a name="testing_different_offsets"></a>
 ### Testing different offsets
