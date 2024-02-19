@@ -328,18 +328,9 @@ else     # if not live, draw from head of dates.txt file
 
   echo "Using dates in: "${datesfile}
   longdate=$(head -n 1 ${datesfile})
-
-  # Do some simple error trapping on date string to ensure validity
-  if [ -z "$longdate" ]; then { echo "Date string passed in is empty, exiting..." ; exit 91; } ; fi
-  if [ ${#longdate} -ne 10 ]; then { echo "Malformed date string, $longdate is ${#longdate} characters, needs 10 (YYYYMMDDHH). Exiting..." ; exit 92; } ; fi
-  if [[ -n $(echo $longdate | tr -d '[0-9]') ]]; then { echo "Malformed date string, $longdate contains non-numeric values. Exiting..." ; exit 93; } ; fi
-
   echo "Getting parsed time from $longdate"
   parse_YYYYMMDDHH $longdate
   echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
-  # Do some error trapping on returned time values
-  if (( yearstr > 3000 || yearstr < 1 )); then { echo "Year set to $yearstr, this sounds wrong, exiting..." ; exit 94; } ; fi
-  if (( cyclestr > 23 )); then { echo "Cycle string set to $cyclestr Z, this sounds wrong, exiting..." ; exit 95; } ; fi
 fi
 
 ## Figure out the seconds which correspond to the cycle and zero pad if neces

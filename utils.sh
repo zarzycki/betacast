@@ -158,7 +158,7 @@ sanitize_file () {
   sed -i -e '$a\' $1
 }
 
-
+### -----------------------------------------------------------------------------------
 
 ## Input is YYYYMMDDHH
 ## Sets ${yearstr}, ${monthstr}, ${daystr}, ${hourstr}, ${cyclestrsec}
@@ -166,10 +166,23 @@ sanitize_file () {
 parse_YYYYMMDDHH () {
   echo "Getting time!"
   local thisDate=$1
+
+  # Make sure 1 (and only 1) args are passed in
+  if [ $# -ne 1 ]; then { echo "Error: Exactly one argument is required in function parse_YYYYMMDDHH." ; exit 90; } ; fi
+
+  # Do some simple error trapping on date string to ensure validity
+  if [ -z "$thisDate" ]; then { echo "Date string passed in is empty, exiting..." ; exit 91; } ; fi
+  if [ ${#thisDate} -ne 10 ]; then { echo "Malformed date string, $thisDate is ${#thisDate} characters, needs 10 (YYYYMMDDHH). Exiting..." ; exit 92; } ; fi
+  if [[ -n $(echo $thisDate | tr -d '[0-9]') ]]; then { echo "Malformed date string, $thisDate contains non-numeric values. Exiting..." ; exit 93; } ; fi
+
   yearstr=${thisDate:0:4}
   monthstr=${thisDate:4:2}
   daystr=${thisDate:6:2}
   cyclestr=${thisDate:8:2}
+
+  # Do some error trapping on returned time values
+  if (( yearstr > 3000 || yearstr < 1 )); then { echo "Year set to $yearstr, this sounds wrong, exiting..." ; exit 94; } ; fi
+  if (( cyclestr > 23 )); then { echo "Cycle string set to $cyclestr Z, this sounds wrong, exiting..." ; exit 95; } ; fi
 }
 
 
