@@ -327,7 +327,7 @@ else     # if not live, draw from head of dates.txt file
   fi
 
   echo "Using dates in: "${datesfile}
-  longdate=$(head -n 1 ${datesfile})
+  longdate=$(get_top_line_from_dates "${datesfile}")
   echo "Getting parsed time from $longdate"
   parse_YYYYMMDDHH $longdate
   echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
@@ -1384,8 +1384,7 @@ print_elapsed_time "$script_start" "$script_end"
 if [ $islive = false ] ; then
   cd ${sewxscriptsdir}
   #Remove top line from dates file
-  tail -n +2 ${datesfile} > ${datesfile}.2
-  mv -v ${datesfile}.2 ${datesfile}
+  remove_top_line_from_dates ${datesfile}
 
   AUTORESUB="yes"
   if [ $AUTORESUB == "yes" ]; then

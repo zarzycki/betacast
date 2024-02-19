@@ -160,6 +160,34 @@ sanitize_file () {
 
 ### -----------------------------------------------------------------------------------
 
+# Usage--> remove_top_line_from_dates "dates.txt"
+remove_top_line_from_dates() {
+    local datesfile="$1"
+
+    if [ ! -f "${datesfile}" ]; then
+      echo "File does not exist: ${datesfile}"
+      exit 1
+    fi
+
+    # Remove the top line from the file
+    tail -n +2 "${datesfile}" > "${datesfile}.tmp" && mv -v "${datesfile}.tmp" "${datesfile}"
+}
+
+# Usage--> longdate=$(get_top_line_from_dates "dates.txt")
+get_top_line_from_dates() {
+    local datesfile="$1"  # The first argument to the function is the path to the file
+
+    if [ ! -f "${datesfile}" ]; then
+      echo "File does not exist: ${datesfile}"
+      exit 1
+    fi
+
+    # Echo the top line from the file
+    head -n 1 "${datesfile}"
+}
+
+### -----------------------------------------------------------------------------------
+
 ## Input is YYYYMMDDHH
 ## Sets ${yearstr}, ${monthstr}, ${daystr}, ${hourstr}, ${cyclestrsec}
 ## Ex: parse_time 2022092812
@@ -465,6 +493,25 @@ delete_leftovers () {
   rm -f -v *initial_hist*.nc
   )
 }
+
+#Usage example:
+#delete_except_last "*.clm2.r.*"
+function delete_except_last() {
+  local pattern=$1
+
+  # List all files matching the pattern, sort them alphabetically
+  local files=$(ls $pattern | sort)
+
+  # Count the number of files
+  local file_count=$(echo "$files" | wc -l)
+
+  # If there are more than one file, delete all except the last one
+  if [ "$file_count" -gt 1 ]; then
+    # Delete all but the last file
+    echo "$files" | head -n -1 | xargs -r rm -v
+  fi
+}
+
 
 # Usage:
 # script_start=$(date +%s)
