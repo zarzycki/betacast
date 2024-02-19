@@ -46,12 +46,17 @@ if [ -z "${USER_ICOMPSET+x}" ]; then USER_ICOMPSET=""; fi
 if [ -z "${USER_JOB_PRIORITY+x}" ]; then USER_JOB_PRIORITY=""; fi
 if [ -z "${BUILD_ONLY+x}" ]; then BUILD_ONLY=false; fi
 
+# Purge settings
+if [ -z "${FORCE_PURGE+x}" ]; then FORCE_PURGE=false; fi
+if [ -z "${RUN_DIR_BASE+x}" ]; then RUN_DIR_BASE=""; fi
+
 # Set directories to empty strings for use DATM
 if [ -z "${BETACAST_DATM_FORCING_BASE+x}" ]; then BETACAST_DATM_FORCING_BASE=""; fi
 if [ -z "${BETACAST_DATM_ANOMALY_BASE+x}" ]; then BETACAST_DATM_ANOMALY_BASE=""; fi
 
 # Check bools
 check_bool "BUILD_ONLY" $BUILD_ONLY
+check_bool "FORCE_PURGE" $FORCE_PURGE
 
 # Derived settings that should be same between all machines
 BETACAST_DATMDOMAIN=${BETACAST}/land-spinup/gen_datm/gen-datm/
@@ -95,6 +100,7 @@ fi
 
 ### Print diagnostics
 STARTDATE=`date -d "${FORECASTDATE} - ${NMONTHSSPIN} months" "+%Y-%m-%d"`
+STARTYEAR=`date -d "${FORECASTDATE} - ${NMONTHSSPIN} months" "+%Y"`
 echo "Starting at: "${STARTDATE}
 if [ $doERA5 -eq 0 ]; then
   echo "Using ERA5 DATM"
@@ -108,24 +114,32 @@ else
   echo "Using CRUNCEP DATM"
 fi
 
+if [ ${#FORECASTDATE} -ne 8 ]; then
+  echo "Incorrect string length for FORECASTDATE, needs to be YYYYMMDD"
+  echo "You provided $FORECASTDATE"
+  echo "STOP"
+  exit 1
+fi
+
 ### Configure, build, run land model w/ DATM
-if [ $doERA5 -ne 0 ] && (( FORECASTYEAR > 2016 )); then
+if [ $doERA5 -eq 1 ] && (( FORECASTYEAR > 2016 )); then
   echo "No default DATM files beyond 2016"
   echo "Need to either find a different DATM set or spin up when coupled"
   echo "STOP"
   exit 1
-elif [ $doERA5 -eq 0 ] && (( FORECASTYEARM1 < ${ERA5STYR} )); then
+fi
+
+### ERA5 and other external data-checking
+if [ $doERA5 -eq 0 ] && (( STARTYEAR < ${ERA5STYR} )); then
   echo "No ERA5 DATM files earlier than ${ERA5STYR}"
+  echo "You provided $STARTYEAR for a start year when accounting for spinup"
   echo "Need to either find a different DATM set or spin up when coupled"
   echo "STOP"
   exit 1
 elif [ $doERA5 -eq 0 ] && (( FORECASTYEAR > ${ERA5ENYR} )); then
   echo "No ERA5 DATM files later than ${ERA5ENYR}"
+  echo "You provided $FORECASTYEAR for an end year (forecast)"
   echo "Need to either find a different DATM set or spin up when coupled"
-  echo "STOP"
-  exit 1
-elif [ ${#FORECASTDATE} -ne 8 ]; then
-  echo "Incorrect string length for FORECASTDATE, needs to be YYYYMMDD"
   echo "STOP"
   exit 1
 fi
@@ -134,6 +148,29 @@ ICASENAME=${ICASENAME/RESSTRING/$RESOL}
 ICASENAME=${ICASENAME}_${FORECASTDATE}_$(printf "%04d\n" $NMONTHSSPIN)
 if [ $addDeltas -eq 0 ]; then
   ICASENAME=${ICASENAME}_${BETACAST_ANOMYEAR}
+fi
+
+# Check if the case already exists and decide what to do
+if [ -d "${PATHTOCASE}/${ICASENAME}" ]; then
+  echo "Directory ${PATHTOCASE}/${ICASENAME} already exists!"
+  if [ "$FORCE_PURGE" = "true" ]; then
+    echo "FORCE_PURGE is true. Deleting the directory..."
+    rm -vrf "${PATHTOCASE}/${ICASENAME}"
+    # CMZ note, this will also purge the scratch dir. Ideally we'd auto get this
+    # path from CIME somehow, but for now ask user to input it and if they don't
+    # rely on manual CIME prompts to purge.
+    if [ -n "$RUN_DIR_BASE" ]; then
+      echo "RUN_DIR_BASE is set to $RUN_DIR_BASE. Deleting the run directory..."
+      rm -vrf "${RUN_DIR_BASE}/${ICASENAME}"
+    else
+      echo "RUN_DIR_BASE is not set. Doing nothing."
+    fi
+  else
+    echo "ERROR: Directory ${PATHTOCASE}/${ICASENAME} exists and FORCE_PURGE is not true (it is $FORCE_PURGE)."
+    exit 1
+  fi
+else
+  echo "Directory ${PATHTOCASE}/${ICASENAME} does not exist. Proceeding."
 fi
 
 ### Put a block to check everything here?
@@ -186,6 +223,8 @@ cd ${PATHTOCASE}/${ICASENAME}
 # If NMONTHSSPIN is 0, doesn't make sense to stop model on same day
 if [ $NMONTHSSPIN -gt 0 ]; then
   ./xmlchange STOP_DATE=${FORECASTDATE}
+else
+  echo "NMONTHSSPIN is zero (--> $NMONTHSSPIN), no update to STOP_DATE"
 fi
 
 ### If using ERA5, add the stream files and reset DATM_CLMNCEP_YR_START, etc.
