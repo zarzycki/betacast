@@ -4,12 +4,15 @@ set -e
 source ../utils.sh
 
 ### Set vars here for now
-datesfile="test-dates.txt"
-CASEDIR="/glade/u/home/zarzycki/I-compsets/INC-spinup_19900101_0000"
-path_to_rundir="/glade/derecho/scratch/zarzycki/INC-spinup_19900101_0000/run"
+datesfile="dates.CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900.txt"
+CASEDIR="/global/homes/c/czarzyck/I-runs/ne128pg2-spinup_19840101_0000"
+path_to_rundir="/pscratch/sd/c/czarzyck/e3sm_scratch/pm-cpu/ne128pg2-spinup_19840101_0000/run"
 CIMEsubstring=""
 CIMEbatchargs=""
-betacast="/glade/u/home/zarzycki/betacast"
+betacast="/global/homes/c/czarzyck/betacast"
+WALLCLOCK="02:00:00"
+
+#--------
 
 cd $betacast/land-spinup/
 # Parse dates file
@@ -21,6 +24,7 @@ echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
 
 ### Go to the case dir and do things
 cd $CASEDIR
+./xmlchange JOB_WALLCLOCK_TIME=${WALLCLOCK}
 ./xmlchange REST_OPTION="end"
 ./xmlchange STOP_DATE="$yearstr$monthstr$daystr"
 run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs" true
@@ -34,18 +38,50 @@ run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs" true
 cd $path_to_rundir
 
 # Assuming run was succesful, delete all other restarts except the last one
-delete_except_last "*.clm2.r.*"
-delete_except_last "*.mosart.r.*"
+delete_except_last "*.clm2.r.*,*.elm.r.*,*.elm.rh0.*,*.elm.rh1.*"
+delete_except_last "*.mosart.r.*,*.mosart.rh0.*"
+delete_except_last "*.cpl.r.*"
+
+echo "Done with delete_except_last"
 
 # Copy this last restart to a stash folder
 DIRSTASH=$path_to_rundir/landstart/
 
+echo "DIRSTASH"
+
 if [ ! -d "$DIRSTASH" ]; then mkdir -v "$DIRSTASH"; fi
 if [ ! -d "$DIRSTASH/logs/" ]; then mkdir -v "$DIRSTASH/logs/"; fi
 
-cp -v *.clm2.r.* $DIRSTASH
-cp -v *.mosart.r.* $DIRSTASH
-mv -v *log*.gz $DIRSTASH/logs/
+echo "DIRSTASH2"
+
+function safe_cp2() {
+
+  local dest="$2"
+  # split on multiple input patterns if necessary
+  IFS=',' read -r -a patterns <<< "$1"
+
+  # Loop over all matching patterns
+  for pattern in "${patterns[@]}"; do
+
+    # Trim leading and trailing spaces from the pattern
+    pattern=$(echo "$pattern" | xargs)
+
+    # Collect all files matching the pattern, sorted
+    files=($(ls $pattern 2>/dev/null | sort))
+
+    if [ ${#files[@]} -eq 0 ]; then
+      echo "Error: ZERO files found matching pattern $pattern."
+    else
+      cp -v -- "${files[@]}" "$dest"
+    fi
+  done
+}
+
+echo "CPDEFINED"
+
+safe_cp2 "*.clm2.r.*,*.elm.r.*" $DIRSTASH
+safe_cp2 "*.mosart.r.*" $DIRSTASH
+mv -fv *log*.gz $DIRSTASH/logs/
 
 # Return to the script dir to do things and resubmit
 cd $betacast/land-spinup/

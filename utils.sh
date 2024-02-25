@@ -496,20 +496,32 @@ delete_leftovers () {
 
 #Usage example:
 #delete_except_last "*.clm2.r.*"
+#delete_except_last "*.clm2.r.*,*.elm.r.*"
 function delete_except_last() {
-  local pattern=$1
 
-  # List all files matching the pattern, sort them alphabetically
-  local files=$(ls $pattern | sort)
+  # split on multiple input patterns if necessary
+  IFS=',' read -r -a patterns <<< "$1"
 
-  # Count the number of files
-  local file_count=$(echo "$files" | wc -l)
+  # Loop over all matching patterns
+  for pattern in "${patterns[@]}"; do
 
-  # If there are more than one file, delete all except the last one
-  if [ "$file_count" -gt 1 ]; then
-    # Delete all but the last file
-    echo "$files" | head -n -1 | xargs -r rm -v
-  fi
+    # Trim leading and trailing spaces from the pattern
+    pattern=$(echo "$pattern" | xargs)
+
+    # Collect all files matching the pattern, sorted
+    files=($(ls $pattern 2>/dev/null | sort))
+
+    # Count the number of matched files
+    file_count=${#files[@]}
+
+    # If there are more than one file, delete all except the last one
+    if [ "$file_count" -gt 1 ]; then
+      for ((i=0; i<file_count-1; i++)); do
+        echo "Deleting: ${files[i]}"
+        rm -v "${files[i]}"
+      done
+    fi
+  done
 }
 
 
