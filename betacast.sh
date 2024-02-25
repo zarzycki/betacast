@@ -98,6 +98,7 @@ if [ -z "${FILTERWALLCLOCK+x}" ]; then FILTERWALLCLOCK="00:29:00"; fi
 if [ -z "${FILTERQUEUE+x}" ]; then FILTERQUEUE="batch"; fi
 if [ -z "${use_nsplit+x}" ]; then use_nsplit="true"; fi
 if [ -z "${cime_coupler+x}" ]; then cime_coupler="mct"; fi
+if [ -z "${nclPlotWeights+x}" ]; then nclPlotWeights="NULL"; fi
 
 ### Set correct E3SM/CESM split
 if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi
@@ -966,6 +967,13 @@ if [ $modelSystem -eq 0 ]; then   # CLM/CTSM
 elif [ $modelSystem -eq 1 ]; then   # ELM
   sed -i '/check_finidat_fsurdat_consistency/d' user_nl_${lndName}
   echo "check_finidat_fsurdat_consistency = .false." >> user_nl_${lndName}
+  # 2/25/24 CMZ added since ELM doesn't have use_init_interp support for rawlandrestartfile
+  if [ ! -z ${rawlandrestartfile} ]; then
+    echo "WARNING USER_NL: We used a rawlandrestartfile, but ELM doesn't support interpolation, removing"
+    echo "WARNING USER_NL: If your model fails, check to make sure the rawlandrestartfile supports your target land grid"
+    sed -i '/use_init_interp/d' user_nl_${lndName}
+    sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_${lndName}
+  fi
 else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
@@ -975,7 +983,7 @@ fi
 
 if [ $do_runoff = true ]; then
 
-  echo "Setting input rof dataset"
+  echo "USER_NL: Setting input ${rofName} dataset"
 
   # Delete any existing input data
   sed -i '/.*finidat_rtm/d' user_nl_${rofName}
@@ -986,28 +994,41 @@ if [ $do_runoff = true ]; then
 
   # Check to see if file exists on native SE land grid
   if [ -f ${rofrestartfile} ]; then
-     echo "File exists at exact time"
+     echo "USER_NL: ${rofName} file exists at exact time"
   else
-     echo "File does not exist at exact time"
+     echo "USER_NL: ${rofName} file does not exist at exact time"
      rofrestartfile=${landdir}/${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.nc
      if [ -f ${rofrestartfile} ]; then
-       echo "File exists at 00Z"
+       echo "USER_NL: ${rofName} file exists at 00Z"
      else
-       echo "No restart file exists, setting to empty string."
+       echo "USER_NL: No ${rofName} restart file exists, setting to empty string."
        rofrestartfile=
      fi
   fi
-  echo "rofrestartfile: ${rofrestartfile}"
+  echo "USER_NL: rofrestartfile: ${rofrestartfile}"
 
-  ## Now modify user_nl_${lndName}
+  ## Now modify user_nl_${rofName}
   if [ ${rofrestartfile} ] ; then
+    echo "USER_NL: Adding ${rofrestartfile} to user_nl_${rofName}"
     echo "finidat_rtm='${rofrestartfile}'" >> user_nl_${rofName}
+  else
+    # Check to see if there is a raw ROF file in the landrawdir given by the user
+    rawrofrestartfile=$(ls ${landrawdir}/*.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc || true)   # check for file, suppress failed ls error if true
+    echo "rawrofrestartfile: ${rawrofrestartfile}"
+    if [ ! -z ${rawrofrestartfile} ]; then   # if rawrofrestartfile string is NOT empty, add it.
+      echo "WARNING USER_NL: Adding rawrofrestartfile for runoff, although no check to see if grid is consistent!"
+      echo "USER_NL: Adding ${rawrofrestartfile} to user_nl_${rofName}"
+      echo "finidat_rtm='${rawrofrestartfile}'" >> user_nl_${rofName}
+    else
+      echo "USER_NL: No ${rofName} restart file added, cold start"
+    fi
   fi
 
 fi
 
 ############################### GENERIC CAM SETUP ###############################
 
+echo "Changing XML PROJECT to ${PROJECTID}"
 ./xmlchange PROJECT=${PROJECTID}
 
 echo "Turning off archiving and restart file output in env_run.xml"
