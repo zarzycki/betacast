@@ -968,7 +968,7 @@ elif [ $modelSystem -eq 1 ]; then   # ELM
   sed -i '/check_finidat_fsurdat_consistency/d' user_nl_${lndName}
   echo "check_finidat_fsurdat_consistency = .false." >> user_nl_${lndName}
   # 2/25/24 CMZ added since ELM doesn't have use_init_interp support for rawlandrestartfile
-  if [ ! -z ${rawlandrestartfile} ]; then
+  if [ -z ${landrestartfile} ] && [ ! -z ${rawlandrestartfile} ]; then
     echo "WARNING USER_NL: We used a rawlandrestartfile, but ELM doesn't support interpolation, removing"
     echo "WARNING USER_NL: If your model fails, check to make sure the rawlandrestartfile supports your target land grid"
     sed -i '/use_init_interp/d' user_nl_${lndName}
