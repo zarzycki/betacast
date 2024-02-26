@@ -105,7 +105,6 @@ function read_bash_nl() {
 
 # Check if a file exists, if not exit
 # Usage: exit_file_no_exist $OUTPUTSTREAMS
-
 function exit_file_no_exist() {
   if [ ! -f "$1" ]; then
     echo "CHECK_EXIST: File $1 does not exist, exiting..."
@@ -165,7 +164,7 @@ remove_top_line_from_dates() {
     local datesfile="$1"
 
     if [ ! -f "${datesfile}" ]; then
-      echo "File does not exist: ${datesfile}"
+      echo "remove_top_line_from_dates: File does not exist: ${datesfile}"
       exit 1
     fi
 
@@ -178,7 +177,7 @@ get_top_line_from_dates() {
     local datesfile="$1"  # The first argument to the function is the path to the file
 
     if [ ! -f "${datesfile}" ]; then
-      echo "File does not exist: ${datesfile}"
+      echo "remove_top_line_from_dates: File does not exist: ${datesfile}"
       exit 1
     fi
 
@@ -370,16 +369,33 @@ run_CIME2 () {
   fi
 }
 
-
+#shopt -s nullglob
+#Usage: compress_history $DIR
+#Attempt to compress all *.nc in $DIR
+#Will try using ncks deflation first
+#If that fails, will use pigz
+#If that fails, we'll just move on but should deal with it...
 compress_history () {
-  (
-  # Compress files using lossless compression
   echo "Compressing model history files..."
-  cd $1
-  for f in *.nc ; do echo "Compressing $f" ; ncks -4 -L 1 --rad --no_abc -O $f $f ; done
-  )
+  cd "$1" || exit
+  for f in *.nc; do
+    if [ ! -f "$f" ]; then
+      echo "compress_history: No .nc files found. Moving on..."
+      continue
+    fi
+    echo "compress_history: compressing $f with ncks"
+    if ! ncks -4 -L 1 --rad --no_abc -O "$f" "$f"; then
+      rm -v *.ncks.tmp
+      echo "compress_history: ncks failed for $f, attempting zstd..."
+      if ! zstd --adapt -T0 -q --rm "$f"; then
+        echo "compress_history: zstd failed for $f, attempting pigz..."
+        if ! pigz "$f"; then
+          echo "compress_history: error: Failed to compress $f with ncks, zstd, and pigz. Moving on..."
+        fi
+      fi
+    fi
+  done
 }
-
 
 #$path_to_nc_files $2
 #$tmparchivecdir $1
