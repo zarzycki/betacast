@@ -99,6 +99,7 @@ if [ -z "${FILTERQUEUE+x}" ]; then FILTERQUEUE="batch"; fi
 if [ -z "${use_nsplit+x}" ]; then use_nsplit="true"; fi
 if [ -z "${cime_coupler+x}" ]; then cime_coupler="mct"; fi
 if [ -z "${nclPlotWeights+x}" ]; then nclPlotWeights="NULL"; fi
+if [ -z "${landrawdir+x}" ]; then landrawdir="NULL"; fi
 
 ### Set correct E3SM/CESM split
 if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi
@@ -910,51 +911,66 @@ sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_${lndName}
 sed -i '/use_init_interp/d' user_nl_${lndName}
 #echo "finidat=''" >> user_nl_${lndName}
 
-# We want to check ${landdir} for land restart files. If so, use those.
-landrestartfile=${landdir}/${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
-echo $landrestartfile
+# Create a temp directory for now
+RUNTMPDIR=$path_to_nc_files/tmp/
+mkdir -vp $RUNTMPDIR
+
+# We want to check ${landdir} for land restart file with exact date match. If so, use that.
+landrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
 
 # Check to see if file exists on native SE land grid
-if [ -f ${landrestartfile} ]; then
-   echo "File exists at exact time"
+if [ -n "${landrestartfile}" ] && [ -f "${landrestartfile}" ]; then
+  echo "File exists at exact time"
 else
-   echo "File does not exist at exact time"
-   landrestartfile=${landdir}/${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.nc
-   if [ -f ${landrestartfile} ]; then
-     echo "File exists at 00Z"
-   else
-     echo "No restart file exists, setting to empty string."
-     landrestartfile=
-   fi
+  # If we don't have an exact match from above, trying 00Z first, then check landrawdir
+  echo "File does not exist at exact time"
+  landrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.*" | head -n 1)
+  if [ -n "${landrestartfile}" ] && [ -f "${landrestartfile}" ]; then
+    echo "File exists at 00Z"
+  else
+    rawlandrestartfile=$(find "${landrawdir}" -maxdepth 1 -type f -name "*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
+    echo "rawlandrestartfile: ${rawlandrestartfile}"
+    if [ -n "${rawlandrestartfile}" ] && [ -f "${rawlandrestartfile}" ]; then
+      landrestartfile=${rawlandrestartfile}
+    else
+      echo "No restart file exists, setting to empty string."
+      landrestartfile=
+    fi
+  fi
 fi
 echo "landrestartfile: ${landrestartfile}"
 
+if [ -f "${landrestartfile}" ] && [[ "${landrestartfile}" != *.nc ]]; then
+  echo "${landrestartfile} was found, but does not have an *.nc extension. Assuming compressed."
+  echo "Copying ${landrestartfile} to $RUNTMPDIR"
+  cp -v ${landrestartfile} $RUNTMPDIR
+  try_uncompress $RUNTMPDIR/$(basename "${landrestartfile}")
+  landrestartfile=$(find "${RUNTMPDIR}" -maxdepth 1 -type f -name "*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-*.nc" | head -n 1)
+  echo "Updated landrestartfile: ${landrestartfile}"
+fi
+
 ## Now modify user_nl_${lndName}
 ./xmlchange ${lndName^^}_FORCE_COLDSTART=off
-if [ ${landrestartfile} ] ; then
+
+if [ "${landrestartfile}" ] ; then
   sed -i '/.*finidat/d' user_nl_${lndName}
   echo "finidat='${landrestartfile}'" >> user_nl_${lndName}
-  #sed -i 's?.*finidat.*?finidat='"'${landrestartfile}'"'?' user_nl_${lndName}
-else
-  rawlandrestartfile=$(ls ${landrawdir}/*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc || true)   # check for file, suppress failed ls error if true
-  echo "rawlandrestartfile: ${rawlandrestartfile}"
-  if [ ! -z ${rawlandrestartfile} ]; then   # if rawlandrestartfile string is NOT empty, add it.
-    sed -i '/.*finidat/d' user_nl_${lndName}
-    echo "finidat='${rawlandrestartfile}'" >> user_nl_${lndName}
+  if [ -n "${rawlandrestartfile-}" ] && [ -f "${rawlandrestartfile-}" ]; then
+    echo "Adding interpolation lines to user_nl_${lndName}"
     echo "use_init_interp = .true." >> user_nl_${lndName}
     echo "init_interp_fill_missing_with_natveg = .true." >> user_nl_${lndName}
+  fi
+else
+  if [ -f user_nl_${lndName}_presave ] ; then
+    echo "Using pre-written user_nl_${lndName} file"
+    cp -v user_nl_${lndName}_presave user_nl_${lndName}
   else
-    if [ -f user_nl_${lndName}_presave ] ; then
-      echo "Using pre-written user_nl_${lndName} file"
-      cp -v user_nl_${lndName}_presave user_nl_${lndName}
-    else
-      echo "WARNING: Land file DOES NOT EXIST, will use arbitrary user_nl_${lndName} already in folder"
-      echo "!!!!!!!!!!!!!"
-      sed -i '/.*finidat/d' user_nl_${lndName}
-      ./xmlchange ${lndName^^}_FORCE_COLDSTART=on
-      #exit
-      #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_${lndName}
-    fi
+    echo "WARNING: Land file DOES NOT EXIST, will use arbitrary user_nl_${lndName} already in folder"
+    echo "!!!!!!!!!!!!!"
+    sed -i '/.*finidat/d' user_nl_${lndName}
+    ./xmlchange ${lndName^^}_FORCE_COLDSTART=on
+    #exit
+    #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_${lndName}
   fi
 fi
 
@@ -968,8 +984,8 @@ elif [ $modelSystem -eq 1 ]; then   # ELM
   sed -i '/check_finidat_fsurdat_consistency/d' user_nl_${lndName}
   echo "check_finidat_fsurdat_consistency = .false." >> user_nl_${lndName}
   # 2/25/24 CMZ added since ELM doesn't have use_init_interp support for rawlandrestartfile
-  if [ -z ${landrestartfile} ] && [ ! -z ${rawlandrestartfile} ]; then
-    echo "WARNING USER_NL: We used a rawlandrestartfile, but ELM doesn't support interpolation, removing"
+  if [ -n "${rawlandrestartfile-}" ]; then # if rawlandrestartfile is SET *and* not empty...
+    echo "WARNING USER_NL: We used a rawlandrestartfile, but ELM doesn't support interpolation, removing relevant lines"
     echo "WARNING USER_NL: If your model fails, check to make sure the rawlandrestartfile supports your target land grid"
     sed -i '/use_init_interp/d' user_nl_${lndName}
     sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_${lndName}
@@ -989,16 +1005,16 @@ if [ $do_runoff = true ]; then
   sed -i '/.*finidat_rtm/d' user_nl_${rofName}
 
   # We want to check ${landdir} for land restart files. If so, use those.
-  rofrestartfile=${landdir}/${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc
+  rofrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
   echo $rofrestartfile
 
   # Check to see if file exists on native SE land grid
-  if [ -f ${rofrestartfile} ]; then
+  if [ -n "${rofrestartfile}" ] && [ -f "${rofrestartfile}" ]; then
      echo "USER_NL: ${rofName} file exists at exact time"
   else
      echo "USER_NL: ${rofName} file does not exist at exact time"
-     rofrestartfile=${landdir}/${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.nc
-     if [ -f ${rofrestartfile} ]; then
+     rofrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.*" | head -n 1)
+     if [ -n "${rofrestartfile}" ] && [ -f "${rofrestartfile}" ]; then
        echo "USER_NL: ${rofName} file exists at 00Z"
      else
        echo "USER_NL: No ${rofName} restart file exists, setting to empty string."
@@ -1006,6 +1022,15 @@ if [ $do_runoff = true ]; then
      fi
   fi
   echo "USER_NL: rofrestartfile: ${rofrestartfile}"
+
+  if [ -f "${rofrestartfile}" ] && [[ "${rofrestartfile}" != *.nc ]]; then
+    echo "${rofrestartfile} was found, but does not have an *.nc extension. Assuming compressed."
+    echo "Copying ${rofrestartfile} to $RUNTMPDIR"
+    cp -v ${rofrestartfile} $RUNTMPDIR
+    try_uncompress $RUNTMPDIR/$(basename "${rofrestartfile}")
+    rofrestartfile=$(find "${RUNTMPDIR}" -maxdepth 1 -type f -name "*.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-*.nc" | head -n 1)
+    echo "Updated rofrestartfile: ${rofrestartfile}"
+  fi
 
   ## Now modify user_nl_${rofName}
   if [ ${rofrestartfile} ] ; then
@@ -1024,7 +1049,7 @@ if [ $do_runoff = true ]; then
     fi
   fi
 
-fi
+fi  # if do_runoff
 
 ############################### GENERIC CAM SETUP ###############################
 
@@ -1301,14 +1326,22 @@ if [ $keep_land_restarts = true ]; then
   rm -v *.${lndName}*.r.*32400.nc || true
   rm -v *.${lndName}*.r.*75600.nc || true
   echo "Moving land restart files for future runs"
-  mv -v *.${lndName}*.r.*.nc $landdir || true
+  for file in *.$lndName*.r.*.nc; do
+    [ -e "$file" ] || continue # Skip if no files match
+    compress_file "$file" xz
+    mv -v "${file}"* "$landdir" || true
+  done
   ## Move runoff files to land dir if doing runoff
   if [ $do_runoff = true ]; then
     echo "Removing 06Z and 18Z runoff restart files if they exist"
     rm -v *.${rofName}*.r.*32400.nc || true
     rm -v *.${rofName}*.r.*75600.nc || true
     echo "Moving runoff restart files for future runs"
-    mv -v *.${rofName}*.r.*.nc $landdir || true
+    for file in *.$rofName*.r.*.nc; do
+      [ -e "$file" ] || continue # Skip if no files match
+      compress_file "$file" xz
+      mv -v "${file}"* "$landdir" || true
+    done
   fi
 else
   echo "Removing all land restart files!"
@@ -1320,6 +1353,9 @@ fi
 
 ## Delete any leftover files in the run dir that we don't need/want anymore
 delete_leftovers "$path_to_nc_files" "$atmName" "$lndName" "$rofName"
+
+## Delete run temp directory
+rm -rfv $RUNTMPDIR
 
 cd $path_to_nc_files
 echo "Moving tmp archive directory to ARCHIVEDIR/YYYYMMDDHH"

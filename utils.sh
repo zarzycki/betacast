@@ -161,28 +161,36 @@ sanitize_file () {
 
 # Usage--> remove_top_line_from_dates "dates.txt"
 remove_top_line_from_dates() {
-    local datesfile="$1"
+  local datesfile="$1"
 
-    if [ ! -f "${datesfile}" ]; then
-      echo "remove_top_line_from_dates: File does not exist: ${datesfile}"
-      exit 1
-    fi
+  if [ ! -f "${datesfile}" ]; then
+    echo "remove_top_line_from_dates: File does not exist: ${datesfile}"
+    exit 1
+  fi
 
-    # Remove the top line from the file
-    tail -n +2 "${datesfile}" > "${datesfile}.tmp" && mv -v "${datesfile}.tmp" "${datesfile}"
+  # Remove the top line from the file
+  tail -n +2 "${datesfile}" > "${datesfile}.tmp" && mv -v "${datesfile}.tmp" "${datesfile}"
 }
 
 # Usage--> longdate=$(get_top_line_from_dates "dates.txt")
 get_top_line_from_dates() {
-    local datesfile="$1"  # The first argument to the function is the path to the file
+  local datesfile="$1"  # The first argument to the function is the path to the file
 
-    if [ ! -f "${datesfile}" ]; then
-      echo "remove_top_line_from_dates: File does not exist: ${datesfile}"
-      exit 1
-    fi
+  if [ ! -f "${datesfile}" ]; then
+    # The >&2 redirects to stderr
+    echo "ERROR: get_top_line_from_dates: File does not exist: ${datesfile}" >&2
+    exit 1
+  fi
 
-    # Echo the top line from the file
-    head -n 1 "${datesfile}"
+  local top_line=$(head -n 1 "${datesfile}")
+
+  if [ -z "$top_line" ]; then
+    echo "ERROR: get_top_line_from_dates: ${datesfile} is empty (or the top line is empty)." >&2
+    exit 1
+  fi
+
+  # If not empty, echo back to the main program to be stored in variable
+  echo "$top_line"
 }
 
 ### -----------------------------------------------------------------------------------
@@ -369,12 +377,138 @@ run_CIME2 () {
   fi
 }
 
+
+
+
+# Example usage of the function (assuming COMPRESS_SW and a file path are set)
+# COMPRESS_SW is determined by the find_compression_software function
+# file_to_decompress="/path/to/your/compressed_file"
+
+# Uncomment the line below to use the function after setting COMPRESS_SW and file_to_decompress appropriately
+# decompress_file "$file_to_decompress" "$COMPRESS_SW"
+
+# Function to determine the available compression software
+find_compression_software() {
+    # Define an array of desired compression algorithms
+    local compression_tools=("xz" "zstd" "pigz" "gzip")
+
+    # Loop through the array to find the first available tool
+    for tool in "${compression_tools[@]}"; do
+        if command -v "$tool" > /dev/null 2>&1; then
+            # Return the found tool
+            echo "$tool"
+            return
+        fi
+    done
+
+    # If we reach this point, no tool was found
+    echo "null"
+}
+
+# Function to compress a file using the specified compression software
+compress_file() {
+    local file="$1"
+    local compress_sw="$2"
+    local start_time end_time original_size compressed_size time_taken speed compression_percentage
+
+    start_time=$(date +%s.%N)
+    original_size=$(stat --format=%s "$file")
+
+    case "$compress_sw" in
+        zstd)
+            zstd -3 -T8 --rm "$file"
+            compressed_size=$(stat --format=%s "${file}.zst")
+            ;;
+        pigz)
+            pigz "$file"
+            compressed_size=$(stat --format=%s "${file}.gz")
+            ;;
+        gzip)
+            gzip "$file"
+            compressed_size=$(stat --format=%s "${file}.gz")
+            ;;
+        xz)
+            xz -0 -T8 -f "$file"
+            compressed_size=$(stat --format=%s "${file}.xz")
+            ;;
+        *)
+            echo "Unsupported compression software: $compress_sw"
+            return 1
+            ;;
+    esac
+
+    end_time=$(date +%s.%N)
+    time_taken=$(echo "$end_time - $start_time" | bc)
+    compression_percentage=$(echo "scale=2; ($compressed_size / $original_size) * 100" | bc)
+    speed=$(echo "scale=2; $original_size / 1048576 / $time_taken" | bc)
+
+    echo "COMPRESS: Compressed using $compress_sw: ${file}"
+    echo "COMPRESS: -- Original size: $original_size bytes, Compressed size: $compressed_size bytes, Compression percentage: ${compression_percentage}%, Time taken: ${time_taken}s, Speed: ${speed}MB/s"
+}
+
+uncompress_file() {
+    local file="$1"
+    local compress_sw="$2"
+    local start_time end_time time_taken
+
+    start_time=$(date +%s.%N)
+
+    case "$compress_sw" in
+        zstd)
+            zstd -d "$file" --rm
+            ;;
+        pigz)
+            pigz -d "$file"
+            ;;
+        gzip)
+            gzip -d "$file"
+            ;;
+        xz)
+            xz -d "$file"
+            ;;
+        *)
+            echo "Unsupported compression software for decompression: $compress_sw"
+            return 1
+            ;;
+    esac
+
+    end_time=$(date +%s.%N)
+    time_taken=$(echo "$end_time - $start_time" | bc)
+
+    echo "UNCOMPRESS: file uncompressed using $compress_sw: ${file%.*}"
+    echo "UNCOMPRESS: -- Time taken: ${time_taken}s"
+}
+
+try_uncompress() {
+  local file="$1"
+  local extension="${file##*.}"
+
+  case "$extension" in
+    gz)  uncompress_file "$file" "gzip" ;;
+    zst) uncompress_file "$file" "zstd" ;;
+    xz)  uncompress_file "$file" "xz" ;;
+    *)
+      echo "Unsupported extension for decompression: $extension. Exiting."
+      exit 1
+      ;;
+  esac
+}
+
+
+
+
+
+
+
+
 #shopt -s nullglob
 #Usage: compress_history $DIR
 #Attempt to compress all *.nc in $DIR
 #Will try using ncks deflation first
 #If that fails, will use pigz
 #If that fails, we'll just move on but should deal with it...
+
+#xz -0 -T4 -f -v LANDFALL_20050828_0024.elm.r.2005-08-28-00000.nc
 compress_history () {
   echo "Compressing model history files..."
   cd "$1" || exit
@@ -386,11 +520,14 @@ compress_history () {
     echo "compress_history: compressing $f with ncks"
     if ! ncks -4 -L 1 --rad --no_abc -O "$f" "$f"; then
       rm -v *.ncks.tmp
-      echo "compress_history: ncks failed for $f, attempting zstd..."
-      if ! zstd --adapt -T0 -q --rm "$f"; then
-        echo "compress_history: zstd failed for $f, attempting pigz..."
-        if ! pigz "$f"; then
-          echo "compress_history: error: Failed to compress $f with ncks, zstd, and pigz. Moving on..."
+      echo "compress_history: ncks failed for $f, attempting xz..."
+      if ! xz -2 -T8 -q -f "$f"; then
+        echo "compress_history: xz failed for $f, attempting zstd..."
+        if ! zstd --adapt -T8 -q --rm "$f"; then
+          echo "compress_history: zstd failed for $f, attempting pigz..."
+          if ! pigz "$f"; then
+            echo "compress_history: error: Failed to compress $f with ncks, zstd, and pigz. Moving on..."
+          fi
         fi
       fi
     fi
@@ -421,6 +558,7 @@ archive_nudging () {
 #rofName = 6
 #sstFileIC = 7
 archive_inic () {
+local compress_sw
 
   echo "Archiving initial condition files..."
   mkdir -p $1/inic
@@ -461,7 +599,19 @@ archive_inic () {
   cp -v $7 $1/inic
 
   if [ $3 = true ]; then
-    compress_history "$1/inic"
+    # ncks compression
+    #compress_history "$1/inic"
+
+    # Since these are just INIC, we can hammer them with a compression algo
+    compress_sw=$(find_compression_software)
+    if [[ $compress_sw != "null" ]]; then
+      echo "Using compression software: $compress_sw"
+      for file in "$1"/inic/*; do
+        compress_file "$file" "$compress_sw"
+      done
+    else
+      echo "No suitable compression software found."
+    fi
   fi
 }
 
