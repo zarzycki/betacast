@@ -11,6 +11,9 @@ CIMEsubstring=""
 CIMEbatchargs=""
 betacast="/global/homes/c/czarzyck/betacast"
 WALLCLOCK="02:00:00"
+RUNQUEUE="regular"
+# Copy this last restart to a stash folder
+DIRSTASH=/global/cfs/cdirs/m2637/E3SM_SCREAM_files/finidat/ne128pg2/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900/
 
 #--------
 
@@ -25,6 +28,7 @@ echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
 ### Go to the case dir and do things
 cd $CASEDIR
 ./xmlchange JOB_WALLCLOCK_TIME=${WALLCLOCK}
+./xmlchange --force JOB_QUEUE=${RUNQUEUE}
 ./xmlchange REST_OPTION="end"
 ./xmlchange STOP_DATE="$yearstr$monthstr$daystr"
 run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs" true
@@ -44,15 +48,8 @@ delete_except_last "*.cpl.r.*"
 
 echo "Done with delete_except_last"
 
-# Copy this last restart to a stash folder
-DIRSTASH=$path_to_rundir/landstart/
-
-echo "DIRSTASH"
-
 if [ ! -d "$DIRSTASH" ]; then mkdir -v "$DIRSTASH"; fi
 if [ ! -d "$DIRSTASH/logs/" ]; then mkdir -v "$DIRSTASH/logs/"; fi
-
-echo "DIRSTASH2"
 
 function safe_cp2() {
 
@@ -77,11 +74,14 @@ function safe_cp2() {
   done
 }
 
-echo "CPDEFINED"
-
 safe_cp2 "*.clm2.r.*,*.elm.r.*" $DIRSTASH
 safe_cp2 "*.mosart.r.*" $DIRSTASH
-mv -fv *log*.gz $DIRSTASH/logs/
+for file in $DIRSTASH/*.nc; do
+  [ -e "$file" ] || continue # Skip if no files match
+  compress_file "$file" zstd
+done
+mv -fv *tar.gz $DIRSTASH/logs/
+rm -fv *.bin
 
 # Return to the script dir to do things and resubmit
 cd $betacast/land-spinup/
