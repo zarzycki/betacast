@@ -1,18 +1,18 @@
-path_to_case = /storage/home/cmz5202/SEWX/${casename}
+path_to_case = /storage/home/cmz5202/SEWX/!CASENAME!
 path_to_inputdata = /gpfs/group/cmz5202/default/sewx/
-path_to_rundir = ~/scratch/output/${casename}/run/
+path_to_rundir = ~/scratch/output/!CASENAME!/run/
 sewxscriptsdir = ~/sw/betacast/
 TE_SERIAL_DIR = /storage/home/cmz5202/sw/tempestextremes_noMPI/
 
 ### These do not need to be changed except in special circumstances
 # CAM initial conditions (ncdata) path and file(s)
 pathToINICfiles = ${path_to_inputdata}/INIC/
-sePreFilterIC = ${pathToINICfiles}/${casename}_INIC.nc
-sePostFilterIC = ${pathToINICfiles}/${casename}_INIC_filter.nc
+sePreFilterIC = ${pathToINICfiles}/!CASENAME!_INIC.nc
+sePostFilterIC = ${pathToINICfiles}/!CASENAME!_INIC_filter.nc
 
 # SST path and file
 pathToSSTfiles = ${path_to_inputdata}/SST/
-sstFileIC = ${pathToSSTfiles}/sst_${casename}_DOCNRES.nc
+sstFileIC = ${pathToSSTfiles}/sst_!CASENAME!_DOCNRES.nc
 
 # subdirs for observational/analysis data
 gfs_files_path = ${path_to_inputdata}/GFS/
