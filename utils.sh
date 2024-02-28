@@ -390,7 +390,7 @@ run_CIME2 () {
 # Function to determine the available compression software
 find_compression_software() {
     # Define an array of desired compression algorithms
-    local compression_tools=("xz" "zstd" "pigz" "gzip")
+    local compression_tools=("xz" "zstd" "pigz" "lz4" "gzip")
 
     # Loop through the array to find the first available tool
     for tool in "${compression_tools[@]}"; do
@@ -416,7 +416,7 @@ compress_file() {
 
     case "$compress_sw" in
         zstd)
-            zstd -3 -T8 --rm "$file"
+            zstd -3 -T4 --rm "$file"
             compressed_size=$(stat --format=%s "${file}.zst")
             ;;
         pigz)
@@ -431,6 +431,10 @@ compress_file() {
             xz -0 -T8 -f "$file"
             compressed_size=$(stat --format=%s "${file}.xz")
             ;;
+        lz4)
+            lz4 -1 --rm "$file"
+            compressed_size=$(stat --format=%s "${file}.lz4")
+            ;;
         *)
             echo "Unsupported compression software: $compress_sw"
             return 1
@@ -439,7 +443,7 @@ compress_file() {
 
     end_time=$(date +%s.%N)
     time_taken=$(echo "$end_time - $start_time" | bc)
-    compression_percentage=$(echo "scale=2; ($compressed_size / $original_size) * 100" | bc)
+    compression_percentage=$(echo "scale=4; ($compressed_size / $original_size) * 100" | bc)
     speed=$(echo "scale=2; $original_size / 1048576 / $time_taken" | bc)
 
     echo "COMPRESS: Compressed using $compress_sw: ${file}"
@@ -465,6 +469,9 @@ uncompress_file() {
             ;;
         xz)
             xz -d "$file"
+            ;;
+        lz4)
+            lz4 -d --rm "$file"
             ;;
         *)
             echo "Unsupported compression software for decompression: $compress_sw"
@@ -527,10 +534,10 @@ compress_history () {
           echo "compress_history: zstd failed for $f, attempting pigz..."
           if ! pigz "$f"; then
             echo "compress_history: error: Failed to compress $f with ncks, zstd, and pigz. Moving on..."
-          fi
-        fi
-      fi
-    fi
+          fi #pigz
+        fi   #zstd
+      fi   #xz
+    fi  #ncks
   done
 }
 

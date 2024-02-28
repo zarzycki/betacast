@@ -894,6 +894,8 @@ fi
 
 ############################### CLM SETUP ###############################
 
+echo "................. configuring land and/or runoff"
+
 ## TEMPORARY CLM -> LAND FIX
 ## Check if clmstart exists but landstart doesn't, move if that is the case
 if [[ ! -d ${landdir} ]] && [[ -d ${path_to_rundir}/clmstart/ ]] ; then
@@ -941,8 +943,7 @@ fi
 echo "landrestartfile: ${landrestartfile}"
 
 if [ -f "${landrestartfile}" ] && [[ "${landrestartfile}" != *.nc ]]; then
-  echo "${landrestartfile} was found, but does not have an *.nc extension. Assuming compressed."
-  echo "Copying ${landrestartfile} to $RUNTMPDIR"
+  echo "${landrestartfile} was found, but does not have an *.nc extension. Assuming compressed. Copying..."
   cp -v ${landrestartfile} $RUNTMPDIR
   try_uncompress $RUNTMPDIR/$(basename "${landrestartfile}")
   landrestartfile=$(find "${RUNTMPDIR}" -maxdepth 1 -type f -name "*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-*.nc" | head -n 1)
@@ -1024,8 +1025,7 @@ if [ $do_runoff = true ]; then
   echo "USER_NL: rofrestartfile: ${rofrestartfile}"
 
   if [ -f "${rofrestartfile}" ] && [[ "${rofrestartfile}" != *.nc ]]; then
-    echo "${rofrestartfile} was found, but does not have an *.nc extension. Assuming compressed."
-    echo "Copying ${rofrestartfile} to $RUNTMPDIR"
+    echo "${rofrestartfile} was found, but does not have an *.nc extension. Assuming compressed. Copying..."
     cp -v ${rofrestartfile} $RUNTMPDIR
     try_uncompress $RUNTMPDIR/$(basename "${rofrestartfile}")
     rofrestartfile=$(find "${RUNTMPDIR}" -maxdepth 1 -type f -name "*.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-*.nc" | head -n 1)
@@ -1050,6 +1050,8 @@ if [ $do_runoff = true ]; then
   fi
 
 fi  # if do_runoff
+
+echo "................. done configuring land and/or runoff"
 
 ############################### GENERIC CAM SETUP ###############################
 
@@ -1328,7 +1330,7 @@ if [ $keep_land_restarts = true ]; then
   echo "Moving land restart files for future runs"
   for file in *.$lndName*.r.*.nc; do
     [ -e "$file" ] || continue # Skip if no files match
-    compress_file "$file" xz
+    compress_file "$file" zstd
     mv -v "${file}"* "$landdir" || true
   done
   ## Move runoff files to land dir if doing runoff
@@ -1339,7 +1341,7 @@ if [ $keep_land_restarts = true ]; then
     echo "Moving runoff restart files for future runs"
     for file in *.$rofName*.r.*.nc; do
       [ -e "$file" ] || continue # Skip if no files match
-      compress_file "$file" xz
+      compress_file "$file" zstd
       mv -v "${file}"* "$landdir" || true
     done
   fi
