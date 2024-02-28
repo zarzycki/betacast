@@ -50,8 +50,15 @@ exit_file_no_exist $OUTPUTSTREAMS
 echo $MACHINEFILE; echo $NAMELISTFILE; echo $OUTPUTSTREAMS
 
 # Read namelists
-read_bash_nl "${NAMELISTFILE}"
 read_bash_nl "${MACHINEFILE}"
+read_bash_nl "${NAMELISTFILE}"
+
+# Replace Betacast-specific placeholders. This allows a user to override these in NAMELISTFILE
+path_to_case=$(replace_betacast_string "$path_to_case" "$casename" "!CASENAME!")
+path_to_rundir=$(replace_betacast_string "$path_to_rundir" "$casename" "!CASENAME!")
+sePreFilterIC=$(replace_betacast_string "$sePreFilterIC" "$casename" "!CASENAME!")
+sePostFilterIC=$(replace_betacast_string "$sePostFilterIC" "$casename" "!CASENAME!")
+sstFileIC=$(replace_betacast_string "$sstFileIC" "$casename" "!CASENAME!")
 
 set -u  # turn on crashes for unbound variables in bash
 
@@ -89,17 +96,28 @@ if [ -z "${anl2mdlWeights+x}" ]; then anl2mdlWeights=""; fi
 if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=1; fi
 if [ -z "${add_noise+x}" ]; then add_noise=false; fi
 ### Some defaults infrequently set
+if [ -z "${debug+x}" ]; then debug=false; fi
+if [ -z "${islive+x}" ]; then islive=false; fi
+if [ -z "${datestemplate+x}" ]; then datestemplate=""; fi
 if [ -z "${doFilter+x}" ]; then doFilter=false; fi
 if [ -z "${filterOnly+x}" ]; then filterOnly=false; fi
 if [ -z "${numHoursSEStart+x}" ]; then numHoursSEStart=3; fi
 if [ -z "${filterHourLength+x}" ]; then filterHourLength=6; fi
 if [ -z "${filtTcut+x}" ]; then filtTcut=6; fi
+if [ -z "${add_perturbs+x}" ]; then add_perturbs=false; fi
+if [ -z "${perturb_namelist+x}" ]; then perturb_namelist=""; fi
+if [ -z "${land_spinup+x}" ]; then land_spinup=false; fi
 if [ -z "${FILTERWALLCLOCK+x}" ]; then FILTERWALLCLOCK="00:29:00"; fi
 if [ -z "${FILTERQUEUE+x}" ]; then FILTERQUEUE="batch"; fi
+if [ -z "${RUNWALLCLOCK+x}" ]; then RUNWALLCLOCK="12:00:00"; fi
+if [ -z "${RUNQUEUE+x}" ]; then RUNQUEUE="regular"; fi
 if [ -z "${use_nsplit+x}" ]; then use_nsplit="true"; fi
 if [ -z "${cime_coupler+x}" ]; then cime_coupler="mct"; fi
 if [ -z "${nclPlotWeights+x}" ]; then nclPlotWeights="NULL"; fi
 if [ -z "${landrawdir+x}" ]; then landrawdir="NULL"; fi
+if [ -z "${sendplots+x}" ]; then sendplots=false; fi
+if [ -z "${dotracking+x}" ]; then dotracking=false; fi
+
 
 ### Set correct E3SM/CESM split
 if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi
@@ -229,6 +247,11 @@ if [ $override_rest_check = false ]; then
     exit_files_no_exist $path_to_case/SourceMods/src.${rofName}/rof_comp_mct.F90 $path_to_case/SourceMods/src.${rofName}/rof_comp_nuopc.F90
   fi
 fi
+
+### Check required variables
+betacast_required_vars=("casename" "atmDataType" "sstDataType" "numLevels" "numdays"
+        "anl2mdlWeights" "PROJECTID" "DTIME" "FINERES" "USERSTAB")
+check_required_vars "${betacast_required_vars[@]}"
 
 ###################################################################################
 

@@ -27,6 +27,49 @@ check_python_dependency() {
 
 ### -----------------------------------------------------------------------------------
 
+replace_betacast_string() {
+  local original_var=$1
+  local replacement=$2
+  local placeholder=$3
+  local NEWVAR
+
+  # Check if any of the inputs are empty
+  if [ -z "$original_var" ] || [ -z "$replacement" ] || [ -z "$placeholder" ]; then
+    echo "Error: One or more input strings are empty." >&2
+    exit 1
+  fi
+
+  # Swap placeholder with replacement in original_var
+  NEWVAR=${original_var/${placeholder}/${replacement}}
+
+  echo "UPDATED $original_var --> $NEWVAR" >&2
+
+  # Return the new var, which is captured by the code
+  echo "$NEWVAR"
+}
+
+### -----------------------------------------------------------------------------------
+
+check_required_vars() {
+    local missing_vars=()
+    for var_name in "$@"; do
+        if [[ -z ${!var_name+x} ]]; then
+            missing_vars+=("$var_name")
+        fi
+    done
+
+    if [[ ${#missing_vars[@]} -ne 0 ]]; then
+        echo "The following required variables are not set:" >&2
+        printf ' - %s\n' "${missing_vars[@]}" >&2
+        exit 1
+    else
+        echo "All required variables are set!"
+        return 0
+    fi
+}
+
+### -----------------------------------------------------------------------------------
+
 # Strip surrounding quotes from string [$1: variable name]
 function strip_quotes() {
   local -n var="$1"
@@ -416,7 +459,7 @@ compress_file() {
 
     case "$compress_sw" in
         zstd)
-            zstd -3 -T4 --rm "$file"
+            zstd -3 -T4 -q --rm "$file"
             compressed_size=$(stat --format=%s "${file}.zst")
             ;;
         pigz)
@@ -428,11 +471,11 @@ compress_file() {
             compressed_size=$(stat --format=%s "${file}.gz")
             ;;
         xz)
-            xz -0 -T8 -f "$file"
+            xz -0 -T8 -f -q "$file"
             compressed_size=$(stat --format=%s "${file}.xz")
             ;;
         lz4)
-            lz4 -1 --rm "$file"
+            lz4 -1 --rm -q "$file"
             compressed_size=$(stat --format=%s "${file}.lz4")
             ;;
         *)
@@ -443,7 +486,7 @@ compress_file() {
 
     end_time=$(date +%s.%N)
     time_taken=$(echo "$end_time - $start_time" | bc)
-    compression_percentage=$(echo "scale=4; ($compressed_size / $original_size) * 100" | bc)
+    compression_percentage=$(echo "scale=2; (100 * $compressed_size / $original_size)" | bc)
     speed=$(echo "scale=2; $original_size / 1048576 / $time_taken" | bc)
 
     echo "COMPRESS: Compressed using $compress_sw: ${file}"
@@ -459,7 +502,7 @@ uncompress_file() {
 
     case "$compress_sw" in
         zstd)
-            zstd -d "$file" --rm
+            zstd -d -q "$file" --rm
             ;;
         pigz)
             pigz -d "$file"
@@ -468,10 +511,10 @@ uncompress_file() {
             gzip -d "$file"
             ;;
         xz)
-            xz -d "$file"
+            xz -d -q "$file"
             ;;
         lz4)
-            lz4 -d --rm "$file"
+            lz4 -d -q --rm "$file"
             ;;
         *)
             echo "Unsupported compression software for decompression: $compress_sw"
@@ -519,12 +562,15 @@ try_uncompress() {
 compress_history () {
   echo "Compressing model history files..."
   cd "$1" || exit
+  local start_time end_time duration f original_size compressed_size compression_percentage
   for f in *.nc; do
     if [ ! -f "$f" ]; then
       echo "compress_history: No .nc files found. Moving on..."
       continue
     fi
     echo "compress_history: compressing $f with ncks"
+    start_time=$(date +%s)
+    original_size=$(stat --format=%s "$f")
     if ! ncks -4 -L 1 --rad --no_abc -O "$f" "$f"; then
       rm -v *.ncks.tmp
       echo "compress_history: ncks failed for $f, attempting xz..."
@@ -538,6 +584,11 @@ compress_history () {
         fi   #zstd
       fi   #xz
     fi  #ncks
+    compressed_size=$(stat --format=%s "$f")
+    compression_percentage=$(echo "scale=2; (100 * $compressed_size / $original_size)" | bc)
+    end_time=$(date +%s)
+    duration=$((end_time - start_time))
+    echo "compress_history: ... final percentage: $compression_percentage%, took $duration seconds."
   done
 }
 
