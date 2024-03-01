@@ -1,11 +1,13 @@
 #!/bin/bash
 
-MAPFILE=~/m2637/betacast/regrid_maps/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc
+#MAPFILE=~/m2637/betacast/regrid_maps/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc
+MAPFILE=$3
 
 #SOURCE=/pscratch/sd/c/czarzyck/hyperion/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900/h5/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900.cam.h5.1989-11-30-00000.nc
 SOURCE=$1
 
-OUTDIRBASE="/pscratch/sd/c/czarzyck/hyperion/DATM/"
+#OUTDIRBASE="/pscratch/sd/c/czarzyck/hyperion/DATM/"
+OUTDIRBASE=$2
 
 SOURCEDIR="${SOURCE%/*}/"
 SOURCEFILE="${SOURCE##*/}"

@@ -11,6 +11,9 @@
 
 dryrun=false
 MODEL_DATASTREAM_DIR=/pscratch/sd/c/czarzyck/hyperion/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900/h5/
+MAPFILE=~/m2637/betacast/regrid_maps/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc
+OUTDIRBASE="/pscratch/sd/c/czarzyck/hyperion/DATM/"
+
 SCRIPTDIR=$PWD
 
 SERVER_NAME=$(hostname -A)
@@ -33,6 +36,11 @@ else
   exit
 fi
 
+if ! type ncks &> /dev/null ; then
+  echo "ERROR: ncks does not exist. Make sure ncks is in your path when betacast is invoked"
+  exit 1
+fi
+
 # GNUPARALLEL SETTINGS
 TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt
@@ -40,7 +48,7 @@ COMMANDFILE=commands.${TIMESTAMP}.txt
 FILES=`find ${MODEL_DATASTREAM_DIR} -type f -name "*.nc"`
 
 for f in $FILES; do
-  COMMAND="bash $SCRIPTDIR/single-file-to-datm.sh $f"
+  COMMAND="bash $SCRIPTDIR/single-file-to-datm.sh $f $OUTDIRBASE $MAPFILE"
   echo ${COMMAND} >> ${COMMANDFILE}
 done
 
