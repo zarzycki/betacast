@@ -43,6 +43,7 @@ perturb.*.nl
 nl.landspinup*
 !nl.landspinup.pm-cpu
 !nl.landspinup.derecho
+nl_dd.*
 
 ## Model namelists
 user_nl_cam

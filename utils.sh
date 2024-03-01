@@ -749,6 +749,32 @@ function delete_except_last() {
 }
 
 
+# Copy files given a set of patterns
+# Usage: safe_cp2 "*.clm2.r.*,*.elm.r.*" $DIRSTASH
+function safe_cp2() {
+
+  local dest="$2"
+  # split on multiple input patterns if necessary
+  IFS=',' read -r -a patterns <<< "$1"
+
+  # Loop over all matching patterns
+  for pattern in "${patterns[@]}"; do
+
+    # Trim leading and trailing spaces from the pattern
+    pattern=$(echo "$pattern" | xargs)
+
+    # Collect all files matching the pattern, sorted
+    files=($(ls $pattern 2>/dev/null | sort))
+
+    if [ ${#files[@]} -eq 0 ]; then
+      echo "Error: ZERO files found matching pattern $pattern."
+    else
+      cp -v -- "${files[@]}" "$dest"
+    fi
+  done
+}
+
+
 # Usage:
 # script_start=$(date +%s)
 # script_end=$(date +%s)

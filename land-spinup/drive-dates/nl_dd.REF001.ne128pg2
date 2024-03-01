@@ -1,0 +1,8 @@
+datesfile="dates.REF001.ne128pg2.txt"
+DIRSTASH="/global/cfs/cdirs/m2637/E3SM_SCREAM_files/finidat/ne128pg2/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900/"
+CASENAME="ne128pg2-spinup_19840101_0000"
+CASESRC="/global/homes/c/czarzyck/I-runs/"
+BASERUN="/pscratch/sd/c/czarzyck/e3sm_scratch/pm-cpu/"
+BETACAST="/global/homes/c/czarzyck/betacast/"
+WALLCLOCK="02:00:00"
+RUNQUEUE="regular"
