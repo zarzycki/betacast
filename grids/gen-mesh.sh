@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-BASERES=32
+BASERES=128
 REFINE_LEVEL=3
 SQUADGEN=~/Software/squadgen/
 
@@ -46,12 +46,21 @@ do
   REFINE_RECT_STR="${REFINE_RECT_STR%;}"
   echo "$REFINE_RECT_STR"
 
-  GRIDNAME=test_TC_grid_${MESH_ID}_ne${BASERES}x${REFINE_FACTOR}.g
-  ${SQUADGEN}/SQuadGen --output ${GRIDNAME} --refine_rect ${REFINE_RECT_STR} --refine_level ${REFINE_LEVEL} --lat_ref ${LATCENTER} --lon_ref ${LONCENTER} --resolution ${BASERES} --orient_ref -5 --smooth_type SPRING
+  GRIDNAME=TClandfall-${MESH_ID}_ne${BASERES}x${REFINE_FACTOR}
+  ${SQUADGEN}/SQuadGen --output ${GRIDNAME}.g --refine_rect ${REFINE_RECT_STR} --refine_level ${REFINE_LEVEL} --lat_ref ${LATCENTER} --lon_ref ${LONCENTER} --resolution ${BASERES} --orient_ref -3 --smooth_type SPRING
 
-  ncl gridplot.ncl 'gridfile="'${GRIDNAME}'"'
+  GenerateVolumetricMesh --in ${GRIDNAME}.g --out ${GRIDNAME}_pg2.g --np 2 --uniform
+  ConvertMeshToSCRIP --in ${GRIDNAME}_pg2.g --out ${GRIDNAME}_pg2_scrip.nc
+
+  ncl gridplot.ncl 'gridfile="'${GRIDNAME}'.g"'
 
   # Clear REFINE_RECT_STR
   unset REFINE_RECT_STR
+
+  mkdir -p exodus
+  mkdir -p scrip
+
+  mv *_scrip.nc scrip
+  mv *.g exodus
 
 done < "$csv_file"
