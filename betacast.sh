@@ -95,6 +95,7 @@ if [ -z "${modelgridfile+x}" ]; then modelgridfile=""; fi
 if [ -z "${anl2mdlWeights+x}" ]; then anl2mdlWeights=""; fi
 if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=1; fi
 if [ -z "${add_noise+x}" ]; then add_noise=false; fi
+if [ -z "${runmodel+x}" ]; then runmodel=true; fi
 ### Some defaults infrequently set
 if [ -z "${debug+x}" ]; then debug=false; fi
 if [ -z "${islive+x}" ]; then islive=false; fi
@@ -117,7 +118,8 @@ if [ -z "${nclPlotWeights+x}" ]; then nclPlotWeights="NULL"; fi
 if [ -z "${landrawdir+x}" ]; then landrawdir="NULL"; fi
 if [ -z "${sendplots+x}" ]; then sendplots=false; fi
 if [ -z "${dotracking+x}" ]; then dotracking=false; fi
-
+if [ -z "${m2m_gridfile+x}" ]; then m2m_gridfile=""; fi
+if [ -z "${m2m_remap_file+x}" ]; then m2m_remap_file=""; fi
 
 ### Set correct E3SM/CESM split
 if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi
@@ -205,8 +207,8 @@ fi
 
 # Check to make sure required ATM variables are provided by the user if we are using model-to-model
 if [[ "$atmDataType" -eq 9 ]]; then
-  if [[ -z "$m2m_topo_in" ]] || [[ -z "$m2m_parent_source" ]] || [[ -z "$m2m_remap_file" ]]; then
-    echo "ERROR: For m2m ATM, one or more required variables (m2m_topo_in, m2m_parent_source, m2m_remap_file) are not defined."
+  if [[ -z "$m2m_topo_in" ]] || [[ -z "$m2m_parent_source" ]] || { [[ -z "$m2m_remap_file" ]] && [[ -z "$m2m_gridfile" ]]; }; then
+    echo "ERROR: For m2m ATM, one or more required variables (m2m_topo_in, m2m_parent_source, m2m_remap_file/m2m_gridfile pair) are not defined."
     echo "ERROR: Ensure these are defined in the Betacast namelist"
     exit 1
   fi
@@ -701,14 +703,20 @@ if [ $debug = false ] ; then
     fi
     # Get name without suffix
     modelgridshortname=$(basename "${modelgridfile%.*}")
+    # If we are doing m2m, specify the target as ERA5, otherwise let user decide
+    if [[ "$atmDataType" -eq 9 ]]; then
+      RLLSOURCEGRID="era5_0.25x0.25"
+    else
+      RLLSOURCEGRID=${atm_data_glob_anl[$atmDataType]}
+    fi
     # Define new anl2mdlWeights
-    anl2mdlWeights=${mapping_files_path}/map_${atm_data_glob_anl[$atmDataType]}_TO_${modelgridshortname}_patc.nc
+    anl2mdlWeights=${mapping_files_path}/map_${RLLSOURCEGRID}_TO_${modelgridshortname}_patc.nc
     # Check if anl2mdlWeights exist or not, if not try to generate them
     if [ ! -f ${anl2mdlWeights} ]; then
       echo "Writing anl2mdlWeights --> ${anl2mdlWeights}"
       set +e
       (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
-        'ANLGRID="'${atm_data_glob_anl[$atmDataType]}'"' \
+        'ANLGRID="'${RLLSOURCEGRID}'"' \
         'ANLGRIDPATH="../remapping/anl_scrip/"' \
         'DSTGRIDNAME="'${modelgridshortname}'"' \
         'DSTGRIDFILE="'${modelgridfile}'"' \
@@ -721,6 +729,41 @@ if [ $debug = false ] ; then
     fi
   else
     echo "User has provided anl2mdlWeights --> ${anl2mdlWeights}, using those!"
+  fi
+
+  if [[ "$atmDataType" -eq 9 ]]; then
+    if [[ -z "${m2m_remap_file}" || ! -e "${m2m_remap_file}" ]]; then
+      echo "User did not explicitly specify m2m_remap_file, trying to generate from SCRIP grid"
+      if [ ! -f ${m2m_gridfile} ]; then
+        echo "m2m_gridfile --> ${m2m_gridfile} does not exist, exiting"
+        echo "specify this as a SCRIP file in the namelist or m2m_remap_file"
+        exit 19
+      fi
+      # Get name without suffix
+      m2mgridshortname=$(basename "${m2m_gridfile%.*}")
+
+      m2m_remap_file=${mapping_files_path}/map_${m2mgridshortname}_TO_era5_0.25x0.25_patc.nc
+
+      # Check if m2m_remap_file exist or not, if not try to generate them
+      if [ ! -f ${m2m_remap_file} ]; then
+        echo "Writing m2m_remap_file --> ${m2m_remap_file}"
+        set +e
+        (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
+          'ANLGRID="era5_0.25x0.25"' \
+          'ANLGRIDPATH="../remapping/anl_scrip/"' \
+          'DSTGRIDNAME="'${m2mgridshortname}'"' \
+          'DSTGRIDFILE="'${m2m_gridfile}'"' \
+          'WGTFILEDIR="'${mapping_files_path}'"' \
+          FLIP_MODEL_AND_ANALYSIS=True \
+           ) ; exit_status=$?
+        check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
+        set -e
+      else
+        echo "Betacast-generated m2m_remap_file --> ${m2m_remap_file} already exists, using those!"
+      fi
+    else
+      echo "User has provided m2m_remap_file --> ${m2m_remap_file}, using those!"
+    fi
   fi
 
   if [[ "$atmDataType" -eq 9 ]]; then
@@ -938,7 +981,12 @@ sed -i '/use_init_interp/d' user_nl_${lndName}
 
 # Create a temp directory for now
 RUNTMPDIR=$path_to_nc_files/tmp/
+[ -z "$RUNTMPDIR" ] && { echo "RUNTMPDIR is not set. Exiting."; exit 1; }
+# Create directory and make sure it was actually generated (to prevent user from not having write perms)
 mkdir -vp $RUNTMPDIR
+[ -d "$RUNTMPDIR" ] || { echo "Failed to create $RUNTMPDIR. Exiting."; exit 1; }
+# Delete files in RUNTMPDIR
+find "$RUNTMPDIR" -type f -exec rm -v {} +
 
 # We want to check ${landdir} for land restart file with exact date match. If so, use that.
 landrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
@@ -958,7 +1006,7 @@ else
     if [ -n "${rawlandrestartfile}" ] && [ -f "${rawlandrestartfile}" ]; then
       landrestartfile=${rawlandrestartfile}
     else
-      echo "No restart file exists, setting to empty string."
+      echo "No LND restart file exists, setting landrestartfile to empty string."
       landrestartfile=
     fi
   fi
@@ -1040,10 +1088,16 @@ if [ $do_runoff = true ]; then
      rofrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.*" | head -n 1)
      if [ -n "${rofrestartfile}" ] && [ -f "${rofrestartfile}" ]; then
        echo "USER_NL: ${rofName} file exists at 00Z"
-     else
-       echo "USER_NL: No ${rofName} restart file exists, setting to empty string."
-       rofrestartfile=
-     fi
+    else
+      rawrofrestartfile=$(find "${landrawdir}" -maxdepth 1 -type f -name "*.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
+      echo "rawrofrestartfile: ${rawrofrestartfile}"
+      if [ -n "${rawrofrestartfile}" ] && [ -f "${rawrofrestartfile}" ]; then
+        rofrestartfile=${rawrofrestartfile}
+      else
+        echo "No ROF restart file exists, setting rofrestartfile to empty string."
+        rofrestartfile=
+      fi
+    fi
   fi
   echo "USER_NL: rofrestartfile: ${rofrestartfile}"
 
@@ -1108,6 +1162,8 @@ else
   ./xmlchange SSTICE_YEAR_ALIGN="${m2m_sstice_year_align}"
   ./xmlchange SSTICE_YEAR_START="${m2m_sstice_year_start}"
   ./xmlchange SSTICE_YEAR_END="${m2m_sstice_year_end}"
+  # This is a cheat so that the m2m_sstice_data_filename is archived correctly.
+  #sstFileIC=$m2m_sstice_data_filename
 fi
 
 echo "Setting GLC coupling to handle forecasts across calendar years"
