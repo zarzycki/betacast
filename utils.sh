@@ -654,7 +654,7 @@ local compress_sw
   fi
 
   # Copy SST conditions
-  cp -v $7 $1/inic
+  cp -v "$7" "$1/inic" || { echo "WARNING: No SST file found in archive_inic"; true; }
 
   if [ $3 = true ]; then
     # ncks compression
