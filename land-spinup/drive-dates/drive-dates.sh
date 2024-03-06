@@ -57,8 +57,8 @@ delete_except_last "*.cpl.r.*"
 echo "Done with delete_except_last"
 
 ## Make stash directories if they don't exist
-if [ ! -d "$DIRSTASH" ]; then mkdir -v "$DIRSTASH"; fi
-if [ ! -d "$DIRSTASH/logs/" ]; then mkdir -v "$DIRSTASH/logs/"; fi
+if [ ! -d "$DIRSTASH" ]; then mkdir -pv "$DIRSTASH"; fi
+if [ ! -d "$DIRSTASH/logs/" ]; then mkdir -pv "$DIRSTASH/logs/"; fi
 
 ## Copy relevant files over to dirstash, compress any uncompressed, and cleanup
 safe_cp2 "*.clm2.r.*,*.elm.r.*" $DIRSTASH
