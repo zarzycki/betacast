@@ -143,61 +143,64 @@ In `${BETACAST}/machine_files` there are sample files that define where folders 
 
 In `${BETACAST}/namelist_files` there are sample files that define the forecast configuration. This is the primary location where run settings are specified. Betacast uses a general philosophy that 0 = false/no and 1 = true/yes.
 
-| Namelist Variable | Description |
-| --- | --- |
-| ARCHIVEDIR | Top-level directory for archiving runs (ARCHIVEDIR/CASE/YYYYMMDDHH). Do not set for default archive in rundir. |
-| debug | Setting to true (1) adds debugging options. Otherwise leave at false (0) |
-| islive | if true (1) then pull GDAS/GFS from server in real-time, false (0) is "hindcast" mode |
-| datestemplate | If islive = false, dates.XXX.txt file to copy if Betacast cannot find an existing dates file |
-| runmodel | Unused, set to "true" |
-| archive\_inic | Add (NCO-compressed) initial conditions for component models to archive directory (0 = no (default), 1 = yes) |
-| compress\_history\_nc | Use NCO lossless compression to compress history files (0 = no (default), 1 = yes) |
-| tararchivedir | Should the archive folder be tarred?  (0 = no, 1 = yes (default)) |
-| modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2+/SCREAM (defaults to 0 if empty or not included) |
-| cime\_coupler | Which driver to use? Can be "mct" or "nuopc". Default is "mct" if not specified. |
-| do\_runoff | Include runoff model files (false/true) (defaults to false if empty or not included) |
-| atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5, 9 = CESM/E3SM |
-| sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI, 9 = CESM/E3SM |
-| numLevels | 128 -> SCREAM, 72 -> E3SM, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 |
-| numdays | How long for forecast to run (in days) |
-| adjust\_topo | Full path to a *model* (i.e., bnd\_topo) topography file. If a valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. |
-| adjust\_flags | Hydrostatic adjustment options. Currently "a" (include TBOT adjustment) and "-" (PS adjustment only) are supported. Only applied with valid adjust\_topo file. |
-| doFilter | Should we apply offline forward DFI? Generally "false" for diffusive dycores and/or SE/HOMME with hydrostatic adjustment. Set to "true" if using SE with no adjustment (or unbalanced IC from another source) to minimize GW noise during first ~72 hours. |
-| filterOnly | Exit code after the filter run if doFilter=true (useful for producing ncdata for ensembles) |
-| numHoursSEStart | Centerpoint of filter duration (leave at 3), only used if doFilter |
-| filterHourLength | Filter duration (leave at 6), only used if doFilter |
-| filtTcut | Cut setting for filter (leave at 6), only used if doFilter |
-| add\_perturbs | Add PGW perturbations for counterfactual runs? Leave at false generally. |
-| perturb\_namelist | Path to "perturbation" namelist for counterfactual climate simulations |
-| add\_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) |
-| land\_spinup | Cycle land spinup only (unsupported currently, leave false) |
-| keep\_land\_restarts | 0 = delete land/rof restart files, 1 = archive land/rof restart files (possibly overwriting those in ${CASE}/run/landstart) |
-| override\_rest\_check | If true, overrides internal check for SourceMods for lnd/rof restarts (default: false) |
-| save\_nudging\_files | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs |
-| landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |
-| predict\_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |
-| anl2mdlWeights | Full path name of weights file for analysis -> model regridding (see previous section) |
-| PROJECTID | Project ID for run submissions |
-| FILTERWALLCLOCK | Wall clock time for filter run |
-| FILTERQUEUE | Submission queue for filter run |
-| RUNWALLCLOCK | Wall clock time for forecast run |
-| RUNQUEUE | Submission queue for forecast run |
-| usingCIME | Are we using CIME (set to "true" unless using a very old CESM tag or unsupported GCM) |
-| DTIME | Physics timestep (in seconds) |
-| FINERES | Finest resolution of SE grid |
-| USERSTAB | Required dynamics timestep (in s), negative values try internal calculation, but use with caution |
-| use\_nsplit | If true, use the CESM/E3SMv1 SE/HOMME nsplit timestep logic, if false apply new E3SMv2 se\_tstep parameter (equal to USERSTAB) |
-| sendplots | Are we going to send live output to some external server? (generally false unless you are CMZ) |
-| nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) |
-| dotracking | Do online TC tracking and process to ATCF format? |
-| m2m\_parent\_source | Either a folder of files or file containing the YYYYMMDDHH when atmDataType=9 |
-| m2m\_remap\_file | ESMF remap file that goes from parent grid to intermediate grid (typically ERA5 0.25x0.25) |
-| m2m\_topo\_in | Topography file from parent simulation |
-| m2m\_sst\_grid\_filename | SST stream grid when reproducing DOCN run (sstDataType=9) |
-| m2m\_sstice\_data\_filename | SST stream data file when reproducing DOCN run (sstDataType=9) |
-| m2m\_sstice\_year\_align | SST stream align year when reproducing DOCN run (sstDataType=9) |
-| m2m\_sstice\_year\_start | SST stream start year when reproducing DOCN run (sstDataType=9) |
-| m2m\_sstice\_year\_end | SST stream end year when reproducing DOCN run (sstDataType=9) |
+| Namelist Variable | Description | Required | Default |
+| --- | --- | --- | --- |
+| casename | Name of the CESM/E3SM case. Must match what was generated in step 1. | Y | |
+| path\_to\_case | (optional) Allow user to override default from the machine file as to where the case directories live. Must include Betacast special key `!CASENAME!` as a placeholder |  | value in `$MACHINEFILE` |
+| ARCHIVEDIR | Top-level directory for archiving runs (ARCHIVEDIR/CASE/YYYYMMDDHH). Do not set for default archive in rundir. | | Case run directory |
+| debug | Setting to true (1) adds debugging options. Otherwise leave at false (0) |  | false |
+| islive | if true (1) then pull GDAS/GFS from server in real-time, false (0) is "hindcast" mode |  | false |
+| datestemplate | If islive = false, dates.XXX.txt file to copy if Betacast cannot find an existing dates file | | " " |
+| runmodel | Unused, set to "true" |  | true |
+| archive_inic | Add (NCO-compressed) initial conditions for component models to archive directory (0 = no (default), 1 = yes) |  | false |
+| compress_history_nc | Use NCO lossless compression to compress history files (0 = no (default), 1 = yes) |  | true |
+| tararchivedir | Should the archive folder be tarred? (0 = no, 1 = yes (default)) |  | true |
+| modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2+/SCREAM (defaults to 0 if empty or not included) |  | 0 |
+| cime_coupler | Which driver to use? Can be "mct" or "nuopc". Default is "mct" if not specified. |  | "mct" |
+| do_runoff | Include runoff model files (false/true) (defaults to false if empty or not included) |  | false |
+| atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5, 9 = CESM/E3SM | Y | |
+| sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI, 9 = CESM/E3SM | Y | |
+| numLevels | 128 -> SCREAM, 72 -> E3SM, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 | Y | |
+| numdays | How long for forecast to run (in days) | Y | |
+| adjust_topo | Full path to a *model* (i.e., bnd_topo) topography file. If a valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. | | " " |
+| adjust_flags | Hydrostatic adjustment options. Currently "a" (include TBOT adjustment) and "-" (PS adjustment only) are supported. Only applied with valid adjust_topo file. |  | "-" |
+| doFilter | Should we apply offline forward DFI? Generally "false" for diffusive dycores and/or SE/HOMME with hydrostatic adjustment. Set to "true" if using SE with no adjustment (or unbalanced IC from another source) to minimize GW noise during first ~72 hours. | | false |
+| filterOnly | Exit code after the filter run if doFilter=true (useful for producing ncdata for ensembles) | | false |
+| numHoursSEStart | Centerpoint of filter duration (leave at 3), only used if doFilter |  | 3 |
+| filterHourLength | Filter duration (leave at 6), only used if doFilter |  | 6 |
+| filtTcut | Cut setting for filter (leave at 6), only used if doFilter |  | 6 |
+| add\_perturbs | Add PGW perturbations for counterfactual runs? Leave at false generally. |  | false |
+| perturb\_namelist | Path to "perturbation" namelist for counterfactual climate simulations | | " " |
+| add\_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) | | false |
+| land\_spinup | Cycle land spinup only (unsupported currently, leave false) | | false |
+| keep\_land\_restarts | 0 = delete land/rof restart files, 1 = archive land/rof restart files (possibly overwriting those in \${CASE}/run/landstart) | | true |
+| override\_rest\_check | If true, overrides internal check for SourceMods for lnd/rof restarts (default: false) |  | false |
+| save\_nudging\_files | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs |  | false |
+| landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |  | "NULL" |
+| predict\_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |  | false |
+| anl2mdlWeights | Full path name of weights file for analysis -> model regridding (see previous section) | Y | " " |
+| PROJECTID | Project ID for run submissions | Y | |
+| FILTERWALLCLOCK | Wall clock time for filter run |  | "00:29:00" |
+| FILTERQUEUE | Submission queue for filter run |  | "batch" |
+| RUNWALLCLOCK | Wall clock time for forecast run |  | "12:00:00" |
+| RUNQUEUE | Submission queue for forecast run |  | "regular" |
+| usingCIME | Are we using CIME (set to "true" unless using a very old CESM tag or unsupported GCM) |  | true |
+| DTIME | Physics timestep (in seconds) | Y | |
+| FINERES | Finest resolution of SE grid | Y | |
+| USERSTAB | Required dynamics timestep (in s). Strongly encouraged to provide. If "0", Betacast will try and figure this out (but poorly). If any negative value, nsplit will be set to -1 (model internal defaults) | Y | 0 |
+| use\_nsplit | If true, use the CESM/E3SMv1 SE/HOMME nsplit timestep logic, if false apply new E3SMv2 se_tstep parameter (equal to USERSTAB) | | true |
+| sendplots | Are we going to send live output to some external server? (generally false unless you are CMZ) | | false |
+| nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) | | "NULL" |
+| dotracking | Do online TC tracking and process to ATCF format? | | false|
+| m2m\_parent\_source | Either a folder of files or file containing the YYYYMMDDHH when atmDataType=9 |  | |
+| m2m\_remap\_file | ESMF remap file that goes from parent grid to intermediate grid (typically ERA5 0.25x0.25) |  | |
+| m2m\_topo\_in | Topography file from parent simulation |  | |
+| m2m\_sst\_grid\_filename | SST stream grid when reproducing DOCN run (sstDataType=9) |  | |
+| m2m\_sstice\_data\_filename | SST stream data file when reproducing DOCN run (sstDataType=9) |  | |
+| m2m\_sstice\_year\_align | SST stream align year when reproducing DOCN run (sstDataType=9) |  | |
+| m2m\_sstice\_year\_start | SST stream start year when reproducing DOCN run (sstDataType=9) |  | |
+| m2m\_sstice\_year\_end | SST stream end year when reproducing DOCN run (sstDataType=9) |  | |
+
 
 ### 3.3 Edit output streams
 
@@ -654,3 +657,69 @@ tintalgo is the time interpolation algorithm. For CLM we usually use one of thre
 
 - Note: For coszen the time-stamps of the data should correspond to the beginning of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it.
 - Note: For nearest and linear the time-stamps of the data should correspond to the middle of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it.
+
+### Compression
+
+Betacast employs two types of compression. One is NetCDF "deflation" through NCO. In my expierience this can reduce file sizes by approximately 60\% in a lossless fashion. I have noticed two downsides. The file I/O seems a bit slower (e.g., ncview, ncl, python) although not overly so with a low compression level. Also, models seem to have hit/miss support reading these files as input or boundary data. Therefore, the most useful place to use this deflation is in output data or other things like map weight files that are not used by the model (but used by Betacast).
+
+For initial/boundary condition files, it seems safest to use more traditional (e.g., gzip, etc.) compression. There are some functions in `utils.sh` that will compress a file using a specific CLI binary. Some basic timing stats of compressing and uncompressing a large ELM restart file in February 2024 are:
+
+```
+COMPRESS: Compressed using lz4: ne128pg2-spinup_19840101_0000.elm.r.2013-09-13-00000.nc
+COMPRESS: -- Original size: 6597903908 bytes, Compressed size: 452694791 bytes, Compression percentage: 6.8600%, Time taken: 11.639927438s, Speed: 540.57MB/s
+UNCOMPRESS: file uncompressed using lz4: ne128pg2-spinup_19840101_0000.elm.r.2013-09-13-00000.nc
+UNCOMPRESS: -- Time taken: 11.044118958s
+-----
+COMPRESS: Compressed using zstd: ne128pg2-spinup_19840101_0000.elm.r.2013-09-13-00000.nc
+COMPRESS: -- Original size: 6597903908 bytes, Compressed size: 316173382 bytes, Compression percentage: 4.7900%, Time taken: 6.455771352s, Speed: 974.67MB/s
+UNCOMPRESS: file uncompressed using zstd: ne128pg2-spinup_19840101_0000.elm.r.2013-09-13-00000.nc
+UNCOMPRESS: -- Time taken: 9.010471837s
+-----
+COMPRESS: Compressed using pigz: ne128pg2-spinup_19840101_0000.elm.r.2013-09-13-00000.nc
+COMPRESS: -- Original size: 6597903908 bytes, Compressed size: 332820210 bytes, Compression percentage: 5.0400%, Time taken: 30.784676635s, Speed: 204.39MB/s
+UNCOMPRESS: file uncompressed using pigz: ne128pg2-spinup_19840101_0000.elm.r.2013-09-13-00000.nc
+UNCOMPRESS: -- Time taken: 14.654307044s
+-----
+COMPRESS: Compressed using xz: ne128pg2-spinup_19840101_0000.elm.r.2013-09-13-00000.nc
+COMPRESS: -- Original size: 6597903908 bytes, Compressed size: 277423036 bytes, Compression percentage: 4.2000%, Time taken: 13.293645071s, Speed: 473.32MB/s
+UNCOMPRESS: file uncompressed using xz: ne128pg2-spinup_19840101_0000.elm.r.2013-09-13-00000.nc
+UNCOMPRESS: -- Time taken: 41.909427256s
+```
+
+```
+COMPRESS: Compressed using lz4: Snow-F2010SCREAMHRDYAMOND2-usblizzard128x8pg2-101-control.elm.r.2016-01-22-00000.nc
+COMPRESS: -- Original size: 123332706840 bytes, Compressed size: 6952276971 bytes, Compression percentage: 5.00%, Time taken: 191.143741390s, Speed: 615.34MB/s
+UNCOMPRESS: file uncompressed using lz4: Snow-F2010SCREAMHRDYAMOND2-usblizzard128x8pg2-101-control.elm.r.2016-01-22-00000.nc
+UNCOMPRESS: -- Time taken: 240.154777514s
+-----
+COMPRESS: Compressed using zstd: Snow-F2010SCREAMHRDYAMOND2-usblizzard128x8pg2-101-control.elm.r.2016-01-22-00000.nc
+COMPRESS: -- Original size: 123332706840 bytes, Compressed size: 4525752750 bytes, Compression percentage: 3.00%, Time taken: 126.326603478s, Speed: 931.07MB/s
+UNCOMPRESS: file uncompressed using zstd: Snow-F2010SCREAMHRDYAMOND2-usblizzard128x8pg2-101-control.elm.r.2016-01-22-00000.nc
+UNCOMPRESS: -- Time taken: 186.512457769s
+-----
+COMPRESS: Compressed using pigz: Snow-F2010SCREAMHRDYAMOND2-usblizzard128x8pg2-101-control.elm.r.2016-01-22-00000.nc
+COMPRESS: -- Original size: 123332706840 bytes, Compressed size: 4878320205 bytes, Compression percentage: 3.00%, Time taken: 404.281650753s, Speed: 290.93MB/s
+UNCOMPRESS: file uncompressed using pigz: Snow-F2010SCREAMHRDYAMOND2-usblizzard128x8pg2-101-control.elm.r.2016-01-22-00000.nc
+UNCOMPRESS: -- Time taken: 335.881183162s
+-----
+COMPRESS: Compressed using xz: Snow-F2010SCREAMHRDYAMOND2-usblizzard128x8pg2-101-control.elm.r.2016-01-22-00000.nc
+COMPRESS: -- Original size: 123332706840 bytes, Compressed size: 3786409816 bytes, Compression percentage: 3.00%, Time taken: 235.246088862s, Speed: 499.98MB/s
+UNCOMPRESS: file uncompressed using xz: Snow-F2010SCREAMHRDYAMOND2-usblizzard128x8pg2-101-control.elm.r.2016-01-22-00000.nc
+UNCOMPRESS: -- Time taken: 751.505151297s
+```
+
+with settings:
+
+```
+lz4 -1 --rm -q "$file"
+zstd -3 -T4 -q --rm "$file"
+pigz "$file"
+xz -0 -T8 -f -q "$file"
+
+lz4 -d -q --rm "$file"
+zstd -d -q "$file" --rm
+pigz -d "$file"
+xz -d -q "$file"
+```
+
+Therefore, I found `xz` to provide the best overall compression for warm/cold archival (e.g., initial conditions archived for reproducibility) but `zstd` was fastest (by approximately 2x compressing and 4x uncompressing) and therefore most useful for compressing files that had a high liklihood of being uncompressed soon after (e.g., landstart files). I have not found linear speedups with `zstd` with thread count, although `xy` does seem to speed up. However, decompression appears single-threaded for all tools currently. I have also had jobs killed with high thread counts, so keeping them sub-10 seems like a safe strategy.
