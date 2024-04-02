@@ -15,7 +15,7 @@ def haversine(lon1, lat1, lon2, lat2):
     return c * r
 
 column_names = ['stormID', 'LFtime', 'LFlon','LFlat','LFpres','LFwind','Tlon','Tlat','Ttime','LFbasin']
-df = pd.read_csv('cat.csv', names=column_names)
+df = pd.read_csv('LF.trajectories.txt.CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900', names=column_names)
 
 filtered_df = df[df['LFbasin'] > 0].copy()
 print(filtered_df)
@@ -54,7 +54,7 @@ plt.xticks(rotation=0)  # Ensures the x-axis labels are not rotated and are easi
 plt.savefig('histogram.png', dpi=300, bbox_inches='tight')
 
 #Columns to output in txt files
-output_columns = ['stormID', 'Ttime', 'LFtime','LFlat','LFlon','LFpres']
+output_columns = ['Ttime']
 
 for label in filtered_df['closest_label'].unique():
     filtered_data = filtered_df[filtered_df['closest_label'] == label][output_columns]

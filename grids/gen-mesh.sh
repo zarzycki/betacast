@@ -1,7 +1,9 @@
 #!/bin/bash -l
 
-BASERES=128
-REFINE_LEVEL=3
+BASERES=48
+REFINE_LEVEL=2
+#BASERES=128
+#REFINE_LEVEL=3
 SQUADGEN=~/Software/squadgen/
 
 # Define from outer to inner
