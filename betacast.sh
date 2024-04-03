@@ -521,7 +521,7 @@ if [ $debug = false ] ; then
       if [[ "$MACHINEFILE" == *cheyenne* ]]; then
         echo "We are on Cheyenne, so even though we lack a local file, we can use RDA"
         ERA5RDA=1
-        RDADIR=/glade/collections/rda/data/ds633.0/
+        RDADIR=/glade/campaign/collections/rda/data/ds633.0/
       elif [[ "$MACHINEFILE" == *pm* ]]; then
         echo "We are on Cori, so even though we lack a local file, we can use RDA"
         ERA5RDA=1
@@ -550,7 +550,7 @@ if [ $debug = false ] ; then
     if [ $islive = true ] ; then
       # Here is where we get the "live" GDAS SST file
       rm -f gdas1*sstgrb*
-      sstFTPPath=ftp://ftp.ncep.noaa.gov//pub/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/
+      sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/
       sstFTPFile='rtgssthr_grb_0.5.grib2'
       echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
     else
