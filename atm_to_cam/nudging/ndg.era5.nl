@@ -13,7 +13,7 @@ ENDAY=18
 
 #BETACASTDIR=/glade/u/home/zarzycki/betacast/
 #OUTDIR=/glade/p/univ/upsu0032/MPAS/ndg/
-#RDADIR=/glade/collections/rda/data/ds633.0/
+#RDADIR=/glade/campaign/collections/rda/data/ds633.0/
 
 BETACASTDIR=/global/homes/c/czarzyck/betacast/
 OUTDIR=/pscratch/sd/c/czarzyck/ndg/

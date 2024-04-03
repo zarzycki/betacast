@@ -40,7 +40,7 @@ g=addfile("/glade/u/home/zarzycki/scratch/CESM_LENS_temp/TREFHT/ens_TREFHT_anom.
 lat=tofloat(g->lat)
 lon=tofloat(g->lon)
 ; ERA5
-;g=addfile("/glade/u/home/zarzycki/rda/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_165_10u.ll025sc.1986080100_1986083123.nc","r")
+;g=addfile("/glade/campaign/collections/rda/data/ds633.0/e5.oper.an.sfc/198608/e5.oper.an.sfc.128_165_10u.ll025sc.1986080100_1986083123.nc","r")
 ;lat = tofloat(g->latitude(::-1))
 ;lon = tofloat(g->longitude)
 

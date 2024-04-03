@@ -26,7 +26,7 @@ print("Adding "+RAWERA5FILE+" ...")
 f=addfile(RAWERA5FILE,"r")
 
 ;mixhum_ptd
-;"/glade/u/home/zarzycki/rda/ds633.0/e5.oper.fc.sfc.meanflux/198608/e5.oper.fc.sfc.meanflux.235_058_msdrswrf.ll025sc.1986080106_1986081606.nc"
+;"/glade/campaign/collections/rda/data/ds633.0/e5.oper.fc.sfc.meanflux/198608/e5.oper.fc.sfc.meanflux.235_058_msdrswrf.ll025sc.1986080106_1986081606.nc"
 ;msdwswrf
 ;msdwlwrf
 ;https://confluence.ecmwf.int/pages/viewpage.action?pageId=82870405#ERA5:datadocumentation-Parameterlistings
@@ -153,7 +153,7 @@ print("Set time units")
 new_time_units = "days since 1986-08-01 00:00:00"
 time_old_float = tofloat(time_era5)
 copy_VarMeta(time_era5,time_old_float)
-time_datm = time_to_newtime(time_old_float, new_time_units) 
+time_datm = time_to_newtime(time_old_float, new_time_units)
 time_datm!0="time"
 time_datm&time = time_datm
 time_datm@long_name = "observation time"
@@ -261,15 +261,15 @@ EDGEN@mode = "time-invariant"
 do ii = 0,dimsizes(filenames)-1
 
   fullfilename=outdirbase+"/"+outfolders(ii)+"/"+datafilename+"."+filenames(ii)+"."+tostring(YYYY)+"-"+tostring(MM)+".nc"
-  
+
   print("Writing "+fullfilename+" output!")
 
   system("mkdir -p "+outdirbase+"/"+outfolders(ii))
 
   system("/bin/rm -f "+fullfilename)   ; remove any pre-existing file
-  
+
   ;setfileoption("nc","format","netcdf4")
-   
+
 ;!  ncdf = addfile(fullfilename ,"c")  ; open output netCDF file
 ;!
 ;!  ;===================================================================
@@ -285,7 +285,7 @@ do ii = 0,dimsizes(filenames)-1
 ;!  ;===================================================================
 ;!  ; make time an UNLIMITED dimension; recommended  for most applications
 ;!  ;===================================================================
-;!  filedimdef(ncdf,"time",-1,True) 
+;!  filedimdef(ncdf,"time",-1,True)
 ;!
 ;!  ;===================================================================
 ;!  ; output variables directly; NCL will call appropriate functions
@@ -316,11 +316,11 @@ do ii = 0,dimsizes(filenames)-1
 ;!  end if
 ;!  end if
 
-;===================================================================  
-    ; Assume variables T, PS and ORO exist and that they have 
-    ; associated meta data: (a) coordinate variables time, lev, lat, lon       
+;===================================================================
+    ; Assume variables T, PS and ORO exist and that they have
+    ; associated meta data: (a) coordinate variables time, lev, lat, lon
     ; and (b) attributes
-    ;===================================================================  
+    ;===================================================================
 
   thesedims = dimsizes(tbot_datm)
   ntim  = thesedims(0)
@@ -339,31 +339,31 @@ do ii = 0,dimsizes(filenames)-1
     ; create global attributes of the file
     ;===================================================================
         fAtt               = True            ; assign file attributes
-	fAtt@title         = "NCL Efficient Approach to netCDF Creation"  
+	fAtt@title         = "NCL Efficient Approach to netCDF Creation"
 	fAtt@source_file   =  "original-file.nc"
-	fAtt@Conventions   = "None"   
-	fAtt@creation_date = systemfunc ("date")        
-	fileattdef( ncdf, fAtt )            ; copy file attributes    
+	fAtt@Conventions   = "None"
+	fAtt@creation_date = systemfunc ("date")
+	fileattdef( ncdf, fAtt )            ; copy file attributes
 
     ;===================================================================
     ; predefine the coordinate variables and their dimensionality
     ; Note: to get an UNLIMITED record dimension, we set the dimensionality
     ; to -1 (or the actual size) and set the dimension name to True.
     ;===================================================================
-        dimNames = (/"time", "lat", "lon", "scalar"/)  
-	dimSizes = (/ -1   ,  nlat,  nlon , 1 /) 
-	dimUnlim = (/ True , False, False, False/)   
+        dimNames = (/"time", "lat", "lon", "scalar"/)
+	dimSizes = (/ -1   ,  nlat,  nlon , 1 /)
+	dimUnlim = (/ True , False, False, False/)
 	filedimdef(ncdf,dimNames,dimSizes,dimUnlim)
 
 
-       filevardef(ncdf, "time" ,typeof(time_datm),getvardims(time_datm))                          
-       filevardef(ncdf, "LONGXY"  ,typeof(lon_datm_2D_float),getvardims(lon_datm_2D_float))                          
-       filevardef(ncdf, "LATIXY"  ,typeof(lat_datm_2D_float),getvardims(lat_datm_2D_float))       
-       filevardef(ncdf, "EDGEW"  ,typeof(EDGEW),getvardims(EDGEW))       
-       filevardef(ncdf, "EDGEE"  ,typeof(EDGEE),getvardims(EDGEE))       
-       filevardef(ncdf, "EDGES"  ,typeof(EDGES),getvardims(EDGES))       
+       filevardef(ncdf, "time" ,typeof(time_datm),getvardims(time_datm))
+       filevardef(ncdf, "LONGXY"  ,typeof(lon_datm_2D_float),getvardims(lon_datm_2D_float))
+       filevardef(ncdf, "LATIXY"  ,typeof(lat_datm_2D_float),getvardims(lat_datm_2D_float))
+       filevardef(ncdf, "EDGEW"  ,typeof(EDGEW),getvardims(EDGEW))
+       filevardef(ncdf, "EDGEE"  ,typeof(EDGEE),getvardims(EDGEE))
+       filevardef(ncdf, "EDGES"  ,typeof(EDGES),getvardims(EDGES))
        filevardef(ncdf, "EDGEN"  ,typeof(EDGEN),getvardims(EDGEN))
-       
+
        if (ii .eq. 0) then
          filevardef(ncdf, "TBOT"  ,typeof(tbot_datm),getvardims(tbot_datm))
          filevardef(ncdf, "WIND"  ,typeof(wind_datm),getvardims(wind_datm))
@@ -379,13 +379,13 @@ do ii = 0,dimsizes(filenames)-1
          filevardef(ncdf, "FSDS"  ,typeof(fsds_datm),getvardims(fsds_datm))
        end if
        end if
-                          
+
 
     ;===================================================================
     ; Copy attributes associated with each variable to the file
     ; All attributes associated with each variable will be copied.
     ;====================================================================
-    
+
        filevarattdef(ncdf,"time",time_datm)
        filevarattdef(ncdf,"LONGXY",lon_datm_2D_float)
        filevarattdef(ncdf,"LATIXY",lat_datm_2D_float)
@@ -409,7 +409,7 @@ do ii = 0,dimsizes(filenames)-1
          filevarattdef(ncdf, "FSDS"  ,fsds_datm)
        end if
        end if
-    
+
     ;===================================================================
     ; explicitly exit file definition mode. **NOT REQUIRED**
     ;===================================================================
@@ -420,27 +420,27 @@ do ii = 0,dimsizes(filenames)-1
     ; been predefined. The "(/", "/)" syntax tells NCL to only output the
     ; data values to the predefined locations on the file.
     ;====================================================================
-       ncdf->time   = (/time_datm/)     
+       ncdf->time   = (/time_datm/)
        ncdf->LONGXY    = (/lon_datm_2D_float/)
        ncdf->LATIXY    = (/lat_datm_2D_float/)
-       ncdf->EDGEW    = (/EDGEW/) 
+       ncdf->EDGEW    = (/EDGEW/)
        ncdf->EDGEE      = (/EDGEE/)
        ncdf->EDGES      = (/EDGES/)
        ncdf->EDGEN  = (/EDGEN/)
-       
+
        if (ii .eq. 0) then
-         ncdf->TBOT   = (/tbot_datm/)     
-         ncdf->WIND   = (/wind_datm/)     
-         ncdf->PSRF   = (/psrf_datm/)     
-         ncdf->QBOT   = (/qbot_datm/)     
+         ncdf->TBOT   = (/tbot_datm/)
+         ncdf->WIND   = (/wind_datm/)
+         ncdf->PSRF   = (/psrf_datm/)
+         ncdf->QBOT   = (/qbot_datm/)
          ncdf->ZBOT   = (/zbot_datm/)
          if (do_flds) then
            ncdf->FLDS   = (/flds_datm/)
          end if
        else if (ii .eq. 2) then
-         ncdf->PRECTmms   = (/prec_datm/)     
+         ncdf->PRECTmms   = (/prec_datm/)
        else
-         ncdf->FSDS   = (/fsds_datm/)     
+         ncdf->FSDS   = (/fsds_datm/)
        end if
        end if
 

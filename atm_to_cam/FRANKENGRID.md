@@ -13,7 +13,7 @@ YYYYMMDDHH=${YYYYMMDD}${HH}
 NLEV=128
 RAPFILE=/glade/work/zarzycki/sewx//INIC/RAP_${YYYYMMDDHH}.nc
 ERA5FILE=/glade/work/zarzycki/sewx//INIC/ERA5_${YYYYMMDDHH}.nc
-RDADIR=/glade/collections/rda/data/ds633.0/
+RDADIR=/glade/campaign/collections/rda/data/ds633.0/
 
 ncl -n atm_to_cam.ncl 'datasource="RAP"' \
   'dycore="se"' \
@@ -30,7 +30,7 @@ ncl -n atm_to_cam.ncl 'datasource="ERA5RDA"' \
   numlevels=${NLEV} \
   YYYYMMDDHH=${YYYYMMDDHH} \
   'RDADIR="'${RDADIR}'"' \
-  'data_filename = "/glade/collections/rda/data//ds633.0/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"' \
+  'data_filename = "'${RDADIR}'/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"' \
   'wgt_filename="/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_rrm.x4_ESMF.nc_patc.nc"' \
   'adjust_config=""' \
   'se_inic = "'${ERA5FILE}'"' \

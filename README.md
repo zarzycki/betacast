@@ -320,15 +320,15 @@ ncl -n atm_to_cam.ncl 'datasource="ERA5RDA"' \
   numlevels=32 \
   YYYYMMDDHH=2019120100 \
   'dycore="se"' \
-  'data_filename = "/glade/collections/rda/data//ds633.0/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"' \
+  'data_filename="/glade/campaign/collections/rda/data/ds633.0/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"' \
   'wgt_filename="/glade/u/home/$LOGNAME/betacast/remapping/map_gfs_0.25x0.25_TO_ne30_patc.nc"' \
-  'RDADIR="/glade/collections/rda/data/ds633.0/"' \
+  'RDADIR="/glade/campaign/collections/rda/data/ds633.0/"' \
   'model_topo_file="/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc"' \
   'adjust_config=""' \
   compress_file=False \
   write_floats=True \
   add_cloud_vars=True \
-  'se_inic = "/glade/scratch/$LOGNAME/my_se_initial_condition_file.nc"'
+  'se_inic="/glade/scratch/$LOGNAME/my_se_initial_condition_file.nc"'
 ```
 
 ### Specific notes and settings:
@@ -360,7 +360,7 @@ Currently the hydrostatic adjustment is only available when `dycore` is set to S
 
 #### Using RDA data
 
-On Cheyenne (and when mirrored on other systems) Betacast can go directly to RDA to get ERA5 data. To do this, point `RDADIR` to the datasets top-level directory (e.g., /glade/collections/rda/data/ds633.0/). In this case, this file will be used if the hydrostatic adjustment code is active where `data_filename` is the invariant field containing the surface Z field (e.g., `${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc)`.
+On Cheyenne (and when mirrored on other systems) Betacast can go directly to RDA to get ERA5 data. To do this, point `RDADIR` to the datasets top-level directory (e.g., /glade/campaign/collections/rda/data/ds633.0/). In this case, this file will be used if the hydrostatic adjustment code is active where `data_filename` is the invariant field containing the surface Z field (e.g., `${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc)`.
 
 --
 
@@ -618,7 +618,7 @@ Edit `${BETACAST}/land-spinup/datm-from-model/batch-model-to-datm.sh` as needed.
 When one invokes the land spinup code, the user should note that the dataset is "2" (from model) and pass in the `OUTDIRBASE` as `BETACAST_DATM_FORCING_BASE`. Example invocation:
 
 ```
-./auto-script.sh 1 2 19860101 12 1 -1 -1 nl.landspinup.pm-cpu 
+./auto-script.sh 1 2 19860101 12 1 -1 -1 nl.landspinup.pm-cpu
 ```
 
 <a name="testing_different_offsets"></a>
