@@ -385,7 +385,7 @@ where `auto-script` takes in eight command line inputs:
 | MODELSYSTEM | Modeling system to use (integer, 0 = CLM, 1 = ELM) |
 | DOERA5 | Use [ERA5](#era5_data_files) to override CRU/NCEP? (integer, 0 = True, 1 = False) |
 | DATEYYYYMMDD | Date a CLM/ELM restart file is needed in YYYYMMDD (00Z) |
-| NMONTHS | Integer number of months to spinup (1-12) |
+| NMONTHS | Integer number of months to spinup |
 | NCYCLES | Integer number of cycles to spinup (>=1) |
 | ANOMYEAR | Integer anomaly year (which year of anomalies to apply) |
 | REFYEAR | Integer reference year to correct anomalies (if negative, use raw anomalies, ignored if ANOMYEAR < -1) |
@@ -402,10 +402,12 @@ This would spinup ELM/E3SM (1) using ERA5 DATM (0) for a Betacast initialization
 Another example for CESM (on Derecho) for a historical reforecast is:
 
 ```
-./auto-script.sh 0 0 20050828 12 1 -1 -1 nl.landspinup.derecho
+./auto-script.sh 0 0 20050828 24 1 -1 -1 nl.landspinup.derecho
 ```
 
-which uses ERA5 to spinup up CLM for one year prior to Hurricane Katrina simulations to be initialized on August 28th, 2005. No anomalies/deltas are applied (denoted by the two `-1` values for `ANOMYEAR` and `REFYEAR`).
+which uses ERA5 to spinup up CLM for two years prior to Hurricane Katrina simulations to be initialized on August 28th, 2005. No anomalies/deltas are applied (denoted by the two `-1` values for `ANOMYEAR` and `REFYEAR`).
+
+**NOTE**: `NMONTHS` corresponds to the number of "linear" months prior to `DATEYYYYMMDD`. `NCYCLES` controls the number of loops over those `NMONTHS`. So if one wanted an initial condition on January 1st, 2000 and set `NMONTHS` to 24 and `NCYCLES` to 2, the model would essentially run 48 months of spinup, cycling over 1998 and 1999 once, then using the result from that and cycling 1998 and 1999 a final time before producing a restart file on January 1st, 2000.
 
 The simplest land spinup, which should work natively on supported machines with standard CESM/E3SM data repositories (i.e., no ERA5, no anomalies) would be.
 
@@ -426,7 +428,6 @@ The namelist (ex: `nl.landspinup.cori`) includes the following settings, which a
 | RESOL | What resolution? Make sure land matches Betacast land resolution |
 | RUNQUEUE | Queue to run in |
 | WALLCLOCK | Queue to run in |
-| NMONTHSSPIN | Integer number of months to spinup (1-12) |
 | BETACAST | Absolute path to Betacast (only used if doERA5 = 0) |
 | BETACAST\_DATM\_FORCING\_BASE | Path to DATM_FORCING files (only used if doERA5 = 0) |
 | BETACAST\_DATM\_ANOMALY\_BASE | Path to anomaly forcing files |
