@@ -55,8 +55,8 @@ if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
   NUMCORES=12
 elif [[ $SERVER_NAME == *"casper"* ]] || [[ $SERVER_NAME == *"crhtc"* ]]; then
   echo "Using Casper"
-  module load parallel
-  module load peak_memusage
+  #module load parallel
+  #module load peak_memusage
   NUMCORES=36
 else
   echo "Unrecognized server. exiting"
@@ -223,7 +223,7 @@ if [ $dryrun = false ] ; then
   if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
     parallel --jobs ${NUMCORES} < ${COMMANDFILE}
   elif [[ $SERVER_NAME == *"casper"* ]] || [[ $SERVER_NAME == *"crhtc"* ]]; then
-    peak_memusage.exe parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
+    parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
   else
     echo "unknown" ; exit
     #parallel --jobs ${NUMCORES} -u --sshloginfile $PBS_NODEFILE --workdir $PWD < ${COMMANDFILE}
