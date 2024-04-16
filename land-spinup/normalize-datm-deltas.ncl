@@ -1,8 +1,8 @@
 begin
 
 ; these are passed in as nl options
-basedir="/glade/p/univ/upsu0032/DATM_FORCING/ANOM_LENS/"
-current_year = 2019
+;basedir="/glade/p/univ/upsu0032/DATM_FORCING/ANOM_LENS/"
+;current_year = 2019
 
 print("basedir: "+basedir)
 print("current_year: "+current_year)
