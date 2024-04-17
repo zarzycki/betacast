@@ -23,13 +23,13 @@
      FLDS  lwdn_af
    </variableNames>
    <filePath>
-     ${BETACAST_ANOMBASE}
+     ${BETACAST_DATM_ANOMALY_BASE}
    </filePath>
    <fileNames>
     ens_FLDS_anom.nc
    </fileNames>
    <offset>
-      -1314000 
+      -1314000
    </offset>
 </fieldInfo>
 </file>

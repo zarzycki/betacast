@@ -23,7 +23,7 @@
      T  tbot_af
    </variableNames>
    <filePath>
-     ${BETACAST_ANOMBASE}
+     ${BETACAST_DATM_ANOMALY_BASE}
    </filePath>
    <fileNames>
     ens_TBOT_anom.nc

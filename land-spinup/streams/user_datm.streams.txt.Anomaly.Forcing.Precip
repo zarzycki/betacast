@@ -23,7 +23,7 @@
      PRECT  prec_af
    </variableNames>
    <filePath>
-     ${BETACAST_ANOMBASE}
+     ${BETACAST_DATM_ANOMALY_BASE}
    </filePath>
    <fileNames>
     ens_PRECT_anom.nc

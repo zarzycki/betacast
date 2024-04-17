@@ -306,11 +306,11 @@ if [ $addDeltas -eq 0 ]; then
   if [ $BETACAST_REFYEAR -gt 0 ]; then
     # run ncl to normalize things
     echo "Running with normalized deltas"
-    ncl ${BETACAST}/land-spinup/normalize-datm-deltas.ncl 'current_year='${BETACAST_ANOMYEAR}'' 'basedir="'${BETACAST_DATM_ANOMALY_BASE}'"'
-    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_${BETACAST_ANOMYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Humidity
-    sed -i "s?ens_TBOT_anom.nc?ens_TBOT_${BETACAST_ANOMYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Temperature
-    sed -i "s?ens_PRECT_anom.nc?ens_PRECT_${BETACAST_ANOMYEAR}ref_anom.nc?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
-    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_${BETACAST_ANOMYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Precip
+    ncl ${BETACAST}/land-spinup/normalize-datm-deltas.ncl 'current_year='${BETACAST_REFYEAR}'' 'basedir="'${BETACAST_DATM_ANOMALY_BASE}'"'
+    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Humidity
+    sed -i "s?ens_TBOT_anom.nc?ens_TBOT_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Temperature
+    sed -i "s?ens_PRECT_anom.nc?ens_PRECT_${BETACAST_REFYEAR}ref_anom.nc?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
+    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Precip
   else
     sed -i "s?ens_QBOT_anom.nc?ens_QBOT_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Humidity
     sed -i "s?ens_TBOT_anom.nc?ens_TBOT_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Temperature
@@ -344,6 +344,10 @@ cat > user_nl_clm <<EOF
 !check_finidat_fsurdat_consistency = .false.
 !use_init_interp = .true.
 !do_transient_pfts = .false.
+hist_avgflag_pertape='A','I'
+hist_nhtfrq = 0,-1
+hist_mfilt = 1,24
+hist_fincl2 = 'TSA','TBOT','RAIN','SNOW','QBOT','WIND','SWdown','LWdown'
 EOF
 
 if [ $modelSystem -eq 0 ]; then
