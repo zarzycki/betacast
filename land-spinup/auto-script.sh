@@ -8,7 +8,7 @@ set -e
 source ../utils.sh
 
 # Usage:
-#./auto-script.sh MODELSYSTEM DOERA5 DATE_YYYYMMDD NMONTHS NCYCLES ANOMYEAR NORMYEAR NAMELIST
+#./auto-script.sh MODELSYSTEM DATAFORCING DATE_YYYYMMDD NMONTHS NCYCLES ANOMYEAR NORMYEAR NAMELIST
 # CESM
 #./auto-script.sh 0 0 20200103 36 1 -1 -1 NAMELIST.MACHINE
 # E3SM
@@ -21,7 +21,7 @@ if [ ! -s $8 ]; then echo "Namelist is empty, exiting..." ; exit ; fi
 
 ### User settings
 modelSystem=${1}         # 0 = CESM/E3SMv1, 1 = E3SMv2
-doERA5=${2}              # Use ERA5 DATM? 0 = yes, 1 = no (internal CRUNCEP), 2 CESM/E3SM
+dataForcing=${2}         # DATM forcing? 0 = yes, 1 = no (internal CRUNCEP), 2 CESM/E3SM
 FORECASTDATE=${3}        # What is the date you want to spin up for (00Z)
 NMONTHSSPIN=${4}         # Duration of spinup (somewhere b/w 3-12 months seems reasonable)
 NCYCLES=${5}
@@ -82,62 +82,57 @@ fi
 ### Do not edit below this line!
 ### Date logic
 FORECASTYEAR="${FORECASTDATE:0:4}"
-FORECASTYEARM1=$((FORECASTYEAR-1))
-FORECASTYEARP1=$((FORECASTYEAR+1))
-echo "Trying to get CLM restart for "${FORECASTDATE}
-echo "Year plus one equals: "${FORECASTYEARP1}
-echo "Year minus one equals: "${FORECASTYEARM1}
 
-if [ $NCYCLES -lt 2 ]; then
-  ### NO CYCLE
-  echo "CYCLE: no cycle since NCYCLES = ${NCYCLES}"
-else
-  ### CYCLE
-  echo "CYCLE: since NCYCLES = ${NCYCLES}, update NMONTHSSPIN from: ${NMONTHSSPIN} to..."
-  NMONTHSSPIN=$((NMONTHSSPIN*NCYCLES))
-  echo "....... ${NMONTHSSPIN}"
-fi
+echo "CYCLE: NCYCLES = ${NCYCLES}"
+NMONTHSSPIN_WITH_CYCLES=$((NMONTHSSPIN*NCYCLES))
+echo "NMONTHSSPIN: ${NMONTHSSPIN} / NMONTHSSPIN_WITH_CYCLES: ${NMONTHSSPIN_WITH_CYCLES}"
 
 ### Print diagnostics
-STARTDATE=`date -d "${FORECASTDATE} - ${NMONTHSSPIN} months" "+%Y-%m-%d"`
-STARTYEAR=`date -d "${FORECASTDATE} - ${NMONTHSSPIN} months" "+%Y"`
-echo "Starting at: "${STARTDATE}
-if [ $doERA5 -eq 0 ]; then
+# This is the actual start date the model sees
+MODEL_STARTDATE=`date -d "${FORECASTDATE} - ${NMONTHSSPIN_WITH_CYCLES} months" "+%Y-%m-%d"`
+# This is the first year of the DATM stream required
+DATM_STARTYEAR=`date -d "${FORECASTDATE} - ${NMONTHSSPIN} months" "+%Y"`
+# Some other variables that may be helpful
+FORECASTYEARM1=$((FORECASTYEAR-1))
+FORECASTYEARP1=$((FORECASTYEAR+1))
+
+echo "Trying to get CLM restart for "${FORECASTDATE}
+echo "Starting model at: "${MODEL_STARTDATE}
+echo "First year of DATM data (with $NCYCLES cycles) is: "${DATM_STARTYEAR}
+
+if [ $dataForcing -eq 0 ]; then
   echo "Using ERA5 DATM"
-  ERA5STYR=1990
-  ERA5ENYR=2022
-elif [ $doERA5 -eq 2 ]; then
+  DATMMINYR=1990
+  DATMMAXYR=2022
+elif [ $dataForcing -eq 2 ]; then
   echo "Using Hyperion DATM"
-  ERA5STYR=1984
-  ERA5ENYR=2014
+  DATMMINYR=1984
+  DATMMAXYR=2014
 else
   echo "Using CRUNCEP DATM"
 fi
 
+### Error checking
 if [ ${#FORECASTDATE} -ne 8 ]; then
   echo "Incorrect string length for FORECASTDATE, needs to be YYYYMMDD"
   echo "You provided $FORECASTDATE"
   echo "STOP"
   exit 1
 fi
-
-### Configure, build, run land model w/ DATM
-if [ $doERA5 -eq 1 ] && (( FORECASTYEAR > 2016 )); then
+if [ $dataForcing -eq 1 ] && (( FORECASTYEAR > 2016 )); then
   echo "No default DATM files beyond 2016"
   echo "Need to either find a different DATM set or spin up when coupled"
   echo "STOP"
   exit 1
 fi
-
-### ERA5 and other external data-checking
-if [ $doERA5 -eq 0 ] && (( STARTYEAR < ${ERA5STYR} )); then
-  echo "No ERA5 DATM files earlier than ${ERA5STYR}"
-  echo "You provided $STARTYEAR for a start year when accounting for spinup"
+if { [ $dataForcing -eq 0 ] || [ $dataForcing -eq 2 ]; } && (( DATM_STARTYEAR < ${DATMMINYR} )); then
+  echo "No DATM files for dataset $dataForcing earlier than ${DATMMINYR}"
+  echo "You provided $DATM_STARTYEAR for a start year when accounting for spinup"
   echo "Need to either find a different DATM set or spin up when coupled"
   echo "STOP"
   exit 1
-elif [ $doERA5 -eq 0 ] && (( FORECASTYEAR > ${ERA5ENYR} )); then
-  echo "No ERA5 DATM files later than ${ERA5ENYR}"
+elif { [ $dataForcing -eq 0 ] || [ $dataForcing -eq 2 ]; } && (( FORECASTYEAR > ${DATMMAXYR} )); then
+  echo "No DATM files for dataset $dataForcing later than ${DATMMAXYR}"
   echo "You provided $FORECASTYEAR for an end year (forecast)"
   echo "Need to either find a different DATM set or spin up when coupled"
   echo "STOP"
@@ -145,7 +140,7 @@ elif [ $doERA5 -eq 0 ] && (( FORECASTYEAR > ${ERA5ENYR} )); then
 fi
 
 ICASENAME=${ICASENAME/RESSTRING/$RESOL}
-ICASENAME=${ICASENAME}_${FORECASTDATE}_$(printf "%04d\n" $NMONTHSSPIN)
+ICASENAME=${ICASENAME}_${FORECASTDATE}_$(printf "%03d\n" $NMONTHSSPIN)_$(printf "%02d\n" $NCYCLES)
 if [ $addDeltas -eq 0 ]; then
   ICASENAME=${ICASENAME}_${BETACAST_ANOMYEAR}
 fi
@@ -176,10 +171,14 @@ fi
 ### Put a block to check everything here?
 echo "--------------------------------------------"
 echo "modelSystem: "${modelSystem}
+echo "dataForcing: "${dataForcing}
 echo "FORECASTDATE: "${FORECASTDATE}
-echo "NMONTHSSPIN: "${NMONTHSSPIN}
 echo "NCYCLES: "${NCYCLES}
-echo "STARTDATE: "${STARTDATE}
+echo "NMONTHSSPIN: "${NMONTHSSPIN}
+echo "NMONTHSSPIN_WITH_CYCLES: "${NMONTHSSPIN_WITH_CYCLES}
+echo "MODEL_STARTDATE: "${MODEL_STARTDATE}
+echo "DATM_STARTYEAR: "${DATM_STARTYEAR}
+echo "FORECASTYEAR: "${FORECASTYEAR}
 echo "addDeltas: "${addDeltas}
 echo "BETACAST_ANOMYEAR: "${BETACAST_ANOMYEAR}
 echo "BETACAST_ANOMALIGN: "${BETACAST_ANOMALIGN}
@@ -212,12 +211,12 @@ cd ${PATHTOCASE}/${ICASENAME}
 ./xmlchange NTASKS_ESP=1
 ./xmlchange NTASKS_IAC=1
 ./xmlchange DATM_MODE=CLMCRUNCEPv7
-./xmlchange STOP_N=10
+./xmlchange STOP_N=20
 ./xmlchange STOP_OPTION='nyears'
-./xmlchange DATM_CLMNCEP_YR_START=${FORECASTYEARM1}
+./xmlchange DATM_CLMNCEP_YR_ALIGN=${DATM_STARTYEAR}
+./xmlchange DATM_CLMNCEP_YR_START=${DATM_STARTYEAR}
 ./xmlchange DATM_CLMNCEP_YR_END=${FORECASTYEAR}
-./xmlchange DATM_CLMNCEP_YR_ALIGN=${FORECASTYEARM1}
-./xmlchange RUN_STARTDATE=${STARTDATE}
+./xmlchange RUN_STARTDATE=${MODEL_STARTDATE}
 ./xmlchange REST_OPTION='end'
 ./xmlchange DOUT_S=FALSE
 # If NMONTHSSPIN is 0, doesn't make sense to stop model on same day
@@ -228,7 +227,7 @@ else
 fi
 
 ### If using ERA5, add the stream files and reset DATM_CLMNCEP_YR_START, etc.
-if [ $doERA5 -eq 0 ]; then
+if [ $dataForcing -eq 0 ]; then
   echo "Injecting ERA5 DATM streams"
   cp ${BETACAST}/land-spinup/streams/user_datm.streams.txt.CLMCRUNCEPv7* .
   #REPLACEDIR
@@ -238,8 +237,7 @@ if [ $doERA5 -eq 0 ]; then
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.Precip
   sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_DATM_FORCING_BASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW
-  ./xmlchange DATM_CLMNCEP_YR_ALIGN=${ERA5STYR}
-elif [ $doERA5 -eq 2 ]; then
+elif [ $dataForcing -eq 2 ]; then
 
   VARS=("Precip" "Solar" "TPQW")
   for VAR in "${VARS[@]}"; do
@@ -276,17 +274,8 @@ elif [ $doERA5 -eq 2 ]; then
     sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" "$NEW_STREAM"
   done
 
-  ./xmlchange DATM_CLMNCEP_YR_ALIGN=${ERA5STYR}
+  ./xmlchange DATM_CLMNCEP_YR_ALIGN=${DATMMINYR}
 
-fi
-
-if { [ $doERA5 -eq 0 ] || [ $doERA5 -eq 2 ]; } && [ $NCYCLES -lt 2 ]; then
-  ### NO CYCLE
-  ./xmlchange DATM_CLMNCEP_YR_START=${ERA5STYR}
-  ./xmlchange DATM_CLMNCEP_YR_END=${ERA5ENYR}
-  # Update general vars in case needed for anom stream overwrite
-  FORECASTYEARM1=${ERA5STYR}
-  FORECASTYEAR=${ERA5ENYR}
 fi
 
 
@@ -304,18 +293,14 @@ if [ $addDeltas -eq 0 ]; then
   sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Precip
 
   if [ $BETACAST_REFYEAR -gt 0 ]; then
-    # run ncl to normalize things
+    # Run NCL to normalize things
     echo "Running with normalized deltas"
     ncl ${BETACAST}/land-spinup/normalize-datm-deltas.ncl 'current_year='${BETACAST_REFYEAR}'' 'basedir="'${BETACAST_DATM_ANOMALY_BASE}'"'
+    # Replace default anomalies in the namelists with normalized ones
     sed -i "s?ens_QBOT_anom.nc?ens_QBOT_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Humidity
     sed -i "s?ens_TBOT_anom.nc?ens_TBOT_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Temperature
-    sed -i "s?ens_PRECT_anom.nc?ens_PRECT_${BETACAST_REFYEAR}ref_anom.nc?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
-    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Precip
-  else
-    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Humidity
-    sed -i "s?ens_TBOT_anom.nc?ens_TBOT_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Temperature
-    sed -i "s?ens_PRECT_anom.nc?ens_PRECT_anom.nc?g" user_datm.streams.txt.Anomaly.Forcing.Longwave
-    sed -i "s?ens_QBOT_anom.nc?ens_QBOT_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Precip
+    sed -i "s?ens_FLDS_anom.nc?ens_FLDS_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Longwave
+    sed -i "s?ens_PRECT_anom.nc?ens_PRECT_${BETACAST_REFYEAR}ref_anom.nc?g" user_datm.streams.txt.Anomaly.Forcing.Precip
   fi
 
   # Need to replace pres aero stream in some cases where it is transient
@@ -323,7 +308,7 @@ if [ $addDeltas -eq 0 ]; then
   sed -i "s?\${BETACAST}?${BETACAST}?g" user_datm.streams.txt.presaero.clim_2000
 
   cp ${BETACAST}/land-spinup/streams/user_nl_datm .
-  sed -i "s?\${FORECASTYEARM1}?${FORECASTYEARM1}?g" user_nl_datm
+  sed -i "s?\${FORECASTYEARM1}?${DATM_STARTYEAR}?g" user_nl_datm
   sed -i "s?\${FORECASTYEAR}?${FORECASTYEAR}?g" user_nl_datm
   sed -i "s?\${BETACAST_ANOMALIGN}?${BETACAST_ANOMALIGN}?g" user_nl_datm
   sed -i "s?\${BETACAST_ANOMYEAR}?${BETACAST_ANOMYEAR}?g" user_nl_datm
