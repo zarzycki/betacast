@@ -5,19 +5,33 @@ timestride=1
 STIX=0
 do_q=True
 do_flds=True
-outdirbase="/glade/scratch/zarzycki/ERA5-DATM/DATM_FORCING/ERA5/"
+outdirbase="/glade/derecho/scratch/zarzycki/ERA5-DATM/DATM_FORCING/ERA5/"
 ;pathtorawera5="/glade/u/home/zarzycki/scratch/ERA5-DATM/"
 datafilename="CMZERA5.v0.c2021.0.5d"
-;YYYY="1995"
-;MM="09"
-newgrid=False
-wgt_filename="/glade/u/home/zarzycki/scratch/map_era5_0.25_TO_360x720_cruncep_patc.210315.nc"
 ;/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.cruncep_qianFill.0.5d.v7.c160715/TPHWL6Hrly/clmforc.cruncep.V7.c2016.0.5d.TPQWL.1986-08.nc
 
+; CLI args!!
+RAWERA5FILE="/glade/u/home/zarzycki/scratch/ERA5-DATM/out.1992.01.nc"
+YYYY="1992"
+MM="01"
+
+greg_to_noleap=True
+
+newgrid=False
+wgt_filename="/glade/u/home/zarzycki/scratch/map_era5_0.25_TO_360x720_cruncep_patc.210315.nc"
 
 ; ----- internal settings
 filenames = (/"TPQWL","Solar","Prec"/)
 outfolders = (/"TPHWL6Hrly","Solr","Precip6Hrly"/)
+
+;==============================================================
+
+
+is_leap_month=False
+if ( isleapyear(toint(YYYY)) .and. toint(MM) .eq. 2) then
+  print("We have a February leap year for "+YYYY+" "+MM)
+  is_leap_month=True
+end if
 
 ;==============================================================
 
@@ -42,19 +56,32 @@ lat_datm = lat_datm_2D(:,0)
 print("Reading relevant coordinates from reanalysis...")
 lon_era5=f->longitude
 lat_era5=f->latitude(::-1)
-time_era5=f->time(STIX::timestride)
+
+print("Figuring out ENIX")
+ENIX=dimsizes(f->time)-1
+if (is_leap_month .and. greg_to_noleap) then
+  print("Correcting ENIX from "+ENIX+" to...")
+  tmp_times = cd_calendar(f->time,0)
+  tmp_days = toint(tmp_times(:,2))
+  ENIX = num(tmp_days .le. 28) - 1
+  print("... to "+ENIX)
+end if
+
+; get full time
+time_era5=f->time(STIX:ENIX:timestride)
+print(cd_calendar(time_era5,-3))
 
 print("Pull required variables off files...")
 ; get ERA5 data
-u10_era5 = short2flt( f->u10(STIX::timestride,::-1,:) )
-v10_era5 = short2flt( f->v10(STIX::timestride,::-1,:) )
-tbot_era5 = short2flt( f->t2m(STIX::timestride,::-1,:) )
-tdew_era5 = short2flt( f->d2m(STIX::timestride,::-1,:) )
-psrf_era5 = short2flt( f->sp(STIX::timestride,::-1,:) )
-prec_era5 = short2flt( f->mtpr(STIX::timestride,::-1,:) )
-fsds_era5 = short2flt( f->ssrd(STIX::timestride,::-1,:) )
+u10_era5 = short2flt( f->u10(STIX:ENIX:timestride,::-1,:) )
+v10_era5 = short2flt( f->v10(STIX:ENIX:timestride,::-1,:) )
+tbot_era5 = short2flt( f->t2m(STIX:ENIX:timestride,::-1,:) )
+tdew_era5 = short2flt( f->d2m(STIX:ENIX:timestride,::-1,:) )
+psrf_era5 = short2flt( f->sp(STIX:ENIX:timestride,::-1,:) )
+prec_era5 = short2flt( f->mtpr(STIX:ENIX:timestride,::-1,:) )
+fsds_era5 = short2flt( f->ssrd(STIX:ENIX:timestride,::-1,:) )
 if (do_flds) then
-  flds_era5 = short2flt( f->strd(STIX::timestride,::-1,:) )
+  flds_era5 = short2flt( f->strd(STIX:ENIX:timestride,::-1,:) )
 end if
 
 print("Processing wind...")
@@ -150,14 +177,24 @@ tbot_datm!1="lat"
 tbot_datm!2="lon"
 
 print("Set time units")
-new_time_units = "days since 1986-08-01 00:00:00"
-time_old_float = tofloat(time_era5)
-copy_VarMeta(time_era5,time_old_float)
-time_datm = time_to_newtime(time_old_float, new_time_units)
+if (greg_to_noleap) then
+  new_time_units = "days since 1900-01-01 00:00:00"
+  utc_date = cd_calendar(time_era5,0)
+  time_opt=0
+  time_opt@calendar="noleap"
+  time_opt@return_type="float"
+  time_datm=cd_inv_calendar(tointeger(utc_date(:,0)),tointeger(utc_date(:,1)),tointeger(utc_date(:,2)),tointeger(utc_date(:,3)),tointeger(utc_date(:,4)),utc_date(:,5),new_time_units,time_opt)
+  delete(utc_date)
+  delete(time_opt)
+else
+  new_time_units = "days since 1986-08-01 00:00:00"
+  time_old_float = tofloat(time_era5)
+  copy_VarMeta(time_era5,time_old_float)
+  time_datm = time_to_newtime(time_old_float, new_time_units)
+end if
 time_datm!0="time"
 time_datm&time = time_datm
 time_datm@long_name = "observation time"
-;time_datm@units = "noleap"
 
 print("Convert types")
 ; 1-D lats and lons
