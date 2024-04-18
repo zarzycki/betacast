@@ -1,6 +1,6 @@
 ### CLM on Cheyenne
 ### REQUIRED
-CIMEROOT=~/work/cesm_20231228
+CIMEROOT=/glade/u/home/zarzycki/cesm/
 PATHTOCASE=~/I-compsets
 ICASENAME=ECHO-spinup
 PROJECT=P93300642
@@ -12,6 +12,8 @@ JOB_PRIORITY=regular
 WALLCLOCK="10:00:00"
 ### Only required if doERA5 = 0 or 2
 BETACAST=/glade/u/home/zarzycki/betacast
-BETACAST_DATM_FORCING_BASE=/glade/p/cgd/amp/zarzycki/DATM_FORCING/ERA5/
-BETACAST_DATM_ANOMALY_BASE=/glade/p/cgd/amp/zarzycki/DATM_FORCING/ANOM_LENS/
+BETACAST_DATM_FORCING_BASE=/glade/campaign/cgd/amp/zarzycki/DATM_FORCING/ERA5/
+BETACAST_DATM_ANOMALY_BASE=/glade/campaign/cgd/amp/zarzycki/DATM_FORCING/ANOM_LENS/
 BUILD_ONLY=False
+FORCE_PURGE=True
+RUN_DIR_BASE=/glade/derecho/scratch/zarzycki/
