@@ -10,10 +10,10 @@ outdirbase="/glade/derecho/scratch/zarzycki/ERA5-DATM/DATM_FORCING/ERA5/"
 datafilename="CMZERA5.v0.c2021.0.5d"
 ;/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.cruncep_qianFill.0.5d.v7.c160715/TPHWL6Hrly/clmforc.cruncep.V7.c2016.0.5d.TPQWL.1986-08.nc
 
-; CLI args!!
-RAWERA5FILE="/glade/u/home/zarzycki/scratch/ERA5-DATM/out.1992.01.nc"
-YYYY="1992"
-MM="01"
+; CLI args!! (uncomment if working just on this script)
+;RAWERA5FILE="/glade/u/home/zarzycki/scratch/ERA5-DATM/out.1992.01.nc"
+;YYYY="1992"
+;MM="01"
 
 greg_to_noleap=True
 
@@ -25,7 +25,6 @@ filenames = (/"TPQWL","Solar","Prec"/)
 outfolders = (/"TPHWL6Hrly","Solr","Precip6Hrly"/)
 
 ;==============================================================
-
 
 is_leap_month=False
 if ( isleapyear(toint(YYYY)) .and. toint(MM) .eq. 2) then
@@ -60,6 +59,8 @@ lat_era5=f->latitude(::-1)
 print("Figuring out ENIX")
 ENIX=dimsizes(f->time)-1
 if (is_leap_month .and. greg_to_noleap) then
+  ; if this is Feb/leap and we want no leap, find all days that have DD "29" and cut off
+  ; ENIX before we pull those from the raw data
   print("Correcting ENIX from "+ENIX+" to...")
   tmp_times = cd_calendar(f->time,0)
   tmp_days = toint(tmp_times(:,2))
@@ -158,12 +159,34 @@ fsds_datm = where(fsds_datm .le. 0.0, eps, fsds_datm)
 if (do_flds) then
   flds_datm = where(flds_datm .le. 0.0, eps, flds_datm)
 end if
+if (do_q) then
+  qbot_datm = where(qbot_datm .le. 0.0, eps, qbot_datm)
+end if
 
-print("Enforce capping checks")
+print("Enforce specified capping checks")
 maxwind=45.0
 minwind=0.0
+print("Number of wind_datm over max to be corrected: "+num(wind_datm .gt. maxwind))
+print("Number of wind_datm over min to be corrected: "+num(wind_datm .lt. minwind))
 wind_datm = where(wind_datm .gt. maxwind, maxwind, wind_datm)
 wind_datm = where(wind_datm .lt. minwind, minwind, wind_datm)
+maxpsrf=120000.0
+minpsrf=30000.0
+print("Number of psrf_datm over max to be corrected: "+num(psrf_datm .gt. maxpsrf))
+print("Number of psrf_datm over min to be corrected: "+num(psrf_datm .lt. minpsrf))
+psrf_datm = where(psrf_datm .gt. maxpsrf, maxpsrf, psrf_datm)
+psrf_datm = where(psrf_datm .lt. minpsrf, minpsrf, psrf_datm)
+maxtbot=340.0
+mintbot=175.0
+print("Number of tbot_datm over max to be corrected: "+num(tbot_datm .gt. maxtbot))
+print("Number of tbot_datm over min to be corrected: "+num(tbot_datm .lt. mintbot))
+tbot_datm = where(tbot_datm .gt. maxtbot, maxtbot, tbot_datm)
+tbot_datm = where(tbot_datm .lt. mintbot, mintbot, tbot_datm)
+if (do_q) then
+  maxqbot=0.2
+  print("Number of qbot_datm over max to be corrected: "+num(qbot_datm .gt. maxqbot))
+  qbot_datm = where(qbot_datm .gt. maxqbot, maxqbot, qbot_datm)
+end if
 
 print("Dummy variables")
 zbot_datm = tbot_datm
@@ -372,20 +395,20 @@ do ii = 0,dimsizes(filenames)-1
 
   ncdf = addfile(fullfilename ,"c")  ; open output netCDF file
 
+  ;===================================================================
+  ; explicitly declare file definition mode. Improve efficiency.
+  ;===================================================================
+  setfileoption(ncdf,"DefineMode",True)
 
-    ;===================================================================
-    ; explicitly declare file definition mode. Improve efficiency.
-    ;===================================================================
-        setfileoption(ncdf,"DefineMode",True)
-
-    ;===================================================================
-    ; create global attributes of the file
-    ;===================================================================
-        fAtt               = True            ; assign file attributes
-	fAtt@title         = "NCL Efficient Approach to netCDF Creation"
-	fAtt@source_file   =  "original-file.nc"
+  ;===================================================================
+  ; create global attributes of the file
+  ;===================================================================
+  fAtt               = True
+	fAtt@title         = "DATM forcing using ERA5: "+YYYY+" "+MM
+	fAtt@source_file   = RAWERA5FILE
 	fAtt@Conventions   = "None"
 	fAtt@creation_date = systemfunc ("date")
+	fAtt@notes   = "Generated with Betacast toolkit"
 	fileattdef( ncdf, fAtt )            ; copy file attributes
 
     ;===================================================================
@@ -393,7 +416,7 @@ do ii = 0,dimsizes(filenames)-1
     ; Note: to get an UNLIMITED record dimension, we set the dimensionality
     ; to -1 (or the actual size) and set the dimension name to True.
     ;===================================================================
-        dimNames = (/"time", "lat", "lon", "scalar"/)
+  dimNames = (/"time", "lat", "lon", "scalar"/)
 	dimSizes = (/ -1   ,  nlat,  nlon , 1 /)
 	dimUnlim = (/ True , False, False, False/)
 	filedimdef(ncdf,dimNames,dimSizes,dimUnlim)
