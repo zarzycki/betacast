@@ -159,6 +159,12 @@ if (do_flds) then
   flds_datm = where(flds_datm .le. 0.0, eps, flds_datm)
 end if
 
+print("Enforce capping checks")
+maxwind=45.0
+minwind=0.0
+wind_datm = where(wind_datm .gt. maxwind, maxwind, wind_datm)
+wind_datm = where(wind_datm .lt. minwind, minwind, wind_datm)
+
 print("Dummy variables")
 zbot_datm = tbot_datm
 zbot_datm = 10.
