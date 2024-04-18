@@ -1,21 +1,27 @@
 #!/bin/bash -l
 
+################################################################
+#### Casper
+################################################################
 #PBS -N forcing-gen
-#PBS -A UPSU0032
+#PBS -A P93300642
 #PBS -l select=1:ncpus=4:mpiprocs=4:mem=80GB
 #PBS -l walltime=24:00:00
-#PBS -q casper
+#PBS -q casper@casper-pbs
 #PBS -j oe
+################################################################
 
-module load parallel
-module load ncl
+#module load parallel
+#module load ncl
 
-STYR=2021
-ENYR=2022
 NUMCORES=4
+
+STYR=1992
+ENYR=1992
+PATHTORAWERA5=/glade/derecho/scratch/${LOGNAME}/ERA5-DATM/
+
 TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt
-PATHTORAWERA5=/glade/scratch/${LOGNAME}/ERA5-DATM/
 
 declare -a months=("01" "02" "03" "04" "05" "06" "07" "08" "09" "10" "11" "12")
 
@@ -43,5 +49,4 @@ else
   parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
 fi
 
-rm ${COMMANDFILE}
-
+rm -v ${COMMANDFILE}
