@@ -22,7 +22,7 @@ wgt_filename="/glade/u/home/zarzycki/scratch/map_era5_0.25_TO_360x720_cruncep_pa
 
 ; ----- internal settings
 filenames = (/"TPQWL","Solar","Prec"/)
-outfolders = (/"TPHWL6Hrly","Solr","Precip6Hrly"/)
+outfolders = (/"TPQW","Solar","Precip"/)
 
 ;==============================================================
 
