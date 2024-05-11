@@ -41,6 +41,7 @@ if [[ -f "$FINALsolar" && -f "$FINALprecip" && -f "$FINALstate" ]]; then
 fi
 
 echo "Remapping $SOURCEDATE"
+echo "Writing ${TMPsolar}  ${TMPprecip}  ${TMPstate}"
 ncremap -v FSDS -i ${SOURCE} -o ${TMPsolar} -m ${MAPFILE}
 ncremap -v PRECT -i ${SOURCE} -o ${TMPprecip} -m ${MAPFILE}
 ncremap -v FLDS,UBOT,VBOT,QBOT,TBOT,PS -i ${SOURCE} -o ${TMPstate} -m ${MAPFILE}
@@ -67,9 +68,9 @@ ncrename -v PS,PSRF ${TMPstate}
 ncrename -v PRECT,PRECTmms ${TMPprecip}
 
 echo "Deleting variables"
-ncks -O -x -v area,gw ${TMPsolar} ${TMPsolar}
-ncks -O -x -v UBOT,VBOT,area,gw ${TMPstate} ${TMPstate}
-ncks -O -x -v area,gw ${TMPprecip} ${TMPprecip}
+ncks -O -C -x -v area,gw ${TMPsolar} ${TMPsolar}
+ncks -O -C -x -v UBOT,VBOT,area,gw ${TMPstate} ${TMPstate}
+ncks -O -C -x -v area,gw ${TMPprecip} ${TMPprecip}
 
 echo "Converting to nc3"
 nccopy -k nc6 ${TMPsolar} ${FINALsolar}

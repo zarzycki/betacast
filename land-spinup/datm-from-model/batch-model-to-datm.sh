@@ -2,7 +2,7 @@
 ################################################################
 #### PMCPU
 ################################################################
-#SBATCH --qos=regular
+#SBATCH --qos=premium
 #SBATCH --time=11:30:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=128
@@ -10,9 +10,9 @@
 ################################################################
 
 dryrun=false
-MODEL_DATASTREAM_DIR=/pscratch/sd/c/czarzyck/hyperion/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900/h5/
-MAPFILE=~/m2637/betacast/regrid_maps/map_ne0np4natlanticref.ne30x4_TO_era5_0.25x0.25_patc.nc
-OUTDIRBASE="/pscratch/sd/c/czarzyck/hyperion/DATM/"
+MODEL_DATASTREAM_DIR=/pscratch/sd/c/czarzyck/hyperion/CHEY.VR28.NATL.EXT.CAM5.4CLM5.0.dtime900.002/h5/
+MAPFILE=~/m2637/betacast/regrid_maps/map_ne0np4natlanticext.ne30x4_TO_era5_0.25x0.25_patc.nc
+OUTDIRBASE="/global/homes/c/czarzyck/m2637/DATM_FORCING/"
 
 SCRIPTDIR=$PWD
 
@@ -24,8 +24,9 @@ if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
   export NCARG_ROOT=/global/homes/c/czarzyck/.conda/pkgs/ncl-6.6.2-h3fdc804_41/
   PATHTONCL=/global/homes/c/czarzyck/.conda/envs/e3sm_unified_1.8.1_nompi/bin/
   source /global/common/software/e3sm/anaconda_envs/load_latest_e3sm_unified_pm-cpu.sh
+  #source /global/common/software/e3sm/anaconda_envs/load_e3sm_unified_1.9.3_pm-cpu.sh
   module load parallel
-  NUMCORES=42
+  NUMCORES=32
 elif [[ $SERVER_NAME == *"casper"* ]] || [[ $SERVER_NAME == *"crhtc"* ]]; then
   echo "Using Casper"
   module load parallel
