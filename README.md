@@ -383,7 +383,7 @@ where `auto-script` takes in eight command line inputs:
 | Namelist Variable | Description |
 | --- | --- |
 | MODELSYSTEM | Modeling system to use (integer, 0 = CLM, 1 = ELM) |
-| DOERA5 | Use [ERA5](#era5_data_files) to override CRU/NCEP? (integer, 0 = True, 1 = False) |
+| DATAFORCING | Which data forcing to use? (integer, 0 = ERA5, 1 = CRU/NCEP, 2 = CAM/E3SM) |
 | DATEYYYYMMDD | Date a CLM/ELM restart file is needed in YYYYMMDD (00Z) |
 | NMONTHS | Integer number of months to spinup |
 | NCYCLES | Integer number of cycles to spinup (>=1) |
@@ -453,7 +453,9 @@ There are also optional settings that are not required but can be added to overr
 | USER\_FINIDAT | Override default (cold start) findat file |
 | USER\_ICOMPSET | Override default I compset for either CLM/ELM |
 | USER\_JOB\_PRIORITY | Override default job priority |
-| BUILD\_ONLY | If passed in as true, script will not submit run (default internally is false) |
+| BUILD\_ONLY | If passed in as true, script will not submit run (false if not set) |
+| FORCE\_PURGE | If passed in as true, script will "pre-delete" case directory and run directory (if specified by RUN\_DIR\_BASE). Useful for debugging/iterating, but should generally be false (false if not set) |
+| RUN\_DIR\_BASE | If FORCE\_PURGE is true, this directory specifies the top level "scratch" directory where the case lives (e.g., `/glade/scratch/$LOGNAME/`) so the code can purge the run directory in addition to the case directory. Otherwise unused (false if not set). |
 
 So the general workflow is:
 
@@ -463,7 +465,7 @@ So the general workflow is:
 4. Run `./auto-script.sh` specifying the above command line options. Wait for model to configure, build, and submit.
 5. Pending successful completion of `./auto-script`, stage initial files in `$CASENAME/landstart` for Betacast.
 
-Invoking `./auto-script.sh` should configure, build, and submit the I compset. The model will then run (dependent on queue wait times, of course). Following the (hopefully successful) run, the spunup land/runoff restart (i.e., initial conditions) files will be located in the I compset directory (contains a `*.r.*.nc`) and will need to be copied to the `landstart` subfolder in the coupled Betacast directory to be use pulled for initialization. A simple bash snippet for taking a finished land spinup and staging for a full Betacast run is below, although one could also copy these files to a common directory and symlink them, etc.
+Invoking `./auto-script.sh` should configure, build, and submit the I compset. The model will then run (dependent on queue wait times, of course). Following the (hopefully successful) run, the spunup land/runoff restart (i.e., initial conditions) files will be located in the I compset run directory (contains a `*.r.*.nc`) and will need to be copied to the `landstart` subfolder in the coupled Betacast directory to be use pulled for initialization. A simple bash snippet for taking a finished land spinup and staging for a full Betacast run is below, although one could also copy these files to a common directory and symlink them, etc.
 
 ```
 CASENAME=RoS-F2010C5-ne0conus30x8-001-PI
@@ -515,7 +517,7 @@ perturb_namelist = /global/homes/c/czarzyck/betacast/namelists/perturb.sample.nl
 | Namelist Variable | Type | Description |
 | --- | --- | --- |
 | case | string | "Deltas" case (currently only CESMLENS supported) |
-| basedir | string | Base directory where `case` deltas are stored |
+| basedir | string | Base directory where `case` deltas are stored. Currently housed on Derecho/NCAR `/glade/campaign/cgd/amp/zarzycki/deltas/` and Perlmutter/NERSC `/global/cfs/cdirs/m2637/betacast/deltas/`. |
 | start\_month | int | Path to where re/analysis + model initial conditions/forcing data is stored |
 | end\_month | int | Path (top-level) to directory where CESM actively runs |
 | current\_year | int | Reference year to calculate deltas from |
@@ -534,7 +536,7 @@ perturb_namelist = /global/homes/c/czarzyck/betacast/namelists/perturb.sample.nl
 | adjust\_ice | bool | Adjust ice fraction based on deltas + freezing/melting? (generally **True**) |
 | output\_sst\_diag | bool | Output a separate diagnostics file with deltas and other info? |
 
-A template namelist is in the repo under `$BETACAST/namelists/perturb.sample.nl`. It is strongly suggested to just copy this file and edit individual keys as desired to ensure all required variables are present on the file. Betacast should print information regarding how the deltas (and their successful application) which should be verified by the user.
+A template namelist is in the repo under `$BETACAST/namelists/perturb.sample.nl`. It is strongly suggested to just copy this file and edit individual keys as desired to ensure all required variables are present on the file. Betacast should print information in the output stream regarding the deltas (and their successful application) -- this should be verified by the user at run time.
 
 ---
 
@@ -543,11 +545,11 @@ A template namelist is in the repo under `$BETACAST/namelists/perturb.sample.nl`
 <a name="era5_data_files"></a>
 ### Generating ERA5 DATM files
 
-When nudging the land model to initialize CLM/ELM, we need 'forcing' files for DATM. While we can use some existing forcing files in the CESM/E3SM repo, it may be beneficial to initialize using ERA5 forcing. To do so, we need to generate the ERA5 forcing files and data streams for running with an I compset.
+When nudging the land model to initialize CLM/ELM, we need 'forcing' files for DATM. While we can use some existing forcing files in the CESM/E3SM repo, it may be beneficial to initialize using ERA5 forcing because this contains higher spatiotemporal frequency of surface fields. To do so, we need to generate the ERA5 forcing files and data streams for running with an I compset.
 
 The process is pretty straightforward.
 
-1. Download files from ERA5 repository.
+1. Download files from ERA5 repository with relevant surface variables.
 2. Gen DATM files using this raw ERA5 data.
 3. (optional) add climate deltas for counterfactual runs -- although easier to do with `anomaly' streams instead.
 4. Add `user_datm_` files to your `I` case directory.
@@ -557,7 +559,7 @@ The process is pretty straightforward.
 ```
 cd ${BETACAST}/land-spinup/gen_datm/get-era5
 ## Need to have cdsapi Python library loaded -- on NCAR see next line
-ncar_pylib
+module load conda ; conda activate npl
 ## Edit ./driver-get-era5.sh for years + local location for download
 nohup ./driver-get-era5.sh &
 ```
@@ -565,8 +567,8 @@ nohup ./driver-get-era5.sh &
 #### 2. Generate DATM files
 
 ```
-cd ${BETACAST}/land-spinup/gen_datm/get-era5
-## Set years etc.
+cd ${BETACAST}/land-spinup/gen_datm/get-era5/
+## Set years, etc. in driver script
 qsubcasper driver-gen-datm.sh
 ```
 
