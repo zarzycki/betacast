@@ -432,10 +432,11 @@ if [ $debug = false ] ; then
     if [ ! -f ${LOCALGFSFILE} ]; then
       echo "Getting Atmo file"
       if [ $islive = true ] ; then
-        rm -f gfs.t*pgrb2f00*
-        gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/atmos/
+        gfsFTPPath=https://ftpprd.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/atmos/
+        #gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/atmos/
         #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
         gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p25.anl'
+        rm -fv ${gfsFTPFile}
         #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p50.anl'
         echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
         ## Scrape for files
@@ -455,7 +456,7 @@ if [ $debug = false ] ; then
         cp ${gfsFTPPath}/${gfsFTPFile} .
         echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
       fi
-      mv $gfsFTPFile ${LOCALGFSFILE}
+      mv -v $gfsFTPFile ${LOCALGFSFILE}
     fi
   elif [ $atmDataType -eq 2 ] ; then
     echo "Using ERA-Interim forecast ICs"
@@ -549,9 +550,10 @@ if [ $debug = false ] ; then
     cd ${sst_files_path}
     if [ $islive = true ] ; then
       # Here is where we get the "live" GDAS SST file
-      rm -f gdas1*sstgrb*
-      sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/
+      sstFTPPath=https://ftpprd.ncep.noaa.gov/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/
+      #sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/
       sstFTPFile='rtgssthr_grb_0.5.grib2'
+      rm -fv ${sstFTPFile}
       echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
     else
       echo "NCEP broke support for historical GDAS, use NOAAOI instead."
@@ -568,7 +570,7 @@ if [ $debug = false ] ; then
       fi
     done
     sstFile='gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-    mv ${sstFTPFile} ${sstFile}
+    mv -v ${sstFTPFile} ${sstFile}
     iceFile=''   # do not need icefile since ice stored on sstfile
   elif [ ${sstDataType} -eq 2 ] ; then
     echo "ERA SST not quite supported yet..." ; exit 1
