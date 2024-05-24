@@ -25,17 +25,29 @@ component_patterns=(
     [rtm]="*mosart/*rof_comp_$COUPLER.F90*"
 )
 
+## Get the clean component name (remove any underscores)
+clean_component_name="${COMPONENT_NAME%%_*}"
+echo $clean_component_name
+if [[ $COMPONENT_NAME == *_* ]]; then
+  # If underscore exists, extract special string
+  special_string="_${COMPONENT_NAME#*_}"
+else
+  # Otherwise, we don't need a special string, so set to empty
+  special_string=""
+fi
+echo $special_string
+
 ## If the user gave us a bad component key, stop.
-if [[ -z ${component_patterns[$COMPONENT_NAME]} ]]; then
+if [[ -z ${component_patterns[$clean_component_name]} ]]; then
     echo "Invalid component key. Exiting."
     exit 1
 fi
 
 # Get this model's component type. This is "lnd", "rof", etc.
-component_type=${component_types[$COMPONENT_NAME]}
+component_type=${component_types[$clean_component_name]}
 
 # Get the pattern from above
-this_pattern=${component_patterns[$COMPONENT_NAME]}
+this_pattern=${component_patterns[$clean_component_name]}
 
 # Find the relevant file in the source tree using the pattern
 comp_restart_file=$(find ${PATHTOCESM} -type f -path "*/components/$this_pattern")
@@ -59,5 +71,5 @@ echo "Found file: $comp_restart_file"
 echo "Component: $COMPONENT_NAME"
 
 filename="${component_type}_comp_$COUPLER.F90"
-cp -v $comp_restart_file ./SourceMods/src.$COMPONENT_NAME
-patch ./SourceMods/src.$COMPONENT_NAME/$filename < ${BETACAST}/patches/${filename%.F90}.patch
+cp -v $comp_restart_file ./SourceMods/src.$clean_component_name
+patch ./SourceMods/src.$clean_component_name/$filename < ${BETACAST}/patches/${filename%.F90}${special_string}.patch

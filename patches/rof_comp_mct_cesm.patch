@@ -1,0 +1,13 @@
+--- /glade/u/home/zarzycki/work/cesm2_2_2/components/mosart/src/cpl/mct/rof_comp_mct.F90	2024-05-24 09:13:33.732565659 -0600
++++ rof_comp_mct.F90	2024-05-24 09:56:29.587542218 -0600
+@@ -295,6 +295,10 @@
+     write(rdate,'(i4.4,"-",i2.2,"-",i2.2,"-",i5.5)') yr_sync,mon_sync,day_sync,tod_sync
+     nlend = seq_timemgr_StopAlarmIsOn( EClock )
+     rstwr = seq_timemgr_RestartAlarmIsOn( EClock )
++    !--CMZ
++    if (tod_sync == 0) rstwr = .true.
++    if (tod_sync == 43200) rstwr = .true.
++    !--CMZ
+     call advance_timestep()
+     call Rtmrun(rstwr,nlend,rdate)
+ 
