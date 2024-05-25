@@ -9,11 +9,11 @@ cyclestrsec=00000
 ###############################################################################
 nclweightfile=$1
 runDir=$2
-path_to_ncl=/storage/home/cmz5202/sw/betacast/plotting_ncl/
-htmlFolder=/storage/home/cmz5202/sw/betacast/html_for_upload/
-twodaysago=20120821
+betacastPath=$3
+path_to_ncl=${betacastPath}/plotting_ncl/
+htmlFolder=${betacastPath}/html_for_upload/
 
-echo "SSHings..."
+echo "UPLOAD_NCL: SSHings..."
 ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${yearstr}${monthstr}${daystr}${cyclestr} ; \
   cd /home/colinzar/www/www/current2/ ; \
   cp *cfg *html ${yearstr}${monthstr}${daystr}${cyclestr} ; \
@@ -22,11 +22,16 @@ ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${years
 ## UPDATE html page
 cd ${htmlFolder}
 if [ ! -f index.html ]; then
-  echo "copying index and sedding in this date"
-  cp -v index.HOLD index.html
+  if [ ! -f index.HOLD ]; then
+    echo "UPLOAD_NCL: downloading index from server"
+    scp colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/index.html index.html
+  else
+    echo "UPLOAD_NCL: copying index from HOLD"
+    cp -v index.HOLD index.html
+  fi
+  echo "UPLOAD_NCL: sedding in this date"
   sed '/<!--FORECASTHEAD-->/ r htmltemplate.html' index.html > _index1.html
-  sed -e "/$twodaysago${cyclestr}/d" _index1.html > _index2.html
-  sed -e "s/YYYYMMDDHH/${yearstr}${monthstr}${daystr}${cyclestr}/" _index2.html > _index3.html
+  sed -e "s/YYYYMMDDHH/${yearstr}${monthstr}${daystr}${cyclestr}/" _index1.html > _index3.html
   mv _index3.html index.html
   rm _index*.html
   scp index.html colinzar@colinzarzycki.com:/home/colinzar/www/www/current2
@@ -56,7 +61,7 @@ for i in `seq 1 ${numfiles}`; do
 done
 
 sleep 5
-echo "Found at least one file"
+echo "UPLOAD_NCL: Found at least one file"
 echo $filenames
 
 cd ${runDir}
@@ -65,12 +70,22 @@ for i in *h0*.nc; do mv $i _$i; done
 cd ${htmlFolder}
 newfiles=`ls ${runDir}/_*h0*-00000.nc ${runDir}/_*h0*-21600.nc ${runDir}/_*h0*-43200.nc ${runDir}/_*h0*-64800.nc`
 for f in $newfiles; do
-  echo "Processing $f"
-  ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec iniday=$daystr inimon=$monthstr iniyear=$yearstr 'filename="'${f}'"' 'wgt_file="'${nclweightfile}'"' > ncl.output 2>&1
+  echo "UPLOAD_NCL: Processing $f"
+  (set -x; env PATH_TO_NCL=$path_to_ncl ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec \
+    iniday=$daystr \
+    inimon=$monthstr \
+    iniyear=$yearstr \
+    'filename="'${f}'"' \
+    'wgt_file="'${nclweightfile}'"' > ncl.output 2>&1 )
   if grep -q "FileReadVar" ncl.output; then
     sleep 5
-    echo "Found an error"
-    ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec iniday=$daystr inimon=$monthstr iniyear=$yearstr 'filename="'${f}'"' 'wgt_file="'${nclweightfile}'"'
+    echo "UPLOAD_NCL: Found an error, try again"
+    (set -x; env PATH_TO_NCL=$path_to_ncl ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec \
+      iniday=$daystr \
+      inimon=$monthstr \
+      iniyear=$yearstr \
+      'filename="'${f}'"' \
+      'wgt_file="'${nclweightfile}'"' )
   fi
   #rm ncl.output
 done
@@ -94,13 +109,13 @@ do
   do
     #printf "   %s\n" $item
     if [ ! -f ${item}_${basin}_files.txt ]; then
-      echo "File not found!"
+      echo "UPLOAD_NCL: File not found!"
       ls -1 ${item}_${basin}*png > ${item}_${basin}_files_nopath.txt
     else
-      mv ${item}_${basin}_files_nopath.txt orig_${item}_${basin}_files.txt
+      mv -v ${item}_${basin}_files_nopath.txt orig_${item}_${basin}_files.txt
       ls -1 ${item}_${basin}*png > tocat_${item}_${basin}_files.txt
       cat orig_${item}_${basin}_files.txt tocat_${item}_${basin}_files.txt > ${item}_${basin}_files_nopath.txt
-      rm tocat_${item}_${basin}_files.txt orig_${item}_${basin}_files.txt
+      rm -v tocat_${item}_${basin}_files.txt orig_${item}_${basin}_files.txt
     fi
 
     cp -v ${item}_${basin}_files_nopath.txt ${item}_${basin}_files.txt
@@ -109,18 +124,18 @@ do
 done
 
 # Copy tracker data over if around...
-mv -v /storage/home/cmz5202/sw/betacast/cyclone-tracking/trajs.*.png .
-cp -v /storage/home/cmz5202/sw/betacast/cyclone-tracking/fin-atcf/atcf.tempest.${yearstr}${monthstr}${daystr}${cyclestr} .
+mv -v ${betacastPath}/cyclone-tracking/trajs.*.png .
+cp -v ${betacastPath}/cyclone-tracking/fin-atcf/atcf.tempest.${yearstr}${monthstr}${daystr}${cyclestr} .
 
 ## Move files to server
 ## Google create remote directory if not existant
 ## use rysnc?
-echo "Moving files to remote server"
+echo "UPLOAD_NCL: Moving files to remote server"
 scp *.png *.txt atcf.tempest* colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/${yearstr}${monthstr}${daystr}${cyclestr}
 #mv $newfiles $procdir
 
 mkdir ${yearstr}${monthstr}${daystr}${cyclestr}
-mv *.png *.txt atcf.tempest* ${yearstr}${monthstr}${daystr}${cyclestr}
+mv -v *.png *.txt atcf.tempest* ${yearstr}${monthstr}${daystr}${cyclestr}
 rm -rf ${yearstr}${monthstr}${daystr}${cyclestr}
 
 ### Finish uploading index.html
