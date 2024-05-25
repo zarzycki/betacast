@@ -137,7 +137,6 @@ In `${BETACAST}/machine_files` there are sample files that define where folders 
 | path\_to\_case | Path to CESM "home" case directory |
 | path\_to\_inputdata | Path to where re/analysis + model initial conditions/forcing data is stored |
 | path\_to\_rundir | Path (top-level) to directory where CESM actively runs |
-| sewxscriptsdir | Path to betacast repo (i.e., `${BETACAST}`) |
 
 ### 3.2 Edit namelist file for your particular case
 

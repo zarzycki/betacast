@@ -1,7 +1,6 @@
 path_to_case = /storage/home/cmz5202/SEWX/!CASENAME!
 path_to_inputdata = /gpfs/group/cmz5202/default/sewx/
 path_to_rundir = ~/scratch/output/!CASENAME!/run/
-sewxscriptsdir = ~/sw/betacast/
 TE_SERIAL_DIR = /storage/home/cmz5202/sw/tempestextremes_noMPI/
 
 ### These do not need to be changed except in special circumstances
@@ -18,9 +17,6 @@ sstFileIC = ${pathToSSTfiles}/sst_!CASENAME!_DOCNRES.nc
 gfs_files_path = ${path_to_inputdata}/GFS/
 era_files_path = ${path_to_inputdata}/ECMWF/
 sst_files_path = ${path_to_inputdata}/SST/
-
-# Where is the NCL script for live uploads?
-upload_ncl_script = ${sewxscriptsdir}/upload_ncl.sh
 
 ### Special CIME flags. ___ (the underscores) is converted to a space
 CIMEsubstring = "--skip-preview-namelist"
