@@ -70,11 +70,11 @@ tmparchivecdir=${path_to_rundir}/proc/              # Path to temporarily stage 
 landdir=${path_to_rundir}/landstart/            # Path to store land restart files
 ###################################################################################
 ### THESE COME WITH THE REPO, DO NOT CHANGE #######################################
-gfs_to_cam_path=${sewxscriptsdir}/gfs_to_cam
-era_to_cam_path=${sewxscriptsdir}/interim_to_cam
-atm_to_cam_path=${sewxscriptsdir}/atm_to_cam
-sst_to_cam_path=${sewxscriptsdir}/sst_to_cam
-filter_path=${sewxscriptsdir}/filter
+gfs_to_cam_path=${SCRIPTPATH}/gfs_to_cam
+era_to_cam_path=${SCRIPTPATH}/interim_to_cam
+atm_to_cam_path=${SCRIPTPATH}/atm_to_cam
+sst_to_cam_path=${SCRIPTPATH}/sst_to_cam
+filter_path=${SCRIPTPATH}/filter
 ###################################################################################
 
 ### setting variables not included in namelist for backwards compat
@@ -457,6 +457,8 @@ if [ $debug = false ] ; then
         echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
       fi
       mv -v $gfsFTPFile ${LOCALGFSFILE}
+    else
+      echo "${LOCALGFSFILE} already exists, skipping download"
     fi
   elif [ $atmDataType -eq 2 ] ; then
     echo "Using ERA-Interim forecast ICs"
@@ -1454,7 +1456,7 @@ mv -v $tmparchivecdir ${ARCHIVEDIR}/${ARCHIVESUBDIR}
 if $dotracking ; then
 
   # Go to cyclone tracking folder...
-  cd ${sewxscriptsdir}/cyclone-tracking/
+  cd ${SCRIPTPATH}/cyclone-tracking/
 
   # Set a few things that are hardcoded
   TCVITFOLDER=./fin-tcvitals/
@@ -1493,13 +1495,14 @@ fi
 if $sendplots ; then
   ### Begin output calls
   echo "Sending plots!"
+  upload_ncl_script="${SCRIPTPATH}/upload_ncl.sh"
   cp ${upload_ncl_script} ${upload_ncl_script}.${uniqtime}.ncl
   sed -i 's?.*yearstr=.*?yearstr='${yearstr}'?' ${upload_ncl_script}.${uniqtime}.ncl
   sed -i 's?.*monthstr=.*?monthstr='${monthstr}'?' ${upload_ncl_script}.${uniqtime}.ncl
   sed -i 's?.*daystr=.*?daystr='${daystr}'?' ${upload_ncl_script}.${uniqtime}.ncl
   sed -i 's?.*cyclestrsec=.*?cyclestrsec='${cyclestrsec}'?' ${upload_ncl_script}.${uniqtime}.ncl
   sed -i 's?.*cyclestr=.*?cyclestr='${cyclestr}'?' ${upload_ncl_script}.${uniqtime}.ncl
-  (set -x; /bin/bash ${upload_ncl_script}.${uniqtime}.ncl ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr} )
+  (set -x; /bin/bash ${upload_ncl_script}.${uniqtime}.ncl ${nclPlotWeights} ${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr} ${SCRIPTPATH} )
   # Cleanup
   rm ${upload_ncl_script}.${uniqtime}.ncl
 fi
@@ -1522,7 +1525,7 @@ print_elapsed_time "$script_start" "$script_end"
 
 ### If not live and the run has made it here successively, delete top line of datesfile
 if [ $islive = false ] ; then
-  cd ${sewxscriptsdir}
+  cd ${SCRIPTPATH}
   #Remove top line from dates file
   remove_top_line_from_dates ${datesfile}
 
