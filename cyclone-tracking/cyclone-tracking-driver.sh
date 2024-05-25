@@ -34,7 +34,7 @@ if [ $# -eq 11 ] ; then
   ATCFTECH=${10}
   TEMPESTEXTREMESDIR=${11}
 else
-  echo "Oops... this script requires 11 arguments, not "$#
+  echo "cyclone-tracking-driver: Oops... this script requires 11 arguments, not "$#
   exit
 fi
 
@@ -60,7 +60,7 @@ FILES=`ls ${PATHTOFILES}/*.?am.${HSTREAMTRACK}.*.nc`
 rm -v cyc.${UQSTR} trajectories.txt.${UQSTR}
 touch cyc.${UQSTR}
 for f in ${FILES[@]}; do
-  echo "Processing $f..."
+  echo "cyclone-tracking-driver: Processing $f..."
   ${TEMPESTEXTREMESDIR}/bin/DetectNodes --verbosity 0 --timestride ${TIMESTRIDE} --in_data "${f}" ${CONNECTFLAG} --out cyc_tempest.${UQSTR} --mergedist 5.0 --searchbymin PSL --outputcmd "PSL,min,0;_VECMAG(UBOT,VBOT),max,2"
   cat cyc_tempest.${UQSTR} >> cyc.${UQSTR}
   rm -v cyc_tempest.${UQSTR}
@@ -94,9 +94,10 @@ if [ -f ${TCVITFILE} ]; then
     # Now concat new lines!
     cat ${ATCFFILE} >> ${ATCFFILEMERGE}
   fi
+  echo "cyclone-tracking-driver: plotting ATCF"
   ncl plot_ATCF.ncl
   if [ "$SENDHTML" = true ]; then
-    echo "SSHings..."
+    echo "cyclone-tracking-driver: SSHings..."
     ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${YYYYMMDDHH} "
     scp enstraj.${YYYYMMDDHH}.png colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/${YYYYMMDDHH}/ens_traj.png
   fi

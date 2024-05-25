@@ -30,10 +30,10 @@ Will procure the TC Vitals file for Aug, 21. 2018 at 00Z and store it within a s
 
 Requirements: CAM or EAM data with PSL, UBOT, and VBOT on the files at <= 6-hourly time frequency. Code only tracks at 6-hourly frequency (to match WMO operations) so if higher time frequency is passed in (e.g., 3-hourly) the `TIMESTRIDE` argument below must be updated.
 
-Then `./drive-tracking.sh` can be invoked with the following format (11 command line arguments!).
+Then `./cyclone-tracking-driver.sh` can be invoked with the following format (11 command line arguments!).
 
 ```
-/bin/bash ./drive-tracking.sh ${YYYYMMDDHH} \
+/bin/bash ./cyclone-tracking-driver.sh ${YYYYMMDDHH} \
 	${CASENAME} \
 	${TCVITFILE} \
 	${ATCFFILE} \
@@ -80,7 +80,7 @@ cd ${TE_NOMPI_DIR}/bin/
 
 ### Calculate statistics with MET
 
-An optional (but common) step is to calculate a variety of operational statistics with DTC's [Model Evaluation Tools](https://dtcenter.org/community-code/model-evaluation-tools-met). This is beyond the scope of this README right now, but the ATCF that comes out of this code can be used as any a-deck file would be for any model. See the above link for more details. 
+An optional (but common) step is to calculate a variety of operational statistics with DTC's [Model Evaluation Tools](https://dtcenter.org/community-code/model-evaluation-tools-met). This is beyond the scope of this README right now, but the ATCF that comes out of this code can be used as any a-deck file would be for any model. See the above link for more details.
 
 A sample set of scripts is provided in `./met-tc/`. After navigating to that folder, the basic workflow for calculating error statistics is:
 
@@ -132,10 +132,10 @@ Running `./tc-pairs.sh` should generate a file that contains filtered and/or mat
 NOTE: If you get an error like the below (experienced in v7.0)
 
 ```
-WARNING: 
+WARNING:
 WARNING: int ATCFTrackLine::read_line(LineDataFile * ldf) -> found fewer than the expected number of elements (6) in ATCF track line:
 WARNING: AL, 05, 2021063018, 03, HWRF, 078,
-WARNING: 
+WARNING:
 ```
 
 This is *not* a warning and the malformed lines need to be deleted!

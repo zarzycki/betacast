@@ -12,7 +12,7 @@ OUTPUTBASE="/global/cscratch1/sd/jjbenedi/e3sm_scratch/cori-knl/${casename}.${YY
 sendHTML=false
 connectfile="/global/homes/c/czarzyck/betacast/cyclone-tracking/ne0np4natlanticref.ne30x4.connect_v2.dat"
 TEMPESTEXTREMESDIR=/global/homes/c/czarzyck/sw/tempestextremes_noMPI/
- 
+
 # Define some betacast specific stuff
 ATCFFILE=atcf.${casename}.${YYYYMMDDHH}
 TCVITFOLDER=./fin-tcvitals/
@@ -21,7 +21,7 @@ TCVITFOLDER=./fin-tcvitals/
 ./get-vitals.sh ${YYYYMMDDHH} ${TCVITFOLDER}
 
 ## Now track using tempest and match up tracked TCs with those in observations + put in ATCF format (for use in met tools, etc.)
-./drive-tracking.sh ${YYYYMMDDHH} \
+./cyclone-tracking-driver.sh ${YYYYMMDDHH} \
     ${casename} \
     ${TCVITFOLDER}/tcvitals.${YYYYMMDDHH} \
     ${ATCFFILE} \

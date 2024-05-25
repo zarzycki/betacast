@@ -12,7 +12,7 @@
 TCVITFOLDER=${2}
 YYYYMMDDHH=${1}
 
-echo "Getting TC vitals for ${YYYYMMDDHH} and putting them in ${TCVITFOLDER}"
+echo "get-vitals: Getting TC vitals for ${YYYYMMDDHH} and putting them in ${TCVITFOLDER}"
 
 # Split YYYYMMDDHH into components
 yearstr=${YYYYMMDDHH:0:4}
@@ -26,17 +26,17 @@ mkdir -p ./fin-figs/
 mkdir -p ./fin-atcf/
 if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
   COMBINEDVITFILE=combined_tcvitals.${yearstr}.dat
-  echo "${TCVITFILE} doesn't exist, attempting to create from ${TCVITFOLDER}/combined/${COMBINEDVITFILE}"
+  echo "get-vitals: ${TCVITFILE} doesn't exist, attempting to create from ${TCVITFOLDER}/combined/${COMBINEDVITFILE}"
   mkdir -v -p ${TCVITFOLDER}/combined/
   if [ ! -f ${TCVITFOLDER}/combined/${COMBINEDVITFILE} ]; then
-    echo "${TCVITFOLDER}/combined/${COMBINEDVITFILE} doesn't exist, attempting to download"
+    echo "get-vitals: ${TCVITFOLDER}/combined/${COMBINEDVITFILE} doesn't exist, attempting to download"
     cd ${TCVITFOLDER}/combined/
     if [[ $yearstr -gt 2018 ]]; then
-      echo "Year $yearstr is 2019 or later, try to get from NCAR RAL"
+      echo "get-vitals: Year $yearstr is 2019 or later, try to get from NCAR RAL"
       wget http://hurricanes.ral.ucar.edu/repository/data/tcvitals_open/${COMBINEDVITFILE}
       CLEARCOMBINEDVIT=true
     else
-      echo "Year $yearstr is 2018 or earlier, try to get from NOAA NHC archives"
+      echo "get-vitals: Year $yearstr is 2018 or earlier, try to get from NOAA NHC archives"
       wget -q -nd -r --no-parent -P ./ -A dat "https://ftp.nhc.noaa.gov/atcf/archive/${yearstr}/tcvitals/"
       rm *tcvitals.dat
       cat *tcvitals-arch.dat > ${COMBINEDVITFILE}
@@ -53,5 +53,6 @@ fi
 # Remove duplicate lines if necessary
 sort -u ${TCVITFILE} -o ${TCVITFILE}
 
+echo "get-vitals: end of script"
 echo "******* TCVIT FILE INFO"
 head -20 ${TCVITFILE}

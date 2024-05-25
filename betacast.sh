@@ -1454,6 +1454,7 @@ fi
 mv -v $tmparchivecdir ${ARCHIVEDIR}/${ARCHIVESUBDIR}
 
 if $dotracking ; then
+  echo "User has requested cyclones to be tracked"
 
   # Go to cyclone tracking folder...
   cd ${SCRIPTPATH}/cyclone-tracking/
@@ -1472,7 +1473,7 @@ if $dotracking ; then
   if [ -f ${TCVITFILE} ] && [[ ! -z $(cat ${TCVITFILE}) ]] ; then  # if file does exist (i.e., it was downloaded) and isn't empty, run tracker
     echo "Found a TCvitals with at least one storm, running tracking code"
     echo ${TCVITFILE} ; head -100 ${TCVITFILE}
-    (set -x; /bin/bash ./drive-tracking.sh ${yearstr}${monthstr}${daystr}${cyclestr} \
+    (set -x; /bin/bash ./cyclone-tracking-driver.sh ${yearstr}${monthstr}${daystr}${cyclestr} \
       ${casename} \
       ${TCVITFILE} \
       ${ATCFFILE} \
@@ -1494,7 +1495,7 @@ fi
 
 if $sendplots ; then
   ### Begin output calls
-  echo "Sending plots!"
+  echo "Sending plots to remove server!"
   upload_ncl_script="${SCRIPTPATH}/upload_ncl.sh"
   cp ${upload_ncl_script} ${upload_ncl_script}.${uniqtime}.ncl
   sed -i 's?.*yearstr=.*?yearstr='${yearstr}'?' ${upload_ncl_script}.${uniqtime}.ncl
