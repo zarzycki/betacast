@@ -5,10 +5,7 @@
 ; inisec (24000)
 ; filename
 
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "/storage/home/cmz5202/sw/betacast/plotting_ncl/functions/rainratetodbz.ncl"
+load "$PATH_TO_NCL/functions/rainratetodbz.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
@@ -209,14 +206,14 @@ precbsn_in=where(precbsn_in.lt.0.1,precbsn_in@_FillValue,precbsn_in)
 ;vort500 = vort500/1e-5
 ;vort500@units="1E-5 1/s"
 
-vort500 = uv2vr_cfd (u500,v500,lat,lon, 2) 
+vort500 = uv2vr_cfd (u500,v500,lat,lon, 2)
 copy_VarMeta(u850,vort500)
 vort500 = vort500/1e-5
 vort500@units="1E-5 1/s"
 vort500@long_name="Vorticity"
 ;printVarSummary(vort500)
 
-wind = u850 
+wind = u850
 wind = sqrt(u850^2 + v850^2)
 
 tsf = ts
@@ -237,7 +234,7 @@ ptype = where(prect_mmday .lt. 0.1,ptype@_FillValue,ptype)
 ;*****************************************************
 
 print("doing anoms")
-f_anom=addfile("/storage/home/cmz5202/sw/betacast/plotting_ncl/climo-files/TS-1980-2009-NCEP.nc","r")
+f_anom=addfile("$PATH_TO_NCL/climo-files/TS-1980-2009-NCEP.nc","r")
 ANOMTIME=f_anom->time
 ANOMDATE=cd_inv_calendar(2000,toint(monstr),toint(daystr),toint(hourstr),0,0,ANOMTIME@units,0)
 TSANOM=f_anom->TS({ANOMDATE},:,:)
@@ -259,29 +256,29 @@ do plotindex = 0,2
 snowstride=toint(360.0/dlat)
 tsstride=toint(360.0/dlat)
 windstride=toint(360.0/dlat)
-  
+
 ; NORTH ATLANTIC
-;if (plotindex .eq. 0)
-;  plotname = "natl"
-;  maxlat = 55.           ; NATL         
-;  minlat = 5.
-;  maxlon = -5. 
-;  minlon = -100.
-;  snowstride=toint(4.5/dlat)
-;  tsstride=toint(6.0/dlat)
-;  windstride=toint(4.0/dlat)
 if (plotindex .eq. 0)
   plotname = "natl"
-  maxlat = 53.           ; CONUS         
-  minlat = 21.
-  maxlon = 295.-360. 
-  minlon = 231.-360.
-  snowstride=toint(2.25/dlat)
-  tsstride=toint(3.125/dlat)
-  windstride=toint(2.0/dlat)
+  maxlat = 55.           ; NATL
+  minlat = 5.
+  maxlon = -5.
+  minlon = -100.
+  snowstride=toint(4.5/dlat)
+  tsstride=toint(6.0/dlat)
+  windstride=toint(4.0/dlat)
+;if (plotindex .eq. 0)
+;  plotname = "natl"
+;  maxlat = 53.           ; CONUS
+;  minlat = 21.
+;  maxlon = 295.-360.
+;  minlon = 231.-360.
+;  snowstride=toint(2.25/dlat)
+;  tsstride=toint(3.125/dlat)
+;  windstride=toint(2.0/dlat)
 ;else if (plotindex .eq. 1)    ; ORIG EPAC
 ;  plotname = "epac"
-;  maxlat = 40.             
+;  maxlat = 40.
 ;  minlat = 5.
 ;  maxlon = -90.
 ;  minlon = -165.
@@ -290,52 +287,52 @@ if (plotindex .eq. 0)
 ;  windstride=toint(4.0/dlat)
 else if (plotindex .eq. 1)     ; NE USA
   plotname = "epac"
-  maxlat = 49.              
+  maxlat = 49.
   minlat = 37.
-  maxlon = 295.-360. 
+  maxlon = 295.-360.
   minlon = 275.-360.
   snowstride=toint(0.75/dlat)
   tsstride=toint(1.0/dlat)
   windstride=toint(2.0/dlat)
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Caribbean
 ;  plotname = "epac"
-;  maxlat = 30.              
+;  maxlat = 30.
 ;  minlat = 10.
-;  maxlon = -55. 
+;  maxlon = -55.
 ;  minlon = -85.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for Gulf
 ;  plotname = "epac"
-;  maxlat = 35.              
+;  maxlat = 35.
 ;  minlat = 10.
-;  maxlon = -70. 
+;  maxlon = -70.
 ;  minlon = -105.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for SE USA
 ;  plotname = "epac"
-;  maxlat = 37.              
+;  maxlat = 37.
 ;  minlat = 20.
-;  maxlon = 289. 
+;  maxlon = 289.
 ;  minlon = 269.
 ;else if (plotindex .eq. 2)     ; for Gulf + Carrib
 ;  plotname = "float1"
-;  maxlat = 33.              
+;  maxlat = 33.
 ;  minlat = 8.
-;  maxlon = -58. 
+;  maxlon = -58.
 ;  minlon = -100.
 ;else if (plotindex .eq. 1)     ; Modif EPAC for CONUS
 ;  plotname = "epac"
-;  maxlat = 53.              
+;  maxlat = 53.
 ;  minlat = 25.
-;  maxlon = 300. 
+;  maxlon = 300.
 ;  minlon = 230.
 ;else if (plotindex .eq. 2)     ; Modif EPAC for Colorado
 ;  plotname = "float1"
-;  maxlat = 41.5              
+;  maxlat = 41.5
 ;  minlat = 36.5
-;  maxlon = 258.5-360. 
+;  maxlon = 258.5-360.
 ;  minlon = 250.5-360.
 ;else if (plotindex .eq. 2)     ; Modif EPAC for WPAC
 ;  plotname = "float1"
-;  maxlat = 40.0              
+;  maxlat = 40.0
 ;  minlat = 5.0
 ;  maxlon = 170.0
 ;  minlon = 75.0
@@ -346,16 +343,16 @@ else if (plotindex .eq. 2)     ; Modif GLOB
   plotname = "float1"
   maxlat = 80.0
   minlat = -80.0
-  maxlon = 180. 
+  maxlon = 180.
   minlon = -180.
   snowstride=toint(7.5/dlat)
   tsstride=toint(15.0/dlat)
   windstride=toint(5.0/dlat)
 else
   plotname = "glob"
-  maxlat = 90.           ; choose subregion           
+  maxlat = 90.           ; choose subregion
   minlat = -90.
-  maxlon = 180. 
+  maxlon = 180.
   minlon = -180.
 end if
 end if
@@ -390,16 +387,16 @@ res = resbase
 res@gsnAddCyclic = False                    ; Don't add a cyclic point.
 
 res@cnFillOn		  = True
-res@cnLinesOn   = False 
+res@cnLinesOn   = False
 
 res@mpFillOn                    = False        ; turn off gray fill
 res@mpGeophysicalLineColor      = "Black"      ; color of cont. outlines
 res@mpGeophysicalLineThicknessF = 3            ; thickness of outlines
 
-res@mpMaxLatF                   = maxlat           ; choose subregion           
+res@mpMaxLatF                   = maxlat           ; choose subregion
 res@mpMinLatF                   = minlat
-res@mpMinLonF = minlon 
-res@mpMaxLonF = maxlon 
+res@mpMinLonF = minlon
+res@mpMaxLonF = maxlon
 res@mpCenterLonF = (res@mpMinLonF+res@mpMaxLonF)/2.
 
 ; this adds county level data
@@ -447,7 +444,7 @@ res_contour@gsnDraw          = False           ; don't draw
 res_contour@gsnFrame         = False           ; don't advance frame
 res_contour@cnFillOn		  = False
 res_contour@cnLinesOn   = True
-res_contour@gsnRightString   = ""    
+res_contour@gsnRightString   = ""
 res_contour@gsnLeftString    = ""
 res_contour@gsnCenterString  = ""
 res_contour@cnInfoLabelOn = False
@@ -472,7 +469,7 @@ res_z500@cnLevelSelectionMode = "ManualLevels"    ; set contour intervals
 res_z500@cnLevelSpacingF      =  60.0                ;
 res_z500@cnMinLevelValF       =  4800.0           ;
 res_z500@cnMaxLevelValF       =  6200.0 ; Use 80.0 -> 60 for this
-res_z500@gsnRightString   = ""    
+res_z500@gsnRightString   = ""
 res_z500@gsnLeftString    = ""
 res_z500@gsnCenterString  = ""
 
@@ -638,7 +635,7 @@ print("Plotting accumulated snow...")
 wks = gsn_open_wks(out_type,"sumsnow_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 res_sumsnow   = res
 
-cmap = read_colormap_file("/storage/home/cmz5202/sw/betacast/plotting_ncl/colormaps/wxbell_snow.rgb")
+cmap = read_colormap_file("$PATH_TO_NCL/colormaps/wxbell_snow.rgb")
 res_sumsnow@cnFillPalette = cmap(::-1,:)       ; reverse color map
 res_sumsnow@cnFillOpacityF = 0.75
 
@@ -649,7 +646,7 @@ res_sumsnow@gsnRightString = "Accum. Bourgouin snow (10:1 in.)"
 
 plotsnowsum = gsn_csm_contour_map(wks,precbsn_in(0,:,:),res_sumsnow)
 
-txres               = True  
+txres               = True
 txres@txFontHeightF = 0.011             ; Set the font height
 txres@txFont   = "helvetica-bold"
 
@@ -741,7 +738,7 @@ vecres@vcRefMagnitudeF  = 20              ; define vector ref mag
 vecres@vcRefLengthF     = 0.045           ; define length of vec ref
 vecres@gsnRightString   = ""             ; turn off right string
 vecres@gsnLeftString    = ""             ; turn off left string
-vecres@tiXAxisString    = ""             ; turn off axis label 
+vecres@tiXAxisString    = ""             ; turn off axis label
 ;vecres@vcRefAnnoOrthogonalPosF = -.535    ; move ref vector into plot
 
 ; this is 8 for 0.25deg data, 16 for 0.125deg data
@@ -838,7 +835,7 @@ res_fzTS@cnLineThicknessF = 4.             ; doubles thickness of zero contour
 plotzeroline = gsn_csm_contour(wks,tsf(0,::2,::2),res_fzTS)
 overlay(plotts,plotzeroline)
 
-txres               = True  
+txres               = True
 txres@txFontHeightF = 0.011             ; Set the font height
 txres@txFont   = "helvetica-bold"
 
