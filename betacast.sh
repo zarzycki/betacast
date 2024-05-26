@@ -1026,7 +1026,7 @@ if [ -f "${landrestartfile}" ] && [[ "${landrestartfile}" != *.nc ]]; then
 fi
 
 ## Now modify user_nl_${lndName}
-./xmlchange ${lndName^^}_FORCE_COLDSTART=off
+xmlchange_verbose "${lndName^^}_FORCE_COLDSTART" "off"
 
 if [ "${landrestartfile}" ] ; then
   sed -i '/.*finidat/d' user_nl_${lndName}
@@ -1044,7 +1044,7 @@ else
     echo "WARNING: Land file DOES NOT EXIST, will use arbitrary user_nl_${lndName} already in folder"
     echo "!!!!!!!!!!!!!"
     sed -i '/.*finidat/d' user_nl_${lndName}
-    ./xmlchange ${lndName^^}_FORCE_COLDSTART=on
+    xmlchange_verbose "${lndName^^}_FORCE_COLDSTART" "on"
     #exit
     #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_${lndName}
   fi
@@ -1137,46 +1137,51 @@ echo "................. done configuring land and/or runoff"
 ############################### GENERIC CAM SETUP ###############################
 
 echo "Changing XML PROJECT to ${PROJECTID}"
-./xmlchange PROJECT=${PROJECTID}
+xmlchange_verbose "PROJECT" "$PROJECTID"
+echo "Setting projectID and queue"
+xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
 
 echo "Turning off archiving and restart file output in env_run.xml"
-./xmlchange DOUT_S=FALSE,REST_OPTION=nyears,REST_N=9999
+xmlchange_verbose "DOUT_S" "FALSE"
+xmlchange_verbose "REST_OPTION" "nyears"
+xmlchange_verbose "REST_N" "9999"
 
 if [ ${sstDataType} -ne 9 ] ; then
   # We are using some sort of analysis SST
   echo "Setting SST domain file"
   if [ "${cime_coupler}" == "nuopc" ] ; then
-    ./xmlchange SSTICE_MESH_FILENAME="${sst_ESMF_file}"
+    xmlchange_verbose "SSTICE_MESH_FILENAME" "${sst_ESMF_file}"
   else
-    ./xmlchange SSTICE_GRID_FILENAME="${sst_domain_file}"
+    xmlchange_verbose "SSTICE_GRID_FILENAME" "${sst_domain_file}"
   fi
   echo "Setting SST from default to our SST"
-  ./xmlchange SSTICE_DATA_FILENAME="${sstFileIC}"
+  xmlchange_verbose "SSTICE_DATA_FILENAME" "${sstFileIC}"
   echo "Standardizing streams for SST"
-  ./xmlchange SSTICE_YEAR_START=1,SSTICE_YEAR_END=1
+  xmlchange_verbose "SSTICE_YEAR_START" "1"
+  xmlchange_verbose "SSTICE_YEAR_END" "1"
 else
   # We already have a DOCN stream available to use (sstDataType 9)
   echo "Reproducing previous DOCN configuration as specified by m2m_sst* in namelist"
   if [ "${cime_coupler}" == "nuopc" ] ; then
-    ./xmlchange SSTICE_MESH_FILENAME="${m2m_sst_grid_filename}"
+    xmlchange_verbose "SSTICE_MESH_FILENAME" "${m2m_sst_grid_filename}"
   else
-    ./xmlchange SSTICE_GRID_FILENAME="${m2m_sst_grid_filename}"
+    xmlchange_verbose "SSTICE_GRID_FILENAME" "${m2m_sst_grid_filename}"
   fi
-  ./xmlchange SSTICE_DATA_FILENAME="${m2m_sstice_data_filename}"
-  ./xmlchange SSTICE_YEAR_ALIGN="${m2m_sstice_year_align}"
-  ./xmlchange SSTICE_YEAR_START="${m2m_sstice_year_start}"
-  ./xmlchange SSTICE_YEAR_END="${m2m_sstice_year_end}"
+  xmlchange_verbose "SSTICE_DATA_FILENAME" "${m2m_sstice_data_filename}"
+  xmlchange_verbose "SSTICE_YEAR_ALIGN" "${m2m_sstice_year_align}"
+  xmlchange_verbose "SSTICE_YEAR_START" "${m2m_sstice_year_start}"
+  xmlchange_verbose "SSTICE_YEAR_END" "${m2m_sstice_year_end}"
+
   # This is a cheat so that the m2m_sstice_data_filename is archived correctly.
   #sstFileIC=$m2m_sstice_data_filename
 fi
 
 echo "Setting GLC coupling to handle forecasts across calendar years"
-./xmlchange GLC_AVG_PERIOD="glc_coupling_period"
-echo "Setting projectID and queue"
-./xmlchange --force JOB_QUEUE=${RUNQUEUE},PROJECT=${PROJECTID}
+xmlchange_verbose "GLC_AVG_PERIOD" "glc_coupling_period"
 #######
 if [ "$land_spinup" = true ] ; then
-  ./xmlchange REST_OPTION=ndays,REST_N=1
+  xmlchange_verbose "REST_OPTION" "ndays"
+  xmlchange_verbose "REST_N" "1"
 fi
 #######
 
@@ -1190,7 +1195,10 @@ fi
 cp user_nl_${atmName} user_nl_${atmName}.BAK
 
 echo "Update env_run.xml with runtime parameters"
-./xmlchange RUN_STARTDATE=$yearstr-$monthstr-$daystr,START_TOD=$cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
+xmlchange_verbose "RUN_STARTDATE" "$yearstr-$monthstr-$daystr"
+xmlchange_verbose "START_TOD" "$cyclestrsec"
+xmlchange_verbose "STOP_OPTION" "ndays"
+xmlchange_verbose "STOP_N" "$numdays"
 
 SEINIC=${sePreFilterIC}
 
@@ -1199,7 +1207,8 @@ SEINIC=${sePreFilterIC}
 if $doFilter ; then
   # If filtering, need to change these options
 
-  ./xmlchange STOP_OPTION=nhours,STOP_N=${filterHourLength}
+  xmlchange_verbose "STOP_OPTION" "$nhours"
+  xmlchange_verbose "STOP_N" "$filterHourLength"
 
   sed -i '/.*ncdata/d' user_nl_${atmName}
   echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
@@ -1235,7 +1244,7 @@ if $doFilter ; then
   else
     echo "non-SE core, make sure timestepping is happy!"
   fi
-  ./xmlchange ATM_NCPL=${ATM_NCPL}
+  xmlchange_verbose "ATM_NCPL" "$ATM_NCPL"
 
   # Set NHTFRQ, MFILT, and FINCL fields
   sed -i '/.*nhtfrq/d' user_nl_${atmName}
@@ -1249,8 +1258,8 @@ if $doFilter ; then
   echo "empty_htapes=.TRUE." >> user_nl_${atmName}
   echo "inithist='6-HOURLY'" >> user_nl_${atmName}
 
-  ./xmlchange JOB_WALLCLOCK_TIME=${FILTERWALLCLOCK}
-  ./xmlchange --force JOB_QUEUE=${FILTERQUEUE}
+  xmlchange_verbose "JOB_WALLCLOCK_TIME" "$FILTERWALLCLOCK"
+  xmlchange_verbose "JOB_QUEUE" "$FILTERQUEUE" "--force"
 
   if [ $debug = false ] ; then
 
@@ -1296,7 +1305,10 @@ if $doFilter ; then
   # Special things we have to do to "reset" CESM after filtering
   echo "Pushing CESM start back from $cyclestrsec to $se_cyclestrsec seconds..."
   cd $path_to_case
-  ./xmlchange RUN_STARTDATE=$se_yearstr-$se_monthstr-$se_daystr,START_TOD=$se_cyclestrsec,STOP_OPTION=ndays,STOP_N=$numdays
+  xmlchange_verbose "RUN_STARTDATE" "$se_yearstr-$se_monthstr-$se_daystr"
+  xmlchange_verbose "START_TOD" "$se_cyclestrsec"
+  xmlchange_verbose "STOP_OPTION" "ndays"
+  xmlchange_verbose "STOP_N" "$numdays"
 
   # Set new inic to point to post filter file
   SEINIC=${sePostFilterIC}
@@ -1355,11 +1367,14 @@ else
   echo "non-SE core, make sure timestepping is happy!"
 fi
 
-./xmlchange ATM_NCPL=${ATM_NCPL}
+# Set dtime
+xmlchange_verbose "ATM_NCPL" "$ATM_NCPL"
 
-./xmlchange JOB_WALLCLOCK_TIME=${RUNWALLCLOCK}
-./xmlchange --force JOB_QUEUE=${RUNQUEUE}
+# Set queue settings
+xmlchange_verbose "JOB_WALLCLOCK_TIME" "$RUNWALLCLOCK"
+xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
 
+# Delete existing ncdata and inject new one into user_nl_atm file
 sed -i '/.*ncdata/d' user_nl_${atmName}
 echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
 
@@ -1405,26 +1420,26 @@ if [ $save_nudging_files = true ] ; then
 fi
 
 ## Move land files to new restart location
-cd $path_to_nc_files
-if [ $keep_land_restarts = true ]; then
+cd "$path_to_nc_files" || { echo "Failed to change directory to $path_to_nc_files"; exit 1; }
+if [ "$keep_land_restarts" = true ]; then
   echo "BETACAST_USER: Archiving land restart files"
-  mkdir -p $landdir
+  mkdir -p "$landdir" #make landdir if doesn't exist
   echo "Removing 06Z and 18Z land restart files if they exist"
-  rm -v *.${lndName}*.r.*32400.nc || true
-  rm -v *.${lndName}*.r.*75600.nc || true
+  rm -v *."${lndName}"*.r.*32400.nc || true
+  rm -v *."${lndName}"*.r.*75600.nc || true
   echo "Moving land restart files for future runs"
-  for file in *.$lndName*.r.*.nc; do
+  for file in *."${lndName}"*.r.*.nc; do
     [ -e "$file" ] || continue # Skip if no files match
     compress_file "$file" zstd
     mv -v "${file}"* "$landdir" || true
   done
   ## Move runoff files to land dir if doing runoff
-  if [ $do_runoff = true ]; then
+  if [ "$do_runoff" = true ]; then
     echo "Removing 06Z and 18Z runoff restart files if they exist"
-    rm -v *.${rofName}*.r.*32400.nc || true
-    rm -v *.${rofName}*.r.*75600.nc || true
+    rm -v *."${rofName}"*.r.*32400.nc || true
+    rm -v *."${rofName}"*.r.*75600.nc || true
     echo "Moving runoff restart files for future runs"
-    for file in *.$rofName*.r.*.nc; do
+    for file in *."${rofName}"*.r.*.nc; do
       [ -e "$file" ] || continue # Skip if no files match
       compress_file "$file" zstd
       mv -v "${file}"* "$landdir" || true
@@ -1432,9 +1447,9 @@ if [ $keep_land_restarts = true ]; then
   fi
 else
   echo "BETACAST_USER: Removing all land restart files!"
-  rm -v *.${lndName}*.r.*.nc || true
-  if [ $do_runoff = true ]; then
-    rm -v *.${rofName}*.r.*.nc || true
+  rm -v *."${lndName}"*.r.*.nc || true
+  if [ "$do_runoff" = true ]; then
+    rm -v *."${rofName}"*.r.*.nc || true
   fi
 fi
 

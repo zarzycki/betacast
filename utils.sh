@@ -774,6 +774,23 @@ function safe_cp2() {
   done
 }
 
+# Usage:
+# xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
+# xmlchange_verbose "ATM_NCPL" "$ATM_NCPL"
+xmlchange_verbose() {
+  local variable_name="$1"
+  local variable_value="$2"
+  shift 2
+  local additional_args="$@"
+
+  echo "XMLCHANGE: Setting ${variable_name} to ${variable_value} ${additional_args}"
+
+  if [ -z "$additional_args" ]; then
+    ./xmlchange "${variable_name}=${variable_value}"
+  else
+    ./xmlchange "${additional_args}" "${variable_name}=${variable_value}"
+  fi
+}
 
 # Usage:
 # script_start=$(date +%s)
