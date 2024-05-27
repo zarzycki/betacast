@@ -34,7 +34,8 @@ set -e
 
 SCRIPTPATH=$(dirname "$(realpath "$0")")
 echo "Our script path is $SCRIPTPATH"
-source ${SCRIPTPATH}/utils.sh   # Source external bash functions
+source ${SCRIPTPATH}/utils.sh         # Source external bash functions
+source ${SCRIPTPATH}/datahelpers.sh   # Source external bash functions
 
 # Set files
 MACHINEFILE=${1}
@@ -415,211 +416,81 @@ echo "DYCORE: "$DYCORE
 if [ $debug = false ] ; then
 ############################### GET ATM DATA ###############################
 
+  # The keys are $atmDataType
+  declare -A atm_data_sources=(
+    ["1"]="GFS"
+    ["2"]="ERAI"
+    ["3"]="CFSR"
+    ["4"]="ERA5"
+    ["9"]="CAM"
+  )
+  declare -A atm_data_glob_anl=(
+    ["1"]="gfs_0.25x0.25"
+    ["2"]=""
+    ["3"]="gfs_0.50x0.50"
+    ["4"]="era5_0.25x0.25"
+    ["9"]=""
+  )
+  declare -A atm_file_paths=(
+    ["1"]="${gfs_files_path}/gfs_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
+    ["2"]="${era_files_path}/ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
+    ["3"]="${gfs_files_path}/cfsr_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
+    ["4"]="${era_files_path}/ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
+    ["9"]=""
+  )
+
   # Initialize any "global" variables needed when getting atmospheric data
   RDADIR="" # Init to empty, but fill in if RDA available later
   ERA5RDA=0 # Set whether or not ERA5 is local (0 = local, 1 = RDA)
 
-  if [ $atmDataType -eq 1 ] ; then
-    echo "Getting GFS conditions"
-    mkdir -p $gfs_files_path
-    cd $gfs_files_path
-    LOCALGFSFILE='gfs_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-    ## Pull atmospheric conditions
-    ## Need to write an if call depending on how far back the GFS files are located
-    ## The NCEP server only holds them for a few days -- otherwise go to nomads at NCDC
-    # gfsFtpPath=http://nomads.ncdc.noaa.gov/data/gfsanl/$yearstr$monstr/$yearstr$monstr$daystr/
-    # gfs.t12z.pgrb2f00.grb2
-    if [ ! -f ${LOCALGFSFILE} ]; then
-      echo "Getting Atmo file"
-      if [ $islive = true ] ; then
-        gfsFTPPath=https://ftpprd.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/atmos/
-        #gfsFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.$yearstr$monthstr$daystr/$cyclestr/atmos/
-        #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2f00'
-        gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p25.anl'
-        rm -fv ${gfsFTPFile}
-        #gfsFTPFile='gfs.t'$cyclestr'z.pgrb2.0p50.anl'
-        echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
-        ## Scrape for files
-        error=1
-        while [ $error != 0 ] ; do
-          wget -nv --read-timeout=30 $gfsFTPPath$gfsFTPFile
-          error=$(echo $?)
-          if [ $error -ne 0 ] ; then
-            echo "Cannot get file, will wait 2 min and scrape again"
-            sleep 120
-          fi
-        done
-      else                  # Copy GFS data from RDA archive at NCAR
-        rm -f gfs.t*pgrb2f00*
-        gfsFTPPath=/glade/collections/rda/data/ds084.1/${yearstr}/${yearstr}${monthstr}${daystr}/
-        gfsFTPFile=gfs.0p25.${yearstr}${monthstr}${daystr}${cyclestr}.f000.grib2
-        cp ${gfsFTPPath}/${gfsFTPFile} .
-        echo "Attempting to copy ${gfsFTPPath}${gfsFTPFile}"
-      fi
-      mv -v $gfsFTPFile ${LOCALGFSFILE}
-    else
-      echo "${LOCALGFSFILE} already exists, skipping download"
-    fi
-  elif [ $atmDataType -eq 2 ] ; then
-    echo "Using ERA-Interim forecast ICs"
-    echo "Cding to ERA-Interim interpolation directory"
-    mkdir -p $era_files_path
-    cd $era_files_path
-    LOCALGFSFILE=ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-    if [ ! -f ${LOCALGFSFILE} ]; then
-      echo "support broken for auto download ERA, please prestage"
-      exit
-      python getInterim.py ${yearstr}${monthstr}${daystr} ${cyclestr}
-      ncks -A ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-      mv -v ERA-Int_sfc_${yearstr}${monthstr}${daystr}${cyclestr}.nc ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-      rm -f ERA-Int_ml_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-    fi
-  elif [ $atmDataType -eq 3 ] ; then
-    echo "Using CFSR ICs"
-    echo "Cding to GFS interpolation directory since they are practically the same thing"
-    mkdir -p $gfs_files_path
-    cd $gfs_files_path
+  case $atmDataType in
+    1)
+      get_gfs_atm
+      ;;
+    2)
+      get_era_interim_atm
+      ;;
+    3)
+      get_cfsr_atm
+      ;;
+    4)
+      get_era5_atm
+      ;;
+    9)
+      echo "User has specified a CESM/E3SM data file"
+      ;;
+    *)
+      echo "Incorrect model IC entered"
+      exit 1
+      ;;
+  esac
 
-    LOCALCFSRFILE='cfsr_atm_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-    if [ ! -f ${LOCALCFSRFILE} ]; then
-      STCUTARR=(26 21 16 11 06 01)
-      ENCUTARR=(99 25 20 15 10 05)
-      zero=0
-      index=$zero
-      for FILEDAY in "${STCUTARR[@]}" ; do
-        if [ "$daystr" -ge "$FILEDAY" ] ; then
-      #    echo $FILEDAY
-          break
-        fi
-        index=$((index+1))
-      done
-      #echo $index
-      if [[ "$index" -eq "$zero" ]] ; then
-        ENCUTARR[${zero}]=$(date -d "$monthstr/1 + 1 month - 1 day" "+%d")
-        echo "Last day of month ($monthstr) is $ENCUTARR[${zero}]"
-      fi
-      ## NEED TO IMPLEMENT LEAP YEAR FIX
-
-      echo "Getting file: ${CFSRFILENAME}"
-      #Register with RDA, then do following command to get wget cookies
-      #wget --save-cookies ~/.thecookies --post-data="email=your_email_address&passwd=your_password&action=login" https://rda.ucar.edu/cgi-bin/login
-      CFSRFILENAME=pgbhnl.gdas.${yearstr}${monthstr}${FILEDAY}-${yearstr}${monthstr}${ENCUTARR[$index]}.tar
-      if [[ $(hostname -s) = cheyenne* ]]; then
-        cp /glade/collections/rda/data/ds093.0/${yearstr}/${CFSRFILENAME} .
-      else
-        wget -nv --load-cookies ~/.thecookies http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}
-      fi
-      tar -xvf $CFSRFILENAME
-      mv pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2 ${LOCALCFSRFILE}
-      rm pgbhnl.gdas.*
-    fi
-  elif [ $atmDataType -eq 4 ] ; then
-    echo "Using ERA5 forecast ICs"
-    echo "Cding to ERA5 interpolation directory"
-    mkdir -p $era_files_path
-    cd $era_files_path
-    LOCALGFSFILE=ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc
-    if [ ! -f ${LOCALGFSFILE} ]; then
-      echo "cannot find: ${era_files_path}/${LOCALGFSFILE}"
-      if [[ "$MACHINEFILE" == *cheyenne* ]]; then
-        echo "We are on Cheyenne, so even though we lack a local file, we can use RDA"
-        ERA5RDA=1
-        RDADIR=/glade/campaign/collections/rda/data/ds633.0/
-      elif [[ "$MACHINEFILE" == *pm* ]]; then
-        echo "We are on Cori, so even though we lack a local file, we can use RDA"
-        ERA5RDA=1
-        RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
-      else
-        echo "support broken for auto download ERA, please prestage!"
-        exit
-      fi
-    fi
-  elif [ $atmDataType -eq 9 ] ; then
-    echo "User has specified a CESM/E3SM data file"
-  else
-    echo "Incorrect model IC entered"
-    exit 1
+  # If ERA5RDA flag toggled, set value w/ key to RDA data
+  if [ $ERA5RDA -eq 1 ] ; then
+    atm_data_sources["4"]="ERA5RDA"
+    atm_file_paths["4"]="${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
   fi
 
 ############################### GET SST / NCL ###############################
 
-  if [ ${sstDataType} -eq 1 ] ; then
-    SSTTYPE=GDAS
-    ## Pull sea surface temps, need to rename and delete (if necess)
-    #echo "Live GFS SST hasn't been updated in a while..." ; exit
-    echo "Getting SST data"
-    mkdir -p ${sst_files_path}
-    cd ${sst_files_path}
-    if [ $islive = true ] ; then
-      # Here is where we get the "live" GDAS SST file
-      sstFTPPath=https://ftpprd.ncep.noaa.gov/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/
-      #sstFTPPath=ftp://ftp.ncep.noaa.gov/pub/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/
-      sstFTPFile='rtgssthr_grb_0.5.grib2'
-      rm -fv ${sstFTPFile}
-      echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
-    else
-      echo "NCEP broke support for historical GDAS, use NOAAOI instead."
-      exit
-    fi
-    ## Scrape for files
-    error=1
-    while [ $error != 0 ] ; do
-      wget -nv --read-timeout=30 -nv $sstFTPPath$sstFTPFile
-      error=$(echo $?)
-      if [ $error -ne 0 ] ; then
-        echo "Cannot get file, will wait 2 min and scrape again"
-        sleep 120
-      fi
-    done
-    sstFile='gfs_sst_'$yearstr$monthstr$daystr$cyclestr'.grib2'
-    mv -v ${sstFTPFile} ${sstFile}
-    iceFile=''   # do not need icefile since ice stored on sstfile
-  elif [ ${sstDataType} -eq 2 ] ; then
-    echo "ERA SST not quite supported yet..." ; exit 1
-  elif [ ${sstDataType} -eq 3 ] ; then
-    SSTTYPE=NOAAOI
-    echo "Using NOAAOI SSTs"
-    mkdir -p ${sst_files_path}
-    cd ${sst_files_path}
-    sstFile=sst.day.mean.${yearstr}.nc
-    if [ ! -f "${sst_files_path}/${sstFile}" ] || \
-       { [ -f "${sst_files_path}/${sstFile}" ] && [ $(ncdmnsz time "${sst_files_path}/${sstFile}") -lt 365 ]; }
-    then
-      echo "NOAAOI SST file doesn't exist or has less than 365 timesteps, need to download"
-      rm -f ${sst_files_path}/${sstFile}
-      sstFTPPath=ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/
-      error=1
-      while [ $error != 0 ] ; do
-        wget -nv ${sstFTPPath}/${sstFile}
-        error=$(echo $?)
-        if [ $error -ne 0 ] ; then
-          echo "Cannot get file, will wait 2 min and scrape again"
-          sleep 120
-        fi
-      done
-    fi
-    iceFile=icec.day.mean.${yearstr}.nc
-    if [ ! -f "${sst_files_path}/${iceFile}" ] || \
-       { [ -f "${sst_files_path}/${iceFile}" ] && [ $(ncdmnsz time "${sst_files_path}/${iceFile}") -lt 365 ]; }
-    then
-      echo "NOAAOI ice file doesn't exist or has less than 365 timesteps, need to download"
-      rm -f ${sst_files_path}/${iceFile}
-      sstFTPPath=ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/
-      error=1
-      while [ $error != 0 ] ; do
-        wget -nv ${sstFTPPath}/${iceFile}
-        error=$(echo $?)
-        if [ $error -ne 0 ] ; then
-          echo "Cannot get file, will wait 2 min and scrape again"
-          sleep 120
-        fi
-      done
-    fi
-  elif [ ${sstDataType} -eq 9 ] ; then
-    echo "User has specified a CESM/E3SM data stream"
-  else
-    echo "Incorrect SST data type entered" ; exit 1
-  fi
+  case $sstDataType in
+    1)
+      get_gdas_sst
+      ;;
+    2)
+      get_erai_sst
+      ;;
+    3)
+      get_noaaoi_sst
+      ;;
+    9)
+      echo "User has specified a CESM/E3SM data stream"
+      ;;
+    *)
+      echo "Incorrect SST data type entered"
+      exit 1
+      ;;
+  esac
 
   # If not using data streams, we have to generate the SST forcing
   if [ ${sstDataType} -ne 9 ] ; then
@@ -663,35 +534,6 @@ if [ $debug = false ] ; then
 
   ############################### ATM NCL ###############################
 
-  # The keys are $atmDataType
-  declare -A atm_data_sources=(
-    ["1"]="GFS"
-    ["2"]="ERAI"
-    ["3"]="CFSR"
-    ["4"]="ERA5"
-    ["9"]="CAM"
-  )
-  declare -A atm_data_glob_anl=(
-    ["1"]="gfs_0.25x0.25"
-    ["2"]=""
-    ["3"]="gfs_0.50x0.50"
-    ["4"]="era5_0.25x0.25"
-    ["9"]=""
-  )
-  declare -A atm_file_paths=(
-    ["1"]="${gfs_files_path}/gfs_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
-    ["2"]="${era_files_path}/ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
-    ["3"]="${gfs_files_path}/cfsr_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
-    ["4"]="${era_files_path}/ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
-    ["9"]=""
-  )
-
-  # If ERA5RDA flag toggled, set value w/ key to RDA data
-  if [ $ERA5RDA -eq 1 ] ; then
-    atm_data_sources["4"]="ERA5RDA"
-    atm_file_paths["4"]="${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
-  fi
-
   cd $atm_to_cam_path ; echo "cd'ing to interpolation directory"
 
   # Figure out which anl2mdlWeights we want to use. If the user gave us one
@@ -733,7 +575,7 @@ if [ $debug = false ] ; then
     fi
   else
     echo "User has provided anl2mdlWeights --> ${anl2mdlWeights}, using those!"
-  fi
+  fi # check if anl2mdlWeights is passed in
 
   if [[ "$atmDataType" -eq 9 ]]; then
     if [[ -z "${m2m_remap_file}" || ! -e "${m2m_remap_file}" ]]; then
@@ -904,25 +746,6 @@ fi
 if ${add_perturbs} ; then
   echo "Adding perturbations"
 
-#   cp /glade/scratch/zarzycki/apply-haiyan-perturb/sst_1x1_Nat-Hist-CMIP5-est1-v1-0.nc ${sstFileIC}
-#
-#   cd $atm_to_cam_path
-#
-#   sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
-#
-#   set +e
-#   ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
-#     'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"'
-#   if [[ $? -ne 9 ]]
-#   then
-#     echo "NCL exited with non-9 error code"
-#     exit 240
-#   fi
-#   echo "ATM NCL completed successfully"
-#   set -e # Turn error checking back on
-#
-#   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
-
   cd $atm_to_cam_path/perturb
 
   set +e
@@ -953,7 +776,6 @@ if ${add_perturbs} ; then
 fi
 
 cd $path_to_case
-############################### SETUP AND QUERY ###############################
 
 ############################### CISM SETUP ###############################
 
@@ -1301,8 +1123,8 @@ if $doFilter ; then
     exit
   fi
 
-  # Special things we have to do to "reset" CESM after filtering
-  echo "Pushing CESM start back from $cyclestrsec to $se_cyclestrsec seconds..."
+  # Special things we have to do to "reset" model after filtering
+  echo "Pushing model start back from $cyclestrsec to $se_cyclestrsec seconds..."
   cd $path_to_case
   xmlchange_verbose "RUN_STARTDATE" "$se_yearstr-$se_monthstr-$se_daystr"
   xmlchange_verbose "START_TOD" "$se_cyclestrsec"
@@ -1363,7 +1185,7 @@ if [[ "$DYCORE" == "se" ]]; then
     fi
   fi
 else
-  echo "non-SE core, make sure timestepping is happy!"
+  echo "non-SE/HOMME core, make sure timestepping is happy!"
 fi
 
 # Set dtime
