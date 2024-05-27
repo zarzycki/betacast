@@ -1136,32 +1136,31 @@ echo "................. done configuring land and/or runoff"
 
 ############################### GENERIC CAM SETUP ###############################
 
-echo "Changing XML PROJECT to ${PROJECTID}"
+# Setting projectID and queue
 xmlchange_verbose "PROJECT" "$PROJECTID"
-echo "Setting projectID and queue"
 xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
 
-echo "Turning off archiving and restart file output in env_run.xml"
+# Turning off archiving and restart file output in env_run.xml
 xmlchange_verbose "DOUT_S" "FALSE"
 xmlchange_verbose "REST_OPTION" "nyears"
 xmlchange_verbose "REST_N" "9999"
 
 if [ ${sstDataType} -ne 9 ] ; then
   # We are using some sort of analysis SST
-  echo "Setting SST domain file"
+  # Setting SST domain file
   if [ "${cime_coupler}" == "nuopc" ] ; then
     xmlchange_verbose "SSTICE_MESH_FILENAME" "${sst_ESMF_file}"
   else
     xmlchange_verbose "SSTICE_GRID_FILENAME" "${sst_domain_file}"
   fi
-  echo "Setting SST from default to our SST"
+  # Setting SST from default to our SST
   xmlchange_verbose "SSTICE_DATA_FILENAME" "${sstFileIC}"
-  echo "Standardizing streams for SST"
+  # Standardizing streams for SST
   xmlchange_verbose "SSTICE_YEAR_START" "1"
   xmlchange_verbose "SSTICE_YEAR_END" "1"
 else
   # We already have a DOCN stream available to use (sstDataType 9)
-  echo "Reproducing previous DOCN configuration as specified by m2m_sst* in namelist"
+  # Reproducing previous DOCN configuration as specified by m2m_sst* in namelist
   if [ "${cime_coupler}" == "nuopc" ] ; then
     xmlchange_verbose "SSTICE_MESH_FILENAME" "${m2m_sst_grid_filename}"
   else
@@ -1176,7 +1175,7 @@ else
   #sstFileIC=$m2m_sstice_data_filename
 fi
 
-echo "Setting GLC coupling to handle forecasts across calendar years"
+# Getting GLC coupling to handle forecasts across calendar years
 xmlchange_verbose "GLC_AVG_PERIOD" "glc_coupling_period"
 #######
 if [ "$land_spinup" = true ] ; then
@@ -1194,7 +1193,7 @@ fi
 
 cp user_nl_${atmName} user_nl_${atmName}.BAK
 
-echo "Update env_run.xml with runtime parameters"
+# Update env_run.xml with runtime parameters
 xmlchange_verbose "RUN_STARTDATE" "$yearstr-$monthstr-$daystr"
 xmlchange_verbose "START_TOD" "$cyclestrsec"
 xmlchange_verbose "STOP_OPTION" "ndays"
