@@ -800,10 +800,8 @@ fi
 
 echo "Setting input land dataset"
 # Clean up file to delete any special interp lines that may be needed later (but aren't needed for native init)
-#sed -i '/finidat/d' user_nl_${lndName}
 sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_${lndName}
 sed -i '/use_init_interp/d' user_nl_${lndName}
-#echo "finidat=''" >> user_nl_${lndName}
 
 # Create a temp directory for now
 RUNTMPDIR=$path_to_nc_files/tmp/
@@ -867,8 +865,6 @@ else
     echo "!!!!!!!!!!!!!"
     sed -i '/.*finidat/d' user_nl_${lndName}
     xmlchange_verbose "${lndName^^}_FORCE_COLDSTART" "on"
-    #exit
-    #sed -i 's?.*finidat.*?!finidat='"''"'?' user_nl_${lndName}
   fi
 fi
 
