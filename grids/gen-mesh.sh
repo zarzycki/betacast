@@ -1,9 +1,10 @@
 #!/bin/bash -l
 
-BASERES=48
-REFINE_LEVEL=2
-#BASERES=128
-#REFINE_LEVEL=3
+#BASERES=48
+#REFINE_LEVEL=2
+BASERES=192
+REFINE_LEVEL=3
+PHYSGRID=2
 SQUADGEN=~/Software/squadgen/
 
 # Define from outer to inner
@@ -51,8 +52,8 @@ do
   GRIDNAME=TClandfall-${MESH_ID}_ne${BASERES}x${REFINE_FACTOR}
   ${SQUADGEN}/SQuadGen --output ${GRIDNAME}.g --refine_rect ${REFINE_RECT_STR} --refine_level ${REFINE_LEVEL} --lat_ref ${LATCENTER} --lon_ref ${LONCENTER} --resolution ${BASERES} --orient_ref -3 --smooth_type SPRING
 
-  GenerateVolumetricMesh --in ${GRIDNAME}.g --out ${GRIDNAME}_pg2.g --np 2 --uniform
-  ConvertMeshToSCRIP --in ${GRIDNAME}_pg2.g --out ${GRIDNAME}_pg2_scrip.nc
+  GenerateVolumetricMesh --in ${GRIDNAME}.g --out ${GRIDNAME}_pg${PHYSGRID}.g --np ${PHYSGRID} --uniform
+  ConvertMeshToSCRIP --in ${GRIDNAME}_pg${PHYSGRID}.g --out ${GRIDNAME}_pg${PHYSGRID}_scrip.nc
 
   ncl gridplot.ncl 'gridfile="'${GRIDNAME}'.g"'
 
