@@ -2,7 +2,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
 import pandas as pd
-x
+
 column_names = ['label', 'longitude', 'latitude']
 df = pd.read_csv('tc_mesh_centers.csv', names=column_names)
 
