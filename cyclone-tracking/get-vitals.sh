@@ -46,6 +46,9 @@ if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
     sed -i $'s/\t/  /g' combined_tcvitals.${yearstr}.dat
     cd ../..
   fi
+  echo "Last 10 lines of ${TCVITFOLDER}/combined/combined_tcvitals.${yearstr}.dat"
+  tail -10 ${TCVITFOLDER}/combined/combined_tcvitals.${yearstr}.dat
+  echo "-------"
   grep "${yearstr}${monthstr}${daystr} ${cyclestr}00" ${TCVITFOLDER}/combined/combined_tcvitals.${yearstr}.dat > ${TCVITFILE}
   if [ "$CLEARCOMBINEDVIT" = true ]; then rm -v ${TCVITFOLDER}/combined/combined_tcvitals.${yearstr}.dat ; fi
 fi
