@@ -454,6 +454,7 @@ There are also optional settings that are not required but can be added to overr
 | USER\_JOB\_PRIORITY | Override default job priority |
 | BUILD\_ONLY | If passed in as true, script will not submit run (false if not set) |
 | FORCE\_PURGE | If passed in as true, script will "pre-delete" case directory and run directory (if specified by RUN\_DIR\_BASE). Useful for debugging/iterating, but should generally be false (false if not set) |
+| FORCE\_COLD | If passed in as false, and no USER\_FINIDAT is given, code will ignore cold start force and will use default finidat from the model component (true if not set) |
 | RUN\_DIR\_BASE | If FORCE\_PURGE is true, this directory specifies the top level "scratch" directory where the case lives (e.g., `/glade/scratch/$LOGNAME/`) so the code can purge the run directory in addition to the case directory. Otherwise unused (false if not set). |
 
 So the general workflow is:
