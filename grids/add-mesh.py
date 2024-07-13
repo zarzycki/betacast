@@ -15,7 +15,7 @@ def haversine(lon1, lat1, lon2, lat2):
     return c * r
 
 column_names = ['stormID', 'LFtime', 'LFlon','LFlat','LFpres','LFwind','Tlon','Tlat','Ttime','LFbasin']
-df = pd.read_csv('LF.trajectories.txt.CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900', names=column_names)
+df = pd.read_csv('LF.ibtracs-1980-2019-GLOB.v4.txt', names=column_names)
 
 filtered_df = df[df['LFbasin'] > 0].copy()
 print(filtered_df)
@@ -53,12 +53,30 @@ plt.title('Histogram of Closest Label')
 plt.xticks(rotation=0)  # Ensures the x-axis labels are not rotated and are easily readable
 plt.savefig('histogram.png', dpi=300, bbox_inches='tight')
 
-#Columns to output in txt files
+# User-specified year range
+min_year = 1988
+max_year = 2023
+
+# Columns to output in txt files
 output_columns = ['Ttime']
+
+all_dates = []
 
 for label in filtered_df['closest_label'].unique():
     filtered_data = filtered_df[filtered_df['closest_label'] == label][output_columns]
 
-    filename = f"dates.index.{label}.txt"
+    # Ensure Ttime is treated as string and filter dates based on the specified year range
+    filtered_data['Ttime'] = filtered_data['Ttime'].astype(str)
+    filtered_data = filtered_data[filtered_data['Ttime'].apply(lambda x: min_year <= int(x[:4]) <= max_year)]
 
+    filename = f"dates.index.{label}.txt"
     filtered_data.to_csv(filename, index=False, header=False)
+
+    # Append dates to the all_dates list
+    all_dates.extend(filtered_data['Ttime'].tolist())
+
+# Remove duplicates, sort dates, and output to a single file
+unique_sorted_dates = sorted(set(all_dates))
+with open('all_dates_sorted.txt', 'w') as f:
+    for date in unique_sorted_dates:
+        f.write(f"{date}\n")
