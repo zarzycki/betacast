@@ -50,6 +50,9 @@ if [ -z "${BUILD_ONLY+x}" ]; then BUILD_ONLY=false; fi
 if [ -z "${FORCE_PURGE+x}" ]; then FORCE_PURGE=false; fi
 if [ -z "${RUN_DIR_BASE+x}" ]; then RUN_DIR_BASE=""; fi
 
+# If user has specified FORCE_COLD=False, we won't force a cold start, otherwise we do!
+if [ -z "${FORCE_COLD+x}" ]; then FORCE_COLD=true; fi
+
 # Set directories to empty strings for use DATM
 if [ -z "${BETACAST_DATM_FORCING_BASE+x}" ]; then BETACAST_DATM_FORCING_BASE=""; fi
 if [ -z "${BETACAST_DATM_ANOMALY_BASE+x}" ]; then BETACAST_DATM_ANOMALY_BASE=""; fi
@@ -208,14 +211,18 @@ cd ${CIMEROOT}/cime/scripts
 cd ${PATHTOCASE}/${ICASENAME}
 ./xmlchange NTASKS=-${NNODES}
 ./xmlchange NTASKS_ATM=-$((NNODES-1))   # NOTE: weird errors on Cheyenne w/ equal nodes for all components, but this works?
-./xmlchange NTASKS_ESP=1
-./xmlchange NTASKS_IAC=1
+set +e ; ./xmlchange NTASKS_ESP=1 ; set -e
+set +e ; ./xmlchange NTASKS_IAC=1 ; set -e
 ./xmlchange DATM_MODE=CLMCRUNCEPv7
 ./xmlchange STOP_N=20
 ./xmlchange STOP_OPTION='nyears'
-./xmlchange DATM_CLMNCEP_YR_ALIGN=${DATM_STARTYEAR}
-./xmlchange DATM_CLMNCEP_YR_START=${DATM_STARTYEAR}
-./xmlchange DATM_CLMNCEP_YR_END=${FORECASTYEAR}
+# For now, let's try both with CLMNCEP and not in there...
+set +e ; ./xmlchange DATM_CLMNCEP_YR_ALIGN=${DATM_STARTYEAR} ; set -e
+set +e ; ./xmlchange DATM_CLMNCEP_YR_START=${DATM_STARTYEAR} ; set -e
+set +e ; ./xmlchange DATM_CLMNCEP_YR_END=${FORECASTYEAR} ; set -e
+set +e ; ./xmlchange DATM_YR_ALIGN=${DATM_STARTYEAR} ; set -e
+set +e ; ./xmlchange DATM_YR_START=${DATM_STARTYEAR} ; set -e
+set +e ; ./xmlchange DATM_YR_END=${FORECASTYEAR} ; set -e
 ./xmlchange RUN_STARTDATE=${MODEL_STARTDATE}
 ./xmlchange REST_OPTION='end'
 ./xmlchange DOUT_S=FALSE
@@ -356,8 +363,10 @@ if [[ -n "$USER_FINIDAT" ]]; then
   sed -i '/.*finidat/d' user_nl_${modelSystemString}
   echo "finidat='${USER_FINIDAT}'" >> user_nl_${modelSystemString}
 else
-  #echo "finidat=''" >> user_nl_${modelSystemString}
-  ./xmlchange ${modelSystemString^^}_FORCE_COLDSTART="on"
+  if [ "$FORCE_COLD" = "true" ]; then
+    #echo "finidat=''" >> user_nl_${modelSystemString}
+    ./xmlchange ${modelSystemString^^}_FORCE_COLDSTART="on"
+  fi
 fi
 
 ./case.setup

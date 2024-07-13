@@ -38,13 +38,10 @@ cd $CASEDIR
 ./xmlchange JOB_WALLCLOCK_TIME=${WALLCLOCK}
 ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
 ./xmlchange REST_OPTION="end"
+./xmlchange STOP_N="86400"
+./xmlchange STOP_OPTION="date"
 ./xmlchange STOP_DATE="$yearstr$monthstr$daystr"
 run_CIME2 "$PATH_TO_RUNDIR" "$CIMEsubstring" "$CIMEbatchargs" true
-
-# Assuming run_CIME2 was successful, let's set CONTINUE_RUN to TRUE
-# this is because for a cold start we want FALSE, but every other run is TRUE
-# So there is no harm in doing this as long as the first run succeeds.
-./xmlchange CONTINUE_RUN=TRUE
 
 # Copy restart files to some directory for stashing purposes
 cd $PATH_TO_RUNDIR
@@ -67,8 +64,14 @@ for file in $DIRSTASH/*.nc; do
   [ -e "$file" ] || continue # Skip if no files match
   compress_file "$file" zstd
 done
-mv -fv *tar.gz $DIRSTASH/logs/
+mv -fv *.log.*.gz $DIRSTASH/logs/
 rm -fv *.bin
+
+cd $CASEDIR
+# Assuming run_CIME2 was successful, let's set CONTINUE_RUN to TRUE
+# this is because for a cold start we want FALSE, but every other run is TRUE
+# So there is no harm in doing this as long as the first run succeeds.
+./xmlchange CONTINUE_RUN=TRUE
 
 # Return to the script dir to do things and resubmit
 cd $SCRIPTDIR
