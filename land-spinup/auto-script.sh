@@ -57,6 +57,9 @@ if [ -z "${FORCE_COLD+x}" ]; then FORCE_COLD=true; fi
 if [ -z "${BETACAST_DATM_FORCING_BASE+x}" ]; then BETACAST_DATM_FORCING_BASE=""; fi
 if [ -z "${BETACAST_DATM_ANOMALY_BASE+x}" ]; then BETACAST_DATM_ANOMALY_BASE=""; fi
 
+# Coupler default
+if [ -z "${COUPLER+x}" ]; then COUPLER="mct"; fi
+
 # Check bools
 check_bool "BUILD_ONLY" $BUILD_ONLY
 check_bool "FORCE_PURGE" $FORCE_PURGE
@@ -113,6 +116,12 @@ elif [ $dataForcing -eq 2 ]; then
   DATMMAXYR=2014
 else
   echo "Using CRUNCEP DATM"
+fi
+
+if [ $NMONTHSSPIN -eq 0 ]; then
+  echo "NMONTHSSPIN set to 0, we are using entire stream period $DATMMINYR to $DATMMAXYR"
+  DATM_STARTYEAR=$DATMMINYR
+  FORECASTYEAR=$DATMMAXYR
 fi
 
 ### Error checking
@@ -236,14 +245,23 @@ fi
 ### If using ERA5, add the stream files and reset DATM_CLMNCEP_YR_START, etc.
 if [ $dataForcing -eq 0 ]; then
   echo "Injecting ERA5 DATM streams"
-  cp ${BETACAST}/land-spinup/streams/user_datm.streams.txt.CLMCRUNCEPv7* .
-  #REPLACEDIR
-  sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_DATM_FORCING_BASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.Solar
-  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.Solar
-  sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_DATM_FORCING_BASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.Precip
-  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.Precip
-  sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_DATM_FORCING_BASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW
-  sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW
+  if [ "$COUPLER" == "mct" ]; then
+    cp -v ${BETACAST}/land-spinup/streams/user_datm.streams.txt.CLMCRUNCEPv7* .
+    sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_DATM_FORCING_BASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.Solar
+    sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.Solar
+    sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_DATM_FORCING_BASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.Precip
+    sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.Precip
+    sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_DATM_FORCING_BASE}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW
+    sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.CLMCRUNCEPv7.TPQW
+  elif [ "$COUPLER" == "nuopc" ]; then
+    echo "COUPLER is nuopc"
+    cp -v ${BETACAST}/land-spinup/streams/nuopc/user_nl_datm_streams .
+    sed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_DATM_FORCING_BASE}?g" user_nl_datm_streams
+    sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_nl_datm_streams
+  else
+    echo "Error: COUPLER must be either 'mct' or 'nuopc'"
+    exit 1
+  fi
 elif [ $dataForcing -eq 2 ]; then
 
   VARS=("Precip" "Solar" "TPQW")
