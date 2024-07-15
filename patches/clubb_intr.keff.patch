@@ -2,26 +2,28 @@
 +++ clubb_intr.F90	2022-08-29 14:23:16.935118792 -0600
 @@ -1562,6 +1562,11 @@
      ! ----------------------------------------------------------------- !
- 
+
      !  These are default CLUBB output.  Not the higher order history budgets
 +!++CMZ
 +    call addfld ('DWINDDZ',          (/ 'ilev' /), 'A', '1/s',      'Vertical Wind Shear Magnitude')
 +    call addfld ('MOMFLUX',          (/ 'ilev' /), 'A', 'm2/s2',    'Vertical Momentum Flux Magnitude')
-+    call addfld ('KEFF',             (/ 'ilev' /), 'A', 'm2/s',     'Effective Eddy Momentum Diffusivity')
++    call addfld ('KEFFU',            (/ 'ilev' /), 'A', 'm2/s',     'Zonal Effective Eddy Momentum Diffusivity')
++    call addfld ('KEFFV',            (/ 'ilev' /), 'A', 'm2/s',     'Meridional Effective Eddy Momentum Diffusivity')
 +!--CMZ
      call addfld ('RHO_CLUBB',        (/ 'ilev' /), 'A', 'kg/m3',    'Air Density')
      call addfld ('UP2_CLUBB',        (/ 'ilev' /), 'A', 'm2/s2',    'Zonal Velocity Variance')
      call addfld ('VP2_CLUBB',        (/ 'ilev' /), 'A', 'm2/s2',    'Meridional Velocity Variance')
 @@ -2180,6 +2185,14 @@
- 
+
     real(r8) :: rtm_integral_1, rtm_integral_update, rtm_integral_forcing
- 
+
 +   !++CMZ
 +   real(r8) :: dudz(pcols,pverp)
 +   real(r8) :: dvdz(pcols,pverp)
 +   real(r8) :: dwinddz(pcols,pverp)
 +   real(r8) :: momflux(pcols,pverp)
 +   real(r8) :: keffu(pcols,pverp)
++   real(r8) :: keffv(pcols,pverp)
 +   !--CMZ
 +
      ! --------------- !
@@ -30,7 +32,7 @@
 @@ -4167,6 +4196,51 @@
     ! Assign the first pver levels of cloud_frac back to cld
     cld(:,1:pver) = cloud_frac(:,1:pver)
- 
+
 +   !++CMZ
 +     dudz=0.0
 +     dvdz=0.0
@@ -39,20 +41,24 @@
 +
 +     ! handle upwp vpwp magnitude
 +     momflux = SQRT(upwp**2 + vpwp**2)
-+     
++
 +     ! Calculate wind shear at interior interfaces (dudz and dvdz are ilev)
 +     do k=2,pver
 +       dudz(:,k) = (um(:,k-1) - um(:,k)) / (state1%zm(:,k-1) - state1%zm(:,k))
 +       dvdz(:,k) = (vm(:,k-1) - vm(:,k)) / (state1%zm(:,k-1) - state1%zm(:,k))
 +     end do
 +     dwinddz = SQRT(dudz**2 + dvdz**2)
-+     
++
 +     ! Do simple linear extrapolation for surface interface.
 +     dwinddz(:,pverp) = dwinddz(:,pverp-1) - (2.0_r8 * dwinddz(:,pverp-1)) * ( 0.0_r8 - (state1%zm(:,pverp-1)) ) / ( (state1%zm(:,pverp-2)) - (state1%zm(:,pverp-1)) )
-+
++     dudz(:,pverp) = dudz(:,pverp-1) - (2.0_r8 * dudz(:,pverp-1)) * ( 0.0_r8 - (state1%zm(:,pverp-1)) ) / ( (state1%zm(:,pverp-2)) - (state1%zm(:,pverp-1)) )
++     dvdz(:,pverp) = dvdz(:,pverp-1) - (2.0_r8 * dvdz(:,pverp-1)) * ( 0.0_r8 - (state1%zm(:,pverp-1)) ) / ( (state1%zm(:,pverp-2)) - (state1%zm(:,pverp-1)) )
+
 +     ! Increase shear of "surface" (u(0)) by 33%
 +     dwinddz(:,pverp) = dwinddz(:,pverp)*1.3333333_r8
-+     
++     dudz(:,pverp) = dudz(:,pverp)*1.3333333_r8
++     dvdz(:,pverp) = dvdz(:,pverp)*1.3333333_r8
++
 +     ! If a very small wind shear, clip to a small value to prevent tiny denominators.
 +     where ( dwinddz(:,pverp) < 0.0005_r8 )
 +       dwinddz(:,pverp) = 0.0005_r8
@@ -65,17 +71,22 @@
 +     ! Smoothing! This currently weights the current level 95% and each neighbor level at 2.5%.
 +     ! Note this only smooths on the "interior" shear points (i.e., 2 to nlevi-1)
 +     dwinddz(:,2:pver) = 0.95_r8*dwinddz(:,2:pver) + 0.025_r8*(dwinddz(:,1:pver-1)+dwinddz(:,3:pver+1))
++     dudz(:,2:pver) = 0.95_r8*dudz(:,2:pver) + 0.025_r8*(dudz(:,1:pver-1)+dudz(:,3:pver+1))
++     dvdz(:,2:pver) = 0.95_r8*dvdz(:,2:pver) + 0.025_r8*(dvdz(:,1:pver-1)+dvdz(:,3:pver+1))
 +
 +     ! Calculate effective diffusivity
-+     keffu = momflux / dwinddz
-+     
++     keffu = upwp / dudz
++     keffv = vpwp / dvdz
++
 +     ! Set diffusivity to zero at model top.
 +     keffu(:,1) = 0.0
-+     
++     keffv(:,1) = 0.0
++
 +     ! Write effective diffusivity
-+     call outfld( 'KEFF',        keffu,                   pcols, lchnk ) 
++     call outfld( 'KEFFU',        keffu,                   pcols, lchnk )
++     call outfld( 'KEFFV',        keffv,                   pcols, lchnk )
 +   !--CMZ
-+   
-    ! --------------------------------------------------------------------------------- !   
++
+    ! --------------------------------------------------------------------------------- !
     !  END CLOUD FRACTION DIAGNOSIS, begin to store variables back into buffer          !
-    ! --------------------------------------------------------------------------------- !  
+    ! --------------------------------------------------------------------------------- !
