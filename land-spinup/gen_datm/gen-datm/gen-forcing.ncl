@@ -5,7 +5,7 @@ timestride=1
 STIX=0
 do_q=True
 do_flds=True
-outdirbase="/glade/derecho/scratch/zarzycki/ERA5-DATM/DATM_FORCING/ERA5/"
+;outdirbase="/glade/derecho/scratch/zarzycki/ERA5-DATM/DATM_FORCING/ERA5/"
 ;pathtorawera5="/glade/u/home/zarzycki/scratch/ERA5-DATM/"
 datafilename="CMZERA5.v0.c2021.0.5d"
 ;/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.cruncep_qianFill.0.5d.v7.c160715/TPHWL6Hrly/clmforc.cruncep.V7.c2016.0.5d.TPQWL.1986-08.nc
@@ -83,6 +83,18 @@ prec_era5 = short2flt( f->mtpr(STIX:ENIX:timestride,::-1,:) )
 fsds_era5 = short2flt( f->ssrd(STIX:ENIX:timestride,::-1,:) )
 if (do_flds) then
   flds_era5 = short2flt( f->strd(STIX:ENIX:timestride,::-1,:) )
+end if
+
+print("READ FROM ERA5 STATS:")
+print("u10_era5 max: "+max(u10_era5)+"   min: "+min(u10_era5))
+print("v10_era5 max: "+max(v10_era5)+"   min: "+min(v10_era5))
+print("tbot_era5 max: "+max(tbot_era5)+"   min: "+min(tbot_era5))
+print("tdew_era5 max: "+max(tdew_era5)+"   min: "+min(tdew_era5))
+print("psrf_era5 max: "+max(psrf_era5)+"   min: "+min(psrf_era5))
+print("prec_era5 max: "+max(prec_era5)+"   min: "+min(prec_era5))
+print("fsds_era5 max: "+max(fsds_era5)+"   min: "+min(fsds_era5))
+if (do_flds) then
+  print("flds_era5 max: "+max(flds_era5)+"   min: "+min(flds_era5))
 end if
 
 print("Processing wind...")
@@ -164,26 +176,38 @@ if (do_q) then
 end if
 
 print("Enforce specified capping checks")
+
 maxwind=45.0
 minwind=0.0
+print("wind_datm max: "+max(wind_datm)+"   min: "+min(wind_datm))
+print("min/max set by user: "+minwind+" "+maxwind)
 print("Number of wind_datm over max to be corrected: "+num(wind_datm .gt. maxwind))
-print("Number of wind_datm over min to be corrected: "+num(wind_datm .lt. minwind))
+print("Number of wind_datm under min to be corrected: "+num(wind_datm .lt. minwind))
 wind_datm = where(wind_datm .gt. maxwind, maxwind, wind_datm)
 wind_datm = where(wind_datm .lt. minwind, minwind, wind_datm)
+
 maxpsrf=120000.0
 minpsrf=30000.0
+print("psrf_datm max: "+max(psrf_datm)+"   min: "+min(psrf_datm))
+print("min/max set by user: "+minpsrf+" "+maxpsrf)
 print("Number of psrf_datm over max to be corrected: "+num(psrf_datm .gt. maxpsrf))
-print("Number of psrf_datm over min to be corrected: "+num(psrf_datm .lt. minpsrf))
+print("Number of psrf_datm under min to be corrected: "+num(psrf_datm .lt. minpsrf))
 psrf_datm = where(psrf_datm .gt. maxpsrf, maxpsrf, psrf_datm)
 psrf_datm = where(psrf_datm .lt. minpsrf, minpsrf, psrf_datm)
+
 maxtbot=340.0
 mintbot=175.0
+print("tbot_datm max: "+max(tbot_datm)+"   min: "+min(tbot_datm))
+print("min/max set by user: "+mintbot+" "+maxtbot)
 print("Number of tbot_datm over max to be corrected: "+num(tbot_datm .gt. maxtbot))
-print("Number of tbot_datm over min to be corrected: "+num(tbot_datm .lt. mintbot))
+print("Number of tbot_datm under min to be corrected: "+num(tbot_datm .lt. mintbot))
 tbot_datm = where(tbot_datm .gt. maxtbot, maxtbot, tbot_datm)
 tbot_datm = where(tbot_datm .lt. mintbot, mintbot, tbot_datm)
+
 if (do_q) then
   maxqbot=0.2
+  print("qbot_datm max: "+max(qbot_datm)+"   min: "+min(qbot_datm))
+  print("max set by user: "+maxqbot)
   print("Number of qbot_datm over max to be corrected: "+num(qbot_datm .gt. maxqbot))
   qbot_datm = where(qbot_datm .gt. maxqbot, maxqbot, qbot_datm)
 end if

@@ -11,14 +11,18 @@
 #PBS -j oe
 ################################################################
 
-#module load parallel
-#module load ncl
+module load parallel
+module load ncl
+
+echo "parallel location: $(which parallel)"
+echo "ncl location: $(which ncl)"
 
 NUMCORES=4
 
-STYR=1992
-ENYR=1992
-PATHTORAWERA5=/glade/derecho/scratch/${LOGNAME}/ERA5-DATM/
+STYR=2003
+ENYR=2023
+PATHTORAWERA5=/glade/campaign/cgd/amp/zarzycki/DATM_FORCING/raw-ERA5/
+OUTDIRBASE=/glade/campaign/cgd/amp/zarzycki/DATM_FORCING/ERA5/
 
 TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt
@@ -33,7 +37,7 @@ do
   do
     THISFILE=${PATHTORAWERA5}/out.${DATA_YEAR}.${DATA_MONTH}.nc
     if [ -f "$THISFILE" ]; then
-      LINECOMMAND="ncl gen-forcing.ncl YYYY=$DATA_YEAR 'MM=\"$DATA_MONTH\"' 'RAWERA5FILE=\"$THISFILE\"'"
+      LINECOMMAND="ncl gen-forcing.ncl YYYY=$DATA_YEAR 'MM=\"$DATA_MONTH\"' 'RAWERA5FILE=\"$THISFILE\"' 'outdirbase=\"$OUTDIRBASE\"' "
       echo ${LINECOMMAND} >> ${COMMANDFILE}
     else
       echo "$THISFILE does not exist!"
