@@ -2,7 +2,9 @@
 
 ### Generate ESMF from SCRIP file
 
-``
+Information:
+
+```
 The ESMF_Scrip2Unstruct application is a parallel program that converts a SCRIP format grid file into an unstructured grid file in the ESMF unstructured file format or in the UGRID file format. This application program can be used together with ESMF_RegridWeightGen application for the unstructured SCRIP format grid files. An unstructured SCRIP grid file will be converted into the ESMF unstructured file format internally in ESMF_RegridWeightGen. The conversion subroutine used in ESMF_RegridWeightGen is sequential and could be slow if the grid file is very big. It will be more efficient to run the ESMF_Scrip2Unstruct first and then regrid the output ESMF or UGRID file using ESMF_RegridWeightGen. Note that a logically rectangular grid file in the SCRIP format (i.e. the dimension grid_rank is equal to 2) can also be converted into an unstructured grid file with this application.
 
 The application usage is as follows:
@@ -26,6 +28,8 @@ where
                     If not specified, the output file is in
 		    the ESMF format.
 ```
+
+Command given a SCRIP file to create an ESMF file.
 
 ```
 ESMF_Scrip2Unstruct /glade/campaign/cesm/cesmdata/inputdata/lnd/clm2/mappingdata/grids/SCRIPgrid_0.125x0.125_nomask_c170126.nc tmp.nc 0 ESMF
