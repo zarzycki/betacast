@@ -1,6 +1,16 @@
-;Not needed NCL v6.5+
-load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
-load "helpers.ncl"
+if ismissing(getenv("BETACAST")) then
+  print("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
+  local_only=True
+  PATHTOHERE="./"
+else
+  print("Not local only!")
+  local_only=False
+  PATHTOHERE=getenv("BETACAST")+"/atm_to_cam/"
+end if
+
+print(""+PATHTOHERE)
+loadscript("$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl")
+loadscript(PATHTOHERE+"/helpers.ncl")
 
 begin
 
@@ -584,7 +594,7 @@ if (dycore .ne. "mpas") then
   print("---------------------------------------------------------")
   print("Loading CAM levels")
   print("Loading "+numlevels+" level data")
-  fC   = addfile ("./templates/L"+numlevels+"template.nc", "r")
+  fC   = addfile (PATHTOHERE+"/templates/L"+numlevels+"template.nc", "r")
   hya  = fC->hyam
   hyb  = fC->hybm
   hyai  = fC->hyai
@@ -604,7 +614,7 @@ if (dycore .ne. "mpas") then
   end if
   if (datasource .eq. "ERAI") then
     print("Using hybrid to hybrid interpolation")
-    eraVertFile = addfile("./templates/ERA-Interim_coordvars.nc","r")
+    eraVertFile = addfile(PATHTOHERE+"/templates/ERA-Interim_coordvars.nc","r")
     hya_era = eraVertFile->a_model_ave
     hyb_era = eraVertFile->b_model_ave
     hya_era = hya_era/p0
