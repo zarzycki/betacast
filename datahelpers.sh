@@ -75,7 +75,7 @@ get_cfsr_atm() {
 
     echo "Getting file: ${CFSRFILENAME}"
     CFSRFILENAME="pgbhnl.gdas.${yearstr}${monthstr}${STCUTARR[$index]}-${yearstr}${monthstr}${ENCUTARR[$index]}.tar"
-    if [[ $(hostname -s) = cheyenne* ]]; then
+    if [[ $(hostname -s) = derecho* ]]; then
       cp "/glade/collections/rda/data/ds093.0/${yearstr}/${CFSRFILENAME}" .
     else
       wget -nv --load-cookies ~/.thecookies "http://rda.ucar.edu/data/ds093.0/${yearstr}/${CFSRFILENAME}"
@@ -95,8 +95,8 @@ get_era5_atm() {
 
   if [ ! -f "$LOCALGFSFILE" ]; then
     echo "Cannot find: ${era_files_path}/${LOCALGFSFILE}"
-    if [[ "$MACHINEFILE" == *cheyenne* ]]; then
-      echo "We are on Cheyenne, so even though we lack a local file, we can use RDA"
+    if [[ "$MACHINEFILE" == *derecho* ]]; then
+      echo "We are on derecho, so even though we lack a local file, we can use RDA"
       ERA5RDA=1
       RDADIR="/glade/campaign/collections/rda/data/ds633.0/"
     elif [[ "$MACHINEFILE" == *pm* ]]; then
