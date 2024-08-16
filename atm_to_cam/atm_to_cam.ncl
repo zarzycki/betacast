@@ -626,6 +626,16 @@ if (dycore .ne. "mpas") then
     cldliq_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,cldliq_gfs,hya,hyb,1)
   end if
 
+  tmpoutputfile="ncl_era5_on_hybrid.nc"
+  system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
+  ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
+  ncdf->t_cam  = t_cam
+  ncdf->u_cam  = u_cam
+  ncdf->v_cam  = v_cam
+  ncdf->q_cam  = q_cam
+  ncdf->cldice_cam  = cldice_cam
+  ncdf->cldliq_cam  = cldliq_cam
+
   print("=================================================================")
   print("************ AFTER VERTICAL INTERP")
   print("Max T: "+max(t_cam)+"   min T: "+min(t_cam))
@@ -675,6 +685,30 @@ if (dycore .ne. "mpas") then
   q_fv  = ESMF_regrid_with_weights(q_cam,wgt_filename,Opt)
   cldice_fv  = ESMF_regrid_with_weights(cldice_cam,wgt_filename,Opt)
   cldliq_fv  = ESMF_regrid_with_weights(cldliq_cam,wgt_filename,Opt)
+
+  t_fv!0="level"
+  t_fv!1="ncol"
+  copy_VarCoords(t_fv,u_fv)
+  copy_VarCoords(t_fv,v_fv)
+  copy_VarCoords(t_fv,q_fv)
+  copy_VarCoords(t_fv,cldice_fv)
+  copy_VarCoords(t_fv,cldliq_fv)
+  selat!0="ncol"
+  selon!0="ncol"
+
+  tmpoutputfile="ncl_era5_regrid.nc"
+  system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
+  ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
+  ncdf->t_fv  = t_fv
+  ncdf->u_fv  = u_fv
+  ncdf->v_fv  = v_fv
+  ncdf->q_fv  = q_fv
+  ncdf->cldice_fv  = cldice_fv
+  ncdf->cldliq_fv  = cldliq_fv
+  ncdf->lat = selat
+  ncdf->lon = selon
+
+  exit
 
   print("=================================================================")
   print("************ AFTER HORIZONTAL INTERP")
