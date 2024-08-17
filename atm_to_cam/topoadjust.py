@@ -4,13 +4,7 @@ import os
 import glob
 import horizremap
 import vertremap
-
-# Constants
-grav = 9.81  # gravity in m/s^2
-Rd = 287.05  # gas constant for dry air in J/(kg·K)
-gamma_s = 0.005  # lapse rate in K/m
-Opt = 0
-p0 = 100000
+from constants import grav, Rd, gamma_s, p0
 
 def topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR="", add_cloud_vars=False):
     sePS = ps_fv

@@ -29,8 +29,6 @@ def main():
         local_only = False
         PATHTOHERE = os.path.join(BETACAST, "atm_to_cam")
 
-    define_constants()
-
     args = parse_args()
 
     # Example of using the arguments
