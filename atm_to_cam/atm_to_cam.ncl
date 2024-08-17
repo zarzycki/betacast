@@ -695,6 +695,7 @@ if (dycore .ne. "mpas") then
   copy_VarCoords(t_fv,cldliq_fv)
   selat!0="ncol"
   selon!0="ncol"
+  ps_fv!0="ncol"
 
   tmpoutputfile="ncl_era5_regrid.nc"
   system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
@@ -703,12 +704,11 @@ if (dycore .ne. "mpas") then
   ncdf->u_fv  = u_fv
   ncdf->v_fv  = v_fv
   ncdf->q_fv  = q_fv
+  ncdf->ps_fv  = ps_fv
   ncdf->cldice_fv  = cldice_fv
   ncdf->cldliq_fv  = cldliq_fv
   ncdf->lat = selat
   ncdf->lon = selon
-
-  exit
 
   print("=================================================================")
   print("************ AFTER HORIZONTAL INTERP")
@@ -1141,9 +1141,20 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
           linlog = -2   ; allow extrapolation
         end if
 
+        if (kk .eq. 4520) then
+          print(deltaPhi+"")
+          print(gamma_s+"")
+          print(topo_data_SE(kk)+"")
+          print(topo_model_SE(kk)+"")
+          print(sfct_data_SE(kk)+"")
+          print("*")
+          print(pm_orig+" "+t_fv(:,kk))
+        end if
         tmp := int2p(pm_orig,t_fv(:,kk),pm_corr,linlog)
         t_fv(:,kk) = where(ismissing(tmp),t_fv(:,kk),tmp)
-
+        if (kk .eq. 4520) then
+          print(pm_corr+" "+t_fv(:,kk))
+        end if
         tmp := int2p(pm_orig,q_fv(:,kk),pm_corr,linlog)
         q_fv(:,kk) = where(ismissing(tmp),q_fv(:,kk),tmp)
 
@@ -1185,6 +1196,21 @@ else
 end if
 end if
 end if
+
+tmpoutputfile="ncl_era5_topoadjust.nc"
+system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
+ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
+ncdf->t_fv  = t_fv
+ncdf->u_fv  = u_fv
+ncdf->v_fv  = v_fv
+ncdf->q_fv  = q_fv
+ncdf->ps_fv  = ps_fv
+ncdf->cldice_fv  = cldice_fv
+ncdf->cldliq_fv  = cldliq_fv
+ncdf->lat = selat
+ncdf->lon = selon
+
+exit
 
 ; dry pressure?
 ps_wet_to_dry=False

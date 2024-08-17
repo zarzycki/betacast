@@ -14,6 +14,7 @@ import scipy.sparse as sp
 from pyfuncs import *
 import vertremap
 import horizremap
+import topoadjust
 
 def main():
 
@@ -64,6 +65,8 @@ def main():
     mod_remap_file = args.mod_remap_file
     write_floats = args.write_floats
     RDADIR = args.RDADIR
+    adjust_config = args.adjust_config
+    add_cloud_vars = args.add_cloud_vars
 
     # Check if we are using MPAS and the model topo file is provided and exists
     if dycore == "mpas" and model_topo_file:
@@ -160,12 +163,12 @@ def main():
     print(f"Max CLDLIQ: {cldliq_gfs.max()}   min CLDLIQ: {cldliq_gfs.min()}")
     print("="*65)
 
-    t_cam = vertremap.interpolate_to_hybrid_levels(grblev, t_gfs, ps, hya, hyb)
-    u_cam = vertremap.interpolate_to_hybrid_levels(grblev, u_gfs, ps, hya, hyb)
-    v_cam = vertremap.interpolate_to_hybrid_levels(grblev, v_gfs, ps, hya, hyb)
-    q_cam = vertremap.interpolate_to_hybrid_levels(grblev, q_gfs, ps, hya, hyb)
-    cldice_cam = vertremap.interpolate_to_hybrid_levels(grblev, cldice_gfs, ps, hya, hyb)
-    cldliq_cam = vertremap.interpolate_to_hybrid_levels(grblev, cldliq_gfs, ps, hya, hyb)
+    t_cam = vertremap.pressure_to_hybrid(grblev, t_gfs, ps, hya, hyb)
+    u_cam = vertremap.pressure_to_hybrid(grblev, u_gfs, ps, hya, hyb)
+    v_cam = vertremap.pressure_to_hybrid(grblev, v_gfs, ps, hya, hyb)
+    q_cam = vertremap.pressure_to_hybrid(grblev, q_gfs, ps, hya, hyb)
+    cldice_cam = vertremap.pressure_to_hybrid(grblev, cldice_gfs, ps, hya, hyb)
+    cldliq_cam = vertremap.pressure_to_hybrid(grblev, cldliq_gfs, ps, hya, hyb)
 
     # Create an xarray.Dataset
     ds = xr.Dataset(
@@ -222,6 +225,40 @@ def main():
         },
     )
     output_filename = "py_era5_regrid.nc"
+    ds.to_netcdf(output_filename)
+
+    print("=" * 65)
+    print("************ AFTER HORIZONTAL INTERP")
+    print(f"Max T: {np.max(t_fv):.6f}   min T: {np.nanmin(t_fv):.6f}")
+    print(f"Max U: {np.max(u_fv):.6f}   min U: {np.nanmin(u_fv):.6f}")
+    print(f"Max V: {np.max(v_fv):.6f}   min V: {np.nanmin(v_fv):.6f}")
+    print(f"Max Q: {np.max(q_fv):.6f}   min Q: {np.nanmin(q_fv):.6f}")
+    print(f"Max PS: {np.max(ps):.6f}   min PS: {np.nanmin(ps):.6f}")
+    print(f"Max CLDICE: {np.max(cldice_fv):.6f}   min CLDICE: {np.nanmin(cldice_fv):.6f}")
+    print(f"Max CLDLIQ: {np.max(cldliq_fv):.6f}   min CLDLIQ: {np.nanmin(cldliq_fv):.6f}")
+    print("=" * 65)
+
+    print("==CLEAN after horizontal interp")
+    del t_cam, u_cam, v_cam, q_cam, cldice_cam, cldliq_cam, ps
+
+    print(type(adjust_config))
+    topoadjust.topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR, add_cloud_vars)
+
+    # Create an xarray.Dataset
+    ds = xr.Dataset(
+        {
+            "lat": (["ncol"], selat.astype(np.float32)),
+            "lon": (["ncol"], selon.astype(np.float32)),
+            "ps_fv": (["ncol"], ps_fv.astype(np.float32)),
+            "t_fv": (["level", "ncol"], t_fv.astype(np.float32)),
+            "u_fv": (["level", "ncol"], u_fv.astype(np.float32)),
+            "v_fv": (["level", "ncol"], v_fv.astype(np.float32)),
+            "q_fv": (["level", "ncol"], q_fv.astype(np.float32)),
+            "cldliq_fv": (["level", "ncol"], cldliq_fv.astype(np.float32)),
+            "cldice_fv": (["level", "ncol"], cldice_fv.astype(np.float32))
+        },
+    )
+    output_filename = "py_era5_topoadjust.nc"
     ds.to_netcdf(output_filename)
 
 if __name__ == "__main__":

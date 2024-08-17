@@ -4,7 +4,7 @@ from numba import jit
 #from tqdm import tqdm
 import time
 
-# def interpolate_to_hybrid_levels(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0=100000):
+# def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0=100000):
 #     """
 #     Interpolate data on constant pressure levels to hybrid sigma levels.
 #
@@ -43,21 +43,112 @@ import time
 
 #### NUMBA
 
-@jit(nopython=True)
-def interpolate_to_hybrid_levels_numba(p_levels, data_on_p_levels, ps, hybrid_p):
-    """
-    JIT-compiled function to interpolate data on constant pressure levels to hybrid sigma levels.
-    This function is optimized with numba.
-    """
-    nlevs, nlat, nlon = hybrid_p.shape
-    data_on_hybrid_levels = np.zeros((nlevs, nlat, nlon))
+# @jit(nopython=True)
+# def pressure_to_hybrid_numba(p_levels, data_on_p_levels, ps, hybrid_p):
+#     """
+#     JIT-compiled function to interpolate data on constant pressure levels to hybrid sigma levels.
+#     This function is optimized with numba.
+#     """
+#     nlevs, nlat, nlon = hybrid_p.shape
+#     data_on_hybrid_levels = np.zeros((nlevs, nlat, nlon))
+#
+#     # Interpolate for each lat/lon point
+#     for i in range(nlat):
+#         for j in range(nlon):
+#             data_on_hybrid_levels[:, i, j] = np.interp(hybrid_p[:, i, j], p_levels, data_on_p_levels[:, i, j])
+#
+#     return data_on_hybrid_levels
 
-    # Interpolate for each lat/lon point
-    for i in range(nlat):
-        for j in range(nlon):
-            data_on_hybrid_levels[:, i, j] = np.interp(hybrid_p[:, i, j], p_levels, data_on_p_levels[:, i, j])
+def int2p(pin, xin, pout, linlog):
+    """
+    Interpolates data from one set of pressure levels to another.
 
-    return data_on_hybrid_levels
+    Parameters:
+    -----------
+    pin : array-like
+        Array of input pressure levels. If multi-dimensional, the level dimension must be in the rightmost position.
+
+    xin : array-like
+        Array of data to be interpolated. Should have the same shape as `pin`.
+
+    pout : array-like
+        Array of output pressure levels. If multi-dimensional, the level dimension must be in the rightmost position
+        and all other dimensions must match `xin`. If one-dimensional, all of `xin` will be interpolated to the same levels.
+
+    linlog : int
+        Integer indicating the type of interpolation:
+        - abs(linlog) == 1 --> linear interpolation
+        - abs(linlog) != 1 --> logarithmic interpolation
+        - If linlog is negative, extrapolation outside the range of `pin` will occur.
+
+    Returns:
+    --------
+    array-like
+        Interpolated data array of the same shape as `pout`.
+    """
+
+    # Initialize the output array
+    xout = np.full_like(pout, np.nan)
+
+    # Determine whether to perform linear or logarithmic interpolation
+    is_linear = abs(linlog) == 1
+
+    # Reverse arrays if necessary to ensure they are in descending order
+    if pin[0] < pin[-1]:
+        pin = pin[::-1]
+        xin = xin[::-1]
+        xflipped = True
+
+    if pout[0] < pout[-1]:
+        pout = pout[::-1]
+
+    # Remove missing data
+    valid_mask = ~np.isnan(xin) & ~np.isnan(pin)
+    pin = pin[valid_mask]
+    xin = xin[valid_mask]
+
+    if len(pin) < 2:
+        raise ValueError("Not enough valid data points for interpolation")
+
+    # Interpolation
+    for np_idx in range(len(pout)):
+        for nl in range(len(pin) - 1):
+            if pin[nl] >= pout[np_idx] >= pin[nl + 1]:
+                if is_linear:
+                    slope = (xin[nl] - xin[nl + 1]) / (pin[nl] - pin[nl + 1])
+                    xout[np_idx] = xin[nl + 1] + slope * (pout[np_idx] - pin[nl + 1])
+                else:
+                    slope = (xin[nl] - xin[nl + 1]) / (np.log(pin[nl]) - np.log(pin[nl + 1]))
+                    xout[np_idx] = xin[nl + 1] + slope * (np.log(pout[np_idx]) - np.log(pin[nl + 1]))
+                break
+
+    # Extrapolation
+    if linlog < 0:
+        if is_linear:
+            slope_high = (xin[1] - xin[0]) / (pin[1] - pin[0])
+            slope_low = (xin[-1] - xin[-2]) / (pin[-1] - pin[-2])
+        else:
+            slope_high = (xin[1] - xin[0]) / (np.log(pin[1]) - np.log(pin[0]))
+            slope_low = (xin[-1] - xin[-2]) / (np.log(pin[-1]) - np.log(pin[-2]))
+
+        for np_idx in range(len(pout)):
+            if pout[np_idx] > pin[0]:  # Above range, extrapolate
+                if is_linear:
+                    xout[np_idx] = xin[0] + slope_high * (pout[np_idx] - pin[0])
+                else:
+                    xout[np_idx] = xin[0] + slope_high * (np.log(pout[np_idx]) - np.log(pin[0]))
+            elif pout[np_idx] < pin[-1]:  # Below range, extrapolate
+                if is_linear:
+                    xout[np_idx] = xin[-1] + slope_low * (pout[np_idx] - pin[-1])
+                else:
+                    xout[np_idx] = xin[-1] + slope_low * (np.log(pout[np_idx]) - np.log(pin[-1]))
+
+    # If xin was flipped, we need to flip xout for consistency
+    if xflipped:
+        xout = xout[::-1]
+
+    return xout
+
 
 @jit(nopython=True)
 def p2hyo(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag):
@@ -114,7 +205,7 @@ def p2hyo(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag):
 
     return data_on_hybrid_levels
 
-def interpolate_to_hybrid_levels(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0=100000, kflag=1):
+def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0=100000, kflag=1):
     """
     Interpolate data on constant pressure levels to hybrid sigma levels.
 
@@ -137,7 +228,7 @@ def interpolate_to_hybrid_levels(p_levels, data_on_p_levels, ps, a_coeff, b_coef
 
     return data_on_hybrid_levels
 
-# def interpolate_to_hybrid_levels(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0=100000):
+# def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0=100000):
 #     """
 #     Interpolate data on constant pressure levels to hybrid sigma levels.
 #
@@ -154,7 +245,7 @@ def interpolate_to_hybrid_levels(p_levels, data_on_p_levels, ps, a_coeff, b_coef
 #         raise ValueError("p_levels must be monotonically increasing")
 #
 #     # Call the JIT-compiled function
-#     data_on_hybrid_levels = interpolate_to_hybrid_levels_numba(p_levels, data_on_p_levels, ps, hybrid_p)
+#     data_on_hybrid_levels = pressure_to_hybrid_numba(p_levels, data_on_p_levels, ps, hybrid_p)
 #
 #     # Print elapsed time
 #     elapsed_time = time.time() - start_time
@@ -163,3 +254,100 @@ def interpolate_to_hybrid_levels(p_levels, data_on_p_levels, ps, a_coeff, b_coef
 #     return data_on_hybrid_levels
 #
 #
+
+
+
+###### NEEDS TO BE TESTED
+
+@jit(nopython=True)
+def ds2hbd(dati, sigi, sigo, intyp):
+    """
+    Python equivalent of the DS2HBD Fortran subroutine.
+
+    Parameters:
+    - dati: Input data on sigma coordinates (1D array)
+    - sigi: Sigma levels (1D array)
+    - sigo: Output sigma levels for hybrid coordinates (1D array)
+    - intyp: Interpolation type (1: linear, 2: log, 3: log-log)
+
+    Returns:
+    - dato: Interpolated data on hybrid coordinates (1D array)
+    """
+    nli = sigi.size
+    nlo = sigo.size
+    dato = np.zeros(nlo)
+
+    def a2ln(a1):
+        return np.log(np.log(a1 + 1.001))
+
+    for k in range(nlo):
+        if sigo[k] <= sigi[1]:
+            kp = 0
+        elif sigo[k] >= sigi[nli-2]:
+            kp = nli - 2
+        else:
+            kp = 0
+            while sigo[k] > sigi[kp+1]:
+                kp += 1
+
+        if intyp == 1:  # Linear interpolation
+            dato[k] = dati[kp] + (dati[kp+1] - dati[kp]) * (sigo[k] - sigi[kp]) / (sigi[kp+1] - sigi[kp])
+        elif intyp == 2:  # Log interpolation
+            dato[k] = dati[kp] + (dati[kp+1] - dati[kp]) * np.log(sigo[k] / sigi[kp]) / np.log(sigi[kp+1] / sigi[kp])
+        elif intyp == 3:  # Log-log interpolation
+            dato[k] = dati[kp] + (dati[kp+1] - dati[kp]) * (a2ln(sigo[k]) - a2ln(sigi[kp])) / (a2ln(sigi[kp+1]) - a2ln(sigi[kp]))
+
+    return dato
+
+@jit(nopython=True)
+def dh2sdrv(dati, hya, hyb, p0, psfc, sigi, intyp):
+    """
+    Python equivalent of the DH2SDRV Fortran subroutine.
+
+    Parameters:
+    - dati: Input data on sigma levels (1D array)
+    - hya: Hybrid A coefficients (1D array)
+    - hyb: Hybrid B coefficients (1D array)
+    - p0: Reference pressure
+    - psfc: Surface pressure
+    - sigi: Sigma levels (1D array)
+    - intyp: Interpolation type (1: linear, 2: log, 3: log-log)
+
+    Returns:
+    - dato: Interpolated data on hybrid coordinates (1D array)
+    """
+    nlvi = sigi.size
+    nlvo = hya.size
+    sigo = np.zeros(nlvo)
+
+    # Convert hybrid to sigma coordinates
+    for n in range(nlvo):
+        sigo[n] = (hya[n] * p0) / psfc + hyb[n]
+
+    # Perform interpolation using ds2hbd
+    dato = ds2hbd(dati, sigi, sigo, intyp)
+
+    return dato
+
+def sigma_to_hybrid(dati, sigma, hya, hyb, psfc, p0=100000, intyp=1):
+    """
+    Interpolate data from sigma levels to hybrid sigma levels.
+
+    This function is a wrapper that prepares the input for the JIT-compiled version.
+    """
+
+    # Start timing
+    start_time = time.time()
+
+    # Check if sigma is monotonically increasing
+    if not np.all(np.diff(sigma) > 0):
+       raise ValueError("Sigma levels must be monotonically increasing")
+
+    # Call the Python-equivalent Fortran function
+    dato = dh2sdrv(dati, hya, hyb, p0, psfc, sigma, intyp)
+
+    # Print elapsed time
+    elapsed_time = time.time() - start_time
+    print(f"Sigma to hybrid interpolation completed in {elapsed_time:.2f} seconds.")
+
+    return dato
