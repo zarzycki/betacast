@@ -59,6 +59,7 @@ import time
 #
 #     return data_on_hybrid_levels
 
+@jit(nopython=True)
 def int2p(pin, xin, pout, linlog):
     """
     Interpolates data from one set of pressure levels to another.
