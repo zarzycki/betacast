@@ -15,8 +15,12 @@ from pyfuncs import *
 import vertremap
 import horizremap
 import topoadjust
+from constants import p0
 
 def main():
+
+    ps_wet_to_dry=True
+    output_diag=True
 
     # Check environment variable
     BETACAST = os.getenv("BETACAST")
@@ -240,7 +244,7 @@ def main():
     del t_cam, u_cam, v_cam, q_cam, cldice_cam, cldliq_cam, ps
 
     print(type(adjust_config))
-    topoadjust.topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR, add_cloud_vars)
+    correct_or_not = topoadjust.topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR, add_cloud_vars)
 
     # Create an xarray.Dataset
     ds = xr.Dataset(
@@ -248,6 +252,7 @@ def main():
             "lat": (["ncol"], selat.astype(np.float32)),
             "lon": (["ncol"], selon.astype(np.float32)),
             "ps_fv": (["ncol"], ps_fv.astype(np.float32)),
+            "correct_or_not": (["ncol"], correct_or_not.astype(np.float32)),
             "t_fv": (["level", "ncol"], t_fv.astype(np.float32)),
             "u_fv": (["level", "ncol"], u_fv.astype(np.float32)),
             "v_fv": (["level", "ncol"], v_fv.astype(np.float32)),
@@ -258,6 +263,27 @@ def main():
     )
     output_filename = "py_era5_topoadjust.nc"
     ds.to_netcdf(output_filename)
+
+    if ps_wet_to_dry:
+
+        if output_diag:
+            ps_fv_before = np.copy(ps_fv)
+
+        ps_fv, pw_fv = ps_wet_to_dry_conversion(ps_fv, q_fv, hyai, hybi, p0, verbose=True)
+
+        # Create an xarray.Dataset
+        ds = xr.Dataset(
+            {
+                "lat": (["ncol"], selat.astype(np.float32)),
+                "lon": (["ncol"], selon.astype(np.float32)),
+                "pw_fv": (["ncol"], pw_fv.astype(np.float32)),
+                "ps_fv_after": (["ncol"], ps_fv.astype(np.float32)),
+                "ps_fv": (["ncol"], ps_fv_before.astype(np.float32))
+            },
+        )
+        output_filename = "py_era5_tpw.nc"
+        ds.to_netcdf(output_filename)
+
 
 if __name__ == "__main__":
     main()

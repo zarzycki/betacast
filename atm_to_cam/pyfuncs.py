@@ -4,6 +4,7 @@ import datetime
 import argparse
 import sys
 import glob
+from constants import grav
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Process command-line arguments for climate data processing.")
@@ -293,4 +294,80 @@ def load_cam_levels(PATHTOHERE, numlevels):
     print(f"Loading {numlevels} level data")
 
     return hya, hyb, hyai, hybi, lev, ilev
+
+
+
+
+
+def prcwater_dp(Q, DP, QMSG=np.nan, DPMSG=np.nan):
+    """
+    Calculate precipitable water given specific humidity and layer thickness.
+
+    Parameters:
+    - Q: Specific humidity array [kg/kg; dimensionless].
+    - DP: Layer thickness array [Pa].
+    - QMSG: Missing value indicator for Q (optional, default: NaN).
+    - DPMSG: Missing value indicator for DP (optional, default: NaN).
+
+    Returns:
+    - prcwat: Precipitable water [kg/m2].
+    """
+
+    # Initialize precipitable water
+    prcwat = 0.0
+
+    # Count valid layers
+    valid_layers = 0
+
+    # Loop over each layer
+    for q, dp in zip(Q, DP):
+        if not np.isnan(q) and not np.isnan(dp):
+            if q != QMSG and dp != DPMSG:
+                valid_layers += 1
+                prcwat += q * abs(dp)
+
+    # Final precipitable water calculation
+    if valid_layers > 0:
+        prcwat /= grav
+    else:
+        prcwat = QMSG
+
+    return prcwat
+
+
+def ps_wet_to_dry_conversion(ps_fv, q_fv, hyai, hybi, p0, verbose=False):
+    """
+    Converts wet surface pressure to dry surface pressure by subtracting
+    the total column precipitable water.
+
+    Parameters:
+    - ps_fv: Surface pressure array (1D).
+    - q_fv: Specific humidity array (2D, with shape [levels, columns]).
+    - hyai: Hybrid A interface coefficients (1D).
+    - hybi: Hybrid B interface coefficients (1D).
+    - p0: Reference pressure (scalar).
+    - verbose: If True, print intermediate results for every 10000th column.
+
+    Returns:
+    - ps_fv: Updated dry surface pressure array.
+    """
+
+    ncol = ps_fv.shape[0]
+    pw_fv = np.zeros_like(ps_fv)
+
+    for kk in range(ncol):
+        pi_orig = hyai * p0 + hybi * ps_fv[kk]
+        nlevp1 = pi_orig.size
+        dp = pi_orig[1:nlevp1] - pi_orig[0:nlevp1-1]
+        pw_fv[kk] = prcwater_dp(q_fv[:, kk], dp)  # prcwater_dp is assumed to be a pre-defined function
+        ps_fv[kk] = ps_fv[kk] - pw_fv[kk] * grav
+
+        if verbose and kk % 10000 == 0:
+            print(dp)
+            print(f"Correcting PS: {kk} of {ncol-1} from {ps_fv[kk] + pw_fv[kk] * 9.81} to {ps_fv[kk]} since TPW: {pw_fv[kk]}")
+
+    print("Done!")
+
+    return ps_fv, pw_fv
+
 
