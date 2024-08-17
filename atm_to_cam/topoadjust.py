@@ -4,11 +4,10 @@ import os
 import glob
 import horizremap
 import vertremap
-from constants import grav, Rd, gamma_s, p0
+from constants import grav, Rd, gamma_s, p0, vert_interp_thresh, extrap_threshold
 
 def topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR="", add_cloud_vars=False):
-    sePS = ps_fv
-    dim_sePS = sePS.shape
+    dim_sePS = ps_fv.shape
 
     if dycore != "mpas" and model_topo_file and os.path.exists(model_topo_file):
         print(f"TOPOADJUST: Performing hydrostatic correction for surface pressure using {model_topo_file}")
@@ -131,30 +130,15 @@ def topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hy
                     t_fv[nlev - 1, kk] += Tsfc_fv - sfct_data_SE[kk]
 
                 # Correct other state variables
-                vert_interp_thresh = 0.1  # ps corr diff (Pa) req. to interp vert profiles
-                extrap_threshold = 5000.  # maximum ps corr diff (Pa) to allow extrapolation
                 if abs(ps_orig - ps_fv[kk]) > vert_interp_thresh:
                     pm_orig = hya * p0 + hyb * ps_orig
                     pm_corr = hya * p0 + hyb * ps_fv[kk]
                     linlog = 2 if abs(ps_orig - ps_fv[kk]) > extrap_threshold else -2
 
-                    if kk == 4520:
-                        print(deltaPhi)
-                        print(gamma_s)
-                        print(topo_data_SE[kk])
-                        print(topo_model_SE[kk])
-                        print(sfct_data_SE[kk])
-                        print("*")
-                        print(t_fv[:, kk])
-                        print(pm_orig)
                     t_fv[:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, t_fv[:, kk], pm_corr, linlog)), t_fv[:, kk], vertremap.int2p(pm_orig, t_fv[:, kk], pm_corr, linlog))
                     q_fv[:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, q_fv[:, kk], pm_corr, linlog)), q_fv[:, kk], vertremap.int2p(pm_orig, q_fv[:, kk], pm_corr, linlog))
                     u_fv[:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, u_fv[:, kk], pm_corr, linlog)), u_fv[:, kk], vertremap.int2p(pm_orig, u_fv[:, kk], pm_corr, linlog))
                     v_fv[:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, v_fv[:, kk], pm_corr, linlog)), v_fv[:, kk], vertremap.int2p(pm_orig, v_fv[:, kk], pm_corr, linlog))
-                    if kk == 4520:
-                        print(t_fv[:, kk])
-                        print(pm_corr)
-                        print("-------------------------------------")
 
                     if add_cloud_vars:
                         cldice_fv[:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, cldice_fv[:, kk], pm_corr, linlog)), cldice_fv[:, kk], vertremap.int2p(pm_orig, cldice_fv[:, kk], pm_corr, linlog))
