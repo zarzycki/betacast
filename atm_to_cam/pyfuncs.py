@@ -5,6 +5,7 @@ import argparse
 import sys
 import glob
 from constants import grav
+import cftime
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Process command-line arguments for climate data processing.")
@@ -266,7 +267,7 @@ def find_closest_time(times, yearstr, monthstr, daystr, cyclestr):
 
 
 
-def load_cam_levels(PATHTOHERE, numlevels):
+def load_cam_levels(PATHTOHERE, numlevels, load_xarray=False):
     """
     Loads the CAM levels data from a specified template file.
 
@@ -282,12 +283,20 @@ def load_cam_levels(PATHTOHERE, numlevels):
     fC = xr.open_dataset(template_path)
 
     # Extract the hybrid coefficients and levels
-    hya = fC["hyam"].values
-    hyb = fC["hybm"].values
-    hyai = fC["hyai"].values
-    hybi = fC["hybi"].values
-    lev = fC["lev"].values
-    ilev = fC["ilev"].values
+    if load_xarray:
+        hya = fC["hyam"]
+        hyb = fC["hybm"]
+        hyai = fC["hyai"]
+        hybi = fC["hybi"]
+        lev = fC["lev"]
+        ilev = fC["ilev"]
+    else:
+        hya = fC["hyam"].values
+        hyb = fC["hybm"].values
+        hyai = fC["hyai"].values
+        hybi = fC["hybi"].values
+        lev = fC["lev"].values
+        ilev = fC["ilev"].values
 
     print("---------------------------------------------------------")
     print("Loading CAM levels")
@@ -370,4 +379,218 @@ def ps_wet_to_dry_conversion(ps_fv, q_fv, hyai, hybi, p0, verbose=False):
 
     return ps_fv, pw_fv
 
+def numpy_to_dataarray(numpy_array, dims, coords=None, attrs=None, name=None):
+    """
+    Converts a numpy array to an xarray DataArray.
 
+    Parameters:
+    - numpy_array: The numpy array to convert.
+    - dims: A list of dimension names for the DataArray.
+    - coords: Optional dictionary of coordinate arrays.
+    - attrs: Optional dictionary of attributes to add to the DataArray.
+    - name: Optional name for the DataArray.
+
+    Returns:
+    - data_array: The resulting xarray DataArray.
+    """
+    data_array = xr.DataArray(data=numpy_array, dims=dims, coords=coords, attrs=attrs, name=name)
+    return data_array
+
+def add_time_define_precision(var_in, precision, isncol):
+    """
+    Adds a time dimension and converts the precision of the input variable.
+
+    Parameters:
+    var_in (xarray.DataArray or numpy.ndarray): Input variable.
+    precision (str): Desired precision ("float", "single", "double").
+    isncol (bool): True if the variable is ncol; False otherwise.
+
+    Returns:
+    xarray.DataArray: Output variable with time dimension and specified precision.
+    """
+    var_dims = var_in.shape
+
+    if isncol:
+        if len(var_dims) == 1:  # ncol -> time, ncol
+            print(f"Converting a ncol -> ncol {precision} with time attached!")
+            ncol = var_dims[0]
+            if precision in ["float", "single"]:
+                var_out = xr.DataArray(np.zeros((1, ncol), dtype=np.float32), dims=["time", "ncol"])
+            elif precision == "double":
+                var_out = xr.DataArray(np.zeros((1, ncol), dtype=np.float64), dims=["time", "ncol"])
+            else:
+                raise ValueError("Invalid precision specified")
+            var_out[0, :] = var_in.astype(var_out.dtype)
+
+        elif len(var_dims) == 2:  # lev, ncol -> time, lev, ncol
+            print(f"Converting a lev, ncol -> lev, ncol {precision} with time attached!")
+            nlev, ncol = var_dims
+            if precision in ["float", "single"]:
+                var_out = xr.DataArray(np.zeros((1, nlev, ncol), dtype=np.float32), dims=["time", "lev", "ncol"])
+            elif precision == "double":
+                var_out = xr.DataArray(np.zeros((1, nlev, ncol), dtype=np.float64), dims=["time", "lev", "ncol"])
+            else:
+                raise ValueError("Invalid precision specified")
+            var_out[0, :, :] = var_in.astype(var_out.dtype)
+
+    else:  # Not ncol
+        if len(var_dims) == 2:  # nlat, nlon -> time, nlat, nlon
+            print(f"Converting a nlat, nlon -> nlat, nlon {precision} with time attached!")
+            nlat, nlon = var_dims
+            if precision in ["float", "single"]:
+                var_out = xr.DataArray(np.zeros((1, nlat, nlon), dtype=np.float32), dims=["time", "lat", "lon"])
+            elif precision == "double":
+                var_out = xr.DataArray(np.zeros((1, nlat, nlon), dtype=np.float64), dims=["time", "lat", "lon"])
+            else:
+                raise ValueError("Invalid precision specified")
+            var_out[0, :, :] = var_in.astype(var_out.dtype)
+
+        elif len(var_dims) == 3:  # lev, nlat, nlon -> time, lev, nlat, nlon
+            print(f"Converting a lev, nlat, nlon -> lev, nlat, nlon {precision} with time attached!")
+            nlev, nlat, nlon = var_dims
+            if precision in ["float", "single"]:
+                var_out = xr.DataArray(np.zeros((1, nlev, nlat, nlon), dtype=np.float32), dims=["time", "lev", "lat", "lon"])
+            elif precision == "double":
+                var_out = xr.DataArray(np.zeros((1, nlev, nlat, nlon), dtype=np.float64), dims=["time", "lev", "lat", "lon"])
+            else:
+                raise ValueError("Invalid precision specified")
+            var_out[0, :, :, :] = var_in.astype(var_out.dtype)
+
+    # Copy any metadata over to the output variable
+    var_out.attrs = var_in.attrs
+
+    return var_out
+
+import cftime
+import numpy as np
+import xarray as xr
+
+
+
+def create_cf_time(year, month, day, hour, base_time="1850-01-01 00:00:00", time_units="days since", calendar="standard"):
+    """
+    Create a CF-compliant time array from year, month, day, and hour.
+
+    Parameters:
+    - year, month, day, hour: Arrays or scalars of year, month, day, and hour
+    - base_time: The reference time in the format "YYYY-MM-DD HH:MM:SS"
+    - time_units: The time units for the output (e.g., "days since" or "hours since")
+
+    Returns:
+    - time: A numpy array of CF-compliant time values
+    - time_attrs: A dictionary with attributes to assign to the time variable in xarray
+    """
+
+    base_year, base_month, base_day, base_hour = [int(val) for val in base_time.split()[0].split('-')] + [int(base_time.split()[1].split(':')[0])]
+
+    base_time_cftime = cftime.DatetimeNoLeap(base_year, base_month, base_day, base_hour)
+
+    nptime = cftime.date2num(cftime.DatetimeNoLeap(year, month, day, hour), units=f"{time_units} {base_time}")
+
+    nptime = np.array([nptime], dtype=np.float64)
+
+    time_attrs = {
+        "units": f"{time_units} {base_time}",
+        "calendar": f"{calendar}"
+    }
+
+    return nptime, time_attrs
+
+def print_all_variables_info(name_width=22, type_width=40, shape_width=18, value_width=50, size_width=15):
+    # Get the current frame
+    frame = sys._getframe(1)
+
+    # Get all local variables in the current frame
+    local_vars = frame.f_locals
+
+    print(f"{'Variable Name':<{name_width}} {'Type':<{type_width}} {'Shape':<{shape_width}} {'Value':<{value_width}} {'Size (bytes)':<{size_width}}")
+    print("=" * (name_width + type_width + shape_width + value_width + size_width))
+
+    for var_name, var_value in local_vars.items():
+        var_type = str(type(var_value))[:type_width]
+        var_shape = ''
+        var_size = sys.getsizeof(var_value)
+
+        # Determine the shape and size for numpy arrays and xarray DataArrays
+        if isinstance(var_value, (np.ndarray, xr.DataArray)):
+            var_shape = str(var_value.shape)[:shape_width]
+            var_size = var_value.nbytes if isinstance(var_value, np.ndarray) else var_value.nbytes
+        elif isinstance(var_value, xr.Dataset):
+            var_shape = str({dim: size for dim, size in var_value.sizes.items()})[:shape_width]
+            var_size = sum([var.nbytes for var in var_value.data_vars.values()])
+
+        # Truncate the value for xarray.Dataset to avoid multi-line printing
+        if isinstance(var_value, xr.Dataset):
+            display_value = "<xarray.Dataset>"[:value_width]
+        elif isinstance(var_value, xr.DataArray):
+            flattened_value = var_value.values.flatten()
+            display_value = f"{flattened_value[0]}..." if flattened_value.size > 0 else "Empty"
+        elif isinstance(var_value, np.ndarray):
+            display_value = f"{var_value.flatten()[0]}..." if var_value.size > 0 else "Empty"
+        else:
+            display_value = str(var_value)[:value_width]
+
+        print(f"{var_name:<{name_width}} {var_type:<{type_width}} {var_shape:<{shape_width}} {display_value:<{value_width}} {var_size:<{size_width}}")
+
+
+
+
+
+
+
+
+
+
+
+def ncol_to_latlon(var_out, nlat, nlon):
+    vardims = var_out.shape
+
+    if len(vardims) == 1:
+        var_in = var_out.reshape((nlat, nlon), order='F')
+    elif len(vardims) == 2:
+        nlev = vardims[0]
+        ncol = vardims[1]
+        print(f"repacking -> nlev: {nlev}    nlat: {nlat}    nlon: {nlon}    ncol: {ncol}")
+        var_in = np.empty((nlev, nlat, nlon), dtype=var_out.dtype)
+        for ii in range(nlev):
+            var_in[ii, :, :] = var_out[ii, :].reshape((nlat, nlon), order='F')
+    else:
+        raise ValueError(f"{vardims} dims not supported")
+
+    return var_in
+
+def repack_fv(ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv, dim_sePS, correct_or_not=None):
+    """
+    Repack FV variables back to lat-lon dimensions.
+
+    Parameters:
+    - ps_fv: Surface pressure field.
+    - t_fv: Temperature field.
+    - q_fv: Specific humidity field.
+    - u_fv: U wind component field.
+    - v_fv: V wind component field.
+    - cldice_fv: Cloud ice field.
+    - cldliq_fv: Cloud liquid field.
+    - dim_sePS: Tuple containing (nlat, nlon) dimensions.
+    - correct_or_not: Optional field to indicate corrections (if available).
+
+    Returns:
+    - Tuple of repacked variables in the same order as the input.
+    """
+    nlat, nlon = dim_sePS
+
+    print("Repacking FV variables...")
+
+    ps_fv = ncol_to_latlon(ps_fv, nlat, nlon)
+    t_fv = ncol_to_latlon(t_fv, nlat, nlon)
+    q_fv = ncol_to_latlon(q_fv, nlat, nlon)
+    u_fv = ncol_to_latlon(u_fv, nlat, nlon)
+    v_fv = ncol_to_latlon(v_fv, nlat, nlon)
+    cldice_fv = ncol_to_latlon(cldice_fv, nlat, nlon)
+    cldliq_fv = ncol_to_latlon(cldliq_fv, nlat, nlon)
+
+    if correct_or_not is not None:
+        correct_or_not = ncol_to_latlon(correct_or_not, nlat, nlon)
+        return ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv, correct_or_not
+
+    return ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv

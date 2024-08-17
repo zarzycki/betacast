@@ -62,7 +62,7 @@ def correct_state_variables(ncol, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, 
                             tempadjustflag, dycore, add_cloud_vars):
     vert_corrs = 0
     tcorriter = 0
-    correct_or_not = np.zeros_like(ps_fv)
+    correct_or_not = np.zeros_like(ps_fv).astype(np.float32)
 
     for kk in range(ncol):
         if not np.isnan(sfct_data_SE[kk]):
@@ -121,8 +121,8 @@ def topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hy
 
         topo_data, sfct_data = load_additional_fields(datasource, grb_file, RDADIR, yearstr, monthstr, daystr, cyclestr)
 
-        topo_data_SE, selat, selon = horizremap.remap_with_weights_wrapper(topo_data, wgt_filename)
-        sfct_data_SE, selat, selon = horizremap.remap_with_weights_wrapper(sfct_data, wgt_filename)
+        topo_data_SE, _, _ = horizremap.remap_with_weights_wrapper(topo_data, wgt_filename)
+        sfct_data_SE, _, _ = horizremap.remap_with_weights_wrapper(sfct_data, wgt_filename)
 
         topo_model_SE = load_model_orography(dycore, model_topo_file, dim_sePS)
 
