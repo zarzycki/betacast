@@ -533,7 +533,31 @@ def print_all_variables_info(name_width=22, type_width=40, shape_width=18, value
         print(f"{var_name:<{name_width}} {var_type:<{type_width}} {var_shape:<{shape_width}} {display_value:<{value_width}} {var_size:<{size_width}}")
 
 
+def print_debug_file(output_filename, **kwargs):
+    """
+    Create an xarray Dataset from the given variables and save it to a NetCDF file.
 
+    Parameters:
+    - output_filename: Name of the output NetCDF file
+    - **kwargs: Arbitrary number of variables to include in the Dataset.
+                Each key should be the variable name.
+                Each value should be a tuple where the first element is a list of dimension names,
+                and the second element is the variable data (numpy array).
+    """
+    # Prepare the data dictionary for the Dataset
+    data_dict = {}
+    for var_name, (dims, var_data) in kwargs.items():
+        if isinstance(var_data, np.ndarray):
+            # Add the variable to the Dataset dictionary
+            data_dict[var_name] = (dims, var_data.astype(np.float32))
+        else:
+            raise ValueError(f"Unsupported data type for variable '{var_name}': {type(var_data)}")
+
+    # Create an xarray.Dataset
+    ds = xr.Dataset(data_dict)
+
+    # Save the dataset to a NetCDF file
+    ds.to_netcdf(output_filename)
 
 
 

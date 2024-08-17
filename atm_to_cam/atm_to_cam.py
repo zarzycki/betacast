@@ -15,7 +15,7 @@ from pyfuncs import *
 import vertremap
 import horizremap
 import topoadjust
-from constants import p0, NC_FLOAT_FILL
+from constants import p0, NC_FLOAT_FILL, dtime_map
 
 def main():
 
@@ -101,7 +101,6 @@ def main():
     print(f"Output type set to: {write_type}")
 
     # ===== Getting date from YYYYMMDDHH
-    dtime_map = [4, 2, 2, 2]
     yearstr, monthstr, daystr, cyclestr = split_by_lengths(str(YYYYMMDDHH), dtime_map)
 
     print(f"Regridding analysis from: {yearstr} {monthstr} {daystr} {cyclestr}Z")
@@ -177,23 +176,18 @@ def main():
     cldice_cam = vertremap.pressure_to_hybrid(grblev, cldice_gfs, ps, hya, hyb)
     cldliq_cam = vertremap.pressure_to_hybrid(grblev, cldliq_gfs, ps, hya, hyb)
 
-    # Create an xarray.Dataset
-    ds = xr.Dataset(
-        {
-            "t_cam": (["level", "latitude", "longitude"], t_cam.astype(np.float32)),
-            "u_cam": (["level", "latitude", "longitude"], u_cam.astype(np.float32)),
-            "v_cam": (["level", "latitude", "longitude"], v_cam.astype(np.float32)),
-            "q_cam": (["level", "latitude", "longitude"], q_cam.astype(np.float32)),
-            "cldliq_cam": (["level", "latitude", "longitude"], cldliq_cam.astype(np.float32)),
-            "cldice_cam": (["level", "latitude", "longitude"], cldice_cam.astype(np.float32))
-        },
-        coords={
-            "latitude": (["latitude"], grblat),
-            "longitude": (["longitude"], grblon)
-        }
+    # Use the print_debug_file function to create and save the xarray.Dataset
+    print_debug_file(
+          "py_era5_on_hybrid.nc",
+          t_cam=(["level", "latitude", "longitude"], t_cam),
+          u_cam=(["level", "latitude", "longitude"], u_cam),
+          v_cam=(["level", "latitude", "longitude"], v_cam),
+          q_cam=(["level", "latitude", "longitude"], q_cam),
+          cldliq_cam=(["level", "latitude", "longitude"], cldliq_cam),
+          cldice_cam=(["level", "latitude", "longitude"], cldice_cam),
+          latitude=(["latitude"], grblat),
+          longitude=(["longitude"], grblon)
     )
-    output_filename = "py_era5_on_hybrid.nc"
-    ds.to_netcdf(output_filename)
 
     print("=================================================================")
     print("************ AFTER VERTICAL INTERP")
@@ -217,22 +211,16 @@ def main():
     cldice_fv, _, _ = horizremap.remap_with_weights_wrapper(cldice_cam, wgt_filename)
     cldliq_fv, _, _ = horizremap.remap_with_weights_wrapper(cldliq_cam, wgt_filename)
 
-    # Create an xarray.Dataset
-    ds = xr.Dataset(
-        {
-            "lat": (["ncol"], selat.astype(np.float32)),
-            "lon": (["ncol"], selon.astype(np.float32)),
-            "ps_fv": (["ncol"], ps_fv.astype(np.float32)),
-            "t_fv": (["level", "ncol"], t_fv.astype(np.float32)),
-            "u_fv": (["level", "ncol"], u_fv.astype(np.float32)),
-            "v_fv": (["level", "ncol"], v_fv.astype(np.float32)),
-            "q_fv": (["level", "ncol"], q_fv.astype(np.float32)),
-            "cldliq_fv": (["level", "ncol"], cldliq_fv.astype(np.float32)),
-            "cldice_fv": (["level", "ncol"], cldice_fv.astype(np.float32))
-        },
-    )
-    output_filename = "py_era5_regrid.nc"
-    ds.to_netcdf(output_filename)
+    print_debug_file("py_era5_regrid.nc",
+                     lat=(["ncol"], selat),
+                     lon=(["ncol"], selon),
+                     ps_fv=(["ncol"], ps_fv),
+                     t_fv=(["level", "ncol"], t_fv),
+                     u_fv=(["level", "ncol"], u_fv),
+                     v_fv=(["level", "ncol"], v_fv),
+                     q_fv=(["level", "ncol"], q_fv),
+                     cldliq_fv=(["level", "ncol"], cldliq_fv),
+                     cldice_fv=(["level", "ncol"], cldice_fv))
 
     print("=" * 65)
     print("************ AFTER HORIZONTAL INTERP")
@@ -251,23 +239,17 @@ def main():
     print(type(adjust_config))
     correct_or_not = topoadjust.topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR, add_cloud_vars)
 
-    # Create an xarray.Dataset
-    ds = xr.Dataset(
-        {
-            "lat": (["ncol"], selat.astype(np.float32)),
-            "lon": (["ncol"], selon.astype(np.float32)),
-            "ps_fv": (["ncol"], ps_fv.astype(np.float32)),
-            "correct_or_not": (["ncol"], correct_or_not.astype(np.float32)),
-            "t_fv": (["level", "ncol"], t_fv.astype(np.float32)),
-            "u_fv": (["level", "ncol"], u_fv.astype(np.float32)),
-            "v_fv": (["level", "ncol"], v_fv.astype(np.float32)),
-            "q_fv": (["level", "ncol"], q_fv.astype(np.float32)),
-            "cldliq_fv": (["level", "ncol"], cldliq_fv.astype(np.float32)),
-            "cldice_fv": (["level", "ncol"], cldice_fv.astype(np.float32))
-        },
-    )
-    output_filename = "py_era5_topoadjust.nc"
-    ds.to_netcdf(output_filename)
+    print_debug_file("py_era5_topoadjust.nc",
+                     lat=(["ncol"], selat),
+                     lon=(["ncol"], selon),
+                     ps_fv=(["ncol"], ps_fv),
+                     correct_or_not=(["ncol"], correct_or_not),
+                     t_fv=(["level", "ncol"], t_fv),
+                     u_fv=(["level", "ncol"], u_fv),
+                     v_fv=(["level", "ncol"], v_fv),
+                     q_fv=(["level", "ncol"], q_fv),
+                     cldliq_fv=(["level", "ncol"], cldliq_fv),
+                     cldice_fv=(["level", "ncol"], cldice_fv))
 
     if ps_wet_to_dry:
 
@@ -276,18 +258,14 @@ def main():
 
         ps_fv, pw_fv = ps_wet_to_dry_conversion(ps_fv, q_fv, hyai, hybi, p0, verbose=True)
 
-        # Create an xarray.Dataset
-        ds = xr.Dataset(
-            {
-                "lat": (["ncol"], selat.astype(np.float32)),
-                "lon": (["ncol"], selon.astype(np.float32)),
-                "pw_fv": (["ncol"], pw_fv.astype(np.float32)),
-                "ps_fv_after": (["ncol"], ps_fv.astype(np.float32)),
-                "ps_fv": (["ncol"], ps_fv_before.astype(np.float32))
-            },
-        )
-        output_filename = "py_era5_tpw.nc"
-        ds.to_netcdf(output_filename)
+        print_debug_file(
+                        "py_era5_tpw.nc",
+                        lat=(["ncol"], selat),
+                        lon=(["ncol"], selon),
+                        pw_fv=(["ncol"], pw_fv),
+                        ps_fv_after=(["ncol"], ps_fv),
+                        ps_fv=(["ncol"], ps_fv_before)
+                        )
 
     # Repack FV
     if dycore == "fv":

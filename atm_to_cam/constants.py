@@ -10,3 +10,5 @@ vert_interp_thresh = 0.1  # ps corr diff (Pa) req. to interp vert profiles
 extrap_threshold = 5000.  # maximum ps corr diff (Pa) to allow extrapolation
 
 NC_FLOAT_FILL=9.96921e+36
+
+dtime_map = [4, 2, 2, 2]
