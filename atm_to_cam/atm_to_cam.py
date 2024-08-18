@@ -1,15 +1,10 @@
 import os
 import numpy as np
 import xarray as xr
-import datetime
 import argparse
 import sys
-import glob
 from scipy.interpolate import interp1d
 from numba import jit
-from tqdm import tqdm
-import time
-import scipy.sparse as sp
 from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import gaussian_filter
 
@@ -18,12 +13,13 @@ import mpas
 import vertremap
 import horizremap
 import topoadjust
-from constants import p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH
+
+from constants import (
+    p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH,
+    ps_wet_to_dry, output_diag, w_smooth_iter
+)
 
 def main():
-
-    ps_wet_to_dry=False
-    output_diag=True
 
     # Check environment variable
     BETACAST = os.getenv("BETACAST")
@@ -174,8 +170,6 @@ def main():
     print(f"Max CLDICE: {cldice_gfs.max()}   min CLDICE: {cldice_gfs.min()}")
     print(f"Max CLDLIQ: {cldliq_gfs.max()}   min CLDLIQ: {cldliq_gfs.min()}")
     print("="*65)
-
-    w_smooth_iter=1
 
     if dycore == "mpas":
         print(f"Max Z: {np.max(z_gfs)}   min Z: {np.min(z_gfs)}")
@@ -393,7 +387,7 @@ def main():
             mpas_file.to_netcdf(se_inic, format='NETCDF4')
             mpas_file.close()
             print("Done generating MPAS initial condition file, exiting...")
-            quit()
+            sys.exit(0)
         else:
             # If we are generating nudging files, point wrf vars to fv vars
             u_fv = u_wrf
@@ -614,7 +608,7 @@ def main():
         "source_file": data_filename,
         "wgt_file": wgt_filename,
         "init_date": YYYYMMDDHH,
-        "creation_date": np.datetime_as_string(np.datetime64('now')),
+        "creation_date": str(np.datetime64('now')),
         "dycore": dycore,
         "datasource": datasource
     })
