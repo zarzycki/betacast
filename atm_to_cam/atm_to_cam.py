@@ -11,12 +11,14 @@ from tqdm import tqdm
 import time
 import scipy.sparse as sp
 from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import gaussian_filter
 
 from pyfuncs import *
+from mpas import *
 import vertremap
 import horizremap
 import topoadjust
-from constants import p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH
+from constants import p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, rho_d_algo
 
 def main():
 
@@ -72,6 +74,7 @@ def main():
     add_cloud_vars = args.add_cloud_vars
     compress_file = args.compress_file
     se_inic = args.se_inic
+    mpas_as_cam = args.mpas_as_cam
 
     # Check if we are using MPAS and the model topo file is provided and exists
     if dycore == "mpas" and model_topo_file:
@@ -144,7 +147,7 @@ def main():
         z_gfs = data_vars['z_gfs']
 
     # Cleanup
-    del data_vars
+    #del data_vars
 
     # Now print the shapes as you intended
     print(f"Surface pressure shape: {ps.shape}")
@@ -170,39 +173,109 @@ def main():
     print(f"Max CLDLIQ: {cldliq_gfs.max()}   min CLDLIQ: {cldliq_gfs.min()}")
     print("="*65)
 
-    t_cam = vertremap.pressure_to_hybrid(grblev, t_gfs, ps, hya, hyb)
-    u_cam = vertremap.pressure_to_hybrid(grblev, u_gfs, ps, hya, hyb)
-    v_cam = vertremap.pressure_to_hybrid(grblev, v_gfs, ps, hya, hyb)
-    q_cam = vertremap.pressure_to_hybrid(grblev, q_gfs, ps, hya, hyb)
-    cldice_cam = vertremap.pressure_to_hybrid(grblev, cldice_gfs, ps, hya, hyb)
-    cldliq_cam = vertremap.pressure_to_hybrid(grblev, cldliq_gfs, ps, hya, hyb)
+    w_smooth_iter=1
 
-    # Use the print_debug_file function to create and save the xarray.Dataset
-    print_debug_file(
-          "py_era5_on_hybrid.nc",
-          t_cam=(["level", "latitude", "longitude"], t_cam),
-          u_cam=(["level", "latitude", "longitude"], u_cam),
-          v_cam=(["level", "latitude", "longitude"], v_cam),
-          q_cam=(["level", "latitude", "longitude"], q_cam),
-          cldliq_cam=(["level", "latitude", "longitude"], cldliq_cam),
-          cldice_cam=(["level", "latitude", "longitude"], cldice_cam),
-          latitude=(["latitude"], grblat),
-          longitude=(["longitude"], grblon)
-    )
+    if dycore == "mpas":
+        print(f"Max Z: {np.max(z_gfs)}   min Z: {np.min(z_gfs)}")
+        print("------------Deriving variables----------------")
 
-    print("=================================================================")
-    print("************ AFTER VERTICAL INTERP")
-    print(f"Max T: {np.max(t_cam)}   min T: {np.min(t_cam)}")
-    print(f"Max U: {np.max(u_cam)}   min U: {np.min(u_cam)}")
-    print(f"Max V: {np.max(v_cam)}   min V: {np.min(v_cam)}")
-    print(f"Max Q: {np.max(q_cam)}   min Q: {np.min(q_cam)}")
-    print(f"Max PS: {np.max(ps)}   min PS: {np.min(ps)}")
-    print(f"Max CLDICE: {np.max(cldice_cam)}   min CLDICE: {np.min(cldice_cam)}")
-    print(f"Max CLDLIQ: {np.max(cldliq_cam)}   min CLDLIQ: {np.min(cldliq_cam)}")
-    print("=================================================================")
+        # Initialize variables
+        theta_gfs = t_gfs.copy()
+        rho_gfs = t_gfs.copy()
 
-    print("==CLEAN after vert interp")
-    del u_gfs, v_gfs, t_gfs, q_gfs, cldice_gfs, cldliq_gfs
+        # Create a 3-D pressure field from constant pressure surfaces
+        pres_gfs = np.broadcast_to(grblev[:, np.newaxis, np.newaxis], t_gfs.shape)
+
+        # If w is omega (Pa/s), convert to vertical velocity in m/s
+        if data_vars['w_is_omega']:
+            w_gfs = omega_to_w(w_gfs, pres_gfs, t_gfs)
+
+        # Smooth w if needed
+        if w_smooth_iter > 0:
+            for ii in range(w_smooth_iter):
+                print(f"W SMOOTH ITER: {ii+1}")
+                w_gfs = gaussian_filter(w_gfs, sigma=1, truncate=4.0)
+
+        # If z is reported in geopotential, convert to geometric height
+        if data_vars['z_is_phi']:
+            z_gfs = z_gfs / grav
+
+        # Calculate potential temperature using full pressure and actual T
+        theta_gfs = pot_temp(pres_gfs, t_gfs)
+
+        # Calculate rho with dry air
+        if rho_d_algo == 1:
+            presdry_gfs = pres_gfs / (1. + q_gfs)
+            rho_gfs = presdry_gfs / (Rd * t_gfs)
+        else:
+            print("Using rho_d calculation from internal CAM/MPAS code")
+            rho_gfs = pres_gfs / (Rd * t_gfs * (1. + Rv_over_Rd * q_gfs))
+
+        print(f"Max RHO_DRY: {np.max(rho_gfs)}   min RHO_DRY: {np.min(rho_gfs)}")
+        print(f"Max THETA: {np.max(theta_gfs)}   min THETA: {np.min(theta_gfs)}")
+        print(f"Max PRES: {np.max(pres_gfs)}   min PRES: {np.min(pres_gfs)}")
+        print(f"Max W: {np.max(w_gfs)}   min W: {np.min(w_gfs)}")
+
+        print("=================================================================")
+
+    if dycore == 'fv' or dycore == 'se':
+        t_cam = vertremap.pressure_to_hybrid(grblev, t_gfs, ps, hya, hyb)
+        u_cam = vertremap.pressure_to_hybrid(grblev, u_gfs, ps, hya, hyb)
+        v_cam = vertremap.pressure_to_hybrid(grblev, v_gfs, ps, hya, hyb)
+        q_cam = vertremap.pressure_to_hybrid(grblev, q_gfs, ps, hya, hyb)
+        cldice_cam = vertremap.pressure_to_hybrid(grblev, cldice_gfs, ps, hya, hyb)
+        cldliq_cam = vertremap.pressure_to_hybrid(grblev, cldliq_gfs, ps, hya, hyb)
+
+        # Use the print_debug_file function to create and save the xarray.Dataset
+        print_debug_file(
+              "py_era5_on_hybrid.nc",
+              t_cam=(["level", "latitude", "longitude"], t_cam),
+              u_cam=(["level", "latitude", "longitude"], u_cam),
+              v_cam=(["level", "latitude", "longitude"], v_cam),
+              q_cam=(["level", "latitude", "longitude"], q_cam),
+              cldliq_cam=(["level", "latitude", "longitude"], cldliq_cam),
+              cldice_cam=(["level", "latitude", "longitude"], cldice_cam),
+              latitude=(["latitude"], grblat),
+              longitude=(["longitude"], grblon)
+        )
+
+        print("=================================================================")
+        print("************ AFTER VERTICAL INTERP")
+        print(f"Max T: {np.max(t_cam)}   min T: {np.min(t_cam)}")
+        print(f"Max U: {np.max(u_cam)}   min U: {np.min(u_cam)}")
+        print(f"Max V: {np.max(v_cam)}   min V: {np.min(v_cam)}")
+        print(f"Max Q: {np.max(q_cam)}   min Q: {np.min(q_cam)}")
+        print(f"Max PS: {np.max(ps)}   min PS: {np.min(ps)}")
+        print(f"Max CLDICE: {np.max(cldice_cam)}   min CLDICE: {np.min(cldice_cam)}")
+        print(f"Max CLDLIQ: {np.max(cldliq_cam)}   min CLDLIQ: {np.min(cldliq_cam)}")
+        print("=================================================================")
+
+        print("==CLEAN after vert interp")
+        del u_gfs, v_gfs, t_gfs, q_gfs, cldice_gfs, cldliq_gfs
+
+    if dycore == 'mpas':
+        # Load the MPAS init file and get the zgrid
+        print(f"getting grid from {mpasfile}")
+        mpas_file = xr.open_dataset(mpasfile)
+        mpas_z = mpas_file['zgrid'].values
+        mpas_ncell, mpas_nlevi = mpas_z.shape
+        mpas_nlev = mpas_nlevi - 1
+        selat = mpas_file['latCell'].values
+        selon = mpas_file['lonCell'].values
+
+        print(f"MPAS GRID: nlev: {mpas_nlev}    nlevi: {mpas_nlevi}     ncell: {mpas_ncell}")
+
+        # Set up some dummy arrays since we aren't going to vert interp first
+        t_cam = t_gfs
+        u_cam = u_gfs
+        v_cam = v_gfs
+        q_cam = q_gfs
+        z_cam = z_gfs
+        cldice_cam = cldice_gfs
+        cldliq_cam = cldliq_gfs
+        theta_cam = theta_gfs
+        rho_cam = rho_gfs
+        w_cam = w_gfs
 
     ps_fv, selat, selon = horizremap.remap_with_weights_wrapper(ps, wgt_filename)
     t_fv, _, _ = horizremap.remap_with_weights_wrapper(t_cam, wgt_filename)
@@ -211,6 +284,11 @@ def main():
     q_fv, _, _ = horizremap.remap_with_weights_wrapper(q_cam, wgt_filename)
     cldice_fv, _, _ = horizremap.remap_with_weights_wrapper(cldice_cam, wgt_filename)
     cldliq_fv, _, _ = horizremap.remap_with_weights_wrapper(cldliq_cam, wgt_filename)
+    if dycore == "mpas":
+        z_fv, _, _ = horizremap.remap_with_weights_wrapper(z_cam, wgt_filename)
+        theta_fv, _, _ = horizremap.remap_with_weights_wrapper(theta_cam, wgt_filename)
+        rho_fv, _, _ = horizremap.remap_with_weights_wrapper(rho_cam, wgt_filename)
+        w_fv, _, _ = horizremap.remap_with_weights_wrapper(w_cam, wgt_filename)
 
     if dycore == "se":
         print_debug_file("py_era5_regrid.nc",
@@ -234,6 +312,21 @@ def main():
                      q_fv=(["level", "lat", "lon"], q_fv),
                      cldliq_fv=(["level", "lat", "lon"], cldliq_fv),
                      cldice_fv=(["level", "lat", "lon"], cldice_fv))
+    elif dycore == "mpas":
+        print_debug_file("py_era5_regrid.nc",
+                     lat=(["nCell"], selat),
+                     lon=(["nCell"], selon),
+                     ps_fv=(["nCell"], ps_fv),
+                     t_fv=(["level", "nCell"], t_fv),
+                     u_fv=(["level", "nCell"], u_fv),
+                     v_fv=(["level", "nCell"], v_fv),
+                     q_fv=(["level", "nCell"], q_fv),
+                     cldliq_fv=(["level", "nCell"], cldliq_fv),
+                     cldice_fv=(["level", "nCell"], cldice_fv),
+                     z_fv=(["level", "nCell"], z_fv),
+                     theta_fv=(["level", "nCell"], theta_fv),
+                     rho_fv=(["level", "nCell"], rho_fv),
+                     w_fv=(["level", "nCell"], w_fv))
 
     print("=" * 65)
     print("************ AFTER HORIZONTAL INTERP")
@@ -248,12 +341,75 @@ def main():
 
     print("==CLEAN after horizontal interp")
     del t_cam, u_cam, v_cam, q_cam, cldice_cam, cldliq_cam, ps
+    if dycore == 'mpas':
+        del z_cam, theta_cam, rho_cam, w_cam
+
+    if dycore == 'mpas':
+        # Now perform vertical interpolation
+        t_wrf = np.zeros((mpas_nlev, mpas_ncell))
+        rho_wrf = np.zeros((mpas_nlev, mpas_ncell))
+        theta_wrf = np.zeros((mpas_nlev, mpas_ncell))
+        w_wrf = np.zeros((mpas_nlevi, mpas_ncell))
+        q_wrf = np.zeros((mpas_nlev, mpas_ncell))
+        u_wrf = np.zeros((mpas_nlev, mpas_ncell))
+        v_wrf = np.zeros((mpas_nlev, mpas_ncell))
+
+        print("Performing vertical interpolation at each MPAS column...")
+        # Call the processing function with your data
+        t_wrf, theta_wrf, rho_wrf, w_wrf, q_wrf, u_wrf, v_wrf = interpolate_mpas_columns_wrapper(
+            mpas_ncell, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv, theta_fv, rho_fv, w_fv, q_fv, u_fv, v_fv, mpas_as_cam
+        )
+        del theta_fv,rho_fv,w_fv,q_fv,u_fv,v_fv
+        print("... done performing vertical interpolation at each MPAS column!")
+
+        print("Setting lower BC for W so flow can't go through surface")
+        w_wrf[:, 0] = 0.0
+
+        damp_upper_winds_mpas=True
+        if damp_upper_winds_mpas:
+            print("Damping upper level MPAS winds")
+            mpas_damp_coefs = np.array([0.90, 0.95, 0.98])
+            u_wrf[:, mpas_nlev - 1] *= mpas_damp_coefs[0]
+            u_wrf[:, mpas_nlev - 2] *= mpas_damp_coefs[1]
+            u_wrf[:, mpas_nlev - 3] *= mpas_damp_coefs[2]
+            v_wrf[:, mpas_nlev - 1] *= mpas_damp_coefs[0]
+            v_wrf[:, mpas_nlev - 2] *= mpas_damp_coefs[1]
+            v_wrf[:, mpas_nlev - 3] *= mpas_damp_coefs[2]
+
+        if not mpas_as_cam:
+            # put u + v on cell edges...
+            print("Projecting u + v to velocity normal to edge...")
+            uNorm_wrf = uv_cell_to_edge(u_wrf, v_wrf, mpas_nlev, mpas_file['lonEdge'].values, mpas_file['latEdge'].values,
+                                        mpas_file['lonCell'].values, mpas_file['latCell'].values, mpas_file['edgeNormalVectors'].values, mpas_file['cellsOnEdge'].values)
+
+            # delete u and v components since we have mapped to edge normals
+            del u_wrf, v_wrf
+            print("... done projecting u + v to velocity normal to edge!")
+
+            # If not MPAS as CAM, we can just end here.
+            print("Writing MPAS file...")
+            mpas_file['u'].values[0, :, :] = uNorm_wrf.T
+            mpas_file['qv'].values[0, :, :] = q_wrf.T
+            mpas_file['rho'].values[0, :, :] = rho_wrf.T
+            mpas_file['theta'].values[0, :, :] = theta_wrf.T
+            mpas_file['w'].values[0, :, :] = w_wrf.T
+            mpas_file.to_netcdf("test.nc", format='NETCDF4')
+            mpas_file.close()
+            quit()
+        else:
+            u_fv = u_wrf
+            v_fv = v_wrf
+            t_fv = t_wrf
+            q_fv = q_wrf
 
     grid_dims = ps_fv.shape
-    if dycore == "se":
+    if dycore == "se" or dycore == "mpas":
         ncol = grid_dims
     elif dycore == "fv":
         nfvlat, nfvlon = grid_dims
+
+
+
 
     if dycore == "fv":
         print("TOPOADJUST_FV: unpacking fv vars")
@@ -265,7 +421,8 @@ def main():
         cldice_fv = latlon_to_ncol(cldice_fv)
         cldliq_fv = latlon_to_ncol(cldliq_fv)
 
-    correct_or_not = topoadjust.topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR, add_cloud_vars)
+    if dycore == "se" or dycore == "fv":
+        correct_or_not = topoadjust.topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR, add_cloud_vars)
 
     if ps_wet_to_dry:
         if output_diag:
@@ -308,6 +465,12 @@ def main():
                          q_fv=(["level", "lat", "lon"], q_fv),
                          cldliq_fv=(["level", "lat", "lon"], cldliq_fv),
                          cldice_fv=(["level", "lat", "lon"], cldice_fv))
+
+
+
+
+
+
 
 
     q_fv = clip_and_count(q_fv, min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
@@ -399,6 +562,21 @@ def main():
         cldliq_fv = add_time_define_precision(cldliq_fv, write_type, False)
         cldice_fv = add_time_define_precision(cldice_fv, write_type, False)
 
+    if dycore == "mpas":
+        ps_fv = numpy_to_dataarray(ps_fv[:], dims=['ncol'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        u_fv = numpy_to_dataarray(u_fv[::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        v_fv = numpy_to_dataarray(v_fv[::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        t_fv = numpy_to_dataarray(t_fv[::-1, :], dims=['lev', 'ncol'], attrs={'units': 'K', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        q_fv = numpy_to_dataarray(q_fv[::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        selat = numpy_to_dataarray(selat, dims=['ncol'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
+        selon = numpy_to_dataarray(selon, dims=['ncol'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
+
+        ps_fv = add_time_define_precision(ps_fv, write_type, True)
+        u_fv = add_time_define_precision(u_fv, write_type, True)
+        v_fv = add_time_define_precision(v_fv, write_type, True)
+        t_fv = add_time_define_precision(t_fv, write_type, True)
+        q_fv = add_time_define_precision(q_fv, write_type, True)
+
     # Create CF-compliant time
     time, time_atts = create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr))
     time = numpy_to_dataarray(time, dims=['time'], attrs=time_atts)
@@ -414,20 +592,22 @@ def main():
             "V": v_fv,
             "T": t_fv,
             "Q": q_fv,
-            "CLDLIQ": cldliq_fv,
-            "CLDICE": cldice_fv,
-            "hyam": hya,
-            "hybm": hyb,
-            "hyai": hyai,
-            "hybi": hybi,
-            "lev": lev,
-            "ilev": ilev,
-            "time": time
+            "lat": selat,
+            "lon": selon,
         }
     )
 
-    ds["lat"] = selat
-    ds["lon"] = selon
+    if dycore == "se" or dycore == "fv":
+        ds["CLDLIQ"] = cldliq_fv
+        ds["CLDICE"] = cldice_fv
+        ds["hyam"] = hya
+        ds["hybm"] = hyb
+        ds["hyai"] = hyai
+        ds["hybi"] = hybi
+        ds["lev"] = lev
+        ds["ilev"] = ilev
+        ds["time"] = time
+
     if dycore == "fv":
         ds["US"] = us_fv
         ds["VS"] = vs_fv
@@ -449,9 +629,9 @@ def main():
     })
 
     # Turn off fill value in relevant coordinate variables
-    encoding = {
-        var: {'_FillValue': None} for var in ["hyam", "hybm", "hyai", "hybi", "lev", "ilev", "time"]
-    }
+    vars_to_check = ["hyam", "hybm", "hyai", "hybi", "lev", "ilev", "time"]
+    existing_vars = [var for var in vars_to_check if var in ds.variables]
+    encoding = {var: {'_FillValue': None} for var in existing_vars}
 
     # Determine file format and compression based on variable size
     if compress_file:

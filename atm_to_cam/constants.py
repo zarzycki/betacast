@@ -3,8 +3,10 @@ gamma_d = 9.8 / 1000.0  # Adiabatic lapse rate in K/m
 grav = 9.80616
 Rd = 287.058
 Rv = 461.6
+cp = 1004.
 Rv_over_Rd = Rv / Rd
 p0 = 100000
+kappa = Rd / cp
 
 vert_interp_thresh = 0.1  # ps corr diff (Pa) req. to interp vert profiles
 extrap_threshold = 5000.  # maximum ps corr diff (Pa) to allow extrapolation
@@ -16,3 +18,5 @@ dtime_map = [4, 2, 2, 2]
 QMAXTHRESH=0.05
 QMINTHRESH=1.0e-12
 CLDMINTHRESH=0.0
+
+rho_d_algo = 1

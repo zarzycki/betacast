@@ -4,7 +4,7 @@ import datetime
 import argparse
 import sys
 import glob
-from constants import grav
+from constants import grav, kappa, p0, Rd
 import cftime
 
 def parse_args():
@@ -463,6 +463,61 @@ def add_time_define_precision(var_in, precision, isncol, lat_dim="lat", lon_dim=
 
     return var_out
 
+
+
+def pot_temp(p, t):
+    """
+    Compute potential temperature.
+
+    Parameters:
+    -----------
+    p : numpy.ndarray
+        Array containing pressure levels (Pa).
+    t : numpy.ndarray
+        Array containing temperatures (K).
+
+    Returns:
+    --------
+    theta : numpy.ndarray
+        A multi-dimensional array of the same size and shape as t, containing potential temperature values.
+    """
+
+    # Calculate potential temperature using the formula theta = t * (p0 / p) ** kappa
+    theta = t * (p0 / p) ** kappa
+
+    return theta
+
+
+def omega_to_w(omega, p, t):
+    """
+    Converts OMEGA (Pa/s) to W (m/s) using a first-order approximation.
+
+    Parameters:
+    -----------
+    omega : numpy.ndarray
+        Vertical velocity in pressure coordinates (Pa/s).
+    p : numpy.ndarray
+        Pressure levels (Pa).
+    t : numpy.ndarray
+        Temperature (K).
+
+    Returns:
+    --------
+    w : numpy.ndarray
+        Vertical velocity in height coordinates (m/s).
+    """
+
+    # Ensure omega, p, and t have the same shape
+    if not (omega.shape == p.shape == t.shape):
+        raise ValueError("omega, p, and t must have the same shape")
+
+    # Calculate density: rho = p / (RGAS * t)
+    rho = p / (Rd * t)
+
+    # Convert omega to w using the first-order approximation: w = -omega / (rho * GRAV)
+    w = -omega / (rho * grav)
+
+    return w
 
 
 def clip_and_count(arr, min_thresh=None, max_thresh=None, var_name="Variable"):
