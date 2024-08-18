@@ -4,8 +4,12 @@ import datetime
 import argparse
 import sys
 import glob
-from constants import grav, kappa, p0, Rd, Rv_over_Rd
 import cftime
+from scipy.ndimage import gaussian_filter
+
+from constants import (
+    grav, kappa, p0, Rd, Rv_over_Rd
+)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Process command-line arguments for climate data processing.")
@@ -804,3 +808,47 @@ def latRegWgt(lat, nType="float", opt=0):
         raise ValueError("nType must be 'float' or 'double'.")
 
     return weights
+
+
+
+def smooth_with_gaussian(var, numiter, sigma=1, truncate=4.0):
+
+    for ii in range(numiter):
+        print(f"SMOOTH ITER: {ii+1}")
+        var = gaussian_filter(var, sigma=sigma, truncate=truncate)
+
+    return var
+
+
+def print_and_return_varsize(ps_fv, u_fv, v_fv, t_fv, q_fv):
+    """
+    Function to print and return the maximum size of xarray DataArray variables in bytes.
+
+    Parameters:
+    -----------
+    ps_fv, u_fv, v_fv, t_fv, q_fv : xarray.DataArray
+        Variables whose sizes are to be determined.
+
+    Returns:
+    --------
+    max_size : int
+        The maximum size among the provided variables in bytes.
+    """
+
+    ps_sz = ps_fv.nbytes
+    u_sz = u_fv.nbytes
+    v_sz = v_fv.nbytes
+    t_sz = t_fv.nbytes
+    q_sz = q_fv.nbytes
+
+    print("~~~ VAR SIZES (bytes)")
+    print(f"ps: {ps_sz}")
+    print(f"u: {u_sz}")
+    print(f"v: {v_sz}")
+    print(f"t: {t_sz}")
+    print(f"q: {q_sz}")
+
+    max_size = max(ps_sz, u_sz, v_sz, t_sz, q_sz)
+    print(f"Var max size: {max_size}")
+
+    return max_size

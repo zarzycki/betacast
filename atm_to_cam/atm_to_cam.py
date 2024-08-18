@@ -3,10 +3,6 @@ import numpy as np
 import xarray as xr
 import argparse
 import sys
-from scipy.interpolate import interp1d
-from numba import jit
-from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import gaussian_filter
 
 from pyfuncs import *
 import mpas
@@ -188,9 +184,7 @@ def main():
 
         # Smooth w if needed
         if w_smooth_iter > 0:
-            for ii in range(w_smooth_iter):
-                print(f"W SMOOTH ITER: {ii+1}")
-                w_gfs = gaussian_filter(w_gfs, sigma=1, truncate=4.0)
+            w_gfs = smooth_with_gaussian(w_gfs, w_smooth_iter)
 
         # If z is reported in geopotential, convert to geometric height
         if data_vars['z_is_phi']:
@@ -621,13 +615,13 @@ def main():
     # Determine file format and compression based on variable size
     if compress_file:
         for var in list(ds.data_vars) + list(ds.coords):
-            if var not in encoding:
-                if var in encoding:
-                    encoding[var].update({"zlib": True, "complevel": 1})
-                else:
-                    encoding[var] = {"zlib": True, "complevel": 1}
+            if var in encoding:  # update it
+                encoding[var].update({"zlib": True, "complevel": 1})
+            else:   # add it
+                encoding[var] = {"zlib": True, "complevel": 1}
         ds.to_netcdf(se_inic, format="NETCDF4_CLASSIC", unlimited_dims=["time"], encoding=encoding)
     else:
+        var_max_size = print_and_return_varsize(ps_fv, u_fv, v_fv, t_fv, q_fv)
         netcdf_format = "NETCDF4" if var_max_size >= 4e9 else "NETCDF3_64BIT"
         ds.to_netcdf(se_inic, format=netcdf_format, unlimited_dims=["time"], encoding=encoding)
 
