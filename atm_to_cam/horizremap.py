@@ -35,7 +35,7 @@ def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_g
 
     # Reshape 1-D vector returned to dst_grid_dims
 
-    data_out = np.reshape(field_target, dst_grid_dims, order=FLATTENTYPE)
+    data_out = np.reshape(field_target, dst_grid_dims, order="F")
 
     return data_out
 

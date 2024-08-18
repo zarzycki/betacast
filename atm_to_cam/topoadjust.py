@@ -7,6 +7,7 @@ import vertremap
 from constants import grav, Rd, gamma_s, p0, vert_interp_thresh, extrap_threshold
 from numba import jit
 
+from pyfuncs import *
 
 def load_additional_fields(datasource, grb_file, RDADIR, yearstr, monthstr, daystr, cyclestr):
     """Load additional fields from reanalysis data based on datasource."""
@@ -57,12 +58,73 @@ def load_model_orography(dycore, model_topo_file, dim_sePS):
 
 
 @jit(nopython=True)
-def correct_state_variables(ncol, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, ps_fv,
+def correct_state_variables(ncol, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, ps_fv, correct_or_not,
                             topo_data_SE, topo_model_SE, sfct_data_SE, hya, hyb, lev,
                             tempadjustflag, dycore, add_cloud_vars):
+    """
+    Corrects state variables based on surface temperature adjustments and topographical differences.
+
+    This function applies corrections to the state variables (temperature, humidity, wind components,
+    cloud liquid water, and cloud ice) based on differences between the topography data and the model
+    topography, as well as surface temperature adjustments. It uses vertical interpolation to adjust
+    the pressure levels accordingly.
+
+    Parameters:
+    -----------
+    ncol : int
+        Number of columns (spatial points) in the input data.
+    t_fv : numpy.ndarray
+        Temperature field, typically with shape (lev, ncol).
+    q_fv : numpy.ndarray
+        Specific humidity field, typically with shape (lev, ncol).
+    u_fv : numpy.ndarray
+        U-component of wind, typically with shape (lev, ncol).
+    v_fv : numpy.ndarray
+        V-component of wind, typically with shape (lev, ncol).
+    cldliq_fv : numpy.ndarray
+        Cloud liquid water field, typically with shape (lev, ncol).
+    cldice_fv : numpy.ndarray
+        Cloud ice field, typically with shape (lev, ncol).
+    ps_fv : numpy.ndarray
+        Surface pressure field, typically with shape (ncol,).
+    correct_or_not : numpy.ndarray
+        Array to track whether corrections were applied, typically with shape (ncol,).
+    topo_data_SE : numpy.ndarray
+        Topographical data from the input, typically with shape (ncol,).
+    topo_model_SE : numpy.ndarray
+        Model topography data, typically with shape (ncol,).
+    sfct_data_SE : numpy.ndarray
+        Surface temperature data, typically with shape (ncol,).
+    hya : numpy.ndarray
+        Hybrid A coefficient, typically with shape (lev,).
+    hyb : numpy.ndarray
+        Hybrid B coefficient, typically with shape (lev,).
+    lev : numpy.ndarray
+        Pressure levels, typically with shape (lev,).
+    tempadjustflag : str
+        Flag indicating whether to adjust temperature ('a') or not.
+    dycore : str
+        Specifies the dynamical core being used.
+    add_cloud_vars : bool
+        Flag indicating whether to include cloud liquid water and cloud ice variables.
+
+    Returns:
+    --------
+    vert_corrs : int
+        The number of vertical corrections applied.
+    tcorriter : int
+        The number of temperature corrections applied.
+    correct_or_not : numpy.ndarray
+        Updated array indicating where corrections were applied.
+
+    Notes:
+    ------
+    - This function is optimized using Numba's `@jit(nopython=True)` for performance.
+    - Ensure that any functions called within this function (like `vertremap.int2p`) are Numba-compatible.
+    """
+
     vert_corrs = 0
     tcorriter = 0
-    correct_or_not = np.zeros_like(ps_fv).astype(np.float32)
 
     for kk in range(ncol):
         if not np.isnan(sfct_data_SE[kk]):
@@ -111,7 +173,10 @@ def correct_state_variables(ncol, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, 
 
 
 def topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR="", add_cloud_vars=False):
+
     dim_sePS = ps_fv.shape
+
+    correct_or_not = np.zeros_like(ps_fv).astype(np.float32)
 
     if dycore != "mpas" and model_topo_file and os.path.exists(model_topo_file):
         print(f"TOPOADJUST: Performing hydrostatic correction for surface pressure using {model_topo_file}")
@@ -128,22 +193,14 @@ def topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hy
 
         if dycore == "fv":
             print("TOPOADJUST_FV: unpacking fv vars")
-            topo_data_SE = topo_data_SE.flatten(order='F')
-            sfct_data_SE = sfct_data_SE.flatten(order='F')
-            topo_model_SE = topo_model_SE.flatten(order='F')
-            ps_fv = latlon_to_ncol(ps_fv)
-            t_fv = latlon_to_ncol(t_fv)
-            q_fv = latlon_to_ncol(q_fv)
-            u_fv = latlon_to_ncol(u_fv)
-            v_fv = latlon_to_ncol(v_fv)
-            cldice_fv = latlon_to_ncol(cldice_fv)
-            cldliq_fv = latlon_to_ncol(cldliq_fv)
-            ncol = dim_sePS[0] * dim_sePS[1]
-        else:
-            ncol = dim_sePS[0]
+            topo_data_SE  = latlon_to_ncol(topo_data_SE)
+            sfct_data_SE  = latlon_to_ncol(sfct_data_SE)
+            topo_model_SE = latlon_to_ncol(topo_model_SE)
+
+        ncol = dim_sePS[0]
 
         vert_corrs, tcorriter, correct_or_not = correct_state_variables(
-            ncol, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, ps_fv,
+            ncol, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, ps_fv, correct_or_not,
             topo_data_SE, topo_model_SE, sfct_data_SE, hya, hyb, lev,
             tempadjustflag, dycore, add_cloud_vars)
 

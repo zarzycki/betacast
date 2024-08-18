@@ -396,7 +396,7 @@ def numpy_to_dataarray(numpy_array, dims, coords=None, attrs=None, name=None):
     data_array = xr.DataArray(data=numpy_array, dims=dims, coords=coords, attrs=attrs, name=name)
     return data_array
 
-def add_time_define_precision(var_in, precision, isncol):
+def add_time_define_precision(var_in, precision, isncol, lat_dim="lat", lon_dim="lon"):
     """
     Adds a time dimension and converts the precision of the input variable.
 
@@ -404,6 +404,8 @@ def add_time_define_precision(var_in, precision, isncol):
     var_in (xarray.DataArray or numpy.ndarray): Input variable.
     precision (str): Desired precision ("float", "single", "double").
     isncol (bool): True if the variable is ncol; False otherwise.
+    lat_dim (str): Name of the latitude dimension (default is "lat").
+    lon_dim (str): Name of the longitude dimension (default is "lon").
 
     Returns:
     xarray.DataArray: Output variable with time dimension and specified precision.
@@ -434,24 +436,24 @@ def add_time_define_precision(var_in, precision, isncol):
             var_out[0, :, :] = var_in.astype(var_out.dtype)
 
     else:  # Not ncol
-        if len(var_dims) == 2:  # nlat, nlon -> time, nlat, nlon
-            print(f"Converting a nlat, nlon -> nlat, nlon {precision} with time attached!")
+        if len(var_dims) == 2:  # lat_dim, lon_dim -> time, lat_dim, lon_dim
+            print(f"Converting a {lat_dim}, {lon_dim} -> {lat_dim}, {lon_dim} {precision} with time attached!")
             nlat, nlon = var_dims
             if precision in ["float", "single"]:
-                var_out = xr.DataArray(np.zeros((1, nlat, nlon), dtype=np.float32), dims=["time", "lat", "lon"])
+                var_out = xr.DataArray(np.zeros((1, nlat, nlon), dtype=np.float32), dims=["time", lat_dim, lon_dim])
             elif precision == "double":
-                var_out = xr.DataArray(np.zeros((1, nlat, nlon), dtype=np.float64), dims=["time", "lat", "lon"])
+                var_out = xr.DataArray(np.zeros((1, nlat, nlon), dtype=np.float64), dims=["time", lat_dim, lon_dim])
             else:
                 raise ValueError("Invalid precision specified")
             var_out[0, :, :] = var_in.astype(var_out.dtype)
 
-        elif len(var_dims) == 3:  # lev, nlat, nlon -> time, lev, nlat, nlon
-            print(f"Converting a lev, nlat, nlon -> lev, nlat, nlon {precision} with time attached!")
+        elif len(var_dims) == 3:  # lev, lat_dim, lon_dim -> time, lev, lat_dim, lon_dim
+            print(f"Converting a lev, {lat_dim}, {lon_dim} -> lev, {lat_dim}, {lon_dim} {precision} with time attached!")
             nlev, nlat, nlon = var_dims
             if precision in ["float", "single"]:
-                var_out = xr.DataArray(np.zeros((1, nlev, nlat, nlon), dtype=np.float32), dims=["time", "lev", "lat", "lon"])
+                var_out = xr.DataArray(np.zeros((1, nlev, nlat, nlon), dtype=np.float32), dims=["time", "lev", lat_dim, lon_dim])
             elif precision == "double":
-                var_out = xr.DataArray(np.zeros((1, nlev, nlat, nlon), dtype=np.float64), dims=["time", "lev", "lat", "lon"])
+                var_out = xr.DataArray(np.zeros((1, nlev, nlat, nlon), dtype=np.float64), dims=["time", "lev", lat_dim, lon_dim])
             else:
                 raise ValueError("Invalid precision specified")
             var_out[0, :, :, :] = var_in.astype(var_out.dtype)
@@ -461,9 +463,47 @@ def add_time_define_precision(var_in, precision, isncol):
 
     return var_out
 
-import cftime
-import numpy as np
-import xarray as xr
+
+
+def clip_and_count(arr, min_thresh=None, max_thresh=None, var_name="Variable"):
+    """
+    Clips the values in the array to the specified minimum and maximum thresholds,
+    and returns the clipped array along with the number of adjustments made.
+
+    Parameters:
+    - arr: numpy.ndarray
+        The array to be clipped.
+    - min_thresh: float or None
+        The minimum threshold value. Values below this will be set to min_thresh.
+    - max_thresh: float or None
+        The maximum threshold value. Values above this will be set to max_thresh.
+    - var_name: str
+        The name of the variable for diagnostic output.
+
+    Returns:
+    - clipped_arr: numpy.ndarray
+        The clipped array.
+    """
+
+    # Apply the maximum threshold if specified
+    if max_thresh is not None:
+        max_adjustments = np.sum(arr > max_thresh)
+        arr = np.where(arr > max_thresh, max_thresh, arr)
+        print(f"Number of {var_name} adjustments for values above {max_thresh}: {max_adjustments}")
+
+    # Apply the minimum threshold if specified
+    if min_thresh is not None:
+        min_adjustments = np.sum(arr < min_thresh)
+        arr = np.where(arr < min_thresh, min_thresh, arr)
+        print(f"Number of {var_name} adjustments for values below {min_thresh}: {min_adjustments}")
+
+    if np.any(np.isnan(arr)):
+        print(f"WARNING: {var_name} is missing data...")
+        print("This is expected for a regional dataset, but not desirable for a global one")
+
+    return arr
+
+
 
 
 
@@ -563,6 +603,25 @@ def print_debug_file(output_filename, **kwargs):
 
 
 
+def latlon_to_ncol(var_in):
+    vardims = var_in.shape
+    dims = len(vardims)
+
+    if dims == 2:
+        var_out = var_in.flatten(order='F')
+    elif dims == 3:
+        nlev = vardims[0]
+        nlat = vardims[1]
+        nlon = vardims[2]
+        ncol = nlat * nlon
+        print(f"unpacking -> nlev: {nlev}    nlat: {nlat}    nlon: {nlon}    ncol: {ncol}")
+        var_out = np.empty((nlev, ncol), dtype=var_in.dtype)
+        for ii in range(nlev):
+            var_out[ii, :] = var_in[ii, :, :].flatten(order='F')
+    else:
+        raise ValueError(f"{vardims} dims not supported")
+
+    return var_out
 
 
 
@@ -572,6 +631,7 @@ def ncol_to_latlon(var_out, nlat, nlon):
     if len(vardims) == 1:
         var_in = var_out.reshape((nlat, nlon), order='F')
     elif len(vardims) == 2:
+        print(vardims)
         nlev = vardims[0]
         ncol = vardims[1]
         print(f"repacking -> nlev: {nlev}    nlat: {nlat}    nlon: {nlon}    ncol: {ncol}")
@@ -582,6 +642,9 @@ def ncol_to_latlon(var_out, nlat, nlon):
         raise ValueError(f"{vardims} dims not supported")
 
     return var_in
+
+
+
 
 def repack_fv(ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv, dim_sePS, correct_or_not=None):
     """
@@ -618,3 +681,39 @@ def repack_fv(ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv, dim_sePS, cor
         return ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv, correct_or_not
 
     return ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv
+
+
+
+
+def latRegWgt(lat, nType="float", opt=0):
+    """
+    Generates [sin(lat+dlat/2) - sin(lat-dlat/2)] weights for equally spaced (regular) global grids that will sum to 2.0.
+
+    Parameters:
+    - lat: 1D array-like of latitudes of the global grid (in degrees).
+    - nType: The type of variable to be returned ("float" or "double").
+    - opt: Not used. Set to 0.
+
+    Returns:
+    - weights: A 1D array of weights of the same size as lat.
+    """
+
+    # Convert lat to radians
+    lat_rad = np.radians(lat)
+    dlat = np.abs(np.diff(lat_rad).mean())  # Assume uniform spacing and get the mean difference
+
+    # Calculate weights
+    weights = np.sin(lat_rad + dlat / 2) - np.sin(lat_rad - dlat / 2)
+
+    # Ensure the weights sum to 2.0
+    weights *= 2.0 / np.sum(weights)
+
+    # Convert to the specified type
+    if nType == "float":
+        weights = weights.astype(np.float32)
+    elif nType == "double":
+        weights = weights.astype(np.float64)
+    else:
+        raise ValueError("nType must be 'float' or 'double'.")
+
+    return weights

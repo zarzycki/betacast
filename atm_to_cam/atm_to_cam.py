@@ -10,12 +10,13 @@ from numba import jit
 from tqdm import tqdm
 import time
 import scipy.sparse as sp
+from scipy.interpolate import RegularGridInterpolator
 
 from pyfuncs import *
 import vertremap
 import horizremap
 import topoadjust
-from constants import p0, NC_FLOAT_FILL, dtime_map
+from constants import p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH
 
 def main():
 
@@ -211,7 +212,8 @@ def main():
     cldice_fv, _, _ = horizremap.remap_with_weights_wrapper(cldice_cam, wgt_filename)
     cldliq_fv, _, _ = horizremap.remap_with_weights_wrapper(cldliq_cam, wgt_filename)
 
-    print_debug_file("py_era5_regrid.nc",
+    if dycore == "se":
+        print_debug_file("py_era5_regrid.nc",
                      lat=(["ncol"], selat),
                      lon=(["ncol"], selon),
                      ps_fv=(["ncol"], ps_fv),
@@ -221,6 +223,17 @@ def main():
                      q_fv=(["level", "ncol"], q_fv),
                      cldliq_fv=(["level", "ncol"], cldliq_fv),
                      cldice_fv=(["level", "ncol"], cldice_fv))
+    elif dycore == "fv":
+        print_debug_file("py_era5_regrid.nc",
+                     lat=(["lat"], selat),
+                     lon=(["lon"], selon),
+                     ps_fv=(["lat", "lon"], ps_fv),
+                     t_fv=(["level", "lat", "lon"], t_fv),
+                     u_fv=(["level", "lat", "lon"], u_fv),
+                     v_fv=(["level", "lat", "lon"], v_fv),
+                     q_fv=(["level", "lat", "lon"], q_fv),
+                     cldliq_fv=(["level", "lat", "lon"], cldliq_fv),
+                     cldice_fv=(["level", "lat", "lon"], cldice_fv))
 
     print("=" * 65)
     print("************ AFTER HORIZONTAL INTERP")
@@ -236,48 +249,72 @@ def main():
     print("==CLEAN after horizontal interp")
     del t_cam, u_cam, v_cam, q_cam, cldice_cam, cldliq_cam, ps
 
-    print(type(adjust_config))
+    grid_dims = ps_fv.shape
+    if dycore == "se":
+        ncol = grid_dims
+    elif dycore == "fv":
+        nfvlat, nfvlon = grid_dims
+
+    if dycore == "fv":
+        print("TOPOADJUST_FV: unpacking fv vars")
+        ps_fv = latlon_to_ncol(ps_fv)
+        t_fv = latlon_to_ncol(t_fv)
+        q_fv = latlon_to_ncol(q_fv)
+        u_fv = latlon_to_ncol(u_fv)
+        v_fv = latlon_to_ncol(v_fv)
+        cldice_fv = latlon_to_ncol(cldice_fv)
+        cldliq_fv = latlon_to_ncol(cldliq_fv)
+
     correct_or_not = topoadjust.topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR, add_cloud_vars)
 
-    print_debug_file("py_era5_topoadjust.nc",
-                     lat=(["ncol"], selat),
-                     lon=(["ncol"], selon),
-                     ps_fv=(["ncol"], ps_fv),
-                     correct_or_not=(["ncol"], correct_or_not),
-                     t_fv=(["level", "ncol"], t_fv),
-                     u_fv=(["level", "ncol"], u_fv),
-                     v_fv=(["level", "ncol"], v_fv),
-                     q_fv=(["level", "ncol"], q_fv),
-                     cldliq_fv=(["level", "ncol"], cldliq_fv),
-                     cldice_fv=(["level", "ncol"], cldice_fv))
-
     if ps_wet_to_dry:
-
         if output_diag:
             ps_fv_before = np.copy(ps_fv)
-
         ps_fv, pw_fv = ps_wet_to_dry_conversion(ps_fv, q_fv, hyai, hybi, p0, verbose=True)
-
-        print_debug_file(
-                        "py_era5_tpw.nc",
-                        lat=(["ncol"], selat),
-                        lon=(["ncol"], selon),
-                        pw_fv=(["ncol"], pw_fv),
-                        ps_fv_after=(["ncol"], ps_fv),
-                        ps_fv=(["ncol"], ps_fv_before)
-                        )
+#         print_debug_file(
+#                         "py_era5_tpw.nc",
+#                         lat=(["ncol"], selat),
+#                         lon=(["ncol"], selon),
+#                         pw_fv=(["ncol"], pw_fv),
+#                         ps_fv_after=(["ncol"], ps_fv),
+#                         ps_fv=(["ncol"], ps_fv_before)
+#                         )
 
     # Repack FV
     if dycore == "fv":
-        ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv = repack_fv(ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv, dim_sePS)
-
-
-
+        ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv, correct_or_not = repack_fv(ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv, grid_dims, correct_or_not=correct_or_not)
 
     if dycore == "se":
-        ncol = ps_fv.shape[0]
+        print_debug_file("py_era5_topoadjust.nc",
+                         lat=(["ncol"], selat),
+                         lon=(["ncol"], selon),
+                         ps_fv=(["ncol"], ps_fv),
+                         correct_or_not=(["ncol"], correct_or_not),
+                         t_fv=(["level", "ncol"], t_fv),
+                         u_fv=(["level", "ncol"], u_fv),
+                         v_fv=(["level", "ncol"], v_fv),
+                         q_fv=(["level", "ncol"], q_fv),
+                         cldliq_fv=(["level", "ncol"], cldliq_fv),
+                         cldice_fv=(["level", "ncol"], cldice_fv))
+    elif dycore == "fv":
+        print_debug_file("py_era5_topoadjust.nc",
+                         lat=(["lat"], selat),
+                         lon=(["lon"], selon),
+                         ps_fv=(["lat", "lon"], ps_fv),
+                         correct_or_not=(["lat", "lon"], correct_or_not),
+                         t_fv=(["level", "lat", "lon"], t_fv),
+                         u_fv=(["level", "lat", "lon"], u_fv),
+                         v_fv=(["level", "lat", "lon"], v_fv),
+                         q_fv=(["level", "lat", "lon"], q_fv),
+                         cldliq_fv=(["level", "lat", "lon"], cldliq_fv),
+                         cldice_fv=(["level", "lat", "lon"], cldice_fv))
 
-        # Convert to dataarray
+
+    q_fv = clip_and_count(q_fv, min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
+    cldliq_fv = clip_and_count(cldliq_fv, min_thresh=CLDMINTHRESH, var_name="CLDLIQ")
+    cldice_fv = clip_and_count(cldice_fv, min_thresh=CLDMINTHRESH, var_name="CLDICE")
+
+    if dycore == "se":
         ps_fv = numpy_to_dataarray(ps_fv, dims=['ncol'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
         u_fv = numpy_to_dataarray(u_fv, dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
         v_fv = numpy_to_dataarray(v_fv, dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
@@ -290,7 +327,6 @@ def main():
         if 'correct_or_not' in locals():
             correct_or_not = numpy_to_dataarray(correct_or_not, dims=['ncol'], attrs={"_FillValue": -1.0}, name='correct_or_not')
 
-        # Add time and adjust precision
         ps_fv = add_time_define_precision(ps_fv, write_type, True)
         u_fv = add_time_define_precision(u_fv, write_type, True)
         v_fv = add_time_define_precision(v_fv, write_type, True)
@@ -300,35 +336,68 @@ def main():
         cldice_fv = add_time_define_precision(cldice_fv, write_type, True)
 
     elif dycore == "fv":
-        nlat, nlon = dim_sePS
 
-        # Interpolating u/v to slat/slon
-        nslat = nlat - 1
-        nslon = nlon
-        slat = (lat[:-1] + lat[1:]) / 2.0
-        slon = lon - (360.0 / nlon / 2.0)
+        print("FV: need to interpolate u/v to slat/slon")
+        nfvslat = nfvlat - 1
+        nfvslon = nfvlon
 
-        # Getting weights and interpolating
-        w_stag = latRegWgt(slat, "double", 0)
-        u_fv_slat = linint2(lon, lat, u_fv, True, lon, slat, 0)
-        v_fv_slon = linint2(lon, lat, v_fv, True, slon, lat, 0)
+        fvlat = np.linspace(-90, 90, nfvlat)
+        delfvlon = 360.0 / nfvlon
+        fvlon = np.linspace(0, 360.0 - delfvlon, nfvlon)
 
-        # Add time and adjust precision
+        fvslat = (fvlat[:-1] + fvlat[1:]) / 2.0
+        fvslon = fvlon - (delfvlon / 2.0)
+
+        print("FV: getting weights")
+        w_stag = latRegWgt(fvslat, "double", 0)
+
+        # Interpolate u and v to slat and slon
+        us_fv = np.zeros((numlevels, nfvslat, nfvlon))
+        vs_fv = np.zeros((numlevels, nfvlat, nfvslon))
+
+        slat_lon_mesh = np.array(np.meshgrid(fvslat, fvlon)).T.reshape(-1, 2)
+        lat_slon_mesh = np.array(np.meshgrid(fvlat, fvslon)).T.reshape(-1, 2)
+
+        # Create a cyclic ghost point for slon interpolation
+        ghost_lon = fvlon[-1] - 360.0
+        tmp_fvlon = np.hstack(([ghost_lon], fvlon))
+
+        for level in range(numlevels):
+            # Extend v to match ghost point since this var is interpolated in slon
+            v_fv_extended = np.hstack((v_fv[level, :, -1][:, np.newaxis], v_fv[level, :, :]))
+            u_interpolator = RegularGridInterpolator((fvlat, fvlon), u_fv[level, :, :], method='linear')
+            v_interpolator = RegularGridInterpolator((fvlat, tmp_fvlon), v_fv_extended, method='linear')
+            us_fv[level, :, :] = u_interpolator(slat_lon_mesh).reshape(nfvslat, nfvlon)
+            vs_fv[level, :, :] = v_interpolator(lat_slon_mesh).reshape(nfvlat, nfvslon)
+
+        # Clean up so we aren't confused later
+        del ghost_lon, tmp_fvlon, v_interpolator, u_interpolator, v_fv_extended
+
+        ps_fv = numpy_to_dataarray(ps_fv, dims=['lat', 'lon'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        u_fv = numpy_to_dataarray(u_fv, dims=['lev', 'lat', 'lon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        v_fv = numpy_to_dataarray(v_fv, dims=['lev', 'lat', 'lon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        us_fv = numpy_to_dataarray(us_fv, dims=['lev', 'slat', 'lon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        vs_fv = numpy_to_dataarray(vs_fv, dims=['lev', 'lat', 'slon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        t_fv = numpy_to_dataarray(t_fv, dims=['lev', 'lat', 'lon'], attrs={'units': 'K', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        q_fv = numpy_to_dataarray(q_fv, dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        cldliq_fv = numpy_to_dataarray(cldliq_fv, dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        cldice_fv = numpy_to_dataarray(cldice_fv, dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        selat = numpy_to_dataarray(fvlat, dims=['lat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
+        selon = numpy_to_dataarray(fvlon, dims=['lon'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
+        seslat = numpy_to_dataarray(fvslat, dims=['slat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
+        seslon = numpy_to_dataarray(fvslon, dims=['slon'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
+        if 'correct_or_not' in locals():
+            correct_or_not = numpy_to_dataarray(correct_or_not, dims=['lat', 'lon'], attrs={"_FillValue": -1.0}, name='correct_or_not')
+
         ps_fv = add_time_define_precision(ps_fv, write_type, False)
         u_fv = add_time_define_precision(u_fv, write_type, False)
         v_fv = add_time_define_precision(v_fv, write_type, False)
-        us_fv = add_time_define_precision(u_fv_slat, write_type, False)
-        vs_fv = add_time_define_precision(v_fv_slon, write_type, False)
+        us_fv = add_time_define_precision(us_fv, write_type, False, lat_dim="slat")
+        vs_fv = add_time_define_precision(vs_fv, write_type, False, lon_dim="slon")
         t_fv = add_time_define_precision(t_fv, write_type, False)
         q_fv = add_time_define_precision(q_fv, write_type, False)
         cldliq_fv = add_time_define_precision(cldliq_fv, write_type, False)
         cldice_fv = add_time_define_precision(cldice_fv, write_type, False)
-
-        # Set attributes
-        lat.attrs = {"units": "degrees_north"}
-        lon.attrs = {"units": "degrees_east"}
-        slat.attrs = {"units": "degrees_north"}
-        slon.attrs = {"units": "degrees_east"}
 
     # Create CF-compliant time
     time, time_atts = create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr))
@@ -357,15 +426,13 @@ def main():
         }
     )
 
-    # Add lat/lon to the dataset
+    ds["lat"] = selat
+    ds["lon"] = selon
     if dycore == "fv":
-        ds["lat"] = lat
-        ds["lon"] = lon
-        ds["slat"] = slat
-        ds["slon"] = slon
-    else:
-        ds["lat"] = selat
-        ds["lon"] = selon
+        ds["US"] = us_fv
+        ds["VS"] = vs_fv
+        ds["slat"] = seslat
+        ds["slon"] = seslon
 
     if 'correct_or_not' in locals():
         ds["correct_or_not"] = correct_or_not

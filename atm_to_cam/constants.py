@@ -12,3 +12,7 @@ extrap_threshold = 5000.  # maximum ps corr diff (Pa) to allow extrapolation
 NC_FLOAT_FILL=9.96921e+36
 
 dtime_map = [4, 2, 2, 2]
+
+QMAXTHRESH=0.05
+QMINTHRESH=1.0e-12
+CLDMINTHRESH=0.0
