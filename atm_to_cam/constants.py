@@ -20,3 +20,5 @@ QMINTHRESH=1.0e-12
 CLDMINTHRESH=0.0
 
 rho_d_algo = 1
+
+mpas_uv_damping_coeffs = [0.90, 0.95, 0.98]

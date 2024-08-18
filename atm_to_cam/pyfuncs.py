@@ -4,7 +4,7 @@ import datetime
 import argparse
 import sys
 import glob
-from constants import grav, kappa, p0, Rd
+from constants import grav, kappa, p0, Rd, Rv_over_Rd
 import cftime
 
 def parse_args():
@@ -462,6 +462,38 @@ def add_time_define_precision(var_in, precision, isncol, lat_dim="lat", lon_dim=
     var_out.attrs = var_in.attrs
 
     return var_out
+
+
+def calculate_rho_gfs(pres_gfs, q_gfs, t_gfs, rho_d_algo=1):
+    """
+    Calculates the density of air (rho) using either a simple or advanced method.
+
+    Parameters:
+    -----------
+    pres_gfs : numpy.ndarray
+        Pressure field, typically with shape (nlev, ncol).
+    q_gfs : numpy.ndarray
+        Specific humidity field, typically with shape (nlev, ncol).
+    t_gfs : numpy.ndarray
+        Temperature field, typically with shape (nlev, ncol).
+    rho_d_algo : int, optional
+        Algorithm choice for calculating dry air density.
+        If 1, uses a simplified formula; otherwise, uses a more complex CAM/MPAS formula.
+        Default is 1.
+
+    Returns:
+    --------
+    rho_gfs : numpy.ndarray
+        Density of air (rho) with the same shape as pres_gfs.
+    """
+    if rho_d_algo == 1:
+        presdry_gfs = pres_gfs / (1. + q_gfs)
+        rho_gfs = presdry_gfs / (Rd * t_gfs)
+    else:
+        # rho_d calculation from internal CAM/MPAS code")
+        rho_gfs = pres_gfs / (Rd * t_gfs * (1. + Rv_over_Rd * q_gfs))
+
+    return rho_gfs
 
 
 

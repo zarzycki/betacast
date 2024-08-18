@@ -2,6 +2,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 from numba import jit
 
+from constants import mpas_uv_damping_coeffs
+
 # def z_to_z_interp(theta_fv, z_fv, thisCol, extrapLow=False, extrapHigh=False):
 #     """
 #     Interpolates data from one vertical grid to another.
@@ -230,3 +232,54 @@ def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv
     v_wrf_col = z_to_z_interp(v_fv[::-1, ix], z_fv[::-1, ix], zmid, extrapLow=True, extrapHigh=False)
 
     return t_wrf_col, theta_wrf_col, rho_wrf_col, w_wrf_col, q_wrf_col, u_wrf_col, v_wrf_col
+
+
+
+
+
+def damp_upper_level_winds(u, v, nlev, damping_coeffs=None):
+    """
+    Damps the upper-level MPAS winds using specified damping coefficients.
+
+    Parameters:
+    -----------
+    u : numpy.ndarray
+        U-component of wind, typically with shape (nlev, ncol).
+    v : numpy.ndarray
+        V-component of wind, typically with shape (nlev, ncol).
+    mpas_nlev : int
+        Number of vertical levels.
+    damping_coeffs : list or numpy.ndarray, optional
+        Damping coefficients for the upper levels. Defaults to values in constants.py.
+
+    Returns:
+    --------
+    u : numpy.ndarray
+        U-component of wind after damping.
+    v : numpy.ndarray
+        V-component of wind after damping.
+    """
+    if damping_coeffs is None:
+        damping_coeffs = mpas_uv_damping_coeffs
+
+    print(f"Damping upper level MPAS winds with coefficients: {damping_coeffs}")
+    u[:, nlev - 1] *= damping_coeffs[0]
+    u[:, nlev - 2] *= damping_coeffs[1]
+    u[:, nlev - 3] *= damping_coeffs[2]
+    v[:, nlev - 1] *= damping_coeffs[0]
+    v[:, nlev - 2] *= damping_coeffs[1]
+    v[:, nlev - 3] *= damping_coeffs[2]
+    print("... done damping upper level MPAS winds")
+
+    return u, v
+
+
+
+def noflux_boundary_condition(w,nlev):
+
+    print("Setting lower BC for W so flow can't go through surface...")
+    w[:, 0] = 0.0
+    print("... done setting lower BC for W so flow can't go through surface")
+
+    return w
+

@@ -14,11 +14,11 @@ from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import gaussian_filter
 
 from pyfuncs import *
-from mpas import *
+import mpas
 import vertremap
 import horizremap
 import topoadjust
-from constants import p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, rho_d_algo
+from constants import p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH
 
 def main():
 
@@ -75,6 +75,8 @@ def main():
     compress_file = args.compress_file
     se_inic = args.se_inic
     mpas_as_cam = args.mpas_as_cam
+
+    damp_upper_winds_mpas=True
 
     # Check if we are using MPAS and the model topo file is provided and exists
     if dycore == "mpas" and model_topo_file:
@@ -203,19 +205,13 @@ def main():
         # Calculate potential temperature using full pressure and actual T
         theta_gfs = pot_temp(pres_gfs, t_gfs)
 
-        # Calculate rho with dry air
-        if rho_d_algo == 1:
-            presdry_gfs = pres_gfs / (1. + q_gfs)
-            rho_gfs = presdry_gfs / (Rd * t_gfs)
-        else:
-            print("Using rho_d calculation from internal CAM/MPAS code")
-            rho_gfs = pres_gfs / (Rd * t_gfs * (1. + Rv_over_Rd * q_gfs))
+        # Calculate density from pressure, moisture, and temperature
+        rho_gfs = calculate_rho_gfs(pres_gfs, q_gfs, t_gfs)
 
         print(f"Max RHO_DRY: {np.max(rho_gfs)}   min RHO_DRY: {np.min(rho_gfs)}")
         print(f"Max THETA: {np.max(theta_gfs)}   min THETA: {np.min(theta_gfs)}")
         print(f"Max PRES: {np.max(pres_gfs)}   min PRES: {np.min(pres_gfs)}")
         print(f"Max W: {np.max(w_gfs)}   min W: {np.min(w_gfs)}")
-
         print("=================================================================")
 
     if dycore == 'fv' or dycore == 'se':
@@ -337,6 +333,11 @@ def main():
     print(f"Max PS: {np.max(ps):.6f}   min PS: {np.nanmin(ps):.6f}")
     print(f"Max CLDICE: {np.max(cldice_fv):.6f}   min CLDICE: {np.nanmin(cldice_fv):.6f}")
     print(f"Max CLDLIQ: {np.max(cldliq_fv):.6f}   min CLDLIQ: {np.nanmin(cldliq_fv):.6f}")
+    if dycore == "mpas":
+        print(f"Max Z: {np.max(z_fv):.6f}   min Z: {np.nanmin(z_fv):.6f}")
+        print(f"Max THETA: {np.max(theta_fv):.6f}   min THETA: {np.nanmin(theta_fv):.6f}")
+        print(f"Max RHO: {np.max(rho_fv):.6f}   min RHO: {np.nanmin(rho_fv):.6f}")
+        print(f"Max W: {np.max(w_fv):.6f}   min W: {np.nanmin(w_fv):.6f}")
     print("=" * 65)
 
     print("==CLEAN after horizontal interp")
@@ -356,35 +357,31 @@ def main():
 
         print("Performing vertical interpolation at each MPAS column...")
         # Call the processing function with your data
-        t_wrf, theta_wrf, rho_wrf, w_wrf, q_wrf, u_wrf, v_wrf = interpolate_mpas_columns_wrapper(
+        t_wrf, theta_wrf, rho_wrf, w_wrf, q_wrf, u_wrf, v_wrf = mpas.interpolate_mpas_columns_wrapper(
             mpas_ncell, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv, theta_fv, rho_fv, w_fv, q_fv, u_fv, v_fv, mpas_as_cam
         )
         del theta_fv,rho_fv,w_fv,q_fv,u_fv,v_fv
         print("... done performing vertical interpolation at each MPAS column!")
 
-        print("Setting lower BC for W so flow can't go through surface")
-        w_wrf[:, 0] = 0.0
+        # Set it so flow doesn't go through the lower boundary condition
+        w_wrf = mpas.noflux_boundary_condition(w_wrf, mpas_nlev)
 
-        damp_upper_winds_mpas=True
+        # Damp the top few layers of MPAS winds
         if damp_upper_winds_mpas:
-            print("Damping upper level MPAS winds")
-            mpas_damp_coefs = np.array([0.90, 0.95, 0.98])
-            u_wrf[:, mpas_nlev - 1] *= mpas_damp_coefs[0]
-            u_wrf[:, mpas_nlev - 2] *= mpas_damp_coefs[1]
-            u_wrf[:, mpas_nlev - 3] *= mpas_damp_coefs[2]
-            v_wrf[:, mpas_nlev - 1] *= mpas_damp_coefs[0]
-            v_wrf[:, mpas_nlev - 2] *= mpas_damp_coefs[1]
-            v_wrf[:, mpas_nlev - 3] *= mpas_damp_coefs[2]
+            u_wrf, v_wrf = mpas.damp_upper_level_winds(u_wrf, v_wrf, mpas_nlev)
 
         if not mpas_as_cam:
             # put u + v on cell edges...
             print("Projecting u + v to velocity normal to edge...")
-            uNorm_wrf = uv_cell_to_edge(u_wrf, v_wrf, mpas_nlev, mpas_file['lonEdge'].values, mpas_file['latEdge'].values,
+            uNorm_wrf = mpas.uv_cell_to_edge(u_wrf, v_wrf, mpas_nlev, mpas_file['lonEdge'].values, mpas_file['latEdge'].values,
                                         mpas_file['lonCell'].values, mpas_file['latCell'].values, mpas_file['edgeNormalVectors'].values, mpas_file['cellsOnEdge'].values)
 
             # delete u and v components since we have mapped to edge normals
             del u_wrf, v_wrf
             print("... done projecting u + v to velocity normal to edge!")
+
+            # Clip relevant variables
+            q_wrf = clip_and_count(q_wrf, min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
 
             # If not MPAS as CAM, we can just end here.
             print("Writing MPAS file...")
@@ -393,10 +390,12 @@ def main():
             mpas_file['rho'].values[0, :, :] = rho_wrf.T
             mpas_file['theta'].values[0, :, :] = theta_wrf.T
             mpas_file['w'].values[0, :, :] = w_wrf.T
-            mpas_file.to_netcdf("test.nc", format='NETCDF4')
+            mpas_file.to_netcdf(se_inic, format='NETCDF4')
             mpas_file.close()
+            print("Done generating MPAS initial condition file, exiting...")
             quit()
         else:
+            # If we are generating nudging files, point wrf vars to fv vars
             u_fv = u_wrf
             v_fv = v_wrf
             t_fv = t_wrf
@@ -407,9 +406,6 @@ def main():
         ncol = grid_dims
     elif dycore == "fv":
         nfvlat, nfvlon = grid_dims
-
-
-
 
     if dycore == "fv":
         print("TOPOADJUST_FV: unpacking fv vars")
@@ -465,13 +461,6 @@ def main():
                          q_fv=(["level", "lat", "lon"], q_fv),
                          cldliq_fv=(["level", "lat", "lon"], cldliq_fv),
                          cldice_fv=(["level", "lat", "lon"], cldice_fv))
-
-
-
-
-
-
-
 
     q_fv = clip_and_count(q_fv, min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
     cldliq_fv = clip_and_count(cldliq_fv, min_thresh=CLDMINTHRESH, var_name="CLDLIQ")
@@ -563,6 +552,7 @@ def main():
         cldice_fv = add_time_define_precision(cldice_fv, write_type, False)
 
     if dycore == "mpas":
+        # Need to flip the 3-D arrays!
         ps_fv = numpy_to_dataarray(ps_fv[:], dims=['ncol'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
         u_fv = numpy_to_dataarray(u_fv[::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
         v_fv = numpy_to_dataarray(v_fv[::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
@@ -581,10 +571,7 @@ def main():
     time, time_atts = create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr))
     time = numpy_to_dataarray(time, dims=['time'], attrs=time_atts)
 
-    # Reload from the template xarray for metadata purposes
-    hya, hyb, hyai, hybi, lev, ilev = load_cam_levels(PATHTOHERE, numlevels, load_xarray = True)
-
-    # Data set to be written out
+    # Data set to be written out, base variables for all models
     ds = xr.Dataset(
         {
             "PS": ps_fv,
@@ -598,6 +585,8 @@ def main():
     )
 
     if dycore == "se" or dycore == "fv":
+        # Reload from the template xarray for metadata purposes
+        hya, hyb, hyai, hybi, lev, ilev = load_cam_levels(PATHTOHERE, numlevels, load_xarray = True)
         ds["CLDLIQ"] = cldliq_fv
         ds["CLDICE"] = cldice_fv
         ds["hyam"] = hya
@@ -609,11 +598,13 @@ def main():
         ds["time"] = time
 
     if dycore == "fv":
+        # Add staggered variables for fv
         ds["US"] = us_fv
         ds["VS"] = vs_fv
         ds["slat"] = seslat
         ds["slon"] = seslon
 
+    # Output correct_or_not if available
     if 'correct_or_not' in locals():
         ds["correct_or_not"] = correct_or_not
 
