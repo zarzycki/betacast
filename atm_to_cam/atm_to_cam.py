@@ -110,7 +110,10 @@ def main():
     hya, hyb, hyai, hybi, lev, ilev = load_cam_levels(PATHTOHERE, numlevels)
 
     # Load the data file
-    grb_file = load_grb_file(data_filename)
+    if datasource == 'GFS':
+        grb_file = load_CFSR_file(data_filename,'isobaricInhPa','t')
+    else:
+        grb_file = load_ERA5_file(data_filename)
 
     # Process the grb_file to extract lat/lon/lev
     grblat, grblon, grblev = process_grb_file(grb_file, datasource, RDADIR, yearstr, monthstr, daystr, mod_remap_file)
@@ -124,7 +127,10 @@ def main():
     nlon = len(grblon)
     print(f"nlat: {nlat}, nlon: {nlon}")
 
-    data_vars = load_era5rda_data(RDADIR, yearstr, monthstr, daystr, cyclestr, dycore)
+    if datasource == 'GFS':
+        data_vars = load_CFSR_data(data_filename, dycore)
+    else:
+        data_vars = load_era5rda_data(RDADIR, yearstr, monthstr, daystr, cyclestr, dycore)
 
     # Access the specific DataArray for 'SP' from the Dataset
     ps = data_vars['ps']
@@ -406,7 +412,7 @@ def main():
         cldliq_fv = latlon_to_ncol(cldliq_fv)
 
     if dycore == "se" or dycore == "fv":
-        correct_or_not = topoadjust.topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR, add_cloud_vars)
+        correct_or_not = topoadjust.topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, data_filename, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR, add_cloud_vars)
 
     if ps_wet_to_dry:
         if output_diag:

@@ -88,6 +88,9 @@ def int2p(pin, xin, pout, linlog):
         Interpolated data array of the same shape as `pout`.
     """
 
+    # Initialize some things
+    xflipped = False
+
     # Initialize the output array
     xout = np.full_like(pout, np.nan)
 
@@ -151,6 +154,59 @@ def int2p(pin, xin, pout, linlog):
     return xout
 
 
+
+
+def int2p_n(pin, xin, pout, linlog, dim=-1):
+    """
+    Wrapper for int2p to handle multi-dimensional arrays along a specific dimension.
+
+    Parameters:
+    -----------
+    pin : array-like
+        Array of input pressure levels.
+
+    xin : array-like
+        Multi-dimensional array of data to be interpolated.
+
+    pout : array-like
+        Array of output pressure levels.
+
+    linlog : int
+        Integer indicating the type of interpolation:
+        - abs(linlog) == 1 --> linear interpolation
+        - abs(linlog) != 1 --> logarithmic interpolation
+        - If linlog is negative, extrapolation outside the range of `pin` will occur.
+
+    dim : int, optional (default=-1)
+        The dimension index corresponding to pressure levels in `xin`.
+
+    Returns:
+    --------
+    xout : array-like
+        Interpolated data array with the same shape as `xin`, except along the `dim` dimension, which matches the size of `pout`.
+    """
+
+    # Move the specified dimension to the last position for easier iteration
+    xin_moved = np.moveaxis(xin, dim, -1)
+
+    # Prepare the output array with the new shape
+    new_shape = list(xin_moved.shape)
+    new_shape[-1] = len(pout)  # Update the last dimension to match pout
+    xout = np.empty(new_shape, dtype=xin.dtype)
+
+    # Iterate over all but the last dimension (which is now the pressure dimension)
+    for index in np.ndindex(xin_moved.shape[:-1]):
+        xout[index] = int2p(pin, xin_moved[index], pout, linlog)
+
+    # Move the dimension back to its original position
+    xout = np.moveaxis(xout, -1, dim)
+
+    return xout
+
+
+
+
+
 @jit(nopython=True)
 def p2hyo(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag):
     """
@@ -206,7 +262,7 @@ def p2hyo(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag):
 
     return data_on_hybrid_levels
 
-def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0=100000, kflag=1):
+def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, level_dim=0, p0=100000, kflag=1):
     """
     Interpolate data on constant pressure levels to hybrid sigma levels.
 
@@ -218,7 +274,16 @@ def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0=1000
 
     # Check if p_levels is monotonically increasing
     if not np.all(np.diff(p_levels) > 0):
-       raise ValueError("p_levels must be monotonically increasing")
+        print("p_levels is not monotonically increasing. Attempting to flip arrays...")
+
+        # Flip the p_levels and data_on_p_levels arrays
+        p_levels = p_levels[::-1]
+        data_on_p_levels = np.flip(data_on_p_levels, axis=level_dim)
+
+        # Recheck if p_levels is now monotonically increasing
+        if not np.all(np.diff(p_levels) > 0):
+            raise ValueError("p_levels must be monotonically increasing. Flipping arrays did not resolve the issue.")
+
 
     # Call the Python-equivalent Fortran function
     data_on_hybrid_levels = p2hyo(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag)

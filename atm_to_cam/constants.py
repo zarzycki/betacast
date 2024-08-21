@@ -27,3 +27,5 @@ ps_wet_to_dry=False
 output_diag=True
 
 w_smooth_iter=1
+
+t_freeze_K=273.15

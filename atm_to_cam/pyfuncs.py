@@ -7,8 +7,10 @@ import glob
 import cftime
 from scipy.ndimage import gaussian_filter
 
+from vertremap import *
+
 from constants import (
-    grav, kappa, p0, Rd, Rv_over_Rd
+    grav, kappa, p0, Rd, Rv_over_Rd, t_freeze_K
 )
 
 def parse_args():
@@ -65,24 +67,15 @@ def split_by_lengths(s, lengths):
         index += length
     return parts
 
-def load_grb_file(data_filename):
-    # Load the data file using xarray
-    return xr.open_dataset(data_filename)
-
 def process_grb_file(grb_file, datasource, RDADIR, yearstr, monthstr, daystr, mod_remap_file):
     print("---------------------------------------------------------")
     print("Loading lat/lon/lev")
 
     if datasource in ["GFS", "CFSR", "HWRF"]:
-        cldlevName = grb_file["CLWMR_P0_L100_GLL0"].dims[0]
-        print(f"cldlev varname: {cldlevName}")
-        rhlevName = grb_file["RH_P0_L100_GLL0"].dims[0]
-        print(f"rhlev varname: {rhlevName}")
-        grblat = grb_file["lat_0"].values
-        grblon = grb_file["lon_0"].values
-        grblev = grb_file["lv_ISBL0"].values
-        rhlev = grb_file[rhlevName].values
-        cldlev = grb_file[cldlevName].values
+        grblat = grb_file.coords["latitude"].values
+        grblon = grb_file.coords["longitude"].values
+        grblev = grb_file.coords['isobaricInhPa'].values
+        grblev *= 100.0
 
     elif datasource == "RAP":
         rhlevName = grb_file["RH_P0_L100_GLC0"].dims[0]
@@ -224,7 +217,7 @@ def process_grb_file(grb_file, datasource, RDADIR, yearstr, monthstr, daystr, mo
 #
 #     return ps, t_gfs, u_gfs, v_gfs, q_gfs, cldliq_gfs, cldice_gfs, w_gfs, z_gfs, w_is_omega, z_is_phi
 
-def load_variable(varname, sf_dir, pl_dir, var_code, yearstr, monthstr, daystr, cyclestr):
+def load_ERA5RDA_variable(varname, sf_dir, pl_dir, var_code, yearstr, monthstr, daystr, cyclestr):
     """Helper function to load a variable from a NetCDF file."""
     rda_find = glob.glob(f"{pl_dir}/{var_code}.{yearstr}{monthstr}{daystr}00_*.nc") or \
                glob.glob(f"{sf_dir}/{var_code}.{yearstr}{monthstr}0100_*.nc")
@@ -236,7 +229,7 @@ def load_variable(varname, sf_dir, pl_dir, var_code, yearstr, monthstr, daystr, 
     rda_data = rda_file[varname].sel(time=rda_thistime, method='nearest').values
     return rda_data
 
-def load_era5rda_data(RDADIR, yearstr, monthstr, daystr, cyclestr, dycore):
+def load_ERA5RDA_data(RDADIR, yearstr, monthstr, daystr, cyclestr, dycore):
     # Define directories
     pl_dir = f"{RDADIR}/e5.oper.an.pl/{yearstr}{monthstr}"
     sf_dir = f"{RDADIR}/e5.oper.an.sfc/{yearstr}{monthstr}"
@@ -245,21 +238,293 @@ def load_era5rda_data(RDADIR, yearstr, monthstr, daystr, cyclestr, dycore):
     data_vars = {}
 
     # Load required variables
-    data_vars['ps'] = load_variable('SP', sf_dir, pl_dir, "e5.oper.an.sfc.128_134_sp.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['t_gfs'] = load_variable('T', pl_dir, pl_dir, "e5.oper.an.pl.128_130_t.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['u_gfs'] = load_variable('U', pl_dir, pl_dir, "e5.oper.an.pl.128_131_u.ll025uv", yearstr, monthstr, daystr, cyclestr)
-    data_vars['v_gfs'] = load_variable('V', pl_dir, pl_dir, "e5.oper.an.pl.128_132_v.ll025uv", yearstr, monthstr, daystr, cyclestr)
-    data_vars['q_gfs'] = load_variable('Q', pl_dir, pl_dir, "e5.oper.an.pl.128_133_q.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['cldliq_gfs'] = load_variable('CLWC', pl_dir, pl_dir, "e5.oper.an.pl.128_246_clwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['cldice_gfs'] = load_variable('CIWC', pl_dir, pl_dir, "e5.oper.an.pl.128_247_ciwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['ps'] = load_ERA5_variable('SP', sf_dir, pl_dir, "e5.oper.an.sfc.128_134_sp.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['t_gfs'] = load_ERA5_variable('T', pl_dir, pl_dir, "e5.oper.an.pl.128_130_t.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['u_gfs'] = load_ERA5_variable('U', pl_dir, pl_dir, "e5.oper.an.pl.128_131_u.ll025uv", yearstr, monthstr, daystr, cyclestr)
+    data_vars['v_gfs'] = load_ERA5_variable('V', pl_dir, pl_dir, "e5.oper.an.pl.128_132_v.ll025uv", yearstr, monthstr, daystr, cyclestr)
+    data_vars['q_gfs'] = load_ERA5_variable('Q', pl_dir, pl_dir, "e5.oper.an.pl.128_133_q.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['cldliq_gfs'] = load_ERA5_variable('CLWC', pl_dir, pl_dir, "e5.oper.an.pl.128_246_clwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['cldice_gfs'] = load_ERA5_variable('CIWC', pl_dir, pl_dir, "e5.oper.an.pl.128_247_ciwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
 
     if dycore == "mpas":
-        data_vars['w_gfs'] = load_variable('W', pl_dir, pl_dir, "e5.oper.an.pl.128_135_w.ll025sc", yearstr, monthstr, daystr, cyclestr)
+        data_vars['w_gfs'] = load_ERA5_variable('W', pl_dir, pl_dir, "e5.oper.an.pl.128_135_w.ll025sc", yearstr, monthstr, daystr, cyclestr)
         data_vars['w_is_omega'] = True
-        data_vars['z_gfs'] = load_variable('Z', pl_dir, pl_dir, "e5.oper.an.pl.128_129_z.ll025sc", yearstr, monthstr, daystr, cyclestr)
+        data_vars['z_gfs'] = load_ERA5_variable('Z', pl_dir, pl_dir, "e5.oper.an.pl.128_129_z.ll025sc", yearstr, monthstr, daystr, cyclestr)
         data_vars['z_is_phi'] = True
 
     return data_vars
+
+def load_CFSR_file(data_filename,TYPE_OF_LEVEL,VAR_SHORTNAME):
+    return xr.open_dataset(
+        data_filename,
+        engine="cfgrib",
+        backend_kwargs={
+            'filter_by_keys': {
+                'typeOfLevel': TYPE_OF_LEVEL,
+                'shortName':  VAR_SHORTNAME
+            }
+        }
+    )
+
+def load_ERA5_file(data_filename):
+    # Load the data file using xarray
+    return xr.open_dataset(
+        data_filename
+    )
+
+def load_CFSR_variable(grb_file, varname):
+    """Helper function to load a variable from a CFSR NetCDF file."""
+    if varname in grb_file.variables:
+        return grb_file[varname].values
+    else:
+        raise KeyError(f"Variable {varname} not found in the GRIB file.")
+
+def get_CFSR_levels_for_var(grb_file_name, variable):
+    """
+    Load GRIB levels for a specific variable from a CFSR file.
+
+    Parameters:
+    -----------
+    grb_file_name : str
+        The name of the GRIB file.
+
+    variable : str
+        The variable name to load from the GRIB file (e.g., 't', 'clwmr', 'r', 'u').
+
+    Returns:
+    --------
+    np.ndarray
+        The pressure levels in Pa.
+    """
+    grb_file = load_CFSR_file(grb_file_name, 'isobaricInhPa', variable)
+    levels = grb_file.coords['isobaricInhPa'].values * 100.0
+    grb_file.close()
+    return levels
+
+def load_and_extract_CFSR_variable(grb_file_name, level_type, variable):
+    """
+    Load and extract a variable from a CFSR GRIB file.
+
+    Parameters:
+    -----------
+    grb_file_name : str
+        The name of the GRIB file.
+
+    level_type : str
+        The type of level to filter by (e.g., 'surface', 'isobaricInhPa').
+
+    variable : str
+        The variable name to load from the GRIB file (e.g., 'sp', 't', 'u', 'v').
+
+    Returns:
+    --------
+    np.ndarray
+        The extracted data variable.
+    """
+    grb_file = load_CFSR_file(grb_file_name, level_type, variable)
+    data = load_CFSR_variable(grb_file, variable)
+    grb_file.close()
+    return data
+
+def load_CFSR_data(grb_file_name, dycore):
+
+    # Dictionary to store the variables
+    data_vars = {}
+
+    grblev = get_CFSR_levels_for_var(grb_file_name, 't')
+    cldlev = get_CFSR_levels_for_var(grb_file_name, 'clwmr')
+    rhlev = get_CFSR_levels_for_var(grb_file_name, 'r')
+    windlev = get_CFSR_levels_for_var(grb_file_name, 'u')
+
+    data_vars['ps'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 'sp')
+    data_vars['t_gfs'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 't')
+    data_vars['u_gfs'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'u')
+    data_vars['v_gfs'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'v')
+
+    if dycore == "mpas":
+        data_vars['w_gfs'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'w')
+        data_vars['w_is_omega'] = True
+        data_vars['z_gfs'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'gh')
+        data_vars['z_is_phi'] = False
+
+    if windlev.shape != grblev.shape:
+        print(f"Interpolating u + v wind from {windlev.shape} to {grblev.shape} levels")
+        data_vars['u_gfs'] = int2p_n(windlev, data_vars['u_gfs'], grblev, linlog=2, dim=0)
+        data_vars['v_gfs'] = int2p_n(windlev, data_vars['v_gfs'], grblev, linlog=2, dim=0)
+
+    # Load and interpolate additional variables
+    data_vars['rh_gfs_native'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'r')
+    data_vars['cldmix_gfs_native'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'clwmr')
+
+    # Interpolate
+    data_vars['rh_gfs'] = int2p_n(rhlev,data_vars['rh_gfs_native'], grblev, linlog=2, dim=0)
+    data_vars['cldmix_gfs'] = int2p_n(cldlev,data_vars['cldmix_gfs_native'], grblev, linlog=2, dim=0)
+
+    # Cleanup
+    del data_vars['cldmix_gfs_native']
+    del data_vars['rh_gfs_native']
+
+    # Calculate specific humidity from RH
+    # Load grblev (Pa), use numpy broadcasting to go from 1-D to 3-D, multiple by 0.01 to convert to mb
+    data_vars['q_gfs'] = mixhum_ptrh((grblev[:, np.newaxis, np.newaxis] * 0.01), data_vars['t_gfs'], data_vars['rh_gfs'])
+
+    # Sort bad values
+    data_vars['cldmix_gfs'] = np.where(np.isnan(data_vars['cldmix_gfs']), 0, data_vars['cldmix_gfs'])
+    #data_vars['cldmix_gfs'] = np.where(data_vars['cldmix_gfs'] > 0.01, 0, data_vars['cldmix_gfs'])
+    data_vars['cldmix_gfs'] = clip_and_count(data_vars['cldmix_gfs'],max_thresh=0.01,var_name="cldmix_gfs")
+
+    # Separate cloud ice and water
+    data_vars['cldice_gfs'] = np.where(data_vars['t_gfs'] > t_freeze_K, 0, data_vars['cldmix_gfs'])
+    data_vars['cldliq_gfs'] = np.where(data_vars['t_gfs'] > t_freeze_K, data_vars['cldmix_gfs'], 0)
+
+    del data_vars['cldmix_gfs']
+
+    return data_vars
+
+
+
+def interpolate_to_uniform_levels(data_var):
+    ##### int2p_n
+
+    # Placeholder for actual interpolation logic
+    # Implement int2p_n or equivalent interpolation in Python
+    return data_var  # Modify with actual interpolation
+
+def calculate_specific_humidity(t_gfs, rh_gfs):
+    # Placeholder for the actual calculation of specific humidity
+    # Implement mixhum_ptrh or equivalent in Python
+    return rh_gfs  # Modify with actual calculation
+
+def mixhum_ptrh(p, tk, rh, iswit=2):
+    """
+    Computes the specific humidity or mixing ratio from pressure, temperature, and relative humidity.
+
+    Parameters:
+    -----------
+    p : float or numpy.ndarray
+        Atmospheric pressure (hPa or mb).
+    tk : float or numpy.ndarray
+        Temperature in Kelvin.
+    rh : float or numpy.ndarray
+        Relative humidity in percent.
+    iswit : int
+        - If iswit=1, the output will be the mixing ratio.
+        - If iswit=2, the output will be the specific humidity.
+        - If iswit is negative, the units will be kg/kg; otherwise, g/kg.
+
+    Returns:
+    --------
+    qw : float or numpy.ndarray
+        Mixing ratio or specific humidity in the units specified by iswit.
+    """
+
+    # Constants
+    T0 = 273.15  # Reference temperature in Kelvin
+    EP = 0.622  # Ratio of molecular weights of water vapor to dry air
+    ONEMEP = 1.0 - EP  # 1 - EP
+    ES0 = 6.11  # Reference saturation vapor pressure in hPa or mb
+    A = 17.269  # Coefficient for saturation vapor pressure calculation
+    B = 35.86   # Coefficient for saturation vapor pressure calculation
+
+    # Calculate the saturation vapor pressure (EST)
+    est = ES0 * np.exp((A * (tk - T0)) / (tk - B))
+
+    # Calculate the saturation mixing ratio (QST)
+    qst = (EP * est) / (p - ONEMEP * est)
+
+    # Calculate mixing ratio or specific humidity
+    qw = qst * (rh * 0.01)
+
+    # Convert to specific humidity if iswit=2
+    if abs(iswit) == 2:
+        qw = qw / (1.0 + qw)
+
+    # Convert to kg/kg if iswit is negative
+    if iswit < 0:
+        qw = qw * 1000.0
+
+    return qw
+
+
+
+
+
+
+import numpy as np
+
+def interpolate_to_levels(ppin, xxin, ppout, linlog=1, xmsg=np.nan):
+    """
+    Interpolate or extrapolate data from one set of pressure levels to another.
+
+    Parameters:
+    -----------
+    ppin : numpy.ndarray
+        Input pressure levels (1D array).
+    xxin : numpy.ndarray
+        Input variable values at ppin levels (1D array).
+    ppout : numpy.ndarray
+        Output pressure levels (1D array).
+    linlog : int, optional
+        Flag indicating interpolation method:
+        - 1: linear interpolation (default)
+        - 0: logarithmic interpolation
+        - Negative: extrapolation allowed using the nearest valid slope.
+    xmsg : float, optional
+        Missing data marker. Default is np.nan.
+
+    Returns:
+    --------
+    xxout : numpy.ndarray
+        Interpolated variable values at ppout levels.
+    """
+
+    # Initialize output array with missing values
+    xxout = np.full_like(ppout, xmsg)
+
+    # Error check: make sure we have enough points
+    if len(ppin) < 2 or len(ppout) < 1:
+        return xxout  # Return all missing values
+
+    # Determine if input and output pressures need to be reordered
+    npin = len(ppin)
+    nout = len(ppout)
+
+    ppin_reordered = ppin[::-1] if ppin[0] < ppin[1] else ppin
+    xxin_reordered = xxin[::-1] if ppin[0] < ppin[1] else xxin
+    ppout_reordered = ppout[::-1] if ppout[0] < ppout[1] else ppout
+
+    # Filter out missing data in xxin
+    valid_mask = (xxin_reordered != xmsg) & (ppin_reordered != xmsg)
+    pin_valid = ppin_reordered[valid_mask]
+    xin_valid = xxin_reordered[valid_mask]
+
+    if len(pin_valid) < 2:
+        return xxout  # Not enough valid data points
+
+    # Perform interpolation
+    if linlog == 1:
+        # Linear interpolation
+        xxout = np.interp(ppout_reordered, pin_valid, xin_valid)
+    else:
+        # Logarithmic interpolation
+        xxout = np.interp(np.log(ppout_reordered), np.log(pin_valid), xin_valid)
+
+    # Extrapolation if linlog < 0
+    if linlog < 0:
+        if ppout_reordered[0] > pin_valid[0]:  # Extrapolate above range
+            slope = (xin_valid[1] - xin_valid[0]) / (pin_valid[1] - pin_valid[0])
+            xxout[ppout_reordered > pin_valid[0]] = xin_valid[0] + slope * (ppout_reordered[ppout_reordered > pin_valid[0]] - pin_valid[0])
+        if ppout_reordered[-1] < pin_valid[-1]:  # Extrapolate below range
+            slope = (xin_valid[-1] - xin_valid[-2]) / (pin_valid[-1] - pin_valid[-2])
+            xxout[ppout_reordered < pin_valid[-1]] = xin_valid[-1] + slope * (ppout_reordered[ppout_reordered < pin_valid[-1]] - pin_valid[-1])
+
+    # Reorder output back to original if necessary
+    if ppout[0] < ppout[1]:
+        xxout = xxout[::-1]
+
+    return xxout
+
+
 
 def find_closest_time(times, yearstr, monthstr, daystr, cyclestr):
     target_time = np.datetime64(f"{yearstr}-{monthstr}-{daystr}T{cyclestr[:2]}:00")

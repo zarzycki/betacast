@@ -9,11 +9,14 @@ from numba import jit
 
 from pyfuncs import *
 
-def load_additional_fields(datasource, grb_file, RDADIR, yearstr, monthstr, daystr, cyclestr):
+def load_additional_fields(datasource, grb_file, grb_file_name, RDADIR, yearstr, monthstr, daystr, cyclestr):
     """Load additional fields from reanalysis data based on datasource."""
     if datasource in ["GFS", "CFSR", "HWRF"]:
-        topo_data = grb_file["HGT_P0_L1_GLL0"].values * grav
-        sfct_data = grb_file["TMP_P0_L103_GLL0"].values if datasource == "HWRF" else grb_file["TMP_P0_L104_GLL0"].values
+        topo_data = load_and_extract_CFSR_variable(grb_file_name, 'surface', 'orog')
+        topo_data = topo_data * grav
+        sfct_data = load_and_extract_CFSR_variable(grb_file_name, 'sigma', 't')
+        #topo_data = grb_file["HGT_P0_L1_GLL0"].values * grav
+        #sfct_data = grb_file["TMP_P0_L103_GLL0"].values if datasource == "HWRF" else grb_file["TMP_P0_L104_GLL0"].values
     elif datasource == "RAP":
         topo_data = grb_file["HGT_P0_L1_GLC0"].values * grav
         sfct_data = grb_file["TMP_P0_L1_GLC0"].values
@@ -172,7 +175,7 @@ def correct_state_variables(ncol, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, 
     return vert_corrs, tcorriter, correct_or_not
 
 
-def topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR="", add_cloud_vars=False):
+def topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hyb, dycore, model_topo_file, datasource, grb_file, grb_file_name, lev, yearstr, monthstr, daystr, cyclestr, wgt_filename, adjust_config, RDADIR="", add_cloud_vars=False):
 
     dim_sePS = ps_fv.shape
 
@@ -184,7 +187,7 @@ def topo_adjustment(ps_fv, t_fv, q_fv, u_fv, v_fv, cldliq_fv, cldice_fv, hya, hy
         tempadjustflag = adjust_config[0] if adjust_config else ""
         print(f"TOPOADJUST: tempadjustflag set to: {tempadjustflag}")
 
-        topo_data, sfct_data = load_additional_fields(datasource, grb_file, RDADIR, yearstr, monthstr, daystr, cyclestr)
+        topo_data, sfct_data = load_additional_fields(datasource, grb_file, grb_file_name, RDADIR, yearstr, monthstr, daystr, cyclestr)
 
         topo_data_SE, _, _ = horizremap.remap_with_weights_wrapper(topo_data, wgt_filename)
         sfct_data_SE, _, _ = horizremap.remap_with_weights_wrapper(sfct_data, wgt_filename)
