@@ -235,11 +235,11 @@ def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv
     u_wrf_col = z_to_z_interp(u_fv[::-1], z_fv[::-1], zmid, extrapLow=True, extrapHigh=False)
     v_wrf_col = z_to_z_interp(v_fv[::-1], z_fv[::-1], zmid, extrapLow=True, extrapHigh=False)
 
-    if ix == 30:
-      print(u_wrf_col)
-      print(u_fv[::-1])
-      print(zmid)
-      print(z_fv[::-1])
+#     if ix == 30:
+#       print(u_wrf_col)
+#       print(u_fv[::-1])
+#       print(zmid)
+#       print(z_fv[::-1])
 
     return t_wrf_col, theta_wrf_col, rho_wrf_col, w_wrf_col, q_wrf_col, u_wrf_col, v_wrf_col
 

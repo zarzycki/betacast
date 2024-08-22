@@ -233,7 +233,7 @@ def main():
     if dycore == 'mpas':
         print("Performing vertical interpolation at each MPAS column...")
         # Call the processing function with your data
-        data_wrf = mpas.interpolate_mpas_columns_wrapper(
+        data_horiz = mpas.interpolate_mpas_columns_wrapper(
             mpas_data, data_horiz
         )
         print("... done performing vertical interpolation at each MPAS column!")
@@ -248,11 +248,9 @@ def main():
         if not mpas_as_cam:
             # put u + v on cell edges...
             print("Projecting u + v to velocity normal to edge...")
-            uNorm_wrf = mpas.uv_cell_to_edge(u_wrf, v_wrf, mpas_nlev, mpas_file['lonEdge'].values, mpas_file['latEdge'].values,
+            data_horiz['uNorm'] = mpas.uv_cell_to_edge(data_horiz['u'], data_horiz['v'], mpas_data['nlev'], mpas_file['lonEdge'].values, mpas_file['latEdge'].values,
                                         mpas_file['lonCell'].values, mpas_file['latCell'].values, mpas_file['edgeNormalVectors'].values, mpas_file['cellsOnEdge'].values)
 
-            # delete u and v components since we have mapped to edge normals
-            del u_wrf, v_wrf
             print("... done projecting u + v to velocity normal to edge!")
 
             # Clip relevant variables
@@ -260,7 +258,7 @@ def main():
 
             # If not MPAS as CAM, we can just end here.
             print("Writing MPAS file...")
-            mpas_file['u'].values[0, :, :] = uNorm_wrf.T
+            mpas_file['u'].values[0, :, :] = data_horiz['uNorm'].T
             mpas_file['qv'].values[0, :, :] = data_horiz['q'].T
             mpas_file['rho'].values[0, :, :] = data_horiz['rho'].T
             mpas_file['theta'].values[0, :, :] = data_horiz['theta'].T
@@ -388,7 +386,7 @@ def main():
         out_data['cldice'] = add_time_define_precision(out_data['cldice'], write_type, False)
         out_data['cldliq'] = add_time_define_precision(out_data['cldliq'], write_type, False)
 
-    if dycore == "mpas":
+    elif dycore == "mpas":
         # Need to flip the 3-D arrays!
         out_data['ps'] = numpy_to_dataarray(data_horiz['ps'], dims=['ncol'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
         out_data['u'] = numpy_to_dataarray(data_horiz['u'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})

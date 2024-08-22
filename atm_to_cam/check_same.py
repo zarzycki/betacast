@@ -22,11 +22,15 @@ def calculate_normalized_rmse(var1, var2):
         print("   Warning: Mean of var1 is NaN or zero, NRMSE calculation skipped.")
         return np.nan
     return rmse / mean_var1
-def check_same(file1, file2):
+
+def check_same(file1, file2, variables_to_check=None):
     ds1 = xr.open_dataset(file1)
     ds2 = xr.open_dataset(file2)
 
     common_vars = set(ds1.variables).intersection(ds2.variables)
+
+    if variables_to_check:
+        common_vars = common_vars.intersection(variables_to_check)
 
     for var_name in common_vars:
         data1 = ds1[var_name].values
@@ -62,11 +66,15 @@ def check_same(file1, file2):
     ds2.close()
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python check_same.py FILE1.nc FILE2.nc")
+    if len(sys.argv) < 3 or len(sys.argv) > 4:
+        print("Usage: python check_same.py FILE1.nc FILE2.nc [VAR1,VAR2,...]")
         sys.exit(1)
 
     file1 = sys.argv[1]
     file2 = sys.argv[2]
 
-    check_same(file1, file2)
+    variables_to_check = None
+    if len(sys.argv) == 4:
+        variables_to_check = set(sys.argv[3].split(','))
+
+    check_same(file1, file2, variables_to_check)
