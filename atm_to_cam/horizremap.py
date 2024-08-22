@@ -132,3 +132,21 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
         dstlon = dstlon.values
 
     return regridded_data, dstlat, dstlon
+
+
+def remap_all(data_in, wgt_filename, dycore='se'):
+
+    allowable_interp_vars = ['ps', 't', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w', 'phis', 'ts']
+
+    data_out = {}
+
+    # Loop ovr the keys in data_in and interpolate if the key is in allowable_interp_vars
+    for key in data_in:
+        if key in allowable_interp_vars:
+            data_out[key], _, _ = remap_with_weights_wrapper(data_in[key], wgt_filename)
+        else:
+            data_out[key] = data_in[key]
+
+    data_out['ps'], data_out['lat'], data_out['lon'] = remap_with_weights_wrapper(data_in['ps'], wgt_filename)
+
+    return data_out

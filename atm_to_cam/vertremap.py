@@ -294,6 +294,30 @@ def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, level_d
 
     return data_on_hybrid_levels
 
+def pres2hyb_all(data_vars, ps, hya, hyb):
+    """
+    Interpolate data on constant pressure levels to hybrid sigma levels.
+
+    This function is a wrapper that prepares the input for the JIT-compiled version.
+    """
+
+    allowable_interp_vars = ['t', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w']
+
+    data_vint = {}
+
+    # Create non-interpolated vars
+    data_vint['hya'] = hya
+    data_vint['hyb'] = hyb
+
+    # Loop ovr the keys in data_in and interpolate if the key is in allowable_interp_vars
+    for key in data_vars:
+        if key in allowable_interp_vars:
+            data_vint[key] = pressure_to_hybrid(data_vars['lev'], data_vars[key], ps, data_vint['hya'], data_vint['hyb'])
+        else:
+            data_vint[key] = data_vars[key]
+
+    return data_vint
+
 # def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0=100000):
 #     """
 #     Interpolate data on constant pressure levels to hybrid sigma levels.

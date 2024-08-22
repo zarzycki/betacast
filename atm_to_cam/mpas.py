@@ -65,10 +65,8 @@ def z_to_z_interp(theta_fv, z_fv, thisCol, extrapLow=False, extrapHigh=False):
     t_wrf = np.zeros(nlev)
 
     for i in range(nlev):
-        if thisCol[i] <= z_fv[0]:
-            t_wrf[i] = theta_fv[0]
-        elif thisCol[i] >= z_fv[-1]:
-            t_wrf[i] = theta_fv[-1]
+        if thisCol[i] <= z_fv[0] or thisCol[i] >= z_fv[-1]:
+            t_wrf[i] = np.nan
         else:
             for j in range(len(z_fv) - 1):
                 if z_fv[j] <= thisCol[i] <= z_fv[j + 1]:
@@ -98,7 +96,6 @@ def z_to_z_interp(theta_fv, z_fv, thisCol, extrapLow=False, extrapHigh=False):
 
     return t_wrf
 
-@jit(nopython=True)
 def uv_cell_to_edge(uZonal, uMerid, nlev, lonEdge, latEdge, lonCell, latCell, edgeNormalVectors, cellsOnEdge):
     """
     Converts zonal and meridional wind components from cell centers to edge centers.
@@ -183,31 +180,39 @@ def uv_cell_to_edge(uZonal, uMerid, nlev, lonEdge, latEdge, lonCell, latCell, ed
 
 
 
-@jit(nopython=True)
-def interpolate_mpas_columns_wrapper(mpas_ncell, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv, theta_fv, rho_fv, w_fv, q_fv, u_fv, v_fv, mpas_as_cam):
-    t_wrf = np.zeros((mpas_nlev, mpas_ncell))
-    theta_wrf = np.zeros((mpas_nlev, mpas_ncell))
-    rho_wrf = np.zeros((mpas_nlev, mpas_ncell))
-    w_wrf = np.zeros((mpas_nlevi, mpas_ncell))
-    q_wrf = np.zeros((mpas_nlev, mpas_ncell))
-    u_wrf = np.zeros((mpas_nlev, mpas_ncell))
-    v_wrf = np.zeros((mpas_nlev, mpas_ncell))
+def interpolate_mpas_columns_wrapper(mpas_data, data_horiz):
 
-    for ix in range(mpas_ncell):
-        #if ix % 10000 == 0:
-        #    print(f"... MPAS_VERT_INTERP: {100. * ix / (mpas_ncell - 1):.2f}%")
+    t_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
+    theta_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
+    rho_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
+    w_wrf = np.zeros((mpas_data['nlevi'], mpas_data['ncell']))
+    q_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
+    u_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
+    v_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
+
+    for ix in range(mpas_data['ncell']):
+        if ix % 10000 == 0:
+            print(f"... MPAS_VERT_INTERP: {100. * ix / (mpas_data['ncell'] - 1):.2f}%")
 
         t_wrf[:, ix], theta_wrf[:, ix], rho_wrf[:, ix], w_wrf[:, ix], q_wrf[:, ix], u_wrf[:, ix], v_wrf[:, ix] = interpolate_single_mpas_column(
-            ix, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv, theta_fv, rho_fv, w_fv, q_fv, u_fv, v_fv, mpas_as_cam
+            ix, mpas_data['nlev'], mpas_data['nlevi'], mpas_data['z'], data_horiz['t'][:,ix], data_horiz['z'][:,ix], data_horiz['theta'][:,ix], data_horiz['rho'][:,ix], data_horiz['w'][:,ix], data_horiz['q'][:,ix], data_horiz['u'][:,ix], data_horiz['v'][:,ix]
         )
 
-    return t_wrf, theta_wrf, rho_wrf, w_wrf, q_wrf, u_wrf, v_wrf
+    data_horiz['t'] = t_wrf
+    data_horiz['theta'] = theta_wrf
+    data_horiz['rho'] = rho_wrf
+    data_horiz['w'] = w_wrf
+    data_horiz['q'] = q_wrf
+    data_horiz['u'] = u_wrf
+    data_horiz['v'] = v_wrf
+
+    return data_horiz
 
 
 
 
-@jit(nopython=True)
-def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv, theta_fv, rho_fv, w_fv, q_fv, u_fv, v_fv, mpas_as_cam):
+def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv, theta_fv, rho_fv, w_fv, q_fv, u_fv, v_fv):
+
     zmid = (mpas_z[ix, 1:mpas_nlevi] + mpas_z[ix, 0:mpas_nlevi-1]) / 2.0
     zint = mpas_z[ix, :]
 
@@ -219,17 +224,22 @@ def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv
     u_wrf_col = np.zeros(mpas_nlev)
     v_wrf_col = np.zeros(mpas_nlev)
 
-    if mpas_as_cam:
-        t_wrf_col = z_to_z_interp(t_fv[::-1, ix], z_fv[::-1, ix], zmid, extrapLow=True, extrapHigh=True)
+    t_wrf_col = z_to_z_interp(t_fv[::-1], z_fv[::-1], zmid, extrapLow=True, extrapHigh=True)
 
-    theta_wrf_col = z_to_z_interp(theta_fv[::-1, ix], z_fv[::-1, ix], zmid, extrapLow=True, extrapHigh=True)
-    rho_wrf_col = z_to_z_interp(rho_fv[::-1, ix], z_fv[::-1, ix], zmid, extrapLow=True, extrapHigh=True)
-    w_wrf_col = z_to_z_interp(w_fv[::-1, ix], z_fv[::-1, ix], zint, extrapLow=True, extrapHigh=True)
-    q_wrf_col = z_to_z_interp(q_fv[::-1, ix], z_fv[::-1, ix], zmid, extrapLow=True, extrapHigh=True)
+    theta_wrf_col = z_to_z_interp(theta_fv[::-1], z_fv[::-1], zmid, extrapLow=True, extrapHigh=True)
+    rho_wrf_col = z_to_z_interp(rho_fv[::-1], z_fv[::-1], zmid, extrapLow=True, extrapHigh=True)
+    w_wrf_col = z_to_z_interp(w_fv[::-1], z_fv[::-1], zint, extrapLow=True, extrapHigh=True)
+    q_wrf_col = z_to_z_interp(q_fv[::-1], z_fv[::-1], zmid, extrapLow=True, extrapHigh=True)
 
     # u and v we don't extrapolate aloft to prevent wind speeds from getting too high
-    u_wrf_col = z_to_z_interp(u_fv[::-1, ix], z_fv[::-1, ix], zmid, extrapLow=True, extrapHigh=False)
-    v_wrf_col = z_to_z_interp(v_fv[::-1, ix], z_fv[::-1, ix], zmid, extrapLow=True, extrapHigh=False)
+    u_wrf_col = z_to_z_interp(u_fv[::-1], z_fv[::-1], zmid, extrapLow=True, extrapHigh=False)
+    v_wrf_col = z_to_z_interp(v_fv[::-1], z_fv[::-1], zmid, extrapLow=True, extrapHigh=False)
+
+    if ix == 30:
+      print(u_wrf_col)
+      print(u_fv[::-1])
+      print(zmid)
+      print(z_fv[::-1])
 
     return t_wrf_col, theta_wrf_col, rho_wrf_col, w_wrf_col, q_wrf_col, u_wrf_col, v_wrf_col
 

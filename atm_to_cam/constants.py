@@ -21,6 +21,7 @@ CLDMINTHRESH=0.0
 
 rho_d_algo = 1
 
+damp_upper_winds_mpas = False
 mpas_uv_damping_coeffs = [0.90, 0.95, 0.98]
 
 ps_wet_to_dry=False

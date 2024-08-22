@@ -217,40 +217,55 @@ def process_grb_file(grb_file, datasource, RDADIR, yearstr, monthstr, daystr, mo
 #
 #     return ps, t_gfs, u_gfs, v_gfs, q_gfs, cldliq_gfs, cldice_gfs, w_gfs, z_gfs, w_is_omega, z_is_phi
 
-def load_ERA5RDA_variable(varname, sf_dir, pl_dir, var_code, yearstr, monthstr, daystr, cyclestr):
+def load_ERA5RDA_variable(varname, the_dir, var_code, yearstr, monthstr, daystr, cyclestr, return_coords=False):
     """Helper function to load a variable from a NetCDF file."""
-    rda_find = glob.glob(f"{pl_dir}/{var_code}.{yearstr}{monthstr}{daystr}00_*.nc") or \
-               glob.glob(f"{sf_dir}/{var_code}.{yearstr}{monthstr}0100_*.nc")
+    rda_find = glob.glob(f"{the_dir}/{var_code}.{yearstr}{monthstr}{daystr}00_*.nc") or \
+               glob.glob(f"{the_dir}/{var_code}.{yearstr}{monthstr}0100_*.nc")
     if not rda_find:
         raise FileNotFoundError(f"No matching files found for {var_code}")
     rda_file = xr.open_dataset(rda_find[0])
     rda_time = rda_file["time"]
     rda_thistime = find_closest_time(rda_time, yearstr, monthstr, daystr, cyclestr)
     rda_data = rda_file[varname].sel(time=rda_thistime, method='nearest').values
-    return rda_data
+    if return_coords:
+        return rda_data, rda_file["latitude"].values.astype(float), rda_file["longitude"].values.astype(float), rda_file["level"].values.astype(float) * 100.0
+    else:
+        return rda_data
 
-def load_ERA5RDA_data(RDADIR, yearstr, monthstr, daystr, cyclestr, dycore):
+def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore):
     # Define directories
     pl_dir = f"{RDADIR}/e5.oper.an.pl/{yearstr}{monthstr}"
     sf_dir = f"{RDADIR}/e5.oper.an.sfc/{yearstr}{monthstr}"
 
+#         grblat = rda_file["latitude"].values.astype(float)
+#         grblon = rda_file["longitude"].values.astype(float)
+#         grblev = rda_file["level"].values.astype(float) * 100.0
+
     # Dictionary to store the variables
     data_vars = {}
 
-    # Load required variables
-    data_vars['ps'] = load_ERA5_variable('SP', sf_dir, pl_dir, "e5.oper.an.sfc.128_134_sp.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['t_gfs'] = load_ERA5_variable('T', pl_dir, pl_dir, "e5.oper.an.pl.128_130_t.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['u_gfs'] = load_ERA5_variable('U', pl_dir, pl_dir, "e5.oper.an.pl.128_131_u.ll025uv", yearstr, monthstr, daystr, cyclestr)
-    data_vars['v_gfs'] = load_ERA5_variable('V', pl_dir, pl_dir, "e5.oper.an.pl.128_132_v.ll025uv", yearstr, monthstr, daystr, cyclestr)
-    data_vars['q_gfs'] = load_ERA5_variable('Q', pl_dir, pl_dir, "e5.oper.an.pl.128_133_q.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['cldliq_gfs'] = load_ERA5_variable('CLWC', pl_dir, pl_dir, "e5.oper.an.pl.128_246_clwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['cldice_gfs'] = load_ERA5_variable('CIWC', pl_dir, pl_dir, "e5.oper.an.pl.128_247_ciwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    _, data_vars['lat'], data_vars['lon'], data_vars['lev'] = load_ERA5RDA_variable('T', pl_dir, "e5.oper.an.pl.128_130_t.ll025sc", yearstr, monthstr, daystr, cyclestr, return_coords=True)
 
-    if dycore == "mpas":
-        data_vars['w_gfs'] = load_ERA5_variable('W', pl_dir, pl_dir, "e5.oper.an.pl.128_135_w.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    # Load required variables
+    data_vars['ps'] = load_ERA5RDA_variable('SP', sf_dir, "e5.oper.an.sfc.128_134_sp.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['t'] = load_ERA5RDA_variable('T', pl_dir, "e5.oper.an.pl.128_130_t.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['u'] = load_ERA5RDA_variable('U', pl_dir, "e5.oper.an.pl.128_131_u.ll025uv", yearstr, monthstr, daystr, cyclestr)
+    data_vars['v'] = load_ERA5RDA_variable('V', pl_dir, "e5.oper.an.pl.128_132_v.ll025uv", yearstr, monthstr, daystr, cyclestr)
+    data_vars['q'] = load_ERA5RDA_variable('Q', pl_dir, "e5.oper.an.pl.128_133_q.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['cldliq'] = load_ERA5RDA_variable('CLWC', pl_dir, "e5.oper.an.pl.128_246_clwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['cldice'] = load_ERA5RDA_variable('CIWC', pl_dir, "e5.oper.an.pl.128_247_ciwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
+
+    if dycore == 'mpas':
+        data_vars['w'] = load_ERA5RDA_variable('W', pl_dir, "e5.oper.an.pl.128_135_w.ll025sc", yearstr, monthstr, daystr, cyclestr)
         data_vars['w_is_omega'] = True
-        data_vars['z_gfs'] = load_ERA5_variable('Z', pl_dir, pl_dir, "e5.oper.an.pl.128_129_z.ll025sc", yearstr, monthstr, daystr, cyclestr)
+        data_vars['z'] = load_ERA5RDA_variable('Z', pl_dir, "e5.oper.an.pl.128_129_z.ll025sc", yearstr, monthstr, daystr, cyclestr)
         data_vars['z_is_phi'] = True
+
+    data_vars['ts'] = load_ERA5RDA_variable('VAR_2T', sf_dir, "e5.oper.an.sfc.128_167_2t.ll025sc", yearstr, monthstr, daystr, cyclestr)
+
+    ds = load_ERA5_file(data_filename)
+    data_vars['phis'] = ds["Z"].isel(time=0).values
+    ds.close
 
     return data_vars
 
@@ -280,26 +295,16 @@ def load_CFSR_variable(grb_file, varname):
         raise KeyError(f"Variable {varname} not found in the GRIB file.")
 
 def get_CFSR_levels_for_var(grb_file_name, variable):
-    """
-    Load GRIB levels for a specific variable from a CFSR file.
-
-    Parameters:
-    -----------
-    grb_file_name : str
-        The name of the GRIB file.
-
-    variable : str
-        The variable name to load from the GRIB file (e.g., 't', 'clwmr', 'r', 'u').
-
-    Returns:
-    --------
-    np.ndarray
-        The pressure levels in Pa.
-    """
     grb_file = load_CFSR_file(grb_file_name, 'isobaricInhPa', variable)
     levels = grb_file.coords['isobaricInhPa'].values * 100.0
     grb_file.close()
     return levels
+
+def get_CFSR_coords_for_var(grb_file_name, variable, coord, filter_arg='isobaricInhPa'):
+    grb_file = load_CFSR_file(grb_file_name, filter_arg, variable)
+    coords = grb_file.coords[coord].values
+    grb_file.close()
+    return coords
 
 def load_and_extract_CFSR_variable(grb_file_name, level_type, variable):
     """
@@ -331,53 +336,63 @@ def load_CFSR_data(grb_file_name, dycore):
     # Dictionary to store the variables
     data_vars = {}
 
-    grblev = get_CFSR_levels_for_var(grb_file_name, 't')
-    cldlev = get_CFSR_levels_for_var(grb_file_name, 'clwmr')
-    rhlev = get_CFSR_levels_for_var(grb_file_name, 'r')
-    windlev = get_CFSR_levels_for_var(grb_file_name, 'u')
+    # Use temperature to get base three coordinates
+    data_vars['lat'] = get_CFSR_coords_for_var(grb_file_name,'t','latitude')
+    data_vars['lon'] = get_CFSR_coords_for_var(grb_file_name,'t','longitude')
+    data_vars['lev'] = get_CFSR_levels_for_var(grb_file_name, 't')
+
+    data_vars['cldlev'] = get_CFSR_levels_for_var(grb_file_name, 'clwmr')
+    data_vars['rhlev'] = get_CFSR_levels_for_var(grb_file_name, 'r')
+    data_vars['windlev'] = get_CFSR_levels_for_var(grb_file_name, 'u')
 
     data_vars['ps'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 'sp')
-    data_vars['t_gfs'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 't')
-    data_vars['u_gfs'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'u')
-    data_vars['v_gfs'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'v')
+    data_vars['t'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 't')
+    data_vars['u'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'u')
+    data_vars['v'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'v')
 
     if dycore == "mpas":
-        data_vars['w_gfs'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'w')
+        data_vars['w'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'w')
         data_vars['w_is_omega'] = True
-        data_vars['z_gfs'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'gh')
+        data_vars['z'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'gh')
         data_vars['z_is_phi'] = False
 
-    if windlev.shape != grblev.shape:
-        print(f"Interpolating u + v wind from {windlev.shape} to {grblev.shape} levels")
-        data_vars['u_gfs'] = int2p_n(windlev, data_vars['u_gfs'], grblev, linlog=2, dim=0)
-        data_vars['v_gfs'] = int2p_n(windlev, data_vars['v_gfs'], grblev, linlog=2, dim=0)
+    if data_vars['windlev'].shape != data_vars['lev'].shape:
+        print(f"Interpolating u + v wind from {data_vars['windlev'].shape} to {data_vars['lev'].shape} levels")
+        data_vars['u'] = int2p_n(windlev, data_vars['u'], grblev, linlog=2, dim=0)
+        data_vars['v'] = int2p_n(windlev, data_vars['v'], grblev, linlog=2, dim=0)
 
     # Load and interpolate additional variables
-    data_vars['rh_gfs_native'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'r')
-    data_vars['cldmix_gfs_native'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'clwmr')
+    data_vars['rh_native'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'r')
+    data_vars['cldmix_native'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'clwmr')
 
     # Interpolate
-    data_vars['rh_gfs'] = int2p_n(rhlev,data_vars['rh_gfs_native'], grblev, linlog=2, dim=0)
-    data_vars['cldmix_gfs'] = int2p_n(cldlev,data_vars['cldmix_gfs_native'], grblev, linlog=2, dim=0)
-
-    # Cleanup
-    del data_vars['cldmix_gfs_native']
-    del data_vars['rh_gfs_native']
+    data_vars['rh'] = int2p_n(data_vars['rhlev'],data_vars['rh_native'], data_vars['lev'], linlog=2, dim=0)
+    data_vars['cldmix'] = int2p_n(data_vars['cldlev'],data_vars['cldmix_native'], data_vars['lev'], linlog=2, dim=0)
 
     # Calculate specific humidity from RH
     # Load grblev (Pa), use numpy broadcasting to go from 1-D to 3-D, multiple by 0.01 to convert to mb
-    data_vars['q_gfs'] = mixhum_ptrh((grblev[:, np.newaxis, np.newaxis] * 0.01), data_vars['t_gfs'], data_vars['rh_gfs'])
+    data_vars['q'] = mixhum_ptrh((data_vars['lev'][:, np.newaxis, np.newaxis] * 0.01), data_vars['t'], data_vars['rh'])
 
     # Sort bad values
-    data_vars['cldmix_gfs'] = np.where(np.isnan(data_vars['cldmix_gfs']), 0, data_vars['cldmix_gfs'])
-    #data_vars['cldmix_gfs'] = np.where(data_vars['cldmix_gfs'] > 0.01, 0, data_vars['cldmix_gfs'])
-    data_vars['cldmix_gfs'] = clip_and_count(data_vars['cldmix_gfs'],max_thresh=0.01,var_name="cldmix_gfs")
+    data_vars['cldmix'] = np.where(np.isnan(data_vars['cldmix']), 0, data_vars['cldmix'])
+    data_vars['cldmix'] = clip_and_count(data_vars['cldmix'],max_thresh=0.01,var_name="cldmix")
 
     # Separate cloud ice and water
-    data_vars['cldice_gfs'] = np.where(data_vars['t_gfs'] > t_freeze_K, 0, data_vars['cldmix_gfs'])
-    data_vars['cldliq_gfs'] = np.where(data_vars['t_gfs'] > t_freeze_K, data_vars['cldmix_gfs'], 0)
+    data_vars['cldice'] = np.where(data_vars['t'] > t_freeze_K, 0, data_vars['cldmix'])
+    data_vars['cldliq'] = np.where(data_vars['t'] > t_freeze_K, data_vars['cldmix'], 0)
 
-    del data_vars['cldmix_gfs']
+    data_vars['phis']  = load_and_extract_CFSR_variable(grb_file_name, 'surface', 'orog')
+    data_vars['phis'] = data_vars['phis'] * grav
+    data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'sigma', 't')
+
+    # Cleanup
+    del data_vars['cldmix']
+    del data_vars['cldlev']
+    del data_vars['rhlev']
+    del data_vars['windlev']
+    del data_vars['rh']
+    del data_vars['cldmix_native']
+    del data_vars['rh_native']
 
     return data_vars
 
@@ -959,85 +974,6 @@ def print_debug_file(output_filename, **kwargs):
 
 
 
-def latlon_to_ncol(var_in):
-    vardims = var_in.shape
-    dims = len(vardims)
-
-    if dims == 2:
-        var_out = var_in.flatten(order='F')
-    elif dims == 3:
-        nlev = vardims[0]
-        nlat = vardims[1]
-        nlon = vardims[2]
-        ncol = nlat * nlon
-        print(f"unpacking -> nlev: {nlev}    nlat: {nlat}    nlon: {nlon}    ncol: {ncol}")
-        var_out = np.empty((nlev, ncol), dtype=var_in.dtype)
-        for ii in range(nlev):
-            var_out[ii, :] = var_in[ii, :, :].flatten(order='F')
-    else:
-        raise ValueError(f"{vardims} dims not supported")
-
-    return var_out
-
-
-
-def ncol_to_latlon(var_out, nlat, nlon):
-    vardims = var_out.shape
-
-    if len(vardims) == 1:
-        var_in = var_out.reshape((nlat, nlon), order='F')
-    elif len(vardims) == 2:
-        print(vardims)
-        nlev = vardims[0]
-        ncol = vardims[1]
-        print(f"repacking -> nlev: {nlev}    nlat: {nlat}    nlon: {nlon}    ncol: {ncol}")
-        var_in = np.empty((nlev, nlat, nlon), dtype=var_out.dtype)
-        for ii in range(nlev):
-            var_in[ii, :, :] = var_out[ii, :].reshape((nlat, nlon), order='F')
-    else:
-        raise ValueError(f"{vardims} dims not supported")
-
-    return var_in
-
-
-
-
-def repack_fv(ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv, dim_sePS, correct_or_not=None):
-    """
-    Repack FV variables back to lat-lon dimensions.
-
-    Parameters:
-    - ps_fv: Surface pressure field.
-    - t_fv: Temperature field.
-    - q_fv: Specific humidity field.
-    - u_fv: U wind component field.
-    - v_fv: V wind component field.
-    - cldice_fv: Cloud ice field.
-    - cldliq_fv: Cloud liquid field.
-    - dim_sePS: Tuple containing (nlat, nlon) dimensions.
-    - correct_or_not: Optional field to indicate corrections (if available).
-
-    Returns:
-    - Tuple of repacked variables in the same order as the input.
-    """
-    nlat, nlon = dim_sePS
-
-    print("Repacking FV variables...")
-
-    ps_fv = ncol_to_latlon(ps_fv, nlat, nlon)
-    t_fv = ncol_to_latlon(t_fv, nlat, nlon)
-    q_fv = ncol_to_latlon(q_fv, nlat, nlon)
-    u_fv = ncol_to_latlon(u_fv, nlat, nlon)
-    v_fv = ncol_to_latlon(v_fv, nlat, nlon)
-    cldice_fv = ncol_to_latlon(cldice_fv, nlat, nlon)
-    cldliq_fv = ncol_to_latlon(cldliq_fv, nlat, nlon)
-
-    if correct_or_not is not None:
-        correct_or_not = ncol_to_latlon(correct_or_not, nlat, nlon)
-        return ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv, correct_or_not
-
-    return ps_fv, t_fv, q_fv, u_fv, v_fv, cldice_fv, cldliq_fv
-
 
 
 
@@ -1117,3 +1053,19 @@ def print_and_return_varsize(ps_fv, u_fv, v_fv, t_fv, q_fv):
     print(f"Var max size: {max_size}")
 
     return max_size
+
+def print_min_max_dict(data_vars):
+    """
+    Prints the minimum and maximum values for each key in the data_vars dictionary.
+
+    Parameters:
+    -----------
+    data_vars : dict
+        A dictionary where each key corresponds to a variable name and its value is a NumPy array or xarray DataArray.
+    """
+    print("="*65)
+    print("************")
+    for key, data in data_vars.items():
+        if isinstance(data, (np.ndarray, xr.DataArray)):
+            print(f"{key.upper()} shape: {data.shape} | Max: {data.max()} | Min: {data.min()}")
+    print("="*65)
