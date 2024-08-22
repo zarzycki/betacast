@@ -330,9 +330,6 @@ def main():
         # Initialize FV grid
         data_horiz['fvlat'], data_horiz['fvlon'], data_horiz['fvslat'], data_horiz['fvslon'] = packing.initialize_fv_grid(nfvlat, nfvlon)
 
-        print("FV: getting weights")
-        w_stag = latRegWgt(data_horiz['fvslat'], "double", 0)
-
         # Interpolate u and v to slat/slon
         data_horiz['us'], data_horiz['vs'] = packing.interpolate_uv_to_slat_slon(
             data_horiz, numlevels, data_horiz['fvlat'], data_horiz['fvlon'],
