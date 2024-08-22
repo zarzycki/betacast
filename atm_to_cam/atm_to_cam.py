@@ -3,7 +3,6 @@ import numpy as np
 import xarray as xr
 import argparse
 import sys
-from scipy.interpolate import RegularGridInterpolator
 
 from pyfuncs import *
 import mpas
@@ -33,22 +32,27 @@ def main():
     args = parse_args()
 
     # Example of using the arguments
-    print(f"Using datasource: {args.datasource}")
-    print(f"Number of levels: {args.numlevels}")
-    print(f"Initialization date: {args.YYYYMMDDHH}")
-    print(f"Data filename: {args.data_filename}")
-    print(f"Weight filename: {args.wgt_filename}")
-    print(f"SE Inic output file: {args.se_inic}")
-    print(f"Dycore: {args.dycore}")
-    print(f"RDADIR: {args.RDADIR}")
-    print(f"MPAS as CAM: {args.mpas_as_cam}")
-    print(f"Compress file: {args.compress_file}")
-    print(f"Write floats: {args.write_floats}")
-    print(f"Add cloud vars: {args.add_cloud_vars}")
-    print(f"Adjust config: {args.adjust_config}")
-    print(f"Model topo file: {args.model_topo_file}")
-    print(f"MOD in topo: {args.mod_in_topo}")
-    print(f"MOD remap file: {args.mod_remap_file}")
+    args_dict = {
+        "Datasource": args.datasource,
+        "Number of levels": args.numlevels,
+        "Initialization date": args.YYYYMMDDHH,
+        "Data filename": args.data_filename,
+        "Weight filename": args.wgt_filename,
+        "SE Inic output file": args.se_inic,
+        "Dycore": args.dycore,
+        "RDADIR": args.RDADIR,
+        "MPAS as CAM": args.mpas_as_cam,
+        "Compress file": args.compress_file,
+        "Write floats": args.write_floats,
+        "Add cloud vars": args.add_cloud_vars,
+        "Adjust config": args.adjust_config,
+        "Model topo file": args.model_topo_file,
+        "MOD in topo": args.mod_in_topo,
+        "MOD remap file": args.mod_remap_file,
+    }
+
+    for key, value in args_dict.items():
+        print(f"{key}: {value}")
 
     # Assume these are parsed from command-line arguments
     dycore = args.dycore
@@ -59,7 +63,6 @@ def main():
     wgt_filename = args.wgt_filename
     mpasfile = args.mpasfile
     datasource = args.datasource
-    model_topo_file = args.model_topo_file
     mod_in_topo = args.mod_in_topo
     mod_remap_file = args.mod_remap_file
     write_floats = args.write_floats
@@ -322,42 +325,19 @@ def main():
                         cldice_fv=(["level", "lat", "lon"], data_horiz['cldice']))
 
     if dycore == "fv":
-
         print("FV: need to interpolate u/v to slat/slon")
-        nfvslat = nfvlat - 1
-        nfvslon = nfvlon
 
-        data_horiz['fvlat'] = np.linspace(-90, 90, nfvlat)
-        delfvlon = 360.0 / nfvlon
-        data_horiz['fvlon'] = np.linspace(0, 360.0 - delfvlon, nfvlon)
-
-        data_horiz['fvslat'] = (data_horiz['fvlat'][:-1] + data_horiz['fvlat'][1:]) / 2.0
-        data_horiz['fvslon'] = data_horiz['fvlon'] - (delfvlon / 2.0)
+        # Initialize FV grid
+        data_horiz['fvlat'], data_horiz['fvlon'], data_horiz['fvslat'], data_horiz['fvslon'] = packing.initialize_fv_grid(nfvlat, nfvlon)
 
         print("FV: getting weights")
         w_stag = latRegWgt(data_horiz['fvslat'], "double", 0)
 
-        # Interpolate u and v to slat and slon
-        data_horiz['us'] = np.zeros((numlevels, nfvslat, nfvlon))
-        data_horiz['vs'] = np.zeros((numlevels, nfvlat, nfvslon))
-
-        slat_lon_mesh = np.array(np.meshgrid(data_horiz['fvslat'], data_horiz['fvlon'])).T.reshape(-1, 2)
-        lat_slon_mesh = np.array(np.meshgrid(data_horiz['fvlat'], data_horiz['fvslon'])).T.reshape(-1, 2)
-
-        # Create a cyclic ghost point for slon interpolation
-        ghost_lon = data_horiz['fvlon'][-1] - 360.0
-        tmp_fvlon = np.hstack(([ghost_lon], data_horiz['fvlon']))
-
-        for level in range(numlevels):
-            # Extend v to match ghost point since this var is interpolated in slon
-            v_fv_extended = np.hstack((data_horiz['v'][level, :, -1][:, np.newaxis], data_horiz['v'][level, :, :]))
-            u_interpolator = RegularGridInterpolator((data_horiz['fvlat'], data_horiz['fvlon']), data_horiz['u'][level, :, :], method='linear')
-            v_interpolator = RegularGridInterpolator((data_horiz['fvlat'], tmp_fvlon)          , v_fv_extended               , method='linear')
-            data_horiz['us'][level, :, :] = u_interpolator(slat_lon_mesh).reshape(nfvslat, nfvlon)
-            data_horiz['vs'][level, :, :] = v_interpolator(lat_slon_mesh).reshape(nfvlat, nfvslon)
-
-        # Clean up so we aren't confused later
-        del ghost_lon, tmp_fvlon, v_interpolator, u_interpolator, v_fv_extended
+        # Interpolate u and v to slat/slon
+        data_horiz['us'], data_horiz['vs'] = packing.interpolate_uv_to_slat_slon(
+            data_horiz, numlevels, data_horiz['fvlat'], data_horiz['fvlon'],
+            data_horiz['fvslat'], data_horiz['fvslon']
+        )
 
     data_horiz['q'] = clip_and_count(data_horiz['q'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
     data_horiz['cldliq'] = clip_and_count(data_horiz['cldliq'], min_thresh=CLDMINTHRESH, var_name="CLDLIQ")
