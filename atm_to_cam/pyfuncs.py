@@ -1605,7 +1605,7 @@ def dpres_hybrid_ccm(psfc, p0, hyai, hybi, pmsg=np.nan):
 
 
 
-def cz2ccm(ps, phis, tv, p0, hyam, hybm, hyai, hybi):
+def cz2ccm(ps, phis, tv, p0, hyam, hybm, hyai, hybi, debug=False):
     """
     Calculate geopotential height using the hybrid coordinate system.
 
@@ -1634,36 +1634,34 @@ def cz2ccm(ps, phis, tv, p0, hyam, hybm, hyai, hybi):
         3D array of geopotential height (m) with dimensions (lev, lat, lon).
     """
 
-    # Print the names and shapes of all inputs for debugging
-    print("cz2ccm function called with the following inputs:")
-    print(f"ps.shape: {ps.shape}")
-    print(f"phis.shape: {phis.shape}")
-    print(f"tv.shape: {tv.shape}")
-    print(f"p0: {p0}")
-    print(f"hyam.shape: {hyam.shape}")
-    print(f"hybm.shape: {hybm.shape}")
-    print(f"hyai.shape: {hyai.shape}")
-    print(f"hybi.shape: {hybi.shape}")
-
-    print(hyam)
-    print(hybm)
-    print(hyai)
-    print(hybi)
+    if debug:
+        print("cz2ccm function called with the following inputs:")
+        print(f"ps.shape: {ps.shape}")
+        print(f"phis.shape: {phis.shape}")
+        print(f"tv.shape: {tv.shape}")
+        print(f"p0: {p0}")
+        print(f"hyam.shape: {hyam.shape}")
+        print(f"hybm.shape: {hybm.shape}")
+        print(f"hyai.shape: {hyai.shape}")
+        print(f"hybi.shape: {hybi.shape}")
+        print(hyam)
+        print(hybm)
+        print(hyai)
+        print(hybi)
 
     nlat, mlon = ps.shape
     klev = len(hyam)
     klev1 = len(hyai)
 
-    print(f"nlat: {nlat}, mlon: {mlon}, klev: {klev}, klev1: {klev1}")
-
-    # Initialize output and scratch arrays
     z2 = np.zeros((klev, nlat, mlon))
     pmln = np.zeros((klev + 1, nlat, mlon))
     pterm = np.zeros((klev, nlat, mlon))
 
-    print(f"z2.shape: {z2.shape}")
-    print(f"pmln.shape: {pmln.shape}")
-    print(f"pterm.shape: {pterm.shape}")
+    if debug:
+        print(f"nlat: {nlat}, mlon: {mlon}, klev: {klev}, klev1: {klev1}")
+        print(f"z2.shape: {z2.shape}")
+        print(f"pmln.shape: {pmln.shape}")
+        print(f"pterm.shape: {pterm.shape}")
 
     hyba = np.zeros((2, klev + 1))
     hybb = np.zeros((2, klev + 1))
@@ -1676,38 +1674,17 @@ def cz2ccm(ps, phis, tv, p0, hyam, hybm, hyai, hybi):
     hyba[1, 1:klev1] = hyam
     hybb[1, 1:klev1] = hybm
 
-    print("Intermediate arrays initialized.")
-    print(f"hyba.shape: {hyba.shape}")
-    print(f"hybb.shape: {hybb.shape}")
+    if debug:
+        print("Intermediate arrays initialized.")
+        print(f"hyba.shape: {hyba.shape}")
+        print(f"hybb.shape: {hybb.shape}")
 
     pmln[0, :, :] = np.log(p0 * hyba[1, klev] + ps * hybb[0, klev])
     pmln[-1, :, :] = np.log(p0 * hyba[1, 0] + ps * hybb[0, 0])
-    for k in range(0,klev+1):
-        print(k)
-        print(np.exp(pmln[k,0,0]))
-    # Invert vertical loop, optimized with NumPy operations
     for k in range(klev-1, 0, -1):
-        idx = klev - k + 0 # Calculate the appropriate index for hyba and hybb
+        idx = klev - k
         arg = p0 * hyba[1, idx] + ps * hybb[1, idx]
-        print(f"{k} {idx} --> {k+1} {idx+1}")
-        print(f"{hyba[1, idx]}  {hybb[1, idx]}")
-        print(arg[0,0])
         pmln[k, :, :] = np.where(arg > 0.0, np.log(arg), 0.0)
-        print(pmln[k,0,0])
-        print("---")
-
-    for k in range(0,klev+1):
-        print(k)
-        print(np.exp(pmln[k,0,0]))
-#     # Invert vertical loop
-#     for k in range(klev, 0, -1):
-#         for i in range(nlat):
-#             for j in range(mlon):
-#                 arg = p0 * hyba[1, klev - k + 1] + ps[i, j] * hybb[1, klev - k + 1]
-#                 if arg > 0.0:
-#                     pmln[k, i, j] = np.log(arg)
-#                 else:
-#                     pmln[k, i, j] = 0.0
 
     # Calculate geopotential height Z2
     R = 287.04  # Gas constant for dry air (J/(kg*K))
@@ -1736,5 +1713,4 @@ def cz2ccm(ps, phis, tv, p0, hyam, hybm, hyai, hybi):
         for l in range(k+1, klev):
             z2[k, :, :] = z2[k, :, :] + pterm[l, :, :]
 
-    print("Final z2 output computed.")
     return z2
