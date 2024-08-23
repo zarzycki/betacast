@@ -8,9 +8,10 @@ import cftime
 from scipy.ndimage import gaussian_filter
 
 from vertremap import *
+import horizremap
 
 from constants import (
-    grav, kappa, p0, Rd, Rv_over_Rd, t_freeze_K
+    grav, kappa, p0, Rd, Rv_over_Rd, t_freeze_K, dtime_map
 )
 
 def parse_args():
@@ -287,6 +288,12 @@ def load_ERA5_file(data_filename):
         data_filename
     )
 
+def load_CAM_file(data_filename):
+    # Load the data file using xarray
+    return xr.open_dataset(
+        data_filename
+    )
+
 def load_CFSR_variable(grb_file, varname):
     """Helper function to load a variable from a CFSR NetCDF file."""
     if varname in grb_file.variables:
@@ -398,6 +405,177 @@ def load_CFSR_data(grb_file_name, dycore):
 
 
 
+
+
+from hy2pres import interp_hybrid_to_pressure
+
+def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, debug=False):
+
+    # Initialize variables
+    w_smooth_iter = 1
+    data_vars = {}
+
+    grb_file = load_CAM_file(grb_file_name)
+
+    data_vars['lev'] = np.array([
+        20, 30, 50, 100, 200, 300, 500, 700, 1000, 2000, 3000, 5000, 7000, 10000,
+        15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000,
+        65000, 70000, 75000, 80000, 82500, 85000, 87500, 90000, 92000, 93000, 94000,
+        95000, 96000, 97000, 98000, 99000,
+        99500, 100000, 100500, 101000, 102000, 103000
+    ], dtype=np.float32)
+
+    yearstr, monthstr, daystr, cyclestr = split_by_lengths(str(YYYYMMDDHH), dtime_map)
+
+    # Convert the strings to an ISO 8601 datetime format
+    datetime_str = f"{yearstr}-{monthstr.zfill(2)}-{daystr.zfill(2)}T00:00:00"
+    datetime_base = np.datetime64(datetime_str)
+
+    # Add the number of seconds from cyclestr to get the exact datetime
+    datetime_target = datetime_base + np.timedelta64(int(cyclestr), 's')
+    print(f"Target datetime: {datetime_target}")
+
+    # Access the time coordinate as a NumPy array
+    cam_time = grb_file["time"].values
+    print(f"Available times: {cam_time}")
+
+    # Find the index of the closest time using NumPy operations
+    cam_thistime_ix = np.argmin(np.abs(cam_time - datetime_target))
+    print(f"Index of closest time: {cam_thistime_ix}")
+
+    # Select the closest time
+    data_vars['ps'] = grb_file["PS"].isel(time=cam_thistime_ix).values
+    data_vars['t'] = grb_file["T"].isel(time=cam_thistime_ix).values
+    data_vars['u'] = grb_file["U"].isel(time=cam_thistime_ix).values
+    data_vars['v'] = grb_file["V"].isel(time=cam_thistime_ix).values
+    data_vars['q'] = grb_file["Q"].isel(time=cam_thistime_ix).values
+
+    print(f"CAM: Using mod_in_topo: {mod_in_topo}")
+
+    # Load topo data
+    mod_in_topo_f = xr.open_dataset(mod_in_topo)
+    data_vars['phis'] = mod_in_topo_f["PHIS"].values
+    data_vars['ts'] = data_vars['t'][-1,:]
+
+    # Horizontal remaps
+    data_vars = horizremap.remap_all(data_vars, mod_remap_file, dycore=dycore)
+
+    # Get relevant vertical coefficients from CAM file
+    hyam = grb_file["hyam"].values
+    hybm = grb_file["hybm"].values
+    hyai = grb_file["hyai"].values
+    hybi = grb_file["hybi"].values
+
+    print_min_max_dict(data_vars)
+
+#     # Calculate omega
+#     if grb_file["lat"][0] > grb_file["lat"][1]:
+#         print("flipping omega since calc needs to be S->N")
+#         data_vars['omega'] = omega_ccm_driver(p0, data_vars['ps'][::-1, :], data_vars['u'][:, ::-1, :], data_vars['v'][:, ::-1, :], data_vars['lat'][::-1], data_vars['lon'], hyam, hybm, hyai, hybi)
+#         data_vars['omega'] = data_vars['omega'][:, ::-1, :]  # flip back
+#     else:
+#         data_vars['omega'] = omega_ccm_driver(p0, data_vars['ps'], data_vars['u'], data_vars['v'], data_vars['lat'], data_vars['lon'], hyam, hybm, hyai, hybi)
+#
+#     # Remove omega poleward of OMEGA_LAT_THRESH to deal with singularity
+#     OMEGA_LAT_THRESH = 88.0
+#     data_vars['omega'] = np.where(np.abs(data_vars['lat'])[np.newaxis, :, np.newaxis] > OMEGA_LAT_THRESH, 0.0, data_vars['omega'])
+
+    data_vars['tkv'] = data_vars['t'] * (1. + 0.61 * data_vars['q'])
+    data_vars['z'] = cz2ccm(data_vars['ps'], data_vars['phis'], data_vars['tkv'], p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
+
+    # Use the print_debug_file function to create and save the xarray.Dataset
+    print_debug_file(
+          "py_cam_raw.nc",
+          ps_cam=(["lat", "lon"], data_vars['ps']),
+          phis_cam=(["lat", "lon"], data_vars['phis']),
+          ts_cam=(["lat", "lon"], data_vars['ts']),
+          t_cam=(["lev", "lat", "lon"], data_vars['t']),
+          u_cam=(["lev", "lat", "lon"], data_vars['u']),
+          v_cam=(["lev", "lat", "lon"], data_vars['v']),
+          q_cam=(["lev", "lat", "lon"], data_vars['q']),
+          tkv_cam=(["lev", "lat", "lon"], data_vars['tkv']),
+          z_cam=(["lev", "lat", "lon"], data_vars['z']),
+          #omega_cam=(["lev", "lat", "lon"], data_vars['omega']),
+          lat=(["lat"], data_vars['lat']),
+          lon=(["lon"], data_vars['lon'])
+    )
+
+    sys.exit()
+
+    # Calculate Z
+    tkv_rll = data_vars['t'] * (1. + 0.61 * data_vars['q'])
+    z_rll = cz2ccm(data_vars['ps'], phis_rll, tkv_rll, p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
+    z_rll.coords["lat"] = data_vars['t'].coords["lat"]
+    z_rll.coords["lon"] = data_vars['t'].coords["lon"]
+
+    data_vars['t'] = interp_hybrid_to_pressure(
+        data=data_vars['t'] ,
+        ps=data_vars['ps'] ,
+        hyam=hyam,
+        hybm=hybm,
+        new_levels=data_vars['lev'] ,
+        lev_dim=0,
+        method='log',
+        extrapolate=True,
+        variable='temperature',
+        t_bot=data_vars['ts'],
+        phi_sfc=data_vars['phis']
+    )
+    data_vars['u'] = interp_hybrid_to_pressure(
+        data=data_vars['u'] ,
+        ps=data_vars['ps'] ,
+        hyam=hyam,
+        hybm=hybm,
+        new_levels=data_vars['lev'] ,
+        lev_dim=0,
+        method='log',
+        extrapolate=True,
+        variable='other',
+        t_bot=data_vars['ts'],
+        phi_sfc=data_vars['phis']
+    )
+    data_vars['v'] = interp_hybrid_to_pressure(
+        data=data_vars['v'] ,
+        ps=data_vars['ps'] ,
+        hyam=hyam,
+        hybm=hybm,
+        new_levels=data_vars['lev'] ,
+        lev_dim=0,
+        method='log',
+        extrapolate=True,
+        variable='other',
+        t_bot=data_vars['ts'],
+        phi_sfc=data_vars['phis']
+    )
+    data_vars['q'] = interp_hybrid_to_pressure(
+        data=data_vars['q'] ,
+        ps=data_vars['ps'] ,
+        hyam=hyam,
+        hybm=hybm,
+        new_levels=data_vars['lev'] ,
+        lev_dim=0,
+        method='log',
+        extrapolate=True,
+        variable='other',
+        t_bot=data_vars['ts'],
+        phi_sfc=data_vars['phis']
+    )
+
+    data_vars['cldice'] = np.zeros_like(data_vars['t'])
+    data_vars['cldliq'] = np.zeros_like(data_vars['t'])
+
+    if dycore == "mpas":
+        data_vars['w'] = vinth2p_ecmwf(omega_rll, hyam, hybm, grblev / 100, data_vars['ps'], intyp, P0mb, 1, kxtrp, 0, tbot_mod, phis_rll)
+        data_vars['w_is_omega'] = True
+        data_vars['z'] = vinth2p_ecmwf(z_rll, hyam, hybm, grblev / 100, data_vars['ps'], intyp, P0mb, 1, kxtrp, -1, tbot_mod, phis_rll)
+        data_vars['z_is_phi'] = False
+
+    return data_vars
+
+
+
+
+
 def interpolate_to_uniform_levels(data_var):
     ##### int2p_n
 
@@ -465,7 +643,6 @@ def mixhum_ptrh(p, tk, rh, iswit=2):
 
 
 
-import numpy as np
 
 def interpolate_to_levels(ppin, xxin, ppout, linlog=1, xmsg=np.nan):
     """
@@ -1069,3 +1246,495 @@ def print_min_max_dict(data_vars):
         if isinstance(data, (np.ndarray, xr.DataArray)):
             print(f"{key.upper()} shape: {data.shape} | Max: {data.max()} | Min: {data.min()}")
     print("="*65)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def omega_ccm(u, v, div, dpsl, dpsm, pmid, pdel, psfc, hybdif, hybm, nprlev):
+    """
+    Computes the vertical pressure velocity (omega) using model diagnostic methods.
+
+    Parameters:
+    -----------
+    u, v : ndarray
+        Zonal and meridional wind components. The three rightmost dimensions must be (lev, lat, lon).
+
+    div : ndarray
+        Divergence with the same shape as u and v.
+
+    dpsl, dpsm : ndarray
+        Longitudinal and latitudinal components of grad ln(psfc). Shape is (lat, lon).
+
+    pmid : ndarray
+        Mid-level pressure values. Same shape as u and v.
+
+    pdel : ndarray
+        Layer pressure thickness values. Same shape as u and v.
+
+    psfc : ndarray
+        Surface pressure with dimensions (lat, lon).
+
+    hybdif : ndarray
+        The difference between the hybrid interface coefficients [eg, hybi(k+1)-hybi(k)].
+
+    hybm : ndarray
+        The hybrid B coefficients. Same size as the level dimension of u and v.
+
+    nprlev : int
+        Number of pure pressure levels.
+
+    Returns:
+    --------
+    omega : ndarray
+        Vertical pressure velocity with the same shape as u and v.
+    """
+
+    # Print the shapes of the input variables
+    print(f"u shape: {u.shape}")
+    print(f"v shape: {v.shape}")
+    print(f"div shape: {div.shape}")
+    print(f"dpsl shape: {dpsl.shape}")
+    print(f"dpsm shape: {dpsm.shape}")
+    print(f"pmid shape: {pmid.shape}")
+    print(f"pdel shape: {pdel.shape}")
+    print(f"psfc shape: {psfc.shape}")
+    print(f"hybdif shape: {hybdif.shape}")
+    print(f"hybm shape: {hybm.shape}")
+    print(f"nprlev: {nprlev}")
+
+    klev, jlat, ilon = u.shape[-3], u.shape[-2], u.shape[-1]
+
+    print(f"ilon: {ilon}, jlat: {jlat}, klev: {klev}")
+
+    omega = np.zeros_like(u)
+
+    # Initialize partial sums
+    suml = np.zeros((jlat, ilon))  # Correct shape here
+
+    # Inverse of pmid (no need to check for division by zero)
+    rpmid = 1.0 / pmid
+
+    # Pure pressure part: top level
+    hkk = 0.5 * rpmid[0, :, :]
+    omega[0, :, :] = -hkk * div[0, :, :] * pdel[0, :, :]
+    suml += div[0, :, :] * pdel[0, :, :]
+
+    if 1 >= nprlev:
+        vgpk = (u[0, :, :] * dpsl + v[0, :, :] * dpsm) * psfc
+        tmp = vgpk * hybdif[0]
+        omega[0, :, :] += hybm[0] * rpmid[0, :, :] * vgpk - hkk * tmp
+        suml += tmp
+
+    # Integrals to level above bottom
+    for k in range(1, klev - 1):
+        hkk = 0.5 * rpmid[k, :, :]
+        hlk = rpmid[k, :, :]
+        omega[k, :, :] = -hkk * div[k, :, :] * pdel[k, :, :] - hlk * suml
+        suml += div[k, :, :] * pdel[k, :, :]
+
+        if k >= nprlev:
+            vgpk = (u[k, :, :] * dpsl + v[k, :, :] * dpsm) * psfc
+            tmp = vgpk * hybdif[k]
+            omega[k, :, :] += hybm[k] * rpmid[k, :, :] * vgpk - hkk * tmp
+            suml += tmp
+
+    # Pure pressure part: bottom level
+    hkk = 0.5 * rpmid[klev - 1, :, :]
+    hlk = rpmid[klev - 1, :, :]
+    omega[klev - 1, :, :] = -hkk * div[klev - 1, :, :] * pdel[klev - 1, :, :] - hlk * suml
+
+    if klev >= nprlev:
+        vgpk = (u[klev - 1, :, :] * dpsl + v[klev - 1, :, :] * dpsm) * psfc
+        omega[klev - 1, :, :] += hybm[klev - 1] * rpmid[klev - 1, :, :] * vgpk - hkk * vgpk * hybdif[klev - 1]
+
+    # Rescale omega/p to omega
+    omega *= pmid
+
+    return omega
+
+
+def calculate_gradients(psfc, lat, lon):
+    """
+    Calculate the longitudinal and latitudinal components of the gradient of ln(psfc).
+
+    Parameters:
+    -----------
+    psfc : ndarray
+        2D array of surface pressure values (Pa) with dimensions (lat, lon).
+    lat : ndarray
+        1D array of latitude values (degrees).
+    lon : ndarray
+        1D array of longitude values (degrees).
+
+    Returns:
+    --------
+    dpsl : ndarray
+        Longitudinal component of grad ln(psfc) with the same shape as psfc.
+    dpsm : ndarray
+        Latitudinal component of grad ln(psfc) with the same shape as psfc.
+    """
+
+    # Convert latitude and longitude to radians for calculations
+    lat_rad = np.deg2rad(lat)
+    lon_rad = np.deg2rad(lon)
+
+    # Calculate the logarithm of surface pressure
+    ln_psfc = np.log(psfc)
+
+    # Earth's radius in meters
+    R = 6371000.0
+
+    # Calculate the gradient of ln(psfc)
+    dln_psfc_dy, dln_psfc_dx = np.gradient(ln_psfc)
+
+    # Scale gradients by physical distances
+    dpsl = dln_psfc_dx / (R * np.cos(lat_rad[:, np.newaxis]) * np.gradient(lon_rad))
+    dpsm = dln_psfc_dy / (R * np.gradient(lat_rad)[:, np.newaxis])
+
+    return dpsl, dpsm
+
+
+def calculate_div_vort(lat, lon, u, v):
+    """
+    Calculate the divergence and vorticity of the wind field using centered finite differences.
+
+    Parameters:
+    -----------
+    lat : ndarray
+        1D array of latitude values (degrees).
+    lon : ndarray
+        1D array of longitude values (degrees).
+    u : ndarray
+        2D or 3D array of zonal wind component with dimensions (..., lat, lon).
+    v : ndarray
+        2D or 3D array of meridional wind component with dimensions (..., lat, lon).
+
+    Returns:
+    --------
+    div : ndarray
+        Divergence of the wind field with the same shape as u and v.
+    vort : ndarray
+        Vorticity of the wind field with the same shape as u and v.
+    """
+
+    # Convert latitude and longitude to radians for calculations
+    lat_rad = np.deg2rad(lat)
+    lon_rad = np.deg2rad(lon)
+
+    # Earth's radius in meters
+    R = 6371000.0
+
+    # Calculate gradients along the last two dimensions (lat, lon)
+    du_dy = np.gradient(u, axis=-2)
+    du_dx = np.gradient(u, axis=-1)
+    dv_dy = np.gradient(v, axis=-2)
+    dv_dx = np.gradient(v, axis=-1)
+
+    # Scale gradients by physical distances
+    du_dx = du_dx / (R * np.cos(lat_rad)[:, np.newaxis] * np.gradient(lon_rad))
+    dv_dy = dv_dy / (R * np.gradient(lat_rad)[:, np.newaxis])
+
+    # Divergence: du/dx + dv/dy
+    div = du_dx + dv_dy
+
+    # Vorticity: dv/dx - du/dy
+    du_dy_scaled = du_dy / (R * np.gradient(lat_rad)[:, np.newaxis])
+    dv_dx_scaled = dv_dx / (R * np.cos(lat_rad)[:, np.newaxis] * np.gradient(lon_rad))
+    vort = dv_dx_scaled - du_dy_scaled
+
+    return div, vort
+
+
+
+
+
+
+
+def omega_ccm_driver(p0, psfc, u, v, lat, lon, hyam, hybm, hyai, hybi):
+    """
+    Driver function to calculate intermediate quantities and then compute omega (vertical pressure velocity).
+
+    Parameters:
+    -----------
+    p0 : float
+        Surface reference pressure in Pa.
+    psfc : numpy.ndarray
+        2D or 3D array of surface pressures in Pa.
+    u, v : numpy.ndarray
+        3D or 4D arrays of zonal and meridional wind (m/s).
+    hyam, hybm : numpy.ndarray
+        1D arrays of hybrid A and B coefficients (mid-level). Must have the same dimension as the level dimension of u and v.
+    hyai, hybi : numpy.ndarray
+        1D arrays of interface hybrid A and B coefficients. Must have the same dimension as the interface levels.
+
+    Returns:
+    --------
+    omega : numpy.ndarray
+        3D or 4D array of vertical pressure velocity (Pa/s).
+    """
+
+    # Check the dimensions of inputs
+    rank_ps = psfc.ndim
+    rank_u = u.ndim
+
+    if not (rank_u in [3, 4] and rank_ps in [2, 3]):
+        raise ValueError(f"omega_ccm_driver: expected rank_u=3 or 4 and rank_ps=2 or 3, but got rank_u={rank_u} and rank_ps={rank_ps}")
+
+    # Get dimensions
+    if rank_u == 3:
+        klev, nlat, mlon = u.shape
+    else:
+        ntim, klev, nlat, mlon = u.shape
+
+    # Initialize omega array
+    omega = np.zeros_like(u)
+
+    # Calculate hybrid differences
+    hybd = np.diff(hybi)
+
+    # Determine the number of pure pressure levels
+    nprlev = np.argmax(hybi != 0) if np.any(hybi != 0) else 0
+
+    # Calculate layer pressure thicknesses (pdel) and mid-level pressures (pmid)
+    pdel = dpres_hybrid_ccm(psfc, p0, hyai, hybi)
+    pmid = pres_hybrid_ccm(psfc, p0, hyam, hybm)
+
+    # Calculate gradients of log(psfc)
+    dpsl, dpsm = calculate_gradients(psfc, lat, lon)
+
+    # Calculate divergence on Gaussian grid
+    div, vort = calculate_div_vort(lat, lon, u, v)
+
+    # Call omega_ccm to calculate omega
+    omega = omega_ccm(u, v, div, dpsl, dpsm, pmid, pdel, psfc, hybd, hybm, nprlev)
+
+    return omega
+
+def pres_hybrid_ccm(psfc, p0, hya, hyb, pmsg=np.nan):
+    """
+    Calculate pressure at hybrid levels.
+
+    Parameters:
+    -----------
+    psfc : numpy.ndarray
+        2D array of surface pressures in Pa (shape: [lat, lon]).
+    p0 : float
+        Base pressure in Pa.
+    hya : numpy.ndarray
+        1D array of "a" or pressure hybrid coefficients (shape: [klev]).
+    hyb : numpy.ndarray
+        1D array of "b" or sigma coefficients (shape: [klev]).
+    pmsg : float, optional
+        Missing value indicator, defaults to NaN.
+
+    Returns:
+    --------
+    phy : numpy.ndarray
+        3D array of pressure at hybrid levels (shape: [klev, lat, lon]).
+    """
+    klev = len(hya)
+    nlat, mlon = psfc.shape
+    phy = np.full((klev, nlat, mlon), pmsg)
+
+    for kl in range(klev):
+        for nl in range(nlat):
+            for ml in range(mlon):
+                if not np.isnan(psfc[nl, ml]):
+                    phy[kl, nl, ml] = hya[kl] * p0 + hyb[kl] * psfc[nl, ml]
+
+    return phy
+
+def dpres_hybrid_ccm(psfc, p0, hyai, hybi, pmsg=np.nan):
+    """
+    Calculate delta pressure between hybrid levels.
+
+    Parameters:
+    -----------
+    psfc : numpy.ndarray
+        2D array of surface pressures in Pa (shape: [lat, lon]).
+    p0 : float
+        Base pressure in Pa.
+    hyai : numpy.ndarray
+        1D array of interface "a" or pressure hybrid coefficients (shape: [klev+1]).
+    hybi : numpy.ndarray
+        1D array of interface "b" or sigma coefficients (shape: [klev+1]).
+    pmsg : float, optional
+        Missing value indicator, defaults to NaN.
+
+    Returns:
+    --------
+    dphy : numpy.ndarray
+        3D array of delta pressure between hybrid levels (shape: [klev-1, lat, lon]).
+    """
+    klev = len(hyai) - 1
+    nlat, mlon = psfc.shape
+    dphy = np.full((klev, nlat, mlon), pmsg)
+
+    for nl in range(nlat):
+        for ml in range(mlon):
+            if not np.isnan(psfc[nl, ml]):
+                for kl in range(klev):
+                    pa = p0 * hyai[kl] + hybi[kl] * psfc[nl, ml]
+                    pb = p0 * hyai[kl + 1] + hybi[kl + 1] * psfc[nl, ml]
+                    dphy[kl, nl, ml] = abs(pb - pa)
+
+    return dphy
+
+
+
+
+
+
+
+
+
+
+
+def cz2ccm(ps, phis, tv, p0, hyam, hybm, hyai, hybi):
+    """
+    Calculate geopotential height using the hybrid coordinate system.
+
+    Parameters:
+    -----------
+    ps : ndarray
+        2D array of surface pressures (Pa) with dimensions (lat, lon).
+    phis : ndarray
+        2D array of surface geopotential with dimensions (lat, lon).
+    tv : ndarray
+        3D array of virtual temperature (K) with dimensions (lev, lat, lon).
+    p0 : float
+        Base pressure (Pa).
+    hyam : ndarray
+        1D array of hybrid A coefficients for mid-levels.
+    hybm : ndarray
+        1D array of hybrid B coefficients for mid-levels.
+    hyai : ndarray
+        1D array of hybrid A coefficients for interfaces.
+    hybi : ndarray
+        1D array of hybrid B coefficients for interfaces.
+
+    Returns:
+    --------
+    z2 : ndarray
+        3D array of geopotential height (m) with dimensions (lev, lat, lon).
+    """
+
+    # Print the names and shapes of all inputs for debugging
+    print("cz2ccm function called with the following inputs:")
+    print(f"ps.shape: {ps.shape}")
+    print(f"phis.shape: {phis.shape}")
+    print(f"tv.shape: {tv.shape}")
+    print(f"p0: {p0}")
+    print(f"hyam.shape: {hyam.shape}")
+    print(f"hybm.shape: {hybm.shape}")
+    print(f"hyai.shape: {hyai.shape}")
+    print(f"hybi.shape: {hybi.shape}")
+
+    print(hyam)
+    print(hybm)
+    print(hyai)
+    print(hybi)
+
+    nlat, mlon = ps.shape
+    klev = len(hyam)
+    klev1 = len(hyai)
+
+    print(f"nlat: {nlat}, mlon: {mlon}, klev: {klev}, klev1: {klev1}")
+
+    # Initialize output and scratch arrays
+    z2 = np.zeros((klev, nlat, mlon))
+    pmln = np.zeros((klev + 1, nlat, mlon))
+    pterm = np.zeros((klev, nlat, mlon))
+
+    print(f"z2.shape: {z2.shape}")
+    print(f"pmln.shape: {pmln.shape}")
+    print(f"pterm.shape: {pterm.shape}")
+
+    hyba = np.zeros((2, klev + 1))
+    hybb = np.zeros((2, klev + 1))
+
+    # Copy to temporary arrays
+    hyba[0, :] = hyai
+    hybb[0, :] = hybi
+
+    # Copy midpoint coefficients to the second row (index 1) of HYBA and HYBB
+    hyba[1, 1:klev1] = hyam
+    hybb[1, 1:klev1] = hybm
+
+    print("Intermediate arrays initialized.")
+    print(f"hyba.shape: {hyba.shape}")
+    print(f"hybb.shape: {hybb.shape}")
+
+    pmln[0, :, :] = np.log(p0 * hyba[1, klev] + ps * hybb[0, klev])
+    pmln[-1, :, :] = np.log(p0 * hyba[1, 0] + ps * hybb[0, 0])
+    for k in range(0,klev+1):
+        print(k)
+        print(np.exp(pmln[k,0,0]))
+    # Invert vertical loop, optimized with NumPy operations
+    for k in range(klev-1, 0, -1):
+        idx = klev - k + 0 # Calculate the appropriate index for hyba and hybb
+        arg = p0 * hyba[1, idx] + ps * hybb[1, idx]
+        print(f"{k} {idx} --> {k+1} {idx+1}")
+        print(f"{hyba[1, idx]}  {hybb[1, idx]}")
+        print(arg[0,0])
+        pmln[k, :, :] = np.where(arg > 0.0, np.log(arg), 0.0)
+        print(pmln[k,0,0])
+        print("---")
+
+    for k in range(0,klev+1):
+        print(k)
+        print(np.exp(pmln[k,0,0]))
+#     # Invert vertical loop
+#     for k in range(klev, 0, -1):
+#         for i in range(nlat):
+#             for j in range(mlon):
+#                 arg = p0 * hyba[1, klev - k + 1] + ps[i, j] * hybb[1, klev - k + 1]
+#                 if arg > 0.0:
+#                     pmln[k, i, j] = np.log(arg)
+#                 else:
+#                     pmln[k, i, j] = 0.0
+
+    # Calculate geopotential height Z2
+    R = 287.04  # Gas constant for dry air (J/(kg*K))
+    G0 = 9.80616  # Gravity (m/s^2)
+    RBYG = R / G0
+
+    # Eq 3.a.109.2
+    for k in range(1, klev-1):
+        pterm[k, :, :] = RBYG * tv[k, :, :] * 0.5 * (pmln[k+1, :, :] - pmln[k-1, :, :])
+
+    # Eq 3.a.109.5 and 3.a.109.2
+    for k in range(0, klev-1):
+        z2[k, :, :] = phis / G0 + RBYG * tv[k, :, :] * 0.5 * (pmln[k+1, :, :] - pmln[k, :, :])
+
+    # Step 5: Special Case for Last Layer (3.a.109.5)
+    k = klev-1
+    z2[k, :, :] = phis / G0 + RBYG * tv[k, :, :] * (np.log(ps * hybb[0, 0]) - pmln[k, :, :])
+
+    # Eq 3.a.109.4
+    for k in range(0, klev-1):
+        l = klev-1
+        z2[k, :, :] = z2[k, :, :] + RBYG * tv[l, :, :] * (np.log(ps * hybb[0, 0]) - 0.5 * (pmln[l-1, :, :] + pmln[l, :, :]))
+
+    # Add thickness of the remaining full layers (Eq 3.a.109.3)
+    for k in range(0,klev-2):
+        for l in range(k+1, klev):
+            z2[k, :, :] = z2[k, :, :] + pterm[l, :, :]
+
+    print("Final z2 output computed.")
+    return z2

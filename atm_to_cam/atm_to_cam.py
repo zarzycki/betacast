@@ -114,8 +114,10 @@ def main():
 
     if datasource == 'GFS':
         data_vars = load_CFSR_data(data_filename, dycore)
-    else:
+    elif datasource == 'ERA5RDA':
         data_vars = load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
+    elif datasource == 'CAM':
+        data_vars = load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, debug=True)
 
     print("Input Data Level information")
     print(f"Number: {len(data_vars['lev'])}")
@@ -154,11 +156,26 @@ def main():
 
     if dycore == 'fv' or dycore == 'se':
 
+        # Use the print_debug_file function to create and save the xarray.Dataset
+        print_debug_file(
+              "py_era5_before_interp.nc",
+              ps_cam=(["lat", "lon"], data_vars['ps']),
+              t_cam=(["lev_p", "lat", "lon"], data_vars['t']),
+              u_cam=(["lev_p", "lat", "lon"], data_vars['u']),
+              v_cam=(["lev_p", "lat", "lon"], data_vars['v']),
+              q_cam=(["lev_p", "lat", "lon"], data_vars['q']),
+              cldliq_cam=(["lev_p", "lat", "lon"], data_vars['cldliq']),
+              cldice_cam=(["lev_p", "lat", "lon"], data_vars['cldice']),
+              lat=(["lat"], data_vars['lat']),
+              lon=(["lon"], data_vars['lon'])
+        )
+
         data_vint = vertremap.pres2hyb_all(data_vars, data_vars['ps'], hya, hyb)
 
         # Use the print_debug_file function to create and save the xarray.Dataset
         print_debug_file(
               "py_era5_on_hybrid.nc",
+              ps_cam=(["latitude", "longitude"], data_vint['ps']),
               t_cam=(["level", "latitude", "longitude"], data_vint['t']),
               u_cam=(["level", "latitude", "longitude"], data_vint['u']),
               v_cam=(["level", "latitude", "longitude"], data_vint['v']),

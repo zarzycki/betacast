@@ -103,6 +103,12 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
         # Extract horizontal slice
         slice_2d = src_data[idx]
 
+        if isinstance(slice_2d, xr.DataArray):
+            print("converting slice_2d to numpy")
+            slice_2d = slice_2d.values  # Convert to numpy.ndarray
+
+        #print(f"slice_2d shape before newaxis: {slice_2d.shape} and type: {type(slice_2d)}")
+
         # Apply the regridding to this slice
         if src_grid_type == "structured":
             regridded_slice = remap_with_weights(slice_2d[np.newaxis, :, :], sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, **kwargs)
@@ -142,6 +148,7 @@ def remap_all(data_in, wgt_filename, dycore='se'):
 
     # Loop ovr the keys in data_in and interpolate if the key is in allowable_interp_vars
     for key in data_in:
+        print(key)
         if key in allowable_interp_vars:
             data_out[key], _, _ = remap_with_weights_wrapper(data_in[key], wgt_filename)
         else:

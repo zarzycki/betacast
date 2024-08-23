@@ -284,7 +284,6 @@ def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, level_d
         if not np.all(np.diff(p_levels) > 0):
             raise ValueError("p_levels must be monotonically increasing. Flipping arrays did not resolve the issue.")
 
-
     # Call the Python-equivalent Fortran function
     data_on_hybrid_levels = p2hyo(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag)
 
