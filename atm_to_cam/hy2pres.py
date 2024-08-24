@@ -159,7 +159,6 @@ def _vertical_remap(func_interpolate, new_levels, xcoords, data, interp_axis=0):
 def _vertical_remap_extrap(new_levels, lev_dim, data, output, pressure, ps, variable, t_bot, phi_sfc):
     """A helper function to call the appropriate extrapolation function based on the user's inputs."""
     # Get indices for the top and bottom of the vertical dimension
-    print("here")
     bottom_index = -1
 
     bottom_level = np.take_along_axis(pressure, np.expand_dims(np.argmax(pressure, axis=lev_dim), axis=lev_dim), axis=lev_dim).squeeze()

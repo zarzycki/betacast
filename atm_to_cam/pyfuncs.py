@@ -10,9 +10,10 @@ from scipy.ndimage import gaussian_filter
 from vertremap import *
 from cam2cam import *
 import horizremap
+from hy2pres import interp_hybrid_to_pressure
 
 from constants import (
-    grav, kappa, p0, Rd, Rv_over_Rd, t_freeze_K, dtime_map
+    grav, kappa, p0, Rd, Rv_over_Rd, t_freeze_K, dtime_map, OMEGA_LAT_THRESH
 )
 
 def parse_args():
@@ -408,7 +409,6 @@ def load_CFSR_data(grb_file_name, dycore):
 
 
 
-from hy2pres import interp_hybrid_to_pressure
 
 def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, debug=False):
 
@@ -428,28 +428,31 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 
     yearstr, monthstr, daystr, cyclestr = split_by_lengths(str(YYYYMMDDHH), dtime_map)
 
-    # Convert the strings to an ISO 8601 datetime format
-    datetime_str = f"{yearstr}-{monthstr.zfill(2)}-{daystr.zfill(2)}T00:00:00"
-    datetime_base = np.datetime64(datetime_str)
-
-    # Add the number of seconds from cyclestr to get the exact datetime
-    datetime_target = datetime_base + np.timedelta64(int(cyclestr), 's')
-    print(f"Target datetime: {datetime_target}")
-
     # Access the time coordinate as a NumPy array
-    cam_time = grb_file["time"].values
-    print(f"Available times: {cam_time}")
+    cam_time = grb_file["time"]
 
-    # Find the index of the closest time using NumPy operations
-    cam_thistime_ix = np.argmin(np.abs(cam_time - datetime_target))
-    print(f"Index of closest time: {cam_thistime_ix}")
+#     # Convert the strings to an ISO 8601 datetime format
+#     datetime_str = f"{yearstr}-{monthstr.zfill(2)}-{daystr.zfill(2)}T00:00:00"
+#     datetime_base = np.datetime64(datetime_str)
+#
+#     # Add the number of seconds from cyclestr to get the exact datetime
+#     datetime_target = datetime_base + np.timedelta64(int(cyclestr), 's')
+#     print(f"Target datetime: {datetime_target}")
+#
+#     # Find the index of the closest time using NumPy operations
+#     cam_thistime_ix = np.argmin(np.abs(cam_time - datetime_target))
+
+    cam_thistime_ix = find_closest_time(cam_time.values, yearstr, monthstr, daystr, cyclestr, return_isel=True)
+    print(f"Closest time: {cam_thistime_ix}")
+    cam_thistime = find_closest_time(cam_time, yearstr, monthstr, daystr, cyclestr)
+    print(f"Closest time: {cam_thistime}")
 
     # Select the closest time
-    data_vars['ps'] = grb_file["PS"].isel(time=cam_thistime_ix).values
-    data_vars['t'] = grb_file["T"].isel(time=cam_thistime_ix).values
-    data_vars['u'] = grb_file["U"].isel(time=cam_thistime_ix).values
-    data_vars['v'] = grb_file["V"].isel(time=cam_thistime_ix).values
-    data_vars['q'] = grb_file["Q"].isel(time=cam_thistime_ix).values
+    data_vars['ps'] = grb_file["PS"].sel(time=cam_thistime, method='nearest').values
+    data_vars['t'] = grb_file["T"].sel(time=cam_thistime, method='nearest').values
+    data_vars['u'] = grb_file["U"].sel(time=cam_thistime, method='nearest').values
+    data_vars['v'] = grb_file["V"].sel(time=cam_thistime, method='nearest').values
+    data_vars['q'] = grb_file["Q"].sel(time=cam_thistime, method='nearest').values
 
     print(f"CAM: Using mod_in_topo: {mod_in_topo}")
 
@@ -469,111 +472,66 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 
     print_min_max_dict(data_vars)
 
-#     # Calculate omega
-#     if grb_file["lat"][0] > grb_file["lat"][1]:
-#         print("flipping omega since calc needs to be S->N")
-#         data_vars['omega'] = omega_ccm_driver(p0, data_vars['ps'][::-1, :], data_vars['u'][:, ::-1, :], data_vars['v'][:, ::-1, :], data_vars['lat'][::-1], data_vars['lon'], hyam, hybm, hyai, hybi)
-#         data_vars['omega'] = data_vars['omega'][:, ::-1, :]  # flip back
-#     else:
-#         data_vars['omega'] = omega_ccm_driver(p0, data_vars['ps'], data_vars['u'], data_vars['v'], data_vars['lat'], data_vars['lon'], hyam, hybm, hyai, hybi)
-#
-#     # Remove omega poleward of OMEGA_LAT_THRESH to deal with singularity
-#     OMEGA_LAT_THRESH = 88.0
-#     data_vars['omega'] = np.where(np.abs(data_vars['lat'])[np.newaxis, :, np.newaxis] > OMEGA_LAT_THRESH, 0.0, data_vars['omega'])
+    if dycore == 'mpas':
+        # Calculate omega
+        if grb_file["lat"][0] > grb_file["lat"][1]:
+            print("flipping omega since calc needs to be S->N")
+            data_vars['omega'] = omega_ccm_driver(p0, data_vars['ps'][::-1, :], data_vars['u'][:, ::-1, :], data_vars['v'][:, ::-1, :], data_vars['lat'][::-1], data_vars['lon'], hyam, hybm, hyai, hybi)
+            data_vars['omega'] = data_vars['omega'][:, ::-1, :]  # flip back
+        else:
+            data_vars['omega'] = omega_ccm_driver(p0, data_vars['ps'], data_vars['u'], data_vars['v'], data_vars['lat'], data_vars['lon'], hyam, hybm, hyai, hybi)
+        data_vars['w_is_omega'] = True
 
-    data_vars['div'] = ddvfidf_wrapper(data_vars['u'], data_vars['v'], data_vars['lat'], data_vars['lon'], 3)
+        # Remove omega poleward of OMEGA_LAT_THRESH to deal with singularity
+        data_vars['omega'] = np.where(np.abs(data_vars['lat'])[np.newaxis, :, np.newaxis] > OMEGA_LAT_THRESH, 0.0, data_vars['omega'])
 
-    data_vars['tkv'] = data_vars['t'] * (1. + 0.61 * data_vars['q'])
-    data_vars['z'] = cz2ccm(data_vars['ps'], data_vars['phis'], data_vars['tkv'], p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
+        #data_vars['div'] = ddvfidf_wrapper(data_vars['u'], data_vars['v'], data_vars['lat'], data_vars['lon'], 3)
 
-    data_vars['dpsl'], data_vars['dpsm'] = calculate_gradients(data_vars['ps'], data_vars['lat'], data_vars['lon'])
-    #data_vars['div'], data_vars['vort'] = calculate_div_vort(data_vars['lat'], data_vars['lon'], data_vars['u'], data_vars['v'])
+        data_vars['tkv'] = data_vars['t'] * (1. + 0.61 * data_vars['q'])
+        data_vars['z'] = cz2ccm(data_vars['ps'], data_vars['phis'], data_vars['tkv'], p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
+        data_vars['z_is_phi'] = False
+        #data_vars['dpsl'], data_vars['dpsm'] = calculate_gradients(data_vars['ps'], data_vars['lat'], data_vars['lon'])
+        #data_vars['div'], data_vars['vort'] = calculate_div_vort(data_vars['lat'], data_vars['lon'], data_vars['u'], data_vars['v'])
+        #data_vars['pdel'] = dpres_hybrid_ccm(data_vars['ps'], p0, hyai, hybi)
+        #data_vars['pmid'] = pres_hybrid_ccm(data_vars['ps'], p0, hyam, hybm)
 
-    data_vars['pdel'] = dpres_hybrid_ccm(data_vars['ps'], p0, hyai, hybi)
-    data_vars['pmid'] = pres_hybrid_ccm(data_vars['ps'], p0, hyam, hybm)
+        # Use the print_debug_file function to create and save the xarray.Dataset
+        print_debug_file(
+              "py_cam_raw.nc",
+              ps_cam=(["lat", "lon"], data_vars['ps']),
+              phis_cam=(["lat", "lon"], data_vars['phis']),
+              ts_cam=(["lat", "lon"], data_vars['ts']),
+              t_cam=(["lev", "lat", "lon"], data_vars['t']),
+              u_cam=(["lev", "lat", "lon"], data_vars['u']),
+              v_cam=(["lev", "lat", "lon"], data_vars['v']),
+              q_cam=(["lev", "lat", "lon"], data_vars['q']),
+              tkv_cam=(["lev", "lat", "lon"], data_vars['tkv']),
+              z_cam=(["lev", "lat", "lon"], data_vars['z']),
+              dpsl_cam=(["lat", "lon"], data_vars['dpsl']),
+              dpsm_cam=(["lat", "lon"], data_vars['dpsm']),
+              div_cam=(["lev", "lat", "lon"], data_vars['div']),
+              pdel_cam=(["lev", "lat", "lon"], data_vars['pdel']),
+              pmid_cam=(["lev", "lat", "lon"], data_vars['pmid']),
+              omega_cam=(["lev", "lat", "lon"], data_vars['omega']),
+              lat=(["lat"], data_vars['lat']),
+              lon=(["lon"], data_vars['lon'])
+        )
 
-    # Use the print_debug_file function to create and save the xarray.Dataset
-    print_debug_file(
-          "py_cam_raw.nc",
-          ps_cam=(["lat", "lon"], data_vars['ps']),
-          phis_cam=(["lat", "lon"], data_vars['phis']),
-          ts_cam=(["lat", "lon"], data_vars['ts']),
-          t_cam=(["lev", "lat", "lon"], data_vars['t']),
-          u_cam=(["lev", "lat", "lon"], data_vars['u']),
-          v_cam=(["lev", "lat", "lon"], data_vars['v']),
-          q_cam=(["lev", "lat", "lon"], data_vars['q']),
-          tkv_cam=(["lev", "lat", "lon"], data_vars['tkv']),
-          z_cam=(["lev", "lat", "lon"], data_vars['z']),
-          dpsl_cam=(["lat", "lon"], data_vars['dpsl']),
-          dpsm_cam=(["lat", "lon"], data_vars['dpsm']),
-          div_cam=(["lev", "lat", "lon"], data_vars['div']),
-          pdel_cam=(["lev", "lat", "lon"], data_vars['pdel']),
-          pmid_cam=(["lev", "lat", "lon"], data_vars['pmid']),
-          #omega_cam=(["lev", "lat", "lon"], data_vars['omega']),
-          lat=(["lat"], data_vars['lat']),
-          lon=(["lon"], data_vars['lon'])
-    )
+        # Calculate Z
+        tkv_rll = data_vars['t'] * (1. + 0.61 * data_vars['q'])
+        z_rll = cz2ccm(data_vars['ps'], phis_rll, tkv_rll, p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
+        z_rll.coords["lat"] = data_vars['t'].coords["lat"]
+        z_rll.coords["lon"] = data_vars['t'].coords["lon"]
 
-    sys.exit()
+    print_min_max_dict(data_vars)
 
-    # Calculate Z
-    tkv_rll = data_vars['t'] * (1. + 0.61 * data_vars['q'])
-    z_rll = cz2ccm(data_vars['ps'], phis_rll, tkv_rll, p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
-    z_rll.coords["lat"] = data_vars['t'].coords["lat"]
-    z_rll.coords["lon"] = data_vars['t'].coords["lon"]
-
-    data_vars['t'] = interp_hybrid_to_pressure(
-        data=data_vars['t'] ,
-        ps=data_vars['ps'] ,
+    # Vertically interpolate the CAM hybrid levels to constant pressure surfaces
+    data_vars = interp_hybrid_to_pressure_wrapper(
+        data_vars=data_vars,
         hyam=hyam,
         hybm=hybm,
-        new_levels=data_vars['lev'] ,
-        lev_dim=0,
-        method='log',
-        extrapolate=True,
-        variable='temperature',
-        t_bot=data_vars['ts'],
-        phi_sfc=data_vars['phis']
-    )
-    data_vars['u'] = interp_hybrid_to_pressure(
-        data=data_vars['u'] ,
-        ps=data_vars['ps'] ,
-        hyam=hyam,
-        hybm=hybm,
-        new_levels=data_vars['lev'] ,
-        lev_dim=0,
-        method='log',
-        extrapolate=True,
-        variable='other',
-        t_bot=data_vars['ts'],
-        phi_sfc=data_vars['phis']
-    )
-    data_vars['v'] = interp_hybrid_to_pressure(
-        data=data_vars['v'] ,
-        ps=data_vars['ps'] ,
-        hyam=hyam,
-        hybm=hybm,
-        new_levels=data_vars['lev'] ,
-        lev_dim=0,
-        method='log',
-        extrapolate=True,
-        variable='other',
-        t_bot=data_vars['ts'],
-        phi_sfc=data_vars['phis']
-    )
-    data_vars['q'] = interp_hybrid_to_pressure(
-        data=data_vars['q'] ,
-        ps=data_vars['ps'] ,
-        hyam=hyam,
-        hybm=hybm,
-        new_levels=data_vars['lev'] ,
-        lev_dim=0,
-        method='log',
-        extrapolate=True,
-        variable='other',
-        t_bot=data_vars['ts'],
-        phi_sfc=data_vars['phis']
-    )
+        new_levels=data_vars['lev']
+        )
 
     data_vars['cldice'] = np.zeros_like(data_vars['t'])
     data_vars['cldliq'] = np.zeros_like(data_vars['t'])
@@ -586,9 +544,25 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 
     return data_vars
 
-
-
-
+def interp_hybrid_to_pressure_wrapper(data_vars, hyam, hybm, new_levels, lev_dim=0, method='log', extrapolate=True):
+    for var_name, data in data_vars.items():
+        if data.ndim == 3:
+            variable_type = 'temperature' if var_name == 't' else 'geopotential' if var_name == 'z' else 'other'
+            print(f"interp_hybrid_to_pressure for variable {var_name}, using {variable_type}")
+            data_vars[var_name] = interp_hybrid_to_pressure(
+                data=data,
+                ps=data_vars['ps'],
+                hyam=hyam,
+                hybm=hybm,
+                new_levels=new_levels,
+                lev_dim=lev_dim,
+                method=method,
+                extrapolate=extrapolate,
+                variable=variable_type,
+                t_bot=data_vars['ts'],
+                phi_sfc=data_vars['phis']
+            )
+    return data_vars
 
 def interpolate_to_uniform_levels(data_var):
     ##### int2p_n
@@ -732,11 +706,26 @@ def interpolate_to_levels(ppin, xxin, ppout, linlog=1, xmsg=np.nan):
 
 
 
-def find_closest_time(times, yearstr, monthstr, daystr, cyclestr):
-    target_time = np.datetime64(f"{yearstr}-{monthstr}-{daystr}T{cyclestr[:2]}:00")
-    closest_time = min(times.values, key=lambda x: abs(x - target_time))
-    return closest_time
+def find_closest_time(times, yearstr, monthstr, daystr, cyclestr, return_isel=False):
+    if isinstance(times, np.ndarray):
+        # Convert the strings to an ISO 8601 datetime format
+        datetime_str = f"{yearstr}-{monthstr.zfill(2)}-{daystr.zfill(2)}T00:00:00"
+        datetime_base = np.datetime64(datetime_str)
 
+        # Add the number of seconds from cyclestr to get the exact datetime
+        datetime_target = datetime_base + np.timedelta64(int(cyclestr), 's')
+        print(f"Target datetime: {datetime_target}")
+
+        closest_index = np.argmin(np.abs(times - datetime_target))
+        if return_isel:
+            closest_time = closest_index
+        else:
+            closest_time = times[closest_index]
+    else:
+        target_time = np.datetime64(f"{yearstr}-{monthstr}-{daystr}T{cyclestr[:2]}:00")
+        closest_time = min(times.values, key=lambda x: abs(x - target_time))
+
+    return closest_time
 
 
 

@@ -18,6 +18,7 @@ dtime_map = [4, 2, 2, 2]
 QMAXTHRESH=0.05
 QMINTHRESH=1.0e-12
 CLDMINTHRESH=0.0
+OMEGA_LAT_THRESH = 88.0
 
 rho_d_algo = 1
 

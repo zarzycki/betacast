@@ -280,7 +280,8 @@ def omega_ccm_driver(p0, psfc, u, v, lat, lon, hyam, hybm, hyai, hybi):
     dpsl, dpsm = calculate_gradients(psfc, lat, lon)
 
     # Calculate divergence on Gaussian grid
-    div, vort = calculate_div_vort(lat, lon, u, v)
+    #div, vort = calculate_div_vort(lat, lon, u, v)
+    div = ddvfidf_wrapper(u,v,lat,lon,3)
 
     # Call omega_ccm to calculate omega
     omega = omega_ccm(u, v, div, dpsl, dpsm, pmid, pdel, psfc, hybd, hybm, nprlev)
