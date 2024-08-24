@@ -1,5 +1,6 @@
 import numpy as np
 import xarray as xr
+from timing import start_time, print_elapsed_time
 
 def omega_ccm(u, v, div, dpsl, dpsm, pmid, pdel, psfc, hybdif, hybm, nprlev):
     """
@@ -268,6 +269,8 @@ def omega_ccm_driver(p0, psfc, u, v, lat, lon, hyam, hybm, hyai, hybi):
     # Determine the number of pure pressure levels
     nprlev = np.argmax(hybi != 0) if np.any(hybi != 0) else 0
 
+    print_elapsed_time(msg="omegaccm: done setup")
+
     # Calculate layer pressure thicknesses (pdel) and mid-level pressures (pmid)
     if flip_lats:
         pdel = dpres_hybrid_ccm(psfc[::-1,:], p0, hyai, hybi)
@@ -275,22 +278,26 @@ def omega_ccm_driver(p0, psfc, u, v, lat, lon, hyam, hybm, hyai, hybi):
     else:
         pdel = dpres_hybrid_ccm(psfc, p0, hyai, hybi)
         pmid = pres_hybrid_ccm(psfc, p0, hyam, hybm)
+    print_elapsed_time(msg="omegaccm: done pressures")
 
     # Calculate gradients of log(psfc)
     dpsl, dpsm = calculate_gradients(psfc, lat, lon)
+    print_elapsed_time(msg="omegaccm: Done gradients")
 
     # Calculate divergence on Gaussian grid
     #div, vort = calculate_div_vort(lat, lon, u, v)
     div = ddvfidf_wrapper(u,v,lat,lon,3)
+    print_elapsed_time(msg="omegaccm: Done div")
 
     # Call omega_ccm to calculate omega
     omega = omega_ccm(u, v, div, dpsl, dpsm, pmid, pdel, psfc, hybd, hybm, nprlev)
+    print_elapsed_time(msg="omegaccm: Done OMEGA")
 
     return omega
 
 def pres_hybrid_ccm(psfc, p0, hya, hyb, pmsg=np.nan):
     """
-    Calculate pressure at hybrid levels.
+    Calculate pressure at hybrid levels using vectorized operations.
 
     Parameters:
     -----------
@@ -310,21 +317,26 @@ def pres_hybrid_ccm(psfc, p0, hya, hyb, pmsg=np.nan):
     phy : numpy.ndarray
         3D array of pressure at hybrid levels (shape: [klev, lat, lon]).
     """
+
+    # Get dimensions
     klev = len(hya)
     nlat, mlon = psfc.shape
-    phy = np.full((klev, nlat, mlon), pmsg)
 
-    for kl in range(klev):
-        for nl in range(nlat):
-            for ml in range(mlon):
-                if not np.isnan(psfc[nl, ml]):
-                    phy[kl, nl, ml] = hya[kl] * p0 + hyb[kl] * psfc[nl, ml]
+    # Broadcast hya and hyb to match the shape of psfc
+    hya_reshaped = hya.reshape(klev, 1, 1)
+    hyb_reshaped = hyb.reshape(klev, 1, 1)
+
+    # Calculate pressure at hybrid levels using vectorized operations
+    phy = hya_reshaped * p0 + hyb_reshaped * psfc
+
+    # Handle missing values
+    phy = np.where(np.isnan(psfc), pmsg, phy)
 
     return phy
 
 def dpres_hybrid_ccm(psfc, p0, hyai, hybi, pmsg=np.nan):
     """
-    Calculate delta pressure between hybrid levels.
+    Calculate delta pressure between hybrid levels using vectorized operations.
 
     Parameters:
     -----------
@@ -344,19 +356,27 @@ def dpres_hybrid_ccm(psfc, p0, hyai, hybi, pmsg=np.nan):
     dphy : numpy.ndarray
         3D array of delta pressure between hybrid levels (shape: [klev-1, lat, lon]).
     """
+
+    # Get dimensions
     klev = len(hyai) - 1
     nlat, mlon = psfc.shape
-    dphy = np.full((klev, nlat, mlon), pmsg)
 
-    for nl in range(nlat):
-        for ml in range(mlon):
-            if not np.isnan(psfc[nl, ml]):
-                for kl in range(klev):
-                    pa = p0 * hyai[kl] + hybi[kl] * psfc[nl, ml]
-                    pb = p0 * hyai[kl + 1] + hybi[kl + 1] * psfc[nl, ml]
-                    dphy[kl, nl, ml] = abs(pb - pa)
+    # Broadcast hyai and hybi to match the shape of psfc
+    hyai_reshaped = hyai.reshape(klev + 1, 1, 1)
+    hybi_reshaped = hybi.reshape(klev + 1, 1, 1)
+
+    # Calculate pa and pb using vectorized operations
+    pa = p0 * hyai_reshaped[:klev] + hybi_reshaped[:klev] * psfc
+    pb = p0 * hyai_reshaped[1:] + hybi_reshaped[1:] * psfc
+
+    # Calculate delta pressure
+    dphy = np.abs(pb - pa)
+
+    # Handle missing values
+    dphy = np.where(np.isnan(psfc), pmsg, dphy)
 
     return dphy
+
 
 
 
@@ -482,60 +502,76 @@ def cz2ccm(ps, phis, tv, p0, hyam, hybm, hyai, hybi, debug=False):
 
 
 
+
+
 def ddvfidf_wrapper(u, v, glat, glon, iopt, xmsg=np.nan):
     """
     Wrapper function to handle 2D and 3D input arrays for calculating the divergence of the wind field.
-
-    Parameters:
-    -----------
-    u : ndarray
-        2D or 3D array of zonal wind component with dimensions (nlat, mlon) or (nlev, nlat, mlon).
-    v : ndarray
-        2D or 3D array of meridional wind component with dimensions (nlat, mlon) or (nlev, nlat, mlon).
-    glat : ndarray
-        1D array of latitude values (degrees) with dimensions (nlat).
-    glon : ndarray
-        1D array of longitude values (degrees) with dimensions (mlon).
-    xmsg : float
-        Missing value indicator.
-    iopt : int
-        Option for handling cyclic grids.
-        - 1 or 3: Cyclic in longitude.
-        - 2: Non-cyclic in longitude.
-
-    Returns:
-    --------
-    div : ndarray
-        2D or 3D array of divergence with dimensions (nlat, mlon) or (nlev, nlat, mlon).
-    ier : int
-        Error code, 0 if successful.
     """
 
-    # Check if the input is 2D or 3D
+    transposed = False
+    flipped = False
+
+    # Handle 2D case
     if u.ndim == 2:
-        # 2D case: Directly call the ddvfidf function
-        print("2d in ddvfidf_wrapper")
+        # Transpose if needed so that u.shape matches (nlat, mlon)
+        if u.shape != (len(glon), len(glat)):
+            u = u.T
+            v = v.T
+            transposed = True
+
+        # Check if latitude is descending and flip if necessary
+        if glat[0] > glat[-1]:
+            glat = glat[::-1]
+            u = u[:, ::-1]
+            v = v[:, ::-1]
+            flipped = True
+
         div = ddvfidf(u, v, glat, glon, iopt, xmsg)
 
+    # Handle 3D case
     elif u.ndim == 3:
-        # 3D case: Initialize the output divergence array
-        print("3d in ddvfidf_wrapper")
-        nlev = u.shape[0]
-        nlat = u.shape[1]
-        mlon = u.shape[2]
-        div = np.full((nlev, nlat, mlon), xmsg)
+        nlev, nlat, mlon = u.shape
 
-        # Loop over the levels and compute divergence for each level
+        # Transpose if needed so that u.shape matches (nlev, nlat, mlon)
+        if u.shape[1:] != (len(glon), len(glat)):
+            u = u.transpose(0, 2, 1)
+            v = v.transpose(0, 2, 1)
+            transposed = True
+
+        # Check if latitude is descending and flip if necessary
+        if glat[0] > glat[-1]:
+            glat = glat[::-1]
+            u = u[:, :, ::-1]
+            v = v[:, :, ::-1]
+            flipped = True
+
+        div = np.full((nlev, mlon, nlat), xmsg)
+
+        # Compute divergence for each level
+        print(iopt)
+        print(u.shape)
+        print(v.shape)
+        print(glat.shape)
+        print(glon.shape)
         for lev in range(nlev):
             div[lev, :, :] = ddvfidf(u[lev, :, :], v[lev, :, :], glat, glon, iopt, xmsg)
 
     else:
         raise ValueError("Input arrays u and v must be either 2D or 3D.")
 
+    # Revert the flip and transpose state if they were applied
+    if flipped:
+        div = div[:, :, ::-1] if div.ndim == 3 else div[:, ::-1]
+
+    if transposed:
+        div = div.transpose(0, 2, 1) if div.ndim == 3 else div.T
+
     return div
 
+from numba import njit
 
-
+@njit
 def ddvfidf(u, v, glat, glon, iopt, xmsg=np.nan):
     """
     Calculate the divergence of the wind field using centered finite differences.
@@ -561,24 +597,7 @@ def ddvfidf(u, v, glat, glon, iopt, xmsg=np.nan):
     --------
     dv : ndarray
         2D array of divergence with the same dimensions as u and v.
-    ier : int
-        Error code, 0 if successful.
     """
-
-    # Transpose u and v to ensure they have shape (mlon, nlat)
-    transposed = False
-    if u.shape != (len(glon), len(glat)):
-        u = u.T
-        v = v.T
-        transposed = True
-
-    # Check if latitude is descending and flip if necessary
-    flipped = False
-    if glat[0] > glat[-1]:
-        glat = glat[::-1]
-        u = u[:, ::-1]
-        v = v[:, ::-1]
-        flipped = True
 
     # Constants
     RE = 6.37122e6  # Earth's radius in meters
@@ -587,58 +606,29 @@ def ddvfidf(u, v, glat, glon, iopt, xmsg=np.nan):
     nlat = len(glat)
     mlon = len(glon)
 
-    print(u.shape)
-    print(v.shape)
-    print(len(glat))
-    print(len(glon))
-
-    # Initialize output array and error code
+    # Initialize output array
     dv = np.full((mlon, nlat), xmsg)
 
     # Pre-compute cos(lat) and tan(lat)/RE
     clat = np.cos(RAD * glat)
-#     tlatre = np.zeros(nlat)
-#     for nl in range(nlat):
-#         if abs(glat[nl]) < 90.0:
-#             tlatre[nl] = np.tan(RAD * glat[nl]) / RE
-#         else:
-#             if glat[nl] == 90.0:
-#                 polat = 0.5 * (glat[nl] + glat[nl - 1])
-#             elif glat[nl] == -90.0:
-#                 polat = 0.5 * (glat[nl] + glat[nl - 1])
-#             else:
-#                 polat = glat[nl]  # Or any other appropriate value for polar regions
-#
-#             tlatre[nl] = np.tan(RAD * polat) / RE
-
     tlatre = np.zeros(nlat)
     for nl in range(nlat):
         if abs(glat[nl]) < 89.9999:
             tlatre[nl] = np.tan(RAD * glat[nl]) / RE
         else:
             if glat[nl] >= 89.9999:
-                print(f"NP {nl}")
                 polat = 0.5 * (glat[nl] + glat[nl - 1])
-                print(polat)
                 tlatre[nl] = np.tan(RAD * polat) / RE
             else:  # This corresponds to the case where glat[nl] == -90.0
-                print(f"SP {nl}")
                 polat = 0.5 * (glat[nl] + glat[nl + 1])
-                print(polat)
                 tlatre[nl] = np.tan(RAD * polat) / RE
-
-    print(tlatre)
 
     # Calculate 1/dy and 1/(2*dy)
     dybot = 1.0 / (RCON * (glat[1] - glat[0]))
-    dytop = 1.0 / (RCON * (glat[nlat-1] - glat[nlat-2]))
+    dytop = 1.0 / (RCON * (glat[-1] - glat[-2]))
     dy2 = np.zeros(nlat)
     for nl in range(1, nlat - 1):
         dy2[nl] = 1.0 / (RCON * (glat[nl + 1] - glat[nl - 1]))
-
-    print(dybot)
-    print(dytop)
-    print(dy2)
 
     # Calculate 1/dx and 1/(2*dx)
     dlon = glon[1] - glon[0]
@@ -676,54 +666,20 @@ def ddvfidf(u, v, glat, glon, iopt, xmsg=np.nan):
                          (u[mlp1, nl] - u[mlm1, nl]) * dx2[nl] - \
                          v[ml, nl] * tlatre[nl]
 
-        # Bottom and top boundaries (nl = 1, nlat)
-        if jopt >= 2:
-            # Bottom boundary (nl = 1)
-            dv[ml, 0] = (v[ml, 1] - v[ml, 0]) * dybot + \
-                        (u[mlp1, 0] - u[mlm1, 0]) * dx2[0] - \
-                        v[ml, 0] * tlatre[0]
+        # Bottom boundary (nl = 1)
+        dv[ml, 0] = (v[ml, 1] - v[ml, 0]) * dybot + \
+                    (u[mlp1, 0] - u[mlm1, 0]) * dx2[0] - \
+                    v[ml, 0] * tlatre[0]
 
-            # Top boundary (nl = nlat)
-            dv[ml, nlat - 1] = (v[ml, nlat - 1] - v[ml, nlat - 2]) * dytop + \
-                               (u[mlp1, nlat - 1] - u[mlm1, nlat - 1]) * dx2[nlat - 1] - \
-                               v[ml, nlat - 1] * tlatre[nlat - 1]
+        # Top boundary (nl = nlat)
+        dv[ml, nlat - 1] = (v[ml, nlat - 1] - v[ml, nlat - 2]) * dytop + \
+                           (u[mlp1, nlat - 1] - u[mlm1, nlat - 1]) * dx2[nlat - 1] - \
+                           v[ml, nlat - 1] * tlatre[nlat - 1]
 
-    # Left and right boundaries (ml = 1, mlon) for JOPT = 2
-    if jopt == 2:
-        for nl in range(1, nlat - 1):
-            # Left boundary (ml = 1)
-            if v[0, nl + 1] != xmsg and v[0, nl - 1] != xmsg and \
-               u[1, nl] != xmsg and u[0, nl] != xmsg and \
-               v[0, nl] != xmsg:
-                dv[0, nl] = (v[0, nl + 1] - v[0, nl - 1]) * dy2[nl] + \
-                            (u[1, nl] - u[0, nl]) * dx[nl] - \
-                            v[0, nl] * tlatre[nl]
-
-            # Right boundary (ml = mlon)
-            if v[mlon - 1, nl + 1] != xmsg and v[mlon - 1, nl - 1] != xmsg and \
-               u[mlon - 1, nl] != xmsg and u[mlon - 2, nl] != xmsg and \
-               v[mlon - 1, nl] != xmsg:
-                dv[mlon - 1, nl] = (v[mlon - 1, nl + 1] - v[mlon - 1, nl - 1]) * dy2[nl] + \
-                                   (u[mlon - 1, nl] - u[mlon - 2, nl]) * dx[nl] - \
-                                   v[mlon - 1, nl] * tlatre[nl]
-
-    count_nan_or_zero = np.count_nonzero(np.isnan(dv) | (dv == 0))
-    print("Number of NaN values or values equal to 0 in dv:", count_nan_or_zero)
-
-    # Special handling for poles (lat = ±90)
+    # Handle poles (lat = ±90)
     if abs(glat[0]) >= 89.9999:
         dv[:, 0] = np.mean(dv[:, 0])
     if abs(glat[-1]) >= 89.9999:
         dv[:, -1] = np.mean(dv[:, -1])
 
-    count_nan_or_zero = np.count_nonzero(np.isnan(dv) | (dv == 0))
-    print("Number of NaN values or values equal to 0 in dv:", count_nan_or_zero)
-    #dv[np.isnan(dv)] = 0
-
-    if flipped:
-        dv = dv[:,::-1]
-    if transposed:
-        dv = dv.T
-
     return dv
-

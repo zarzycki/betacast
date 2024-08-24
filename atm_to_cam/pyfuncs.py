@@ -6,6 +6,7 @@ import sys
 import glob
 import cftime
 from scipy.ndimage import gaussian_filter
+from timing import start_time, print_elapsed_time
 
 from vertremap import *
 from cam2cam import *
@@ -56,6 +57,7 @@ def parse_args():
                         help='Full path to ESMF weight file that goes downscaling MOD -> ANL (default: "")')
     parser.add_argument('--mpasfile', type=str, default='',
                         help='XXXXXXX')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity for debugging')
 
     return parser.parse_args()
 
@@ -464,6 +466,8 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
     # Horizontal remaps
     data_vars = horizremap.remap_all(data_vars, mod_remap_file, dycore=dycore)
 
+    print_elapsed_time(msg="Horizontal remap")
+
     # Get relevant vertical coefficients from CAM file
     hyam = grb_file["hyam"].values
     hybm = grb_file["hybm"].values
@@ -474,6 +478,9 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 
     if dycore == 'mpas':
         # Calculate omega
+
+        print_elapsed_time(msg="Start MPAS")
+
         data_vars['w_is_omega'] = True
         if grb_file["lat"][0] > grb_file["lat"][1]:
             print("flipping omega since calc needs to be S->N")
@@ -484,15 +491,19 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
         # Remove omega poleward of OMEGA_LAT_THRESH to deal with singularity
         data_vars['w'] = np.where(np.abs(data_vars['lat'])[np.newaxis, :, np.newaxis] > OMEGA_LAT_THRESH, 0.0, data_vars['w'])
 
+        print_elapsed_time(msg="Done omega")
+
         #data_vars['div'] = ddvfidf_wrapper(data_vars['u'], data_vars['v'], data_vars['lat'], data_vars['lon'], 3)
 
-        data_vars['tkv'] = data_vars['t'] * (1. + 0.61 * data_vars['q'])
-        data_vars['z'] = cz2ccm(data_vars['ps'], data_vars['phis'], data_vars['tkv'], p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
+        tkv = data_vars['t'] * (1. + 0.61 * data_vars['q'])
+        data_vars['z'] = cz2ccm(data_vars['ps'], data_vars['phis'], tkv, p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
         data_vars['z_is_phi'] = False
         #data_vars['dpsl'], data_vars['dpsm'] = calculate_gradients(data_vars['ps'], data_vars['lat'], data_vars['lon'])
         #data_vars['div'], data_vars['vort'] = calculate_div_vort(data_vars['lat'], data_vars['lon'], data_vars['u'], data_vars['v'])
         #data_vars['pdel'] = dpres_hybrid_ccm(data_vars['ps'], p0, hyai, hybi)
         #data_vars['pmid'] = pres_hybrid_ccm(data_vars['ps'], p0, hyam, hybm)
+
+        print_elapsed_time(msg="Done Z")
 
         # Use the print_debug_file function to create and save the xarray.Dataset
         print_debug_file(
@@ -526,6 +537,8 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
         hybm=hybm,
         new_levels=data_vars['lev']
         )
+
+    print_elapsed_time(msg="Done hyb-pres in CAM")
 
     data_vars['cldice'] = np.zeros_like(data_vars['t'])
     data_vars['cldliq'] = np.zeros_like(data_vars['t'])

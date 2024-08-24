@@ -3,6 +3,8 @@ import numpy as np
 import xarray as xr
 import argparse
 import sys
+import timing
+import logging
 
 from pyfuncs import *
 import mpas
@@ -31,6 +33,22 @@ def main():
 
     args = parse_args()
 
+    # Configure logging
+    logging_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(
+        level=logging_level,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler("atm_to_cam.log"),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    numba_logger = logging.getLogger('numba')
+    numba_logger.setLevel(logging.WARNING)
+
+    if args.verbose:
+        logging.debug("Verbose mode is on. More detailed logging information will be shown.")
+
     # Example of using the arguments
     args_dict = {
         "Datasource": args.datasource,
@@ -52,7 +70,7 @@ def main():
     }
 
     for key, value in args_dict.items():
-        print(f"{key}: {value}")
+        logging.debug(f"{key}: {value}")
 
     # Assume these are parsed from command-line arguments
     dycore = args.dycore
@@ -76,39 +94,39 @@ def main():
     # Check if we are using MPAS and the model topo file is provided and exists
     if dycore == "mpas" and model_topo_file:
         if os.path.isfile(model_topo_file):
-            print(f"Setting mpasfile to {model_topo_file}")
+            logging.info(f"Setting mpasfile to {model_topo_file}")
             mpasfile = model_topo_file
         else:
-            print(f"Model topo file {model_topo_file} not found, exiting...")
+            logging.error(f"Model topo file {model_topo_file} not found, exiting...")
             #sys.exit(1)
 
     # Check if mpasfile is set if dycore is "mpas"
     if dycore == "mpas" and mpasfile is None:
-        print("No mpasfile passed in but mpas dycore selected.")
-        print("MPAS init file is needed to mimic + get zcoord from. Exiting...")
+        logging.error("No mpasfile passed in but mpas dycore selected.")
+        logging.error("MPAS init file is needed to mimic + get zcoord from. Exiting...")
         sys.exit(1)
 
     # Error check if CAM data is used as input
     if datasource == "CAM":
         if not mod_in_topo:
-            print("Using CAM data, but no mod_in_topo passed in, exiting...")
+            logging.error("Using CAM data, but no mod_in_topo passed in, exiting...")
             sys.exit(1)
         if not mod_remap_file:
-            print("Using CAM data, but no mod_remap_file passed in, exiting...")
+            logging.error("Using CAM data, but no mod_remap_file passed in, exiting...")
             sys.exit(1)
 
     # Toggle whether the output streams will be floats or doubles
     write_type = "float" if write_floats else "double"
-    print(f"Output type set to: {write_type}")
+    logging.info(f"Output type set to: {write_type}")
 
     # ===== Getting date from YYYYMMDDHH
     yearstr, monthstr, daystr, cyclestr = split_by_lengths(str(YYYYMMDDHH), dtime_map)
 
-    print(f"Regridding analysis from: {yearstr} {monthstr} {daystr} {cyclestr}Z")
+    logging.info(f"Regridding analysis from: {yearstr} {monthstr} {daystr} {cyclestr}Z")
 
-    print("---------------------------------------------------------")
-    print(f"Using this file: {data_filename}")
-    print(f"Using this remap: {wgt_filename}")
+    logging.info("---------------------------------------------------------")
+    logging.info(f"Using this file: {data_filename}")
+    logging.info(f"Using this remap: {wgt_filename}")
 
     hya, hyb, hyai, hybi, lev, ilev = load_cam_levels(PATHTOHERE, numlevels)
 
@@ -119,11 +137,13 @@ def main():
     elif datasource == 'CAM':
         data_vars = load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, debug=True)
 
-    print("Input Data Level information")
-    print(f"Number: {len(data_vars['lev'])}")
-    print(f"Max: {np.max(data_vars['lev'])}")
-    print(f"Min: {np.min(data_vars['lev'])}")
-    print(f"Input Coords: nlat: {len(data_vars['lat'])}, nlon: {len(data_vars['lon'])}")
+    logging.info("Input Data Level information")
+    logging.info(f"Number: {len(data_vars['lev'])}")
+    logging.info(f"Max: {np.max(data_vars['lev'])}")
+    logging.info(f"Min: {np.min(data_vars['lev'])}")
+    logging.info(f"Input Coords: nlat: {len(data_vars['lat'])}, nlon: {len(data_vars['lon'])}")
+
+    print_elapsed_time(msg="Got datavars")
 
     if dycore == "mpas":
         # Initialize variables

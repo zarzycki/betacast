@@ -45,8 +45,10 @@ def _geo_height_extrapolate(t_bot, lev, p_sfc, ps, phi_sfc):
     hgt = phi_sfc * g_inv
     t0 = tstar + 0.0065 * hgt
 
+    epsilon = 1e-12
+    # Added epsilon so we don't divide by zero
     alph = np.where((tstar <= 290.5) & (t0 > 290.5),
-                    R_d / phi_sfc * (290.5 - tstar), alpha)
+                    R_d / (phi_sfc + epsilon) * (290.5 - tstar), alpha)
 
     alph = np.where((tstar > 290.5) & (t0 > 290.5), 0, alph)
     tstar = np.where((tstar > 290.5) & (t0 > 290.5), 0.5 * (290.5 + tstar), tstar)
