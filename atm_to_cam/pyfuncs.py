@@ -474,16 +474,15 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 
     if dycore == 'mpas':
         # Calculate omega
+        data_vars['w_is_omega'] = True
         if grb_file["lat"][0] > grb_file["lat"][1]:
             print("flipping omega since calc needs to be S->N")
-            data_vars['omega'] = omega_ccm_driver(p0, data_vars['ps'][::-1, :], data_vars['u'][:, ::-1, :], data_vars['v'][:, ::-1, :], data_vars['lat'][::-1], data_vars['lon'], hyam, hybm, hyai, hybi)
-            data_vars['omega'] = data_vars['omega'][:, ::-1, :]  # flip back
+            data_vars['w'] = omega_ccm_driver(p0, data_vars['ps'][::-1, :], data_vars['u'][:, ::-1, :], data_vars['v'][:, ::-1, :], data_vars['lat'][::-1], data_vars['lon'], hyam, hybm, hyai, hybi)
+            data_vars['w'] = data_vars['w'][:, ::-1, :]  # flip back
         else:
-            data_vars['omega'] = omega_ccm_driver(p0, data_vars['ps'], data_vars['u'], data_vars['v'], data_vars['lat'], data_vars['lon'], hyam, hybm, hyai, hybi)
-        data_vars['w_is_omega'] = True
-
+            data_vars['w'] = omega_ccm_driver(p0, data_vars['ps'], data_vars['u'], data_vars['v'], data_vars['lat'], data_vars['lon'], hyam, hybm, hyai, hybi)
         # Remove omega poleward of OMEGA_LAT_THRESH to deal with singularity
-        data_vars['omega'] = np.where(np.abs(data_vars['lat'])[np.newaxis, :, np.newaxis] > OMEGA_LAT_THRESH, 0.0, data_vars['omega'])
+        data_vars['w'] = np.where(np.abs(data_vars['lat'])[np.newaxis, :, np.newaxis] > OMEGA_LAT_THRESH, 0.0, data_vars['w'])
 
         #data_vars['div'] = ddvfidf_wrapper(data_vars['u'], data_vars['v'], data_vars['lat'], data_vars['lon'], 3)
 
@@ -505,29 +504,24 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
               u_cam=(["lev", "lat", "lon"], data_vars['u']),
               v_cam=(["lev", "lat", "lon"], data_vars['v']),
               q_cam=(["lev", "lat", "lon"], data_vars['q']),
-              tkv_cam=(["lev", "lat", "lon"], data_vars['tkv']),
+              #tkv_cam=(["lev", "lat", "lon"], data_vars['tkv']),
               z_cam=(["lev", "lat", "lon"], data_vars['z']),
-              dpsl_cam=(["lat", "lon"], data_vars['dpsl']),
-              dpsm_cam=(["lat", "lon"], data_vars['dpsm']),
-              div_cam=(["lev", "lat", "lon"], data_vars['div']),
-              pdel_cam=(["lev", "lat", "lon"], data_vars['pdel']),
-              pmid_cam=(["lev", "lat", "lon"], data_vars['pmid']),
-              omega_cam=(["lev", "lat", "lon"], data_vars['omega']),
+              #dpsl_cam=(["lat", "lon"], data_vars['dpsl']),
+              #dpsm_cam=(["lat", "lon"], data_vars['dpsm']),
+              #div_cam=(["lev", "lat", "lon"], data_vars['div']),
+              #pdel_cam=(["lev", "lat", "lon"], data_vars['pdel']),
+              #pmid_cam=(["lev", "lat", "lon"], data_vars['pmid']),
+              w_cam=(["lev", "lat", "lon"], data_vars['w']),
               lat=(["lat"], data_vars['lat']),
               lon=(["lon"], data_vars['lon'])
         )
-
-        # Calculate Z
-        tkv_rll = data_vars['t'] * (1. + 0.61 * data_vars['q'])
-        z_rll = cz2ccm(data_vars['ps'], phis_rll, tkv_rll, p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
-        z_rll.coords["lat"] = data_vars['t'].coords["lat"]
-        z_rll.coords["lon"] = data_vars['t'].coords["lon"]
 
     print_min_max_dict(data_vars)
 
     # Vertically interpolate the CAM hybrid levels to constant pressure surfaces
     data_vars = interp_hybrid_to_pressure_wrapper(
         data_vars=data_vars,
+        ps=data_vars['ps'],
         hyam=hyam,
         hybm=hybm,
         new_levels=data_vars['lev']
@@ -536,22 +530,19 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
     data_vars['cldice'] = np.zeros_like(data_vars['t'])
     data_vars['cldliq'] = np.zeros_like(data_vars['t'])
 
-    if dycore == "mpas":
-        data_vars['w'] = vinth2p_ecmwf(omega_rll, hyam, hybm, grblev / 100, data_vars['ps'], intyp, P0mb, 1, kxtrp, 0, tbot_mod, phis_rll)
-        data_vars['w_is_omega'] = True
-        data_vars['z'] = vinth2p_ecmwf(z_rll, hyam, hybm, grblev / 100, data_vars['ps'], intyp, P0mb, 1, kxtrp, -1, tbot_mod, phis_rll)
-        data_vars['z_is_phi'] = False
-
     return data_vars
 
-def interp_hybrid_to_pressure_wrapper(data_vars, hyam, hybm, new_levels, lev_dim=0, method='log', extrapolate=True):
+def interp_hybrid_to_pressure_wrapper(data_vars, ps, hyam, hybm, new_levels, lev_dim=0, method='log', extrapolate=True):
+
+    allowable_interp_vars = ['t', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w']
+
     for var_name, data in data_vars.items():
-        if data.ndim == 3:
+        if isinstance(data, np.ndarray) and data.ndim == 3:
             variable_type = 'temperature' if var_name == 't' else 'geopotential' if var_name == 'z' else 'other'
             print(f"interp_hybrid_to_pressure for variable {var_name}, using {variable_type}")
             data_vars[var_name] = interp_hybrid_to_pressure(
                 data=data,
-                ps=data_vars['ps'],
+                ps=ps,
                 hyam=hyam,
                 hybm=hybm,
                 new_levels=new_levels,
