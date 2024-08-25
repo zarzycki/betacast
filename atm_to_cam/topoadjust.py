@@ -1,14 +1,13 @@
 import numpy as np
 import xarray as xr
 import os
-import glob
-import horizremap
 import vertremap
 from constants import grav, Rd, gamma_s, p0, vert_interp_thresh, extrap_threshold
-from numba import jit
-
-from pyfuncs import *
+import pyfuncs
 import packing
+import logging
+logger = logging.getLogger(__name__)
+
 
 def load_model_orography(dycore, model_topo_file, dim_sePS):
     """Load model orography based on dycore type."""
@@ -26,18 +25,15 @@ def load_model_orography(dycore, model_topo_file, dim_sePS):
         return ttfile["PHIS"].values
 
 
-
 def correct_state_variables(data_horiz, correct_or_not, tempadjustflag, dycore):
 
     vert_corrs = 0
     tcorriter = 0
 
-    print_min_max_dict(data_horiz)
+    pyfuncs.print_min_max_dict(data_horiz)
 
     dim_sePS = data_horiz['ps'].shape
     ncol = dim_sePS[0]
-
-    print(ncol)
 
     for kk in range(ncol):
         if not np.isnan(data_horiz['ts'][kk]):
@@ -71,20 +67,16 @@ def correct_state_variables(data_horiz, correct_or_not, tempadjustflag, dycore):
                 pm_corr = data_horiz['hya'] * p0 + data_horiz['hyb'] * data_horiz['ps'][kk]
                 linlog = 2 if abs(ps_orig - data_horiz['ps'][kk]) > extrap_threshold else -2
 
-                data_horiz['t'][:, kk]      = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['t'][:, kk], pm_corr, linlog)), data_horiz['t'][:, kk], vertremap.int2p(pm_orig, data_horiz['t'][:, kk], pm_corr, linlog))
-                data_horiz['q'][:, kk]      = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['q'][:, kk], pm_corr, linlog)), data_horiz['q'][:, kk], vertremap.int2p(pm_orig, data_horiz['q'][:, kk], pm_corr, linlog))
-                data_horiz['u'][:, kk]      = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['u'][:, kk], pm_corr, linlog)), data_horiz['u'][:, kk], vertremap.int2p(pm_orig, data_horiz['u'][:, kk], pm_corr, linlog))
-                data_horiz['v'][:, kk]      = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['v'][:, kk], pm_corr, linlog)), data_horiz['v'][:, kk], vertremap.int2p(pm_orig, data_horiz['v'][:, kk], pm_corr, linlog))
+                data_horiz['t'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['t'][:, kk], pm_corr, linlog)), data_horiz['t'][:, kk], vertremap.int2p(pm_orig, data_horiz['t'][:, kk], pm_corr, linlog))
+                data_horiz['q'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['q'][:, kk], pm_corr, linlog)), data_horiz['q'][:, kk], vertremap.int2p(pm_orig, data_horiz['q'][:, kk], pm_corr, linlog))
+                data_horiz['u'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['u'][:, kk], pm_corr, linlog)), data_horiz['u'][:, kk], vertremap.int2p(pm_orig, data_horiz['u'][:, kk], pm_corr, linlog))
+                data_horiz['v'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['v'][:, kk], pm_corr, linlog)), data_horiz['v'][:, kk], vertremap.int2p(pm_orig, data_horiz['v'][:, kk], pm_corr, linlog))
                 data_horiz['cldice'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['cldice'][:, kk], pm_corr, linlog)), data_horiz['cldice'][:, kk], vertremap.int2p(pm_orig, data_horiz['cldice'][:, kk], pm_corr, linlog))
                 data_horiz['cldliq'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['cldliq'][:, kk], pm_corr, linlog)), data_horiz['cldliq'][:, kk], vertremap.int2p(pm_orig, data_horiz['cldliq'][:, kk], pm_corr, linlog))
 
                 vert_corrs += 1
 
     return vert_corrs, tcorriter, correct_or_not
-
-
-
-
 
 
 def topo_adjustment(data_horiz, dycore, model_topo_file, adjust_config):
@@ -94,34 +86,32 @@ def topo_adjustment(data_horiz, dycore, model_topo_file, adjust_config):
     correct_or_not = np.zeros_like(data_horiz['ps']).astype(np.float32)
 
     if dycore != "mpas" and model_topo_file and os.path.exists(model_topo_file):
-        print(f"TOPOADJUST: Performing hydrostatic correction for surface pressure using {model_topo_file}")
+        logging.info(f"TOPOADJUST: Performing hydrostatic correction for surface pressure using {model_topo_file}")
 
         tempadjustflag = adjust_config[0] if adjust_config else ""
-        print(f"TOPOADJUST: tempadjustflag set to: {tempadjustflag}")
+        logging.info(f"TOPOADJUST: tempadjustflag set to: {tempadjustflag}")
 
         data_horiz['phis_SE'] = load_model_orography(dycore, model_topo_file, dim_sePS)
 
         if dycore == "fv":
-            print("TOPOADJUST_FV: unpacking fv vars")
-            data_horiz['phis_SE'] = packing.latlon_to_ncol( data_horiz['phis_SE'])
-
-        ncol = dim_sePS[0]
+            logging.info("TOPOADJUST_FV: unpacking fv vars")
+            data_horiz['phis_SE'] = packing.latlon_to_ncol(data_horiz['phis_SE'])
 
         vert_corrs, tcorriter, correct_or_not = correct_state_variables(data_horiz, correct_or_not, tempadjustflag, dycore)
 
-        print(f"needed to correct {vert_corrs} vertical profiles for updated PS")
-        print(f"needed to correct {tcorriter} temps for being too cold or too hot")
+        logging.info(f"needed to correct {vert_corrs} vertical profiles for updated PS")
+        logging.info(f"needed to correct {tcorriter} temps for being too cold or too hot")
 
     elif model_topo_file in [" ", "NULL", ""]:
-        print("Empty model topo file entered, not performing hydro adjustment")
-        print("continuing...")
+        logging.info("Empty model topo file entered, not performing hydro adjustment")
+        logging.info("continuing...")
     elif model_topo_file and not os.path.exists(model_topo_file):
-        print("model_topo_file passed in but cannot find file on Unix system")
-        print("if you do not want adjustment, specify NULL in the namelist")
-        print("exiting...")
+        logging.info("model_topo_file passed in but cannot find file on Unix system")
+        logging.info("if you do not want adjustment, specify NULL in the namelist")
+        logging.info("exiting...")
         return
     else:
-        print("No model topo file passed into script, not performing hydro adjustment")
-        print("continuing...")
+        logging.info("No model topo file passed into script, not performing hydro adjustment")
+        logging.info("continuing...")
 
     return correct_or_not

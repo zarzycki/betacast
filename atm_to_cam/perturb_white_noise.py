@@ -1,7 +1,6 @@
 import numpy as np
 from netCDF4 import Dataset
 import sys
-import os
 import datetime
 
 # Usage: python perturb_white_noise.py /path/to/input/file.nc
@@ -92,4 +91,3 @@ basFile.variables['Q'][:] = q
 basFile.close()
 
 print("... done")
-

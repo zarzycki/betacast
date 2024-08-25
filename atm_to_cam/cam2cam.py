@@ -1,6 +1,7 @@
 import numpy as np
-import xarray as xr
-from timing import start_time, print_elapsed_time
+from numba import njit
+import logging
+logger = logging.getLogger(__name__)
 
 def omega_ccm(u, v, div, dpsl, dpsm, pmid, pdel, psfc, hybdif, hybm, nprlev):
     """
@@ -42,21 +43,21 @@ def omega_ccm(u, v, div, dpsl, dpsm, pmid, pdel, psfc, hybdif, hybm, nprlev):
     """
 
     # Print the shapes of the input variables
-    print(f"u shape: {u.shape}")
-    print(f"v shape: {v.shape}")
-    print(f"div shape: {div.shape}")
-    print(f"dpsl shape: {dpsl.shape}")
-    print(f"dpsm shape: {dpsm.shape}")
-    print(f"pmid shape: {pmid.shape}")
-    print(f"pdel shape: {pdel.shape}")
-    print(f"psfc shape: {psfc.shape}")
-    print(f"hybdif shape: {hybdif.shape}")
-    print(f"hybm shape: {hybm.shape}")
-    print(f"nprlev: {nprlev}")
+    logging.info(f"u shape: {u.shape}")
+    logging.info(f"v shape: {v.shape}")
+    logging.info(f"div shape: {div.shape}")
+    logging.info(f"dpsl shape: {dpsl.shape}")
+    logging.info(f"dpsm shape: {dpsm.shape}")
+    logging.info(f"pmid shape: {pmid.shape}")
+    logging.info(f"pdel shape: {pdel.shape}")
+    logging.info(f"psfc shape: {psfc.shape}")
+    logging.info(f"hybdif shape: {hybdif.shape}")
+    logging.info(f"hybm shape: {hybm.shape}")
+    logging.info(f"nprlev: {nprlev}")
 
     klev, jlat, ilon = u.shape[-3], u.shape[-2], u.shape[-1]
 
-    print(f"ilon: {ilon}, jlat: {jlat}, klev: {klev}")
+    logging.info(f"ilon: {ilon}, jlat: {jlat}, klev: {klev}")
 
     omega = np.zeros_like(u)
 
@@ -155,7 +156,7 @@ def calculate_gradients(psfc, lat, lon):
 
     # Check if lat is descending
     if lat[0] > lat[-1]:
-        print("Flipping dpsm because lats are descending")
+        logging.info("Flipping dpsm because lats are descending")
         dpsm = -dpsm
 
     return dpsl, dpsm
@@ -255,7 +256,7 @@ def omega_ccm_driver(p0, psfc, u, v, lat, lon, hyam, hybm, hyai, hybi):
 
     # Check if lat is descending
     if lat[0] > lat[-1]:
-        print("Flipping lats in omega_ccm")
+        logging.info("Flipping lats in omega_ccm")
         flip_lats=True
     else:
         flip_lats=False
@@ -269,8 +270,6 @@ def omega_ccm_driver(p0, psfc, u, v, lat, lon, hyam, hybm, hyai, hybi):
     # Determine the number of pure pressure levels
     nprlev = np.argmax(hybi != 0) if np.any(hybi != 0) else 0
 
-    print_elapsed_time(msg="omegaccm: done setup")
-
     # Calculate layer pressure thicknesses (pdel) and mid-level pressures (pmid)
     if flip_lats:
         pdel = dpres_hybrid_ccm(psfc[::-1,:], p0, hyai, hybi)
@@ -278,20 +277,16 @@ def omega_ccm_driver(p0, psfc, u, v, lat, lon, hyam, hybm, hyai, hybi):
     else:
         pdel = dpres_hybrid_ccm(psfc, p0, hyai, hybi)
         pmid = pres_hybrid_ccm(psfc, p0, hyam, hybm)
-    print_elapsed_time(msg="omegaccm: done pressures")
 
     # Calculate gradients of log(psfc)
     dpsl, dpsm = calculate_gradients(psfc, lat, lon)
-    print_elapsed_time(msg="omegaccm: Done gradients")
 
     # Calculate divergence on Gaussian grid
     #div, vort = calculate_div_vort(lat, lon, u, v)
     div = ddvfidf_wrapper(u,v,lat,lon,3)
-    print_elapsed_time(msg="omegaccm: Done div")
 
     # Call omega_ccm to calculate omega
     omega = omega_ccm(u, v, div, dpsl, dpsm, pmid, pdel, psfc, hybd, hybm, nprlev)
-    print_elapsed_time(msg="omegaccm: Done OMEGA")
 
     return omega
 
@@ -418,19 +413,19 @@ def cz2ccm(ps, phis, tv, p0, hyam, hybm, hyai, hybi, debug=False):
     """
 
     if debug:
-        print("cz2ccm function called with the following inputs:")
-        print(f"ps.shape: {ps.shape}")
-        print(f"phis.shape: {phis.shape}")
-        print(f"tv.shape: {tv.shape}")
-        print(f"p0: {p0}")
-        print(f"hyam.shape: {hyam.shape}")
-        print(f"hybm.shape: {hybm.shape}")
-        print(f"hyai.shape: {hyai.shape}")
-        print(f"hybi.shape: {hybi.shape}")
-        print(hyam)
-        print(hybm)
-        print(hyai)
-        print(hybi)
+        logging.info("cz2ccm function called with the following inputs:")
+        logging.info(f"ps.shape: {ps.shape}")
+        logging.info(f"phis.shape: {phis.shape}")
+        logging.info(f"tv.shape: {tv.shape}")
+        logging.info(f"p0: {p0}")
+        logging.info(f"hyam.shape: {hyam.shape}")
+        logging.info(f"hybm.shape: {hybm.shape}")
+        logging.info(f"hyai.shape: {hyai.shape}")
+        logging.info(f"hybi.shape: {hybi.shape}")
+        logging.info(hyam)
+        logging.info(hybm)
+        logging.info(hyai)
+        logging.info(hybi)
 
     nlat, mlon = ps.shape
     klev = len(hyam)
@@ -441,10 +436,10 @@ def cz2ccm(ps, phis, tv, p0, hyam, hybm, hyai, hybi, debug=False):
     pterm = np.zeros((klev, nlat, mlon))
 
     if debug:
-        print(f"nlat: {nlat}, mlon: {mlon}, klev: {klev}, klev1: {klev1}")
-        print(f"z2.shape: {z2.shape}")
-        print(f"pmln.shape: {pmln.shape}")
-        print(f"pterm.shape: {pterm.shape}")
+        logging.info(f"nlat: {nlat}, mlon: {mlon}, klev: {klev}, klev1: {klev1}")
+        logging.info(f"z2.shape: {z2.shape}")
+        logging.info(f"pmln.shape: {pmln.shape}")
+        logging.info(f"pterm.shape: {pterm.shape}")
 
     hyba = np.zeros((2, klev + 1))
     hybb = np.zeros((2, klev + 1))
@@ -458,9 +453,9 @@ def cz2ccm(ps, phis, tv, p0, hyam, hybm, hyai, hybi, debug=False):
     hybb[1, 1:klev1] = hybm
 
     if debug:
-        print("Intermediate arrays initialized.")
-        print(f"hyba.shape: {hyba.shape}")
-        print(f"hybb.shape: {hybb.shape}")
+        logging.info("Intermediate arrays initialized.")
+        logging.info(f"hyba.shape: {hyba.shape}")
+        logging.info(f"hybb.shape: {hybb.shape}")
 
     pmln[0, :, :] = np.log(p0 * hyba[1, klev] + ps * hybb[0, klev])
     pmln[-1, :, :] = np.log(p0 * hyba[1, 0] + ps * hybb[0, 0])
@@ -516,12 +511,14 @@ def ddvfidf_wrapper(u, v, glat, glon, iopt, xmsg=np.nan):
     if u.ndim == 2:
         # Transpose if needed so that u.shape matches (nlat, mlon)
         if u.shape != (len(glon), len(glat)):
+            logging.debug(f"ddvfidf_wrapper: transposing u/v to mlon by nlat")
             u = u.T
             v = v.T
             transposed = True
 
         # Check if latitude is descending and flip if necessary
         if glat[0] > glat[-1]:
+            logging.debug(f"ddvfidf_wrapper: flipping latitudes")
             glat = glat[::-1]
             u = u[:, ::-1]
             v = v[:, ::-1]
@@ -535,25 +532,29 @@ def ddvfidf_wrapper(u, v, glat, glon, iopt, xmsg=np.nan):
 
         # Transpose if needed so that u.shape matches (nlev, nlat, mlon)
         if u.shape[1:] != (len(glon), len(glat)):
+            logging.debug(f"ddvfidf_wrapper: transposing u/v to mlon by nlat")
             u = u.transpose(0, 2, 1)
             v = v.transpose(0, 2, 1)
             transposed = True
 
         # Check if latitude is descending and flip if necessary
         if glat[0] > glat[-1]:
+            logging.debug(f"ddvfidf_wrapper: flipping latitudes")
             glat = glat[::-1]
             u = u[:, :, ::-1]
             v = v[:, :, ::-1]
             flipped = True
 
+        # Initialize div array
         div = np.full((nlev, mlon, nlat), xmsg)
 
+        logging.debug(f"ddvfidf_wrapper: iopt {iopt}")
+        logging.debug(f"ddvfidf_wrapper: u.shape {u.shape}")
+        logging.debug(f"ddvfidf_wrapper: v.shape {v.shape}")
+        logging.debug(f"ddvfidf_wrapper: glat.shape {glat.shape}")
+        logging.debug(f"ddvfidf_wrapper: glon.shape {glon.shape}")
+
         # Compute divergence for each level
-        print(iopt)
-        print(u.shape)
-        print(v.shape)
-        print(glat.shape)
-        print(glon.shape)
         for lev in range(nlev):
             div[lev, :, :] = ddvfidf(u[lev, :, :], v[lev, :, :], glat, glon, iopt, xmsg)
 
@@ -562,14 +563,15 @@ def ddvfidf_wrapper(u, v, glat, glon, iopt, xmsg=np.nan):
 
     # Revert the flip and transpose state if they were applied
     if flipped:
+        logging.debug(f"ddvfidf_wrapper: flipping latitude back in div")
         div = div[:, :, ::-1] if div.ndim == 3 else div[:, ::-1]
 
     if transposed:
+        logging.debug(f"ddvfidf_wrapper: transposing div back to nlat x mlon")
         div = div.transpose(0, 2, 1) if div.ndim == 3 else div.T
 
     return div
 
-from numba import njit
 
 @njit
 def ddvfidf(u, v, glat, glon, iopt, xmsg=np.nan):

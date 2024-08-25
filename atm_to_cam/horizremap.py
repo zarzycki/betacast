@@ -1,8 +1,10 @@
 import numpy as np
 import xarray as xr
-#from numba import jit
 import time
 import scipy.sparse as sp
+import logging
+logger = logging.getLogger(__name__)
+
 
 def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, **kwargs):
     """
@@ -20,9 +22,9 @@ def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_g
     """
 
     if src_grid_type == "structured":
-        FLATTENTYPE="C"
+        FLATTENTYPE = "C"
     elif src_grid_type == "unstructured":
-        FLATTENTYPE="F"
+        FLATTENTYPE = "F"
     else:
         raise ValueError(f"Unknown grid type: {src_grid_type}")
 
@@ -38,6 +40,7 @@ def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_g
     data_out = np.reshape(field_target, dst_grid_dims, order="F")
 
     return data_out
+
 
 def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
     """
@@ -62,16 +65,16 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
     src_grid_dims = xwgt['src_grid_dims'].values
     dst_grid_dims = xwgt['dst_grid_dims'].values
 
-    print(f"Src grid dims: {src_grid_dims}, dst grid dims: {dst_grid_dims}")
+    logging.info(f"Src grid dims: {src_grid_dims}, dst grid dims: {dst_grid_dims}")
     src_grid_type = "structured" if src_grid_dims.size == 2 else "unstructured"
     dst_grid_type = "structured" if dst_grid_dims.size == 2 else "unstructured"
-    print(f"Src grid type: {src_grid_type}, Dst grid type: {dst_grid_type}")
+    logging.info(f"Src grid type: {src_grid_type}, Dst grid type: {dst_grid_type}")
 
     n_a = xwgt['n_a'].size  # col dimension
     n_b = xwgt['n_b'].size  # row dimension
     n_s = xwgt['n_s'].size  # nnz dimension
 
-    print("Map contains {0} rows, {1} cols and {2} nnz values".format(n_b, n_a, n_s))
+    logging.info("Map contains {0} rows, {1} cols and {2} nnz values".format(n_b, n_a, n_s))
 
     rows = xwgt['row'][:] - 1  # row indices (1-based to 0-based)
     cols = xwgt['col'][:] - 1  # col indices (1-based to 0-based)
@@ -104,16 +107,16 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
         slice_2d = src_data[idx]
 
         if isinstance(slice_2d, xr.DataArray):
-            print("converting slice_2d to numpy")
+            logging.info("converting slice_2d to numpy")
             slice_2d = slice_2d.values  # Convert to numpy.ndarray
 
-        #print(f"slice_2d shape before newaxis: {slice_2d.shape} and type: {type(slice_2d)}")
+        logging.debug(f"slice_2d shape before newaxis: {slice_2d.shape} and type: {type(slice_2d)}")
 
         # Apply the regridding to this slice
         if src_grid_type == "structured":
             regridded_slice = remap_with_weights(slice_2d[np.newaxis, :, :], sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, **kwargs)
         elif src_grid_type == "unstructured":
-            regridded_slice = remap_with_weights(slice_2d[np.newaxis, :]   , sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, **kwargs)
+            regridded_slice = remap_with_weights(slice_2d[np.newaxis, :], sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, **kwargs)
         else:
             raise ValueError(f"Unknown grid type: {src_grid_type}")
 
@@ -121,7 +124,7 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
         regridded_data[idx] = regridded_slice
 
     elapsed_time = time.time() - start_time
-    print(f"Regridding completed in {elapsed_time:.2f} seconds.")
+    logging.info(f"Regridding completed in {elapsed_time:.2f} seconds.")
 
     if dst_grid_type == "structured":
         # Swap the last two axes to go from lon, lat axes to lat, lon.
@@ -130,8 +133,8 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
         # This probably breaks for curvilinear grids
         dstlat = np.reshape(dstlat.values, dst_grid_dims, order="F")
         dstlon = np.reshape(dstlon.values, dst_grid_dims, order="F")
-        dstlat = dstlat[0,:]
-        dstlon = dstlon[:,0]
+        dstlat = dstlat[0, :]
+        dstlon = dstlon[:, 0]
     else:
         # Otherwise, just return 1D ncol
         dstlat = dstlat.values
@@ -148,7 +151,7 @@ def remap_all(data_in, wgt_filename, dycore='se'):
 
     # Loop ovr the keys in data_in and interpolate if the key is in allowable_interp_vars
     for key in data_in:
-        print(key)
+        logging.info(key)
         if key in allowable_interp_vars:
             data_out[key], _, _ = remap_with_weights_wrapper(data_in[key], wgt_filename)
         else:
@@ -157,3 +160,85 @@ def remap_all(data_in, wgt_filename, dycore='se'):
     data_out['ps'], data_out['lat'], data_out['lon'] = remap_with_weights_wrapper(data_in['ps'], wgt_filename)
 
     return data_out
+
+
+def uv_cell_to_edge(uZonal, uMerid, nlev, lonEdge, latEdge, lonCell, latCell, edgeNormalVectors, cellsOnEdge):
+    """
+    Converts zonal and meridional wind components from cell centers to edge centers.
+
+    Parameters:
+    -----------
+    uZonal : numpy.ndarray
+        Zonal wind component at cell centers, shape (nlev, nCells).
+    uMerid : numpy.ndarray
+        Meridional wind component at cell centers, shape (nlev, nCells).
+    nlev : int
+        Number of vertical levels.
+    lonEdge : numpy.ndarray
+        Longitudes of edge centers, shape (nEdges,).
+    latEdge : numpy.ndarray
+        Latitudes of edge centers, shape (nEdges,).
+    lonCell : numpy.ndarray
+        Longitudes of cell centers, shape (nCells,).
+    latCell : numpy.ndarray
+        Latitudes of cell centers, shape (nCells,).
+    edgeNormalVectors : numpy.ndarray
+        Edge normal vectors, shape (nEdges, 3).
+    cellsOnEdge : numpy.ndarray
+        Cell indices on edges, shape (nEdges, 2).
+
+    Returns:
+    --------
+    uNormal : numpy.ndarray
+        Normal wind component at edge centers, shape (nlev, nEdges).
+    """
+
+    nCells = len(lonCell)
+    nEdges = len(lonEdge)
+
+    east = np.zeros((3, nCells))
+    north = np.zeros((3, nCells))
+
+    for iCell in range(nCells):
+        east[0, iCell] = -np.sin(lonCell[iCell])
+        east[1, iCell] = np.cos(lonCell[iCell])
+        east[2, iCell] = 0.0
+
+        # Normalize
+        east[:, iCell] /= np.sqrt(np.sum(east[:, iCell] ** 2))
+
+        north[0, iCell] = -np.cos(lonCell[iCell]) * np.sin(latCell[iCell])
+        north[1, iCell] = -np.sin(lonCell[iCell]) * np.sin(latCell[iCell])
+        north[2, iCell] = np.cos(latCell[iCell])
+
+        # Normalize
+        north[:, iCell] /= np.sqrt(np.sum(north[:, iCell] ** 2))
+
+    uNormal = np.zeros((nlev, nEdges), dtype=uZonal.dtype)
+
+    for iEdge in range(nEdges):
+        if iEdge % 10000 == 0:
+            logging.info(f"... UV_CELL_TO_EDGE: {100. * iEdge / (nEdges - 1):.2f}%")
+
+        cell1 = cellsOnEdge[iEdge, 0] - 1
+        cell2 = cellsOnEdge[iEdge, 1] - 1
+
+        uNormal[:, iEdge] = (
+            uZonal[:, cell1] * 0.5 * (edgeNormalVectors[iEdge, 0] * east[0, cell1] +
+                                      edgeNormalVectors[iEdge, 1] * east[1, cell1] +
+                                      edgeNormalVectors[iEdge, 2] * east[2, cell1])
+            +
+            uMerid[:, cell1] * 0.5 * (edgeNormalVectors[iEdge, 0] * north[0, cell1] +
+                                      edgeNormalVectors[iEdge, 1] * north[1, cell1] +
+                                      edgeNormalVectors[iEdge, 2] * north[2, cell1])
+            +
+            uZonal[:, cell2] * 0.5 * (edgeNormalVectors[iEdge, 0] * east[0, cell2] +
+                                      edgeNormalVectors[iEdge, 1] * east[1, cell2] +
+                                      edgeNormalVectors[iEdge, 2] * east[2, cell2])
+            +
+            uMerid[:, cell2] * 0.5 * (edgeNormalVectors[iEdge, 0] * north[0, cell2] +
+                                      edgeNormalVectors[iEdge, 1] * north[1, cell2] +
+                                      edgeNormalVectors[iEdge, 2] * north[2, cell2])
+        )
+
+    return uNormal

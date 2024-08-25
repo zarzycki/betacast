@@ -1,55 +1,35 @@
 import os
-import numpy as np
-import xarray as xr
-import argparse
 import sys
-import timing
 import logging
 
-from pyfuncs import *
-import mpas
+import numpy as np
+import xarray as xr
+
+import pyfuncs
 import vertremap
 import horizremap
 import topoadjust
 import packing
+import loaddata
+import meteo
 
 from constants import (
     p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH,
-    ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas
+    ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav
 )
 
+args = pyfuncs.parse_args()
+
+pyfuncs.configure_logging(args.verbose)
+
+
 def main():
+    logger = logging.getLogger(__name__)
+    logger.info("Main function started")
 
-    # Check environment variable
-    BETACAST = os.getenv("BETACAST")
-    if BETACAST is None:
-        print("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
-        local_only = True
-        PATHTOHERE = "./"
-    else:
-        print("Not local only!")
-        local_only = False
-        PATHTOHERE = os.path.join(BETACAST, "atm_to_cam")
+    # Is the Betacast path available to us?
+    local_only, PATHTOHERE = pyfuncs.get_betacast_path()
 
-    args = parse_args()
-
-    # Configure logging
-    logging_level = logging.DEBUG if args.verbose else logging.INFO
-    logging.basicConfig(
-        level=logging_level,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler("atm_to_cam.log"),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-    numba_logger = logging.getLogger('numba')
-    numba_logger.setLevel(logging.WARNING)
-
-    if args.verbose:
-        logging.debug("Verbose mode is on. More detailed logging information will be shown.")
-
-    # Example of using the arguments
     args_dict = {
         "Datasource": args.datasource,
         "Number of levels": args.numlevels,
@@ -70,7 +50,7 @@ def main():
     }
 
     for key, value in args_dict.items():
-        logging.debug(f"{key}: {value}")
+        logging.info(f"{key}: {value}")
 
     # Assume these are parsed from command-line arguments
     dycore = args.dycore
@@ -97,8 +77,8 @@ def main():
             logging.info(f"Setting mpasfile to {model_topo_file}")
             mpasfile = model_topo_file
         else:
-            logging.error(f"Model topo file {model_topo_file} not found, exiting...")
-            #sys.exit(1)
+            logging.error(f"MPAS set and model topo file {model_topo_file} not found, exiting...")
+            sys.exit(1)
 
     # Check if mpasfile is set if dycore is "mpas"
     if dycore == "mpas" and mpasfile is None:
@@ -120,7 +100,7 @@ def main():
     logging.info(f"Output type set to: {write_type}")
 
     # ===== Getting date from YYYYMMDDHH
-    yearstr, monthstr, daystr, cyclestr = split_by_lengths(str(YYYYMMDDHH), dtime_map)
+    yearstr, monthstr, daystr, cyclestr = pyfuncs.split_by_lengths(str(YYYYMMDDHH), dtime_map)
 
     logging.info(f"Regridding analysis from: {yearstr} {monthstr} {daystr} {cyclestr}Z")
 
@@ -128,22 +108,23 @@ def main():
     logging.info(f"Using this file: {data_filename}")
     logging.info(f"Using this remap: {wgt_filename}")
 
-    hya, hyb, hyai, hybi, lev, ilev = load_cam_levels(PATHTOHERE, numlevels)
+    hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(PATHTOHERE, numlevels)
 
+    # IMPORTANT! data_vars should be organized top-to-bottom when loaddata returns
+    # (i.e., lowest pressure/highest z at 0 index of lev)
+    # I attempt to account for this elsewhere in the code with flips, but make no promises
     if datasource == 'GFS':
-        data_vars = load_CFSR_data(data_filename, dycore)
+        data_vars = loaddata.load_CFSR_data(data_filename, dycore)
     elif datasource == 'ERA5RDA':
-        data_vars = load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
+        data_vars = loaddata.load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
     elif datasource == 'CAM':
-        data_vars = load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, debug=True)
+        data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, debug=True)
 
     logging.info("Input Data Level information")
     logging.info(f"Number: {len(data_vars['lev'])}")
     logging.info(f"Max: {np.max(data_vars['lev'])}")
     logging.info(f"Min: {np.min(data_vars['lev'])}")
     logging.info(f"Input Coords: nlat: {len(data_vars['lat'])}, nlon: {len(data_vars['lon'])}")
-
-    print_elapsed_time(msg="Got datavars")
 
     if dycore == "mpas":
         # Initialize variables
@@ -155,80 +136,80 @@ def main():
 
         # If w is omega (Pa/s), convert to vertical velocity in m/s
         if data_vars['w_is_omega']:
-            data_vars['w'] = omega_to_w(data_vars['w'], data_vars['pres'], data_vars['t'])
+            data_vars['w'] = meteo.omega_to_w(data_vars['w'], data_vars['pres'], data_vars['t'])
 
         # Smooth w if needed
         if w_smooth_iter > 0:
-            data_vars['w'] = smooth_with_gaussian(data_vars['w'], w_smooth_iter)
+            data_vars['w'] = pyfuncs.smooth_with_gaussian(data_vars['w'], w_smooth_iter)
 
         # If z is reported in geopotential, convert to geometric height
         if data_vars['z_is_phi']:
             data_vars['z'] = data_vars['z'] / grav
 
         # Calculate potential temperature using full pressure and actual T
-        data_vars['theta'] = pot_temp(data_vars['pres'], data_vars['t'])
+        data_vars['theta'] = meteo.pot_temp(data_vars['pres'], data_vars['t'])
 
         # Calculate density from pressure, moisture, and temperature
-        data_vars['rho'] = calculate_rho_gfs(data_vars['pres'], data_vars['q'], data_vars['t'])
+        data_vars['rho'] = meteo.calculate_rho_gfs(data_vars['pres'], data_vars['q'], data_vars['t'])
 
     # Print diagnostics
-    print_min_max_dict(data_vars)
+    pyfuncs.print_min_max_dict(data_vars)
 
     if dycore == 'fv' or dycore == 'se':
 
         # Use the print_debug_file function to create and save the xarray.Dataset
-        print_debug_file(
-              "py_era5_before_interp.nc",
-              ps_cam=(["lat", "lon"], data_vars['ps']),
-              t_cam=(["lev_p", "lat", "lon"], data_vars['t']),
-              u_cam=(["lev_p", "lat", "lon"], data_vars['u']),
-              v_cam=(["lev_p", "lat", "lon"], data_vars['v']),
-              q_cam=(["lev_p", "lat", "lon"], data_vars['q']),
-              cldliq_cam=(["lev_p", "lat", "lon"], data_vars['cldliq']),
-              cldice_cam=(["lev_p", "lat", "lon"], data_vars['cldice']),
-              lat=(["lat"], data_vars['lat']),
-              lon=(["lon"], data_vars['lon'])
+        pyfuncs.print_debug_file(
+            "py_era5_before_interp.nc",
+            ps_cam=(["lat", "lon"], data_vars['ps']),
+            t_cam=(["lev_p", "lat", "lon"], data_vars['t']),
+            u_cam=(["lev_p", "lat", "lon"], data_vars['u']),
+            v_cam=(["lev_p", "lat", "lon"], data_vars['v']),
+            q_cam=(["lev_p", "lat", "lon"], data_vars['q']),
+            cldliq_cam=(["lev_p", "lat", "lon"], data_vars['cldliq']),
+            cldice_cam=(["lev_p", "lat", "lon"], data_vars['cldice']),
+            lat=(["lat"], data_vars['lat']),
+            lon=(["lon"], data_vars['lon'])
         )
 
         data_vint = vertremap.pres2hyb_all(data_vars, data_vars['ps'], hya, hyb)
 
         # Use the print_debug_file function to create and save the xarray.Dataset
-        print_debug_file(
-              "py_era5_on_hybrid.nc",
-              ps_cam=(["latitude", "longitude"], data_vint['ps']),
-              t_cam=(["level", "latitude", "longitude"], data_vint['t']),
-              u_cam=(["level", "latitude", "longitude"], data_vint['u']),
-              v_cam=(["level", "latitude", "longitude"], data_vint['v']),
-              q_cam=(["level", "latitude", "longitude"], data_vint['q']),
-              cldliq_cam=(["level", "latitude", "longitude"], data_vint['cldliq']),
-              cldice_cam=(["level", "latitude", "longitude"], data_vint['cldice']),
-              latitude=(["latitude"], data_vint['lat']),
-              longitude=(["longitude"], data_vint['lon'])
+        pyfuncs.print_debug_file(
+            "py_era5_on_hybrid.nc",
+            ps_cam=(["latitude", "longitude"], data_vint['ps']),
+            t_cam=(["level", "latitude", "longitude"], data_vint['t']),
+            u_cam=(["level", "latitude", "longitude"], data_vint['u']),
+            v_cam=(["level", "latitude", "longitude"], data_vint['v']),
+            q_cam=(["level", "latitude", "longitude"], data_vint['q']),
+            cldliq_cam=(["level", "latitude", "longitude"], data_vint['cldliq']),
+            cldice_cam=(["level", "latitude", "longitude"], data_vint['cldice']),
+            latitude=(["latitude"], data_vint['lat']),
+            longitude=(["longitude"], data_vint['lon'])
         )
 
-        print_min_max_dict(data_vint)
+        pyfuncs.print_min_max_dict(data_vint)
 
     if dycore == 'mpas':
         # Load the MPAS init file and get the zgrid
-        print(f"getting grid from {mpasfile}")
+        logging.info(f"getting grid from {mpasfile}")
         mpas_file = xr.open_dataset(mpasfile)
         mpas_data = {}
         mpas_data['z'] = mpas_file['zgrid'].values
         mpas_data['ncell'], mpas_data['nlevi'] = mpas_data['z'].shape
         mpas_data['nlev'] = mpas_data['nlevi'] - 1
 
-        print(f"MPAS GRID: nlev: {mpas_data['nlev']}    nlevi: {mpas_data['nlevi']}     ncell: {mpas_data['ncell']}")
-        print_min_max_dict(mpas_data)
+        logging.info(f"MPAS GRID: nlev: {mpas_data['nlev']}    nlevi: {mpas_data['nlevi']}     ncell: {mpas_data['ncell']}")
+        pyfuncs.print_min_max_dict(mpas_data)
 
         # Set up some dummy arrays since we aren't going to vert interp first
         data_vint = data_vars.copy()
 
-        print_min_max_dict(data_vint)
+        pyfuncs.print_min_max_dict(data_vint)
 
     data_horiz = horizremap.remap_all(data_vint, wgt_filename, dycore=dycore)
 
     if dycore == "se":
-        print_debug_file("py_era5_regrid.nc",
+        pyfuncs.print_debug_file("py_era5_regrid.nc",
                      lat=(["ncol"], data_horiz['lat']),
                      lon=(["ncol"], data_horiz['lon']),
                      ps_fv=(["ncol"], data_horiz['ps']),
@@ -239,7 +220,7 @@ def main():
                      cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
                      cldice_fv=(["level", "ncol"], data_horiz['cldice']))
     elif dycore == "fv":
-        print_debug_file("py_era5_regrid.nc",
+        pyfuncs.print_debug_file("py_era5_regrid.nc",
                      lat=(["lat"], data_horiz['lat']),
                      lon=(["lon"], data_horiz['lon']),
                      ps_fv=(["lat", "lon"], data_horiz['ps']),
@@ -250,7 +231,7 @@ def main():
                      cldliq_fv=(["level", "lat", "lon"], data_horiz['cldliq']),
                      cldice_fv=(["level", "lat", "lon"], data_horiz['cldice']))
     elif dycore == "mpas":
-        print_debug_file("py_era5_regrid.nc",
+        pyfuncs.print_debug_file("py_era5_regrid.nc",
                      lat=(["ncol"], data_horiz['lat']),
                      lon=(["ncol"], data_horiz['lon']),
                      ps_fv=(["ncol"], data_horiz['ps']),
@@ -265,36 +246,36 @@ def main():
                      rho_fv=(["level", "ncol"], data_horiz['rho']),
                      w_fv=(["level", "ncol"], data_horiz['w']))
 
-    print_min_max_dict(data_horiz)
+    pyfuncs.print_min_max_dict(data_horiz)
 
     if dycore == 'mpas':
-        print("Performing vertical interpolation at each MPAS column...")
+        logging.info("Performing vertical interpolation at each MPAS column...")
         # Call the processing function with your data
-        data_horiz = mpas.interpolate_mpas_columns_wrapper(
+        data_horiz = vertremap.interpolate_mpas_columns_wrapper(
             mpas_data, data_horiz
         )
-        print("... done performing vertical interpolation at each MPAS column!")
+        logging.info("... done performing vertical interpolation at each MPAS column!")
 
         # Set it so flow doesn't go through the lower boundary condition
-        data_horiz['w'] = mpas.noflux_boundary_condition(data_horiz['w'], mpas_data['nlev'])
+        data_horiz['w'] = meteo.noflux_boundary_condition(data_horiz['w'], mpas_data['nlev'])
 
         # Damp the top few layers of MPAS winds
         if damp_upper_winds_mpas:
-            data_horiz['u'], data_horiz['v'] = mpas.damp_upper_level_winds(data_horiz['u'], data_horiz['v'], mpas_data['nlev'])
+            data_horiz['u'], data_horiz['v'] = meteo.mpas.damp_upper_level_winds(data_horiz['u'], data_horiz['v'], mpas_data['nlev'])
 
         if not mpas_as_cam:
             # put u + v on cell edges...
-            print("Projecting u + v to velocity normal to edge...")
-            data_horiz['uNorm'] = mpas.uv_cell_to_edge(data_horiz['u'], data_horiz['v'], mpas_data['nlev'], mpas_file['lonEdge'].values, mpas_file['latEdge'].values,
+            logging.info("Projecting u + v to velocity normal to edge...")
+            data_horiz['uNorm'] = horizremap.uv_cell_to_edge(data_horiz['u'], data_horiz['v'], mpas_data['nlev'], mpas_file['lonEdge'].values, mpas_file['latEdge'].values,
                                         mpas_file['lonCell'].values, mpas_file['latCell'].values, mpas_file['edgeNormalVectors'].values, mpas_file['cellsOnEdge'].values)
 
-            print("... done projecting u + v to velocity normal to edge!")
+            logging.info("... done projecting u + v to velocity normal to edge!")
 
             # Clip relevant variables
-            data_horiz['q'] = clip_and_count(data_horiz['q'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
+            data_horiz['q'] = pyfuncs.clip_and_count(data_horiz['q'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
 
             # If not MPAS as CAM, we can just end here.
-            print("Writing MPAS file...")
+            logging.info("Writing MPAS file...")
             mpas_file['u'].values[0, :, :] = data_horiz['uNorm'].T
             mpas_file['qv'].values[0, :, :] = data_horiz['q'].T
             mpas_file['rho'].values[0, :, :] = data_horiz['rho'].T
@@ -302,7 +283,7 @@ def main():
             mpas_file['w'].values[0, :, :] = data_horiz['w'].T
             mpas_file.to_netcdf(se_inic, format='NETCDF4')
             mpas_file.close()
-            print("Done generating MPAS initial condition file, exiting...")
+            logging.info("Done generating MPAS initial condition file, exiting...")
             sys.exit(0)
 
     grid_dims = data_horiz['ps'].shape
@@ -320,8 +301,8 @@ def main():
     if ps_wet_to_dry:
         if output_diag:
             ps_fv_before = np.copy(data_horiz['ps'])
-        data_horiz['ps'], data_horiz['pw'] = ps_wet_to_dry_conversion(data_horiz['ps'], data_horiz['q'], hyai, hybi, p0, verbose=True)
-#         print_debug_file(
+        data_horiz['ps'], data_horiz['pw'] = meteo.ps_wet_to_dry_conversion(data_horiz['ps'], data_horiz['q'], hyai, hybi, p0, verbose=True)
+#         pyfuncs.print_debug_file(
 #                         "py_era5_tpw.nc",
 #                         lat=(["ncol"], selat),
 #                         lon=(["ncol"], selon),
@@ -332,10 +313,10 @@ def main():
 
     # Repack FV
     if dycore == "fv":
-        data_horiz = packing.repack_fv(data_horiz,grid_dims)
+        data_horiz = packing.repack_fv(data_horiz, grid_dims)
 
     if dycore == "se":
-        print_debug_file("py_era5_topoadjust.nc",
+        pyfuncs.print_debug_file("py_era5_topoadjust.nc",
                         lat=(["ncol"], data_horiz['lat']),
                         lon=(["ncol"], data_horiz['lon']),
                         ps_fv=(["ncol"], data_horiz['ps']),
@@ -347,7 +328,7 @@ def main():
                         cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
                         cldice_fv=(["level", "ncol"], data_horiz['cldice']))
     elif dycore == "fv":
-        print_debug_file("py_era5_topoadjust.nc",
+        pyfuncs.print_debug_file("py_era5_topoadjust.nc",
                         lat=(["lat"], data_horiz['lat']),
                         lon=(["lon"], data_horiz['lon']),
                         ps_fv=(["lat", "lon"], data_horiz['ps']),
@@ -360,7 +341,7 @@ def main():
                         cldice_fv=(["level", "lat", "lon"], data_horiz['cldice']))
 
     if dycore == "fv":
-        print("FV: need to interpolate u/v to slat/slon")
+        logging.info("FV: need to interpolate u/v to slat/slon")
 
         # Initialize FV grid
         data_horiz['fvlat'], data_horiz['fvlon'], data_horiz['fvslat'], data_horiz['fvslon'] = packing.initialize_fv_grid(nfvlat, nfvlon)
@@ -371,77 +352,77 @@ def main():
             data_horiz['fvslat'], data_horiz['fvslon']
         )
 
-    data_horiz['q'] = clip_and_count(data_horiz['q'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
-    data_horiz['cldliq'] = clip_and_count(data_horiz['cldliq'], min_thresh=CLDMINTHRESH, var_name="CLDLIQ")
-    data_horiz['cldice'] = clip_and_count(data_horiz['cldice'], min_thresh=CLDMINTHRESH, var_name="CLDICE")
+    data_horiz['q'] = pyfuncs.clip_and_count(data_horiz['q'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
+    data_horiz['cldliq'] = pyfuncs.clip_and_count(data_horiz['cldliq'], min_thresh=CLDMINTHRESH, var_name="CLDLIQ")
+    data_horiz['cldice'] = pyfuncs.clip_and_count(data_horiz['cldice'], min_thresh=CLDMINTHRESH, var_name="CLDICE")
 
     out_data = {}
 
     if dycore == "se":
-        out_data['ps'] = numpy_to_dataarray(data_horiz['ps'], dims=['ncol'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['u'] = numpy_to_dataarray(data_horiz['u'], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['v'] = numpy_to_dataarray(data_horiz['v'], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['t'] = numpy_to_dataarray(data_horiz['t'], dims=['lev', 'ncol'], attrs={'units': 'K', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['q'] = numpy_to_dataarray(data_horiz['q'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['cldliq'] = numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['cldice'] = numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['lat'] = numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
-        out_data['lon'] = numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
-        out_data['correct_or_not'] = numpy_to_dataarray(data_horiz['correct_or_not'], dims=['ncol'], attrs={"_FillValue": -1.0}, name='correct_or_not')
+        out_data['ps'] = pyfuncs.numpy_to_dataarray(data_horiz['ps'], dims=['ncol'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['u'] = pyfuncs.numpy_to_dataarray(data_horiz['u'], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['v'] = pyfuncs.numpy_to_dataarray(data_horiz['v'], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['t'] = pyfuncs.numpy_to_dataarray(data_horiz['t'], dims=['lev', 'ncol'], attrs={'units': 'K', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['q'] = pyfuncs.numpy_to_dataarray(data_horiz['q'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
+        out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
+        out_data['correct_or_not'] = pyfuncs.numpy_to_dataarray(data_horiz['correct_or_not'], dims=['ncol'], attrs={"_FillValue": -1.0}, name='correct_or_not')
 
-        out_data['ps'] = add_time_define_precision(out_data['ps'], write_type, True)
-        out_data['u'] = add_time_define_precision(out_data['u'], write_type, True)
-        out_data['v'] = add_time_define_precision(out_data['v'], write_type, True)
-        out_data['t'] = add_time_define_precision(out_data['t'], write_type, True)
-        out_data['q'] = add_time_define_precision(out_data['q'], write_type, True)
-        out_data['cldliq'] = add_time_define_precision(out_data['cldliq'], write_type, True)
-        out_data['cldice'] = add_time_define_precision(out_data['cldice'], write_type, True)
+        out_data['ps'] = pyfuncs.add_time_define_precision(out_data['ps'], write_type, True)
+        out_data['u'] = pyfuncs.add_time_define_precision(out_data['u'], write_type, True)
+        out_data['v'] = pyfuncs.add_time_define_precision(out_data['v'], write_type, True)
+        out_data['t'] = pyfuncs.add_time_define_precision(out_data['t'], write_type, True)
+        out_data['q'] = pyfuncs.add_time_define_precision(out_data['q'], write_type, True)
+        out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, True)
+        out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, True)
 
     elif dycore == "fv":
-        out_data['ps'] = numpy_to_dataarray(data_horiz['ps'], dims=['lat', 'lon'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['u'] = numpy_to_dataarray(data_horiz['u'], dims=['lev', 'lat', 'lon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['v'] = numpy_to_dataarray(data_horiz['v'], dims=['lev', 'lat', 'lon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['us'] = numpy_to_dataarray(data_horiz['us'], dims=['lev', 'slat', 'lon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['vs'] = numpy_to_dataarray(data_horiz['vs'], dims=['lev', 'lat', 'slon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['t'] = numpy_to_dataarray(data_horiz['t'], dims=['lev', 'lat', 'lon'], attrs={'units': 'K', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['q'] = numpy_to_dataarray(data_horiz['q'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['cldice'] = numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['cldliq'] = numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['lat'] = numpy_to_dataarray(data_horiz['lat'], dims=['lat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
-        out_data['lon'] = numpy_to_dataarray(data_horiz['lon'], dims=['lon'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
-        out_data['slat'] = numpy_to_dataarray(data_horiz['fvslat'], dims=['slat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
-        out_data['slon'] = numpy_to_dataarray(data_horiz['fvslon'], dims=['slon'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
-        out_data['correct_or_not'] = numpy_to_dataarray(data_horiz['correct_or_not'], dims=['lat', 'lon'], attrs={"_FillValue": -1.0}, name='correct_or_not')
+        out_data['ps'] = pyfuncs.numpy_to_dataarray(data_horiz['ps'], dims=['lat', 'lon'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['u'] = pyfuncs.numpy_to_dataarray(data_horiz['u'], dims=['lev', 'lat', 'lon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['v'] = pyfuncs.numpy_to_dataarray(data_horiz['v'], dims=['lev', 'lat', 'lon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['us'] = pyfuncs.numpy_to_dataarray(data_horiz['us'], dims=['lev', 'slat', 'lon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['vs'] = pyfuncs.numpy_to_dataarray(data_horiz['vs'], dims=['lev', 'lat', 'slon'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['t'] = pyfuncs.numpy_to_dataarray(data_horiz['t'], dims=['lev', 'lat', 'lon'], attrs={'units': 'K', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['q'] = pyfuncs.numpy_to_dataarray(data_horiz['q'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['lat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
+        out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['lon'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
+        out_data['slat'] = pyfuncs.numpy_to_dataarray(data_horiz['fvslat'], dims=['slat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
+        out_data['slon'] = pyfuncs.numpy_to_dataarray(data_horiz['fvslon'], dims=['slon'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
+        out_data['correct_or_not'] = pyfuncs.numpy_to_dataarray(data_horiz['correct_or_not'], dims=['lat', 'lon'], attrs={"_FillValue": -1.0}, name='correct_or_not')
 
-        out_data['ps'] = add_time_define_precision(out_data['ps'], write_type, False)
-        out_data['u'] = add_time_define_precision(out_data['u'], write_type, False)
-        out_data['v'] = add_time_define_precision(out_data['v'], write_type, False)
-        out_data['us'] = add_time_define_precision(out_data['us'], write_type, False, lat_dim="slat")
-        out_data['vs'] = add_time_define_precision(out_data['vs'], write_type, False, lon_dim="slon")
-        out_data['t'] = add_time_define_precision(out_data['t'], write_type, False)
-        out_data['q'] = add_time_define_precision(out_data['q'], write_type, False)
-        out_data['cldice'] = add_time_define_precision(out_data['cldice'], write_type, False)
-        out_data['cldliq'] = add_time_define_precision(out_data['cldliq'], write_type, False)
+        out_data['ps'] = pyfuncs.add_time_define_precision(out_data['ps'], write_type, False)
+        out_data['u'] = pyfuncs.add_time_define_precision(out_data['u'], write_type, False)
+        out_data['v'] = pyfuncs.add_time_define_precision(out_data['v'], write_type, False)
+        out_data['us'] = pyfuncs.add_time_define_precision(out_data['us'], write_type, False, lat_dim="slat")
+        out_data['vs'] = pyfuncs.add_time_define_precision(out_data['vs'], write_type, False, lon_dim="slon")
+        out_data['t'] = pyfuncs.add_time_define_precision(out_data['t'], write_type, False)
+        out_data['q'] = pyfuncs.add_time_define_precision(out_data['q'], write_type, False)
+        out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, False)
+        out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, False)
 
     elif dycore == "mpas":
         # Need to flip the 3-D arrays!
-        out_data['ps'] = numpy_to_dataarray(data_horiz['ps'], dims=['ncol'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['u'] = numpy_to_dataarray(data_horiz['u'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['v'] = numpy_to_dataarray(data_horiz['v'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['t'] = numpy_to_dataarray(data_horiz['t'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'K', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['q'] = numpy_to_dataarray(data_horiz['q'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
-        out_data['lat'] = numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
-        out_data['lon'] = numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
+        out_data['ps'] = pyfuncs.numpy_to_dataarray(data_horiz['ps'], dims=['ncol'], attrs={'units': 'Pa', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['u'] = pyfuncs.numpy_to_dataarray(data_horiz['u'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['v'] = pyfuncs.numpy_to_dataarray(data_horiz['v'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['t'] = pyfuncs.numpy_to_dataarray(data_horiz['t'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'K', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['q'] = pyfuncs.numpy_to_dataarray(data_horiz['q'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": np.float32(NC_FLOAT_FILL)})
+        out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
+        out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
 
-        out_data['ps'] = add_time_define_precision(out_data['ps'], write_type, True)
-        out_data['u'] = add_time_define_precision(out_data['u'], write_type, True)
-        out_data['v'] = add_time_define_precision(out_data['v'], write_type, True)
-        out_data['t'] = add_time_define_precision(out_data['t'], write_type, True)
-        out_data['q'] = add_time_define_precision(out_data['q'], write_type, True)
+        out_data['ps'] = pyfuncs.add_time_define_precision(out_data['ps'], write_type, True)
+        out_data['u'] = pyfuncs.add_time_define_precision(out_data['u'], write_type, True)
+        out_data['v'] = pyfuncs.add_time_define_precision(out_data['v'], write_type, True)
+        out_data['t'] = pyfuncs.add_time_define_precision(out_data['t'], write_type, True)
+        out_data['q'] = pyfuncs.add_time_define_precision(out_data['q'], write_type, True)
 
     # Create CF-compliant time
-    time, time_atts = create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr))
-    out_data['time'] = numpy_to_dataarray(time, dims=['time'], attrs=time_atts)
+    time, time_atts = pyfuncs.create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr))
+    out_data['time'] = pyfuncs.numpy_to_dataarray(time, dims=['time'], attrs=time_atts)
 
     # Data set to be written out, base variables for all models
     ds = xr.Dataset(
@@ -458,7 +439,7 @@ def main():
 
     if dycore == "se" or dycore == "fv":
         # Reload from the template xarray for metadata purposes
-        hya, hyb, hyai, hybi, lev, ilev = load_cam_levels(PATHTOHERE, numlevels, load_xarray = True)
+        hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(PATHTOHERE, numlevels, load_xarray = True)
         ds["CLDLIQ"] = out_data['cldliq']
         ds["CLDICE"] = out_data['cldice']
         ds["hyam"] = hya
@@ -505,10 +486,11 @@ def main():
                 encoding[var] = {"zlib": True, "complevel": 1}
         ds.to_netcdf(se_inic, format="NETCDF4_CLASSIC", unlimited_dims=["time"], encoding=encoding)
     else:
-        var_max_size = print_and_return_varsize(ps_fv, u_fv, v_fv, t_fv, q_fv)
+        var_max_size = pyfuncs.print_and_return_varsize(ds["ps"], ds["u"], ds["v"], ds["t"], ds["q"])
         netcdf_format = "NETCDF4" if var_max_size >= 4e9 else "NETCDF3_64BIT"
         ds.to_netcdf(se_inic, format=netcdf_format, unlimited_dims=["time"], encoding=encoding)
 
-if __name__ == "__main__":
-    main()
 
+if __name__ == "__main__":
+
+    main()
