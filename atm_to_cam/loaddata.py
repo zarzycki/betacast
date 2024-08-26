@@ -341,7 +341,7 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 
         # Use the print_debug_file function to create and save the xarray.Dataset
         pyfuncs.print_debug_file(
-              "py_cam_raw.nc",
+              DEBUGDIR+"/"+"py_cam_raw.nc",
               ps_cam=(["lat", "lon"], data_vars['ps']),
               phis_cam=(["lat", "lon"], data_vars['phis']),
               ts_cam=(["lat", "lon"], data_vars['ts']),

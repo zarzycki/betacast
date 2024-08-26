@@ -5,6 +5,7 @@ import os
 import sys
 import cftime
 from scipy.ndimage import gaussian_filter
+from numba import jit
 import logging
 logger = logging.getLogger(__name__)
 
@@ -338,6 +339,70 @@ def print_debug_file(output_filename, **kwargs):
     ds.to_netcdf(output_filename)
 
 
+@jit(nopython=True)
+def dsmth9(X, P, Q, LWRAP, XMSG=np.nan):
+    """
+    Perform 9-point smoothing on a 2D array X.
+
+    Parameters:
+    - X: 2D input/output array (numpy array)
+    - P: First weight (suggested value 0.50)
+    - Q: Second weight (suggested value 0.25)
+    - XMSG: Value of missing points
+    - LWRAP: Boolean flag to include wraparound points in smoothing
+
+    Returns:
+    - X: Smoothed 2D array
+    - IER: Error code (0 for success, 1 if NI or NJ is less than 3)
+    """
+    NI, NJ = X.shape
+
+    if NI < 3 or NJ < 3:
+        print(f"Too few points in smth9: error {NI} {NJ}")
+        return X
+
+    # Precompute constants
+    PO4 = P / 4.0
+    QO4 = Q / 4.0
+
+    # Initialize the work array WRK
+    WRK = np.full_like(X, XMSG)
+
+    # Set the loop bounds depending on the wraparound flag
+    if LWRAP:
+        NIB = 0
+        NIE = NI
+    else:
+        NIB = 1
+        NIE = NI - 1
+    NJB = 1
+    NJE = NJ - 1
+
+    # Perform smoothing
+    for J in range(NJB, NJE):
+        for I in range(NIB, NIE):
+            JM1 = J - 1
+            JP1 = J + 1
+            IM1 = I - 1 if I > 0 else NI - 1
+            IP1 = I + 1 if I < NI - 1 else 0
+
+            if (
+                X[I, J] == XMSG or X[IM1, JP1] == XMSG or X[IM1, J] == XMSG or
+                X[IM1, JM1] == XMSG or X[I, JM1] == XMSG or X[IP1, JM1] == XMSG or
+                X[IP1, J] == XMSG or X[IP1, JP1] == XMSG or X[I, JP1] == XMSG
+            ):
+                WRK[I, J] = X[I, J]
+            else:
+                TERM1 = PO4 * (X[IM1, J] + X[I, JM1] + X[IP1, J] + X[I, JP1] - 4.0 * X[I, J])
+                TERM2 = QO4 * (X[IM1, JP1] + X[IM1, JM1] + X[IP1, JM1] + X[IP1, JP1] - 4.0 * X[I, J])
+                WRK[I, J] = X[I, J] + TERM1 + TERM2
+
+    # Transfer back to original array
+    X[NIB:NIE, NJB:NJE] = WRK[NIB:NIE, NJB:NJE]
+
+    return X
+
+
 def latRegWgt(lat, nType="float", opt=0):
     """
     Generates [sin(lat+dlat/2) - sin(lat-dlat/2)] weights for equally spaced (regular) global grids that will sum to 2.0.
@@ -372,10 +437,32 @@ def latRegWgt(lat, nType="float", opt=0):
     return weights
 
 
+def smooth_with_smth9(var, numiter, p=0.5, q=0.25):
+    if var.ndim == 3:
+        for ii in range(numiter):
+            logging.info(f"SMOOTH (SMTH9) ITER: {ii+1}")
+            for level in range(var.shape[0]):
+                smoothed = dsmth9(var[level, :, :], p, q, True)
+                if smoothed.shape != var[level, :, :].shape:
+                    raise ValueError(f"Shape mismatch after smoothing. Expected {var[level, :, :].shape}, but got {smoothed.shape}.")
+                var[level, :, :] = smoothed
+    elif var.ndim == 2:
+        for ii in range(numiter):
+            logging.info(f"SMOOTH (SMTH9) ITER: {ii+1}")
+            smoothed = dsmth9(var, p, q, True)
+            if smoothed.shape != var.shape:
+                raise ValueError(f"Shape mismatch after smoothing. Expected {var.shape}, but got {smoothed.shape}.")
+            var = smoothed
+    else:
+        raise ValueError("Input array must be either 2D or 3D.")
+
+    return var
+
+
 def smooth_with_gaussian(var, numiter, sigma=1, truncate=4.0):
 
     for ii in range(numiter):
-        logging.info(f"SMOOTH ITER: {ii+1}")
+        logging.info(f"SMOOTH (SCIPY GAUS) ITER: {ii+1}")
         var = gaussian_filter(var, sigma=sigma, truncate=truncate)
 
     return var

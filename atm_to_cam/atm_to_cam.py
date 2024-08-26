@@ -15,7 +15,7 @@ import meteo
 
 from constants import (
     p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH,
-    ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav
+    ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav, DEBUGDIR
 )
 
 args = pyfuncs.parse_args()
@@ -24,6 +24,7 @@ pyfuncs.configure_logging(args.verbose)
 
 
 def main():
+
     logger = logging.getLogger(__name__)
     logger.info("Main function started")
 
@@ -140,7 +141,8 @@ def main():
 
         # Smooth w if needed
         if w_smooth_iter > 0:
-            data_vars['w'] = pyfuncs.smooth_with_gaussian(data_vars['w'], w_smooth_iter)
+            #data_vars['w'] = pyfuncs.smooth_with_gaussian(data_vars['w'], w_smooth_iter)
+            data_vars['w'] = pyfuncs.smooth_with_smth9(data_vars['w'], w_smooth_iter)
 
         # If z is reported in geopotential, convert to geometric height
         if data_vars['z_is_phi']:
@@ -159,7 +161,7 @@ def main():
 
         # Use the print_debug_file function to create and save the xarray.Dataset
         pyfuncs.print_debug_file(
-            "py_era5_before_interp.nc",
+            DEBUGDIR+"/"+"py_era5_before_interp.nc",
             ps_cam=(["lat", "lon"], data_vars['ps']),
             t_cam=(["lev_p", "lat", "lon"], data_vars['t']),
             u_cam=(["lev_p", "lat", "lon"], data_vars['u']),
@@ -175,7 +177,7 @@ def main():
 
         # Use the print_debug_file function to create and save the xarray.Dataset
         pyfuncs.print_debug_file(
-            "py_era5_on_hybrid.nc",
+            DEBUGDIR+"/"+"py_era5_on_hybrid.nc",
             ps_cam=(["latitude", "longitude"], data_vint['ps']),
             t_cam=(["level", "latitude", "longitude"], data_vint['t']),
             u_cam=(["level", "latitude", "longitude"], data_vint['u']),
@@ -209,7 +211,7 @@ def main():
     data_horiz = horizremap.remap_all(data_vint, wgt_filename, dycore=dycore)
 
     if dycore == "se":
-        pyfuncs.print_debug_file("py_era5_regrid.nc",
+        pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_regrid.nc",
                      lat=(["ncol"], data_horiz['lat']),
                      lon=(["ncol"], data_horiz['lon']),
                      ps_fv=(["ncol"], data_horiz['ps']),
@@ -220,7 +222,7 @@ def main():
                      cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
                      cldice_fv=(["level", "ncol"], data_horiz['cldice']))
     elif dycore == "fv":
-        pyfuncs.print_debug_file("py_era5_regrid.nc",
+        pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_regrid.nc",
                      lat=(["lat"], data_horiz['lat']),
                      lon=(["lon"], data_horiz['lon']),
                      ps_fv=(["lat", "lon"], data_horiz['ps']),
@@ -231,7 +233,7 @@ def main():
                      cldliq_fv=(["level", "lat", "lon"], data_horiz['cldliq']),
                      cldice_fv=(["level", "lat", "lon"], data_horiz['cldice']))
     elif dycore == "mpas":
-        pyfuncs.print_debug_file("py_era5_regrid.nc",
+        pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_regrid.nc",
                      lat=(["ncol"], data_horiz['lat']),
                      lon=(["ncol"], data_horiz['lon']),
                      ps_fv=(["ncol"], data_horiz['ps']),
@@ -316,7 +318,7 @@ def main():
         data_horiz = packing.repack_fv(data_horiz, grid_dims)
 
     if dycore == "se":
-        pyfuncs.print_debug_file("py_era5_topoadjust.nc",
+        pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_topoadjust.nc",
                         lat=(["ncol"], data_horiz['lat']),
                         lon=(["ncol"], data_horiz['lon']),
                         ps_fv=(["ncol"], data_horiz['ps']),
@@ -328,7 +330,7 @@ def main():
                         cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
                         cldice_fv=(["level", "ncol"], data_horiz['cldice']))
     elif dycore == "fv":
-        pyfuncs.print_debug_file("py_era5_topoadjust.nc",
+        pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_topoadjust.nc",
                         lat=(["lat"], data_horiz['lat']),
                         lon=(["lon"], data_horiz['lon']),
                         ps_fv=(["lat", "lon"], data_horiz['ps']),

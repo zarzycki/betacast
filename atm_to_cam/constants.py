@@ -28,6 +28,8 @@ mpas_uv_damping_coeffs = [0.90, 0.95, 0.98]
 ps_wet_to_dry = False
 output_diag = True
 
-w_smooth_iter = 0
+w_smooth_iter = 5
 
 t_freeze_K = 273.15
+
+DEBUGDIR = "/Users/cmz5202/NetCDF/betacast/"
