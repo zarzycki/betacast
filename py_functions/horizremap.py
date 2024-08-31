@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, **kwargs):
+def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, dest_frac=None, **kwargs):
     """
     Regrid data using ESMF weights.
 
@@ -35,8 +35,10 @@ def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_g
     # Apply map onto the src column vector length n_a to compute vector length n_b
     field_target = sparse_map @ src_vector
 
-    # Reshape 1-D vector returned to dst_grid_dims
+    if dest_frac is not None:
+        field_target = np.where(dest_frac > 0.5, field_target, np.nan)
 
+    # Reshape 1-D vector returned to dst_grid_dims
     data_out = np.reshape(field_target, dst_grid_dims, order="F")
 
     return data_out
@@ -80,6 +82,8 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
     cols = xwgt['col'][:] - 1  # col indices (1-based to 0-based)
     nnzvals = xwgt['S'][:]  # nnz map values
 
+    frac_b = xwgt['frac_b'][:]
+
     # Create sparse matrix map
     sparse_map = sp.coo_matrix((nnzvals, (rows, cols)), shape=(n_b, n_a))
 
@@ -114,9 +118,9 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
 
         # Apply the regridding to this slice
         if src_grid_type == "structured":
-            regridded_slice = remap_with_weights(slice_2d[np.newaxis, :, :], sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, **kwargs)
+            regridded_slice = remap_with_weights(slice_2d[np.newaxis, :, :], sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, dest_frac=frac_b, **kwargs)
         elif src_grid_type == "unstructured":
-            regridded_slice = remap_with_weights(slice_2d[np.newaxis, :], sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, **kwargs)
+            regridded_slice = remap_with_weights(slice_2d[np.newaxis, :], sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, dest_frac=frac_b, **kwargs)
         else:
             raise ValueError(f"Unknown grid type: {src_grid_type}")
 

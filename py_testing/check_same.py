@@ -3,21 +3,31 @@ import xarray as xr
 import numpy as np
 
 def calculate_mean_absolute_error(var1, var2):
-    return np.mean(np.abs(var1 - var2))
+    return np.nanmean(np.abs(var1 - var2))
 
 def calculate_correlation(var1, var2):
-    return np.corrcoef(var1.ravel(), var2.ravel())[0, 1]
+    # Check for differing NaN locations
+    nan_mismatch = np.isnan(var1) != np.isnan(var2)
+    if np.any(nan_mismatch):
+        print("   Warning: NaN locations differ between var1 and var2.")
+
+    # Only calculate correlation where both var1 and var2 are not NaN
+    valid_mask = ~np.isnan(var1) & ~np.isnan(var2)
+    if valid_mask.sum() == 0:
+        print("   Warning: No valid data points for correlation calculation.")
+        return np.nan
+    return np.corrcoef(var1[valid_mask].ravel(), var2[valid_mask].ravel())[0, 1]
 
 def calculate_normalized_mean_bias(var1, var2):
-    mean_var1 = np.mean(var1)
+    mean_var1 = np.nanmean(var1)
     if np.isnan(mean_var1) or mean_var1 == 0:
         print("   Warning: Mean of var1 is NaN or zero, NMB calculation skipped.")
         return np.nan
-    return np.mean(var2 - var1) / mean_var1
+    return np.nanmean(var2 - var1) / mean_var1
 
 def calculate_normalized_rmse(var1, var2):
-    rmse = np.sqrt(np.mean((var1 - var2) ** 2))
-    mean_var1 = np.mean(var1)
+    rmse = np.sqrt(np.nanmean((var1 - var2) ** 2))
+    mean_var1 = np.nanmean(var1)
     if np.isnan(mean_var1) or mean_var1 == 0:
         print("   Warning: Mean of var1 is NaN or zero, NRMSE calculation skipped.")
         return np.nan
@@ -48,7 +58,7 @@ def check_same(file1, file2, variables_to_check=None):
 
                 mae = calculate_mean_absolute_error(data1, data2)
                 correlation = calculate_correlation(data1, data2)
-                mean_value = np.mean(data1)
+                mean_value = np.nanmean(data1)
                 nmb = calculate_normalized_mean_bias(data1, data2)
                 nrmse = calculate_normalized_rmse(data1, data2)
 

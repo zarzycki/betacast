@@ -207,6 +207,33 @@ def add_time_define_precision(var_in, precision, isncol, lat_dim="lat", lon_dim=
 
     return var_out
 
+def replace_nans_with_fill_value(data_horiz, variables, NC_FLOAT_FILL):
+    """
+    Replace NaN values with _FillValue in specified numpy arrays within a dictionary.
+
+    Parameters:
+    -----------
+    NC_FLOAT_FILL : float
+        The fill value to replace NaN values with.
+
+    data_horiz : dict
+        A dictionary containing numpy arrays where NaNs should be replaced.
+
+    variables : list of str
+        A list of keys in data_horiz specifying which arrays to modify.
+
+    Returns:
+    --------
+    dict
+        The updated data_horiz dictionary with NaNs replaced in the specified variables.
+    """
+    for var in variables:
+        if var in data_horiz:
+            data_horiz[var] = np.where(np.isnan(data_horiz[var]), NC_FLOAT_FILL, data_horiz[var])
+        else:
+            raise KeyError(f"Variable {var} not found in data_horiz.")
+    return data_horiz
+
 
 def clip_and_count(arr, min_thresh=None, max_thresh=None, var_name="Variable"):
     """
