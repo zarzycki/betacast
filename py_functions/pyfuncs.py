@@ -514,5 +514,5 @@ def print_min_max_dict(data_vars):
     logging.info("=" * 65)
     for key, data in data_vars.items():
         if isinstance(data, (np.ndarray, xr.DataArray)):
-            logging.debug(f"{key.upper()} shape: {data.shape} | Max: {data.max()} | Min: {data.min()}")
+            logging.info(f"{key.upper()} shape: {data.shape} | Max: {data.max()} | Min: {data.min()}")
     logging.info("=" * 65)

@@ -1,10 +1,16 @@
+# Core modules
 import os
 import sys
 import logging
 
+# Third party modules
 import numpy as np
 import xarray as xr
 
+# Betacast modules
+module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'py_functions'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
 import pyfuncs
 import vertremap
 import horizremap
@@ -12,7 +18,6 @@ import topoadjust
 import packing
 import loaddata
 import meteo
-
 from constants import (
     p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH,
     ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav, DEBUGDIR
@@ -114,7 +119,7 @@ def main():
     # IMPORTANT! data_vars should be organized top-to-bottom when loaddata returns
     # (i.e., lowest pressure/highest z at 0 index of lev)
     # I attempt to account for this elsewhere in the code with flips, but make no promises
-    if datasource == 'GFS':
+    if datasource == 'GFS' or datasource == 'HWRF':
         data_vars = loaddata.load_CFSR_data(data_filename, dycore)
     elif datasource == 'ERA5RDA':
         data_vars = loaddata.load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
@@ -488,7 +493,7 @@ def main():
                 encoding[var] = {"zlib": True, "complevel": 1}
         ds.to_netcdf(se_inic, format="NETCDF4_CLASSIC", unlimited_dims=["time"], encoding=encoding)
     else:
-        var_max_size = pyfuncs.print_and_return_varsize(ds["ps"], ds["u"], ds["v"], ds["t"], ds["q"])
+        var_max_size = pyfuncs.print_and_return_varsize(ds["PS"], ds["U"], ds["V"], ds["T"], ds["Q"])
         netcdf_format = "NETCDF4" if var_max_size >= 4e9 else "NETCDF3_64BIT"
         ds.to_netcdf(se_inic, format=netcdf_format, unlimited_dims=["time"], encoding=encoding)
 

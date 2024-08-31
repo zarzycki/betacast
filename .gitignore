@@ -1,3 +1,6 @@
+# Jupyter things
+.ipynb_checkpoints
+
 # Grid things
 *.g
 *_stereo.png

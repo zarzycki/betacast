@@ -225,7 +225,10 @@ def load_CFSR_data(grb_file_name, dycore):
 
     data_vars['phis']  = load_and_extract_CFSR_variable(grb_file_name, 'surface', 'orog')
     data_vars['phis'] = data_vars['phis'] * grav
-    data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'sigma', 't')
+    #data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'sigma', 't')
+    data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 't')
+
+    pyfuncs.print_min_max_dict(data_vars)
 
     # Cleanup
     del data_vars['cldmix']
@@ -237,7 +240,7 @@ def load_CFSR_data(grb_file_name, dycore):
     del data_vars['rh_native']
 
     # Because GFS is bottom -> top, we have to flip to be top-to-bottom
-    data_vars = flip_level_dimension(flip_level_dimension)
+    data_vars = flip_level_dimension(data_vars)
 
     return data_vars
 
