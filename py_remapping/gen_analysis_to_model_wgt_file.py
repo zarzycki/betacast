@@ -1,23 +1,37 @@
 import os
 import subprocess
 import logging
+import argparse
+import shutil
+import xarray as xr
 from ESMF_regridding import esmf_regrid_gen_weights  # Import the function
 
-# User settings
-anlgrid = "era5_0.25x0.25"
-anlgridpath = "./anl_scrip/"
-dstGridName = "Philadelphia_TC_grid_v2_ne128x8_pg2"
-dstGridFile = "/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/grids/scrip/Philadelphia_TC_grid_v2_ne128x8_pg2_SCRIP.nc"
-wgtFileDir = "./"
-flip_model_and_analysis = False
+logging.basicConfig(
+    level=logging.INFO,  # Change to logging.DEBUG for more detailed logs
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()  # Ensure logs are sent to the console
+    ]
+)
 
-# Check if things are provided through environment variables (similar to command-line args)
-anlgrid = os.getenv('ANLGRID', anlgrid)
-anlgridpath = os.getenv('ANLGRIDPATH', anlgridpath)
-dstGridName = os.getenv('DSTGRIDNAME', dstGridName)
-dstGridFile = os.getenv('DSTGRIDFILE', dstGridFile)
-wgtFileDir = os.getenv('WGTFILEDIR', wgtFileDir)
-flip_model_and_analysis = os.getenv('FLIP_MODEL_AND_ANALYSIS', flip_model_and_analysis) == 'True'
+# Argument parser
+parser = argparse.ArgumentParser(description="Generate ESMF regrid weights")
+parser.add_argument("--ANLGRID", type=str, default="era5_0.25x0.25", help="Analysis grid (e.g., era5_0.25x0.25)")
+parser.add_argument("--ANLGRIDPATH", type=str, default="./anl_scrip/", help="Path to the analysis grid SCRIP files")
+parser.add_argument("--DSTGRIDNAME", type=str, default="Philadelphia_TC_grid_v2_ne128x8_pg2", help="Destination grid name")
+parser.add_argument("--DSTGRIDFILE", type=str, required=True, help="Full path to the model SCRIP file")
+parser.add_argument("--WGTFILEDIR", type=str, default="./", help="Directory to save the weight file")
+parser.add_argument("--FLIP_MODEL_AND_ANALYSIS", action="store_true", help="Flip model and analysis grid (default: False)")
+
+args = parser.parse_args()
+
+# User settings from command line arguments
+anlgrid = args.ANLGRID
+anlgridpath = args.ANLGRIDPATH
+dstGridName = args.DSTGRIDNAME
+dstGridFile = args.DSTGRIDFILE
+wgtFileDir = args.WGTFILEDIR
+flip_model_and_analysis = args.FLIP_MODEL_AND_ANALYSIS
 
 # Validate anlgrid
 valid_anlgrids = ["era5_0.25x0.25", "gfs_0.25x0.25", "gfs_0.50x0.50", "rap_13km", "hrrr_3km", "hwrf_storm"]
@@ -45,23 +59,7 @@ logging.info(f"Determined input grid type to be: {dstType}")
 
 # Handle "model" type
 if dstType == "model":
-    logging.info("Generating grid file for model!")
-    if "lat" not in f.variables or "lon" not in f.variables:
-        logging.error("Destination file does not have lat/lon coords, exiting!")
-        exit()
-
-    lat = f["lat"].values
-    lon = f["lon"].values
-
-    # Generate SE grid
-    seGridName = "grid_se.nc"
-    Opt_se = {
-        "ForceOverwrite": True,
-        "PrintTimings": True,
-        "Title": "SE Grid"
-    }
-    unstructured_to_ESMF(seGridName, lat, lon, Opt_se)
-    f.close()
+    exit()
 
 InterpMethod = "patch"
 shortInterpName = "patc" if InterpMethod == "patch" else InterpMethod
@@ -126,4 +124,3 @@ else:
 
 logging.info(f"Successfully generated: {os.path.join(wgtFileDir, wgtFileName)}")
 logging.info("Done")
-

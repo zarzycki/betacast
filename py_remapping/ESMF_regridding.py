@@ -778,16 +778,13 @@ def esmf_regrid_gen_weights(srcGridFile, dstGridFile, wgtFile, opt):
         logging.error(f"ESMF_regrid_gen_weights: could not find {esmf_exec} executable.")
         return
 
-    # Check ESMF_RegridWeightGen version (requires ESMF >=7)
-    esmf_major_version = int(subprocess.check_output([path_to_esmf, "--version"]).decode().split("MAJOR=")[1].split()[0])
-
     # Construct the ESMF command
     esmf_cmd = [path_to_esmf, "--source", srcGridFile, "--destination", dstGridFile, "--weight", wgtFile]
 
     # Handle optional attributes using get_att_value
-    if get_att_value(opt, "SrcESMF", False) and esmf_major_version >= 7:
+    if get_att_value(opt, "SrcESMF", False):
         esmf_cmd.append("--src_loc corner")
-    if get_att_value(opt, "DstESMF", False) and esmf_major_version >= 7:
+    if get_att_value(opt, "DstESMF", False):
         esmf_cmd.append("--dst_loc corner")
     interp_method = get_att_value(opt, "InterpMethod", None)
     if interp_method:
