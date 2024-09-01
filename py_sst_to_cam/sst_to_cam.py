@@ -69,7 +69,7 @@ def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, i
 
     logging.info(f"inputres set to: {inputres}")
 
-    readinFile = f"./test_files/domains/domain.ocn.{inputres}.nc"
+    readinFile = f"./domains/domain.ocn.{inputres}.nc"
 
     do_anom = predict_docn == 1
     logging.info(f"do_anom (i.e., predict_docn) set to: {do_anom}")
@@ -185,6 +185,9 @@ def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, i
             'lon': fvlon
         }
     )
+
+    out_ds['time'].attrs['units'] = 'days since 0001-01-01 00:00:00'
+    out_ds['time'].attrs['calendar'] = '365_day'
 
     out_ds.to_netcdf(SST_write_file)
     logging.info(f"Data written to {SST_write_file}")
