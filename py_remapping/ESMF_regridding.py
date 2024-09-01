@@ -1,6 +1,11 @@
 import numpy as np
 import xarray as xr
 from datetime import datetime
+import os
+import subprocess
+import logging
+import shutil  # Make sure to import shutil for checking executable
+
 
 def mirrorP2P(p1, po):
     """Mirrors point p1 with respect to po."""
@@ -717,3 +722,107 @@ def is_SCRIP(filename, verbose=False):
         return False
 
     return check_SCRIP_dims(ds, verbose) and check_SCRIP_vars(ds, verbose)
+
+
+def esmf_regrid_gen_weights(srcGridFile, dstGridFile, wgtFile, opt):
+    """
+    Generate regrid weights using ESMF_RegridWeightGen.
+
+    Parameters:
+    -----------
+    srcGridFile : str
+        The name of the NetCDF source grid file (ESMF or SCRIP).
+
+    dstGridFile : str
+        The name of the NetCDF destination grid file (ESMF or SCRIP).
+
+    wgtFile : str
+        The name of the NetCDF weight file to create.
+
+    opt : dict
+        Dictionary containing optional attributes:
+            - 'Debug' (bool): Turns on debug print statements (default=False).
+            - 'SrcESMF' (bool): Whether the source grid file is an ESMF file (default=False).
+            - 'DstESMF' (bool): Whether the destination grid file is an ESMF file (default=False).
+            - 'SrcRegional' (bool): Whether the source grid file is regional (default=False).
+            - 'DstRegional' (bool): Whether the destination grid file is regional (default=False).
+            - 'IgnoreUnmappedPoints' (bool): Ignore unmapped points (default=True).
+            - 'InterpMethod' (str): Interpolation method, e.g., "bilinear", "patch", "conserve" (default="bilinear").
+            - 'Pole' (str): Handle poles, e.g., "all", "none" (default depends on 'InterpMethod').
+            - 'RemoveSrcFile' (bool): Remove source grid file after weight generation (default=False).
+            - 'RemoveDstFile' (bool): Remove destination grid file after weight generation (default=False).
+            - 'RemoveFiles' (bool): Remove both source and destination grid files after weight generation (default=False).
+            - 'LargeFile' (bool): Use --64bit_offset for writing large files.
+            - 'NetCDFType' (str): NetCDF format type, e.g., "netcdf3", "netcdf4".
+            - 'NormalizeWeights' (bool): Normalize weights on the destination grid (default=False).
+
+    Returns:
+    --------
+    None
+    """
+
+    # Handle mutually exclusive attributes
+    check_both_atts(opt, "RemoveFiles", "RemoveDstFile", False)
+    check_both_atts(opt, "RemoveFiles", "RemoveSrcFile", False)
+    check_both_atts(opt, "WgtForceOverwrite", "ForceOverwrite", False)
+    check_both_atts(opt, "WgtOverwrite", "Overwrite", False)
+    check_both_atts(opt, "WgtNetCDFType", "NetCDFType", "netcdf3")
+
+    # Define the ESMF executable path
+    esmf_exec = "ESMF_RegridWeightGen"
+    esmf_bindir = os.getenv("ESMFBINDIR", "")
+    path_to_esmf = os.path.join(esmf_bindir, esmf_exec) if esmf_bindir else esmf_exec
+
+    # Check if ESMF_RegridWeightGen exists
+    if not shutil.which(path_to_esmf):
+        logging.error(f"ESMF_regrid_gen_weights: could not find {esmf_exec} executable.")
+        return
+
+    # Check ESMF_RegridWeightGen version (requires ESMF >=7)
+    esmf_major_version = int(subprocess.check_output([path_to_esmf, "--version"]).decode().split("MAJOR=")[1].split()[0])
+
+    # Construct the ESMF command
+    esmf_cmd = [path_to_esmf, "--source", srcGridFile, "--destination", dstGridFile, "--weight", wgtFile]
+
+    # Handle optional attributes using get_att_value
+    if get_att_value(opt, "SrcESMF", False) and esmf_major_version >= 7:
+        esmf_cmd.append("--src_loc corner")
+    if get_att_value(opt, "DstESMF", False) and esmf_major_version >= 7:
+        esmf_cmd.append("--dst_loc corner")
+    interp_method = get_att_value(opt, "InterpMethod", None)
+    if interp_method:
+        esmf_cmd.extend(["--method", interp_method])
+    pole = get_att_value(opt, "Pole", None)
+    if pole:
+        esmf_cmd.extend(["--pole", pole])
+    if get_att_value(opt, "SrcRegional", False):
+        esmf_cmd.append("--src_regional")
+    if get_att_value(opt, "DstRegional", False):
+        esmf_cmd.append("--dst_regional")
+    if get_att_value(opt, "SrcESMF", False):
+        esmf_cmd.append("--src_type ESMF")
+    if get_att_value(opt, "DstESMF", False):
+        esmf_cmd.append("--dst_type ESMF")
+    if get_att_value(opt, "IgnoreUnmappedPoints", True):
+        esmf_cmd.append("--ignore_unmapped")
+    if get_att_value(opt, "LargeFile", False):
+        esmf_cmd.append("--64bit_offset")
+    if get_att_value(opt, "NetCDFType", "").lower() == "netcdf4":
+        esmf_cmd.append("--netcdf4")
+    if get_att_value(opt, "NormalizeWeights", False):
+        esmf_cmd.append("--norm_type fracarea")
+
+    # Execute the command
+    result = subprocess.run(esmf_cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        logging.error(f"ESMF_regrid_gen_weights: failed with output:\n{result.stderr}")
+        return
+
+    # Remove files if requested
+    if opt.get("RemoveFiles", False) or opt.get("RemoveSrcFile", False):
+        os.remove(srcGridFile)
+    if opt.get("RemoveFiles", False) or opt.get("RemoveDstFile", False):
+        os.remove(dstGridFile)
+
+    # Log the success message
+    logging.info("ESMF_regrid_gen_weights: Completed weight generation successfully.")
