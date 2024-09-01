@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 import glob
+import sys
 
 import pyfuncs
 import vertremap
@@ -223,10 +224,21 @@ def load_CFSR_data(grb_file_name, dycore):
     data_vars['cldice'] = np.where(data_vars['t'] > t_freeze_K, 0, data_vars['cldmix'])
     data_vars['cldliq'] = np.where(data_vars['t'] > t_freeze_K, data_vars['cldmix'], 0)
 
+    # Surface geopotential
     data_vars['phis']  = load_and_extract_CFSR_variable(grb_file_name, 'surface', 'orog')
     data_vars['phis'] = data_vars['phis'] * grav
-    #data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'sigma', 't')
-    data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 't')
+
+    # Surface temperature -- try "surface" first, then 0.995 sigma if surface unavailable.
+    try:
+        data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 't')
+    except Exception as e_surface:
+        print(f"Failed to load variable with 'sigma' level: {e_surface}")
+        try:
+            data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'sigma', 't')
+        except Exception as e_sigma:
+            print(f"Failed to load variable with 'surface' level: {e_sigma}")
+            print("Both attempts to load the variable failed. Exiting script.")
+            sys.exit(1)
 
     pyfuncs.print_min_max_dict(data_vars)
 
