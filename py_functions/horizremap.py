@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, dest_frac=None, **kwargs):
+def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, dest_frac=None, dest_frac_thresh=0.999, **kwargs):
     """
     Regrid data using ESMF weights.
 
@@ -35,8 +35,11 @@ def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_g
     # Apply map onto the src column vector length n_a to compute vector length n_b
     field_target = sparse_map @ src_vector
 
+    # If we've passed in fraction of dest cells participating in regridding, set
+    # all points < dest_frac_thresh to nan so we don't get a lot of 0's from
+    # the matrix solve
     if dest_frac is not None:
-        field_target = np.where(dest_frac > 0.5, field_target, np.nan)
+        field_target = np.where(dest_frac > dest_frac_thresh, field_target, np.nan)
 
     # Reshape 1-D vector returned to dst_grid_dims
     data_out = np.reshape(field_target, dst_grid_dims, order="F")
