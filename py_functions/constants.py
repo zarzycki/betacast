@@ -32,4 +32,4 @@ w_smooth_iter = 5
 
 t_freeze_K = 273.15
 
-DEBUGDIR = "/Users/cmz5202/NetCDF/betacast/"
+DEBUGDIR = "/glade/derecho/scratch/zarzycki/betacast/test/"
