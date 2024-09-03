@@ -731,7 +731,7 @@ if [ $debug = false ] ; then
     TMPWGTFILE="./map_hwrf_storm_TO_modelgrid_patc.nc"
 
     if [ "$DO_PYTHON" ]; then
-      (set -x; python gen_reglatlon_SCRIP.py \
+      (set -x; python ../py_remapping/gen_reglatlon_SCRIP.py \
         --dstGridName "hwrf_storm_scrip.nc" \
         --dstDir "./" \
         --srcfilename "${regional_src}" )
