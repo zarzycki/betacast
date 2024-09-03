@@ -110,6 +110,10 @@ def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, i
         sstlat = sst_file['lat']
         sstlon = sst_file['lon']
 
+    # Get rid of any missing values in SST
+    sst_gfs = pyfuncs.linmsg_n(sst_gfs,-1,1,fill_all_nans=(TTHRESH-KtoC))
+    sst_gfs = pyfuncs.linmsg_n(sst_gfs,-1,0,fill_all_nans=(TTHRESH-KtoC))
+
     fvlat = in_ds['yc'].values
     fvlon = in_ds['xc'].values
 
