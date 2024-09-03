@@ -96,7 +96,7 @@ weights = 1 - sigmoid_weight(dists,threshold=250, scale=50)
 weights_2d = weights.reshape(1, -1)
 weights_2d = np.where(PS_rgm.mask,1,weights_2d)
 weights_3d = weights.reshape(1, 1, -1)
-weights_3d = np.tile(weights_3d, (1, 128, 1))
+weights_3d = np.tile(weights_3d, (1, len(levels), 1))
 weights_3d = np.where(T_rgm.mask,1,weights_3d)
 
 # For valid rgm cells, taper the values by weighting them towards global background
