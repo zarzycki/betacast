@@ -3,7 +3,7 @@ import numpy as np
 import os
 import argparse
 
-from functions import *
+from ESMF_regridding import *
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate SCRIP grid file from input data.")
