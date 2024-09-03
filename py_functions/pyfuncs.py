@@ -88,6 +88,40 @@ def parse_args():
     return parser.parse_args()
 
 
+def parse_args_sst():
+    parser = argparse.ArgumentParser(description="Process SST and Ice data for CESM F compsets.")
+
+    # Required arguments
+    parser.add_argument('--initdate', type=str, required=True,
+                        help='Initialization date in format YYYYMMDDHH')
+    parser.add_argument('--predict_docn', type=int, choices=[0, 1], required=True,
+                        help='Flag for predict_docn: 0 (false) or 1 (true)')
+    parser.add_argument('--inputres', type=str, required=True,
+                        help='Input resolution (e.g., "180x360")')
+    parser.add_argument('--datasource', type=str, required=True,
+                        help='Data source (e.g., "GDAS", "NOAAOI")')
+    parser.add_argument('--sstDataFile', type=str, required=True,
+                        help='Full path to the SST data file')
+    parser.add_argument('--iceDataFile', type=str, required=True,
+                        help='Full path to the Ice data file')
+    parser.add_argument('--SST_write_file', type=str, required=True,
+                        help='Full path to the output SST file')
+
+    # Optional arguments with defaults
+    parser.add_argument('--smooth_ice', action='store_true', default=False,
+                        help='If set, smooth the ice field (default: False)')
+    parser.add_argument('--smooth_iter', type=int, default=3,
+                        help='Number of iterations for smoothing the ice field (default: 3)')
+    parser.add_argument('--TTHRESH', type=float, default=271.9,
+                        help='Initial threshold for ice vs. open ocean (default: 271.9)')
+    parser.add_argument('--KtoC', type=float, default=273.15,
+                        help='Kelvin to Celsius conversion constant (default: 273.15)')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Increase output verbosity for debugging')
+
+    return parser.parse_args()
+
+
 def split_by_lengths(s, lengths):
     """
     Splits a string `s` into parts defined by `lengths`.
@@ -98,6 +132,14 @@ def split_by_lengths(s, lengths):
         parts.append(s[index:index + length])
         index += length
     return parts
+
+
+def parse_YYYYMMDDHH(initdate):
+    yyyy = int(initdate[:4])
+    mm = int(initdate[4:6])
+    dd = int(initdate[6:8])
+    hh = int(initdate[8:])
+    return yyyy, mm, dd, hh
 
 
 def find_closest_time(times, yearstr, monthstr, daystr, cyclestr, return_isel=False):

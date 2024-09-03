@@ -249,3 +249,45 @@ def uv_cell_to_edge(uZonal, uMerid, nlev, lonEdge, latEdge, lonCell, latCell, ed
         )
 
     return uNormal
+
+
+def linint2(xi, yi, fi, fiCyclicX, xo, yo):
+    """
+    Bilinear interpolation from one rectilinear grid to another.
+
+    Parameters:
+    - xi: 1D or 2D array of X coordinates of the input data.
+    - yi: 1D or 2D array of Y coordinates of the input data.
+    - fi: 2D or 3D array of input data to be interpolated.
+    - fiCyclicX: Boolean indicating if the X dimension is cyclic.
+    - xo: 1D array of X coordinates of the output data.
+    - yo: 1D array of Y coordinates of the output data.
+
+    Returns:
+    - Interpolated array of the same dimensions as fi, except the last two dimensions.
+    """
+
+    # Handle cyclic conditions
+    if fiCyclicX:
+        # Extend the fi array and xi array for cyclic boundary
+        xi_extended = np.concatenate((xi, xi[:1] + 360.0), axis=-1)
+        fi_extended = np.concatenate((fi, fi[..., :1]), axis=-1)
+        xi = xi_extended
+        fi = fi_extended
+
+    # Create the interpolator object
+    interpolator = RegularGridInterpolator((yi, xi), fi, method='linear', bounds_error=False, fill_value=np.nan)
+
+    # Create a meshgrid for target coordinates
+    xo_mesh, yo_mesh = np.meshgrid(xo, yo, indexing='xy')
+
+    # Prepare the points for interpolation
+    target_points = np.vstack((yo_mesh.ravel(), xo_mesh.ravel())).T
+
+    # Perform the interpolation
+    interpolated_data = interpolator(target_points)
+
+    # Reshape the interpolated data to match the target grid shape
+    interpolated_data = interpolated_data.reshape(yo_mesh.shape)
+
+    return interpolated_data
