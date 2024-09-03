@@ -495,6 +495,64 @@ def smooth_with_gaussian(var, numiter, sigma=1, truncate=4.0):
     return var
 
 
+def linmsg_n(x, opt, dim, fill_all_nans=None):
+    x = np.asarray(x)
+    fill_value = np.nan  # Default fill value for missing values
+
+    # Handling options for beginning and end missing values
+    if isinstance(opt, int):
+        end_point_option = opt
+        max_consecutive = None
+    elif isinstance(opt, (list, tuple)) and len(opt) == 2:
+        end_point_option, max_consecutive = opt
+    else:
+        raise ValueError("opt must be an integer or a list/tuple with two elements.")
+
+    # Swap the specified dimension to the last axis
+    x = np.moveaxis(x, dim, -1)
+    shape = x.shape
+    x = x.reshape(-1, shape[-1])
+
+    for i in range(x.shape[0]):
+        valid = ~np.isnan(x[i, :])
+
+        if not np.any(valid):
+            # Fill the entire slice with the specified fill value if all values are NaN
+            if fill_all_nans is not None:
+                x[i, :] = fill_all_nans
+            continue
+
+        if end_point_option < 0:
+            # Handling missing values at the beginning
+            if np.isnan(x[i, 0]):
+                first_valid = np.argmax(valid)
+                x[i, :first_valid] = x[i, first_valid]
+            # Handling missing values at the end
+            if np.isnan(x[i, -1]):
+                last_valid = len(x[i, :]) - np.argmax(valid[::-1]) - 1
+                x[i, last_valid+1:] = x[i, last_valid]
+
+        # Interpolation
+        indices = np.arange(x.shape[1])
+
+        if max_consecutive is not None:
+            segments = np.split(indices[valid], np.where(np.diff(indices[valid]) > max_consecutive)[0] + 1)
+            for segment in segments:
+                if len(segment) > 1:
+                    x[i, segment[0]:segment[-1] + 1] = np.interp(indices[segment[0]:segment[-1] + 1], segment, x[i, segment])
+        else:
+            x[i, :] = np.interp(indices, indices[valid], x[i, valid])
+
+        if end_point_option >= 0:
+            x[i, np.isnan(x[i, :])] = fill_value
+
+    # Reshape to the original array dimensions
+    x = x.reshape(shape)
+    x = np.moveaxis(x, -1, dim)
+
+    return x
+
+
 def print_and_return_varsize(ps_fv, u_fv, v_fv, t_fv, q_fv):
     """
     Function to print and return the maximum size of xarray DataArray variables in bytes.
