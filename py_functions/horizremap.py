@@ -3,6 +3,7 @@ import xarray as xr
 import time
 import scipy.sparse as sp
 import logging
+from scipy.interpolate import RegularGridInterpolator
 logger = logging.getLogger(__name__)
 
 
