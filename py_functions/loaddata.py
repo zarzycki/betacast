@@ -10,7 +10,7 @@ import horizremap
 import meteo
 
 from constants import (
-    grav, p0, t_freeze_K, dtime_map, OMEGA_LAT_THRESH
+    grav, p0, t_freeze_K, dtime_map, OMEGA_LAT_THRESH, DEBUGDIR
 )
 
 import logging
