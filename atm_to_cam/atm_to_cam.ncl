@@ -96,6 +96,18 @@ else
   write_type="double"
 end if
 
+; Debugging stuff
+if (.not. isvar("write_debug_files")) then
+  write_debug_files=False
+end if
+if (.not. isvar("write_debug_dir")) then
+  DEBUGDIR="./"
+else
+  DEBUGDIR=write_debug_dir
+end if
+print("USING write_debug_files:  "+write_debug_files)
+print("USING DEBUGDIR:  "+DEBUGDIR)
+
 ; ===== Getting date from YYYYMMDDHH
 dtime_map = (/4,2,2,2/)
 splitDate = str_split_by_length(tostring(YYYYMMDDHH),dtime_map)
@@ -476,6 +488,47 @@ if (datasource .eq. "CAM") then
     copy_VarCoords(t_rll,z_rll)
   end if
 
+  if (write_debug_files) then
+    dpsl  = ps
+    dpsm  = ps
+    psln  = log(ps)
+    gradsg(psln,dpsl,dpsm)
+
+    ;div   = uv2dvG(u_rll,v_rll)                     ; divergence on gaussian grid
+    div = uv2dv_cfd(u_rll,v_rll,t_rll&lat,t_rll&lon,3)
+    ;div = where(ismissing(div),0,div)
+
+    pdel  = dpres_hybrid_ccm(ps,p0,hyai,hybi)
+    pmid  = pres_hybrid_ccm (ps,p0,hyam,hybm)
+
+    copy_VarCoords(t_rll,div)
+    copy_VarCoords(t_rll,pdel)
+    copy_VarCoords(t_rll,pmid)
+
+    system("/bin/rm -f "+DEBUGDIR+"/ncl_cam_raw.nc")   ; remove any pre-existing file
+    ncdf = addfile(DEBUGDIR+"/ncl_cam_raw.nc" ,"c")  ; open output netCDF file
+    fAtt               = True            ; assign file attributes
+    fAtt@creation_date = systemfunc ("date")
+    fileattdef( ncdf, fAtt )            ; copy file attributes
+    filedimdef(ncdf,"time",-1,True)
+    ncdf->u_cam = u_rll
+    ncdf->v_cam = v_rll
+    ncdf->t_cam = t_rll
+    ncdf->q_cam = q_rll
+    ncdf->ps_cam = ps
+    ncdf->phis_cam = phis_rll
+    if (dycore .eq. "mpas") then
+      ncdf->omega_cam = omega_rll
+      ncdf->z_cam = z_rll
+      ncdf->tkv_cam = tkv_rll
+    end if
+    ncdf->dpsl_cam = dpsl
+    ncdf->dpsm_cam = dpsm
+    ncdf->div_cam = div
+    ncdf->pdel_cam = pdel
+    ncdf->pmid_cam = pmid
+  end if
+
   ; interpolation settings
   P0mb=p0/100.                          ; p0 in mb
   intyp = 2                             ; 1=linear, 2=log, 3=log-log
@@ -503,17 +556,6 @@ if (datasource .eq. "CAM") then
     z_gfs := vinth2p_ecmwf(z_rll,hyam,hybm,grblev/100,ps,intyp,P0mb,\
                    1,kxtrp,-1,tbot_mod,phis_rll)
     z_is_phi = False
-  end if
-
-  if (debug) then
-    system("/bin/rm -f mpas2_debug.nc")   ; remove any pre-existing file
-    ncdf = addfile("mpas2_debug.nc" ,"c")  ; open output netCDF file
-    fAtt               = True            ; assign file attributes
-    fAtt@creation_date = systemfunc ("date")
-    fileattdef( ncdf, fAtt )            ; copy file attributes
-    filedimdef(ncdf,"time",-1,True)
-    ncdf->w_gfs = w_gfs
-    ncdf->omega_rll = omega_rll
   end if
 
   ; NOTE: we do not delete phis_rll and tbot_mod which may be used for hydro adjustment
@@ -626,15 +668,17 @@ if (dycore .ne. "mpas") then
     cldliq_cam = hyi2hyo_Wrap(p0,hya_era,hyb_era,ps,cldliq_gfs,hya,hyb,1)
   end if
 
-  tmpoutputfile="ncl_era5_on_hybrid.nc"
-  system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
-  ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
-  ncdf->t_cam  = t_cam
-  ncdf->u_cam  = u_cam
-  ncdf->v_cam  = v_cam
-  ncdf->q_cam  = q_cam
-  ncdf->cldice_cam  = cldice_cam
-  ncdf->cldliq_cam  = cldliq_cam
+  if (write_debug_files) then
+    tmpoutputfile=DEBUGDIR+"/ncl_era5_on_hybrid.nc"
+    system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
+    ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
+    ncdf->t_cam  = t_cam
+    ncdf->u_cam  = u_cam
+    ncdf->v_cam  = v_cam
+    ncdf->q_cam  = q_cam
+    ncdf->cldice_cam  = cldice_cam
+    ncdf->cldliq_cam  = cldliq_cam
+  end if
 
   print("=================================================================")
   print("************ AFTER VERTICAL INTERP")
@@ -686,29 +730,32 @@ if (dycore .ne. "mpas") then
   cldice_fv  = ESMF_regrid_with_weights(cldice_cam,wgt_filename,Opt)
   cldliq_fv  = ESMF_regrid_with_weights(cldliq_cam,wgt_filename,Opt)
 
-  t_fv!0="level"
-  t_fv!1="ncol"
-  copy_VarCoords(t_fv,u_fv)
-  copy_VarCoords(t_fv,v_fv)
-  copy_VarCoords(t_fv,q_fv)
-  copy_VarCoords(t_fv,cldice_fv)
-  copy_VarCoords(t_fv,cldliq_fv)
-  selat!0="ncol"
-  selon!0="ncol"
-  ps_fv!0="ncol"
-
-  tmpoutputfile="ncl_era5_regrid.nc"
-  system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
-  ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
-  ncdf->t_fv  = t_fv
-  ncdf->u_fv  = u_fv
-  ncdf->v_fv  = v_fv
-  ncdf->q_fv  = q_fv
-  ncdf->ps_fv  = ps_fv
-  ncdf->cldice_fv  = cldice_fv
-  ncdf->cldliq_fv  = cldliq_fv
-  ncdf->lat = selat
-  ncdf->lon = selon
+  if (write_debug_files) then
+    if (dycore .ne. "fv")
+      t_fv!0="level"
+      t_fv!1="ncol"
+      copy_VarCoords(t_fv,u_fv)
+      copy_VarCoords(t_fv,v_fv)
+      copy_VarCoords(t_fv,q_fv)
+      copy_VarCoords(t_fv,cldice_fv)
+      copy_VarCoords(t_fv,cldliq_fv)
+      selat!0="ncol"
+      selon!0="ncol"
+      ps_fv!0="ncol"
+      tmpoutputfile=DEBUGDIR+"/ncl_era5_regrid.nc"
+      system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
+      ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
+      ncdf->t_fv  = t_fv
+      ncdf->u_fv  = u_fv
+      ncdf->v_fv  = v_fv
+      ncdf->q_fv  = q_fv
+      ncdf->ps_fv  = ps_fv
+      ncdf->cldice_fv  = cldice_fv
+      ncdf->cldliq_fv  = cldliq_fv
+      ncdf->lat = selat
+      ncdf->lon = selon
+    end if
+  end if
 
   print("=================================================================")
   print("************ AFTER HORIZONTAL INTERP")
@@ -755,6 +802,8 @@ else   ; if mpas
   ps_fv  = ESMF_regrid_with_weights(ps,wgt_filename,Opt)
   selat=todouble(ps_fv@lat1d)
   selon=todouble(ps_fv@lon1d)
+  selat!0="ncol"
+  selon!0="ncol"
   delete_VarAtts(ps_fv,(/"lat1d","lon1d"/))
   Opt@CopyVarCoords = False  ; now we can turn off
   t_fv  = ESMF_regrid_with_weights(t_cam,wgt_filename,Opt)
@@ -767,6 +816,34 @@ else   ; if mpas
   theta_fv  = ESMF_regrid_with_weights(theta_cam,wgt_filename,Opt)
   rho_fv  = ESMF_regrid_with_weights(rho_cam,wgt_filename,Opt)
   w_fv  = ESMF_regrid_with_weights(w_cam,wgt_filename,Opt)
+
+   t_fv!0="level"
+   t_fv!1="ncol"
+   copy_VarCoords(t_fv,u_fv)
+   copy_VarCoords(t_fv,v_fv)
+   copy_VarCoords(t_fv,q_fv)
+   copy_VarCoords(t_fv,cldice_fv)
+   copy_VarCoords(t_fv,cldliq_fv)
+   selat!0="ncol"
+   selon!0="ncol"
+   ps_fv!0="ncol"
+
+   if (write_debug_files) then
+     tmpoutputfile=DEBUGDIR+"/ncl_era5_regrid.nc"
+     system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
+     ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
+     ncdf->t_fv  = t_fv
+     ncdf->u_fv  = u_fv
+     ncdf->v_fv  = v_fv
+     ncdf->q_fv  = q_fv
+     ncdf->ps_fv  = ps_fv
+     ncdf->cldice_fv  = cldice_fv
+     ncdf->cldliq_fv  = cldliq_fv
+     ncdf->w_fv  = w_fv
+     ncdf->rho_fv  = rho_fv
+     ncdf->theta_fv = theta_fv
+     ncdf->z_fv = z_fv
+   end if
 
   ; now vertical interpolation
   t_wrf = new((/mpas_nlev,mpas_ncell/),"double")
@@ -927,7 +1004,8 @@ else   ; if mpas
     ncdf->T  = t_fv_dbl_time
     ncdf->Q  = q_fv_dbl_time
     ncdf->PS = ps_fv_dbl_time
-
+    ncdf->lon = selon
+    ncdf->lat = selat
   else
 
     print("Writing MPAS fields to a copy of existing init file")
@@ -1182,6 +1260,22 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
   print("needed to correct "+tcorriter+" temps for being too cold or too hot")
   delete([/beta,ps_orig,tcorriter,Tlayermean,Tsfc_fv,deltaPhi/])
   delete([/ttfile,topo_model_SE,topo_data_SE,sfct_data_SE,topo_data,sfct_data/])
+  if (write_debug_files) then
+    correct_or_not!0 = "ncol"
+    tmpoutputfile=DEBUGDIR+"/ncl_era5_topoadjust.nc"
+    system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
+    ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
+    ncdf->t_fv  = t_fv
+    ncdf->u_fv  = u_fv
+    ncdf->v_fv  = v_fv
+    ncdf->q_fv  = q_fv
+    ncdf->correct_or_not  = correct_or_not
+    ncdf->ps_fv  = ps_fv
+    ncdf->cldice_fv  = cldice_fv
+    ncdf->cldliq_fv  = cldliq_fv
+    ncdf->lat = selat
+    ncdf->lon = selon
+  end if
 else if (isvar("model_topo_file") .and. (model_topo_file .eq. " " .or. model_topo_file .eq. "NULL" .or. model_topo_file .eq. "")) then
   print("Empty model topo file entered, not performing hydro adjustment")
   print("continuing...")
@@ -1197,24 +1291,11 @@ end if
 end if
 end if
 
-tmpoutputfile="ncl_era5_topoadjust.nc"
-system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
-ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
-ncdf->t_fv  = t_fv
-ncdf->u_fv  = u_fv
-ncdf->v_fv  = v_fv
-ncdf->q_fv  = q_fv
-ncdf->ps_fv  = ps_fv
-ncdf->cldice_fv  = cldice_fv
-ncdf->cldliq_fv  = cldliq_fv
-ncdf->lat = selat
-ncdf->lon = selon
-
-exit
-
 ; dry pressure?
 ps_wet_to_dry=False
 if (ps_wet_to_dry) then
+  ps_fv_before = ps_fv
+
   print("wet to dry!")
   ncol=dim_sePS(0)
   pw_fv = ps_fv
@@ -1233,15 +1314,26 @@ if (ps_wet_to_dry) then
     end if
   end do
 
+  if (write_debug_files) then
+    pw_fv!0 = "ncol"
+    ps_fv!0 = "ncol"
+    tmpoutputfile=DEBUGDIR+"/ncl_era5_tpw.nc"
+    system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
+    ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
+    ncdf->ps_fv_after  = ps_fv
+    ncdf->ps_fv  = ps_fv_before
+    ncdf->pw_fv  = pw_fv
+    ncdf->lat = selat
+    ncdf->lon = selon
+  end if
+
   delete(ps_orig)
   delete(pw_fv)
   delete(dp)
   delete(pi_orig)
   print("done!")
+
 end if
-
-
-
 
 ; repack
 if (dycore .eq. "fv") then
@@ -1554,6 +1646,7 @@ if (add_cloud_vars) then
   filevarattdef(fout,"CLDICE",cldice_fv_dbl_time)
 end if
 if (isvar("correct_or_not"))
+  delete(correct_or_not@missing_value)
   filevarattdef(fout,"correct_or_not",correct_or_not)
 end if
 ;===================================================================
