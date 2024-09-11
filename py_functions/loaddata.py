@@ -10,7 +10,7 @@ import horizremap
 import meteo
 
 from constants import (
-    grav, p0, t_freeze_K, dtime_map, OMEGA_LAT_THRESH, DEBUGDIR
+    grav, p0, t_freeze_K, dtime_map, OMEGA_LAT_THRESH
 )
 
 import logging
@@ -283,7 +283,7 @@ def flip_level_dimension(data_vars, state_dimensions=3):
     return data_vars
 
 
-def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=False):
+def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=False, write_debug_dir="./"):
 
     data_vars = {}
 
@@ -356,7 +356,7 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 
         if write_debug_files:
             pyfuncs.print_debug_file(
-                  DEBUGDIR+"/"+"py_cam_raw.nc",
+                  write_debug_dir+"/"+"py_cam_raw.nc",
                   ps_cam=(["lat", "lon"], data_vars['ps']),
                   phis_cam=(["lat", "lon"], data_vars['phis']),
                   ts_cam=(["lat", "lon"], data_vars['ts']),

@@ -84,6 +84,8 @@ def parse_args():
                         help='Full path to ESMF weight file that goes downscaling MOD -> ANL (default: "")')
     parser.add_argument('--mpasfile', type=str, default='',
                         help='XXXXXXX')
+    parser.add_argument('--write_debug_dir', type=str, default='./',
+                        help='XXXXXX (default: "./")')
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity for debugging')
     parser.add_argument('-f', '--write_debug_files', action='store_true', help='Write debug files')
 

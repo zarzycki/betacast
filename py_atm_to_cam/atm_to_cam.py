@@ -20,7 +20,7 @@ import loaddata
 import meteo
 from constants import (
     p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH,
-    ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav, DEBUGDIR
+    ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav
 )
 
 args = pyfuncs.parse_args()
@@ -54,6 +54,7 @@ def main():
         "MOD in topo": args.mod_in_topo,
         "MOD remap file": args.mod_remap_file,
         "write_debug_files": args.write_debug_files,
+        "write_debug_dir": args.write_debug_dir,
     }
 
     for key, value in args_dict.items():
@@ -78,6 +79,7 @@ def main():
     se_inic = args.se_inic
     mpas_as_cam = args.mpas_as_cam
     write_debug_files = args.write_debug_files
+    DEBUGDIR = args.write_debug_dir
 
     if write_debug_files:
         pyfuncs.delete_files(DEBUGDIR, "py_*.nc")
@@ -129,7 +131,7 @@ def main():
     elif datasource == 'ERA5RDA':
         data_vars = loaddata.load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
     elif datasource == 'CAM':
-        data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=write_debug_files)
+        data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=write_debug_files,write_debug_dir=DEBUGDIR)
 
     logging.info("Input Data Level information")
     logging.info(f"Number: {len(data_vars['lev'])}")
