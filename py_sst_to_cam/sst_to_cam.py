@@ -1,9 +1,7 @@
-import argparse
 import numpy as np
 import xarray as xr
 import logging
 from datetime import datetime
-from scipy.interpolate import RegularGridInterpolator
 import sys
 import os
 
