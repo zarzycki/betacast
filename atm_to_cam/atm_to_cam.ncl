@@ -1270,16 +1270,27 @@ if (dycore .ne. "mpas" .and. isvar("model_topo_file") .and. fileexists(model_top
     tmpoutputfile=DEBUGDIR+"/ncl_era5_topoadjust.nc"
     system("/bin/rm -f "+tmpoutputfile)   ; remove any pre-existing file
     ncdf = addfile(tmpoutputfile ,"c")  ; open output netCDF file
-    ncdf->t_fv  = t_fv
-    ncdf->u_fv  = u_fv
-    ncdf->v_fv  = v_fv
-    ncdf->q_fv  = q_fv
-    ncdf->correct_or_not  = correct_or_not
-    ncdf->ps_fv  = ps_fv
-    ncdf->cldice_fv  = cldice_fv
-    ncdf->cldliq_fv  = cldliq_fv
-    ncdf->lat = selat
-    ncdf->lon = selon
+    if (dycore .eq. "fv") then
+      ncdf->t_fv  = ncol_to_latlon(t_fv,dim_sePS(0),dim_sePS(1))
+      ncdf->u_fv  = ncol_to_latlon(u_fv,dim_sePS(0),dim_sePS(1))
+      ncdf->v_fv  = ncol_to_latlon(v_fv,dim_sePS(0),dim_sePS(1))
+      ncdf->q_fv  = ncol_to_latlon(q_fv,dim_sePS(0),dim_sePS(1))
+      ncdf->correct_or_not  = ncol_to_latlon(correct_or_not,dim_sePS(0),dim_sePS(1))
+      ncdf->ps_fv  = ncol_to_latlon(ps_fv,dim_sePS(0),dim_sePS(1))
+      ncdf->cldice_fv  = ncol_to_latlon(cldice_fv,dim_sePS(0),dim_sePS(1))
+      ncdf->cldliq_fv  = ncol_to_latlon(cldliq_fv,dim_sePS(0),dim_sePS(1))
+    else
+      ncdf->t_fv  = t_fv
+      ncdf->u_fv  = u_fv
+      ncdf->v_fv  = v_fv
+      ncdf->q_fv  = q_fv
+      ncdf->correct_or_not  = correct_or_not
+      ncdf->ps_fv  = ps_fv
+      ncdf->cldice_fv  = cldice_fv
+      ncdf->cldliq_fv  = cldliq_fv
+      ncdf->lat = selat
+      ncdf->lon = selon
+    end if
   end if
 else if (isvar("model_topo_file") .and. (model_topo_file .eq. " " .or. model_topo_file .eq. "NULL" .or. model_topo_file .eq. "")) then
   print("Empty model topo file entered, not performing hydro adjustment")
