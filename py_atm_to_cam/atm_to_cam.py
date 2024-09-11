@@ -53,6 +53,7 @@ def main():
         "Model topo file": args.model_topo_file,
         "MOD in topo": args.mod_in_topo,
         "MOD remap file": args.mod_remap_file,
+        "write_debug_files": args.write_debug_files,
     }
 
     for key, value in args_dict.items():
@@ -76,6 +77,10 @@ def main():
     compress_file = args.compress_file
     se_inic = args.se_inic
     mpas_as_cam = args.mpas_as_cam
+    write_debug_files = args.write_debug_files
+
+    if write_debug_files:
+        pyfuncs.delete_files(DEBUGDIR, "py_*.nc")
 
     # Check if we are using MPAS and the model topo file is provided and exists
     if dycore == "mpas" and model_topo_file:
@@ -124,7 +129,7 @@ def main():
     elif datasource == 'ERA5RDA':
         data_vars = loaddata.load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
     elif datasource == 'CAM':
-        data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, debug=True)
+        data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=write_debug_files)
 
     logging.info("Input Data Level information")
     logging.info(f"Number: {len(data_vars['lev'])}")
@@ -164,35 +169,35 @@ def main():
 
     if dycore == 'fv' or dycore == 'se':
 
-        # Use the print_debug_file function to create and save the xarray.Dataset
-        pyfuncs.print_debug_file(
-            DEBUGDIR+"/"+"py_era5_before_interp.nc",
-            ps_cam=(["lat", "lon"], data_vars['ps']),
-            t_cam=(["lev_p", "lat", "lon"], data_vars['t']),
-            u_cam=(["lev_p", "lat", "lon"], data_vars['u']),
-            v_cam=(["lev_p", "lat", "lon"], data_vars['v']),
-            q_cam=(["lev_p", "lat", "lon"], data_vars['q']),
-            cldliq_cam=(["lev_p", "lat", "lon"], data_vars['cldliq']),
-            cldice_cam=(["lev_p", "lat", "lon"], data_vars['cldice']),
-            lat=(["lat"], data_vars['lat']),
-            lon=(["lon"], data_vars['lon'])
-        )
+        if write_debug_files:
+            pyfuncs.print_debug_file(
+                DEBUGDIR+"/"+"py_era5_before_interp.nc",
+                ps_cam=(["lat", "lon"], data_vars['ps']),
+                t_cam=(["lev_p", "lat", "lon"], data_vars['t']),
+                u_cam=(["lev_p", "lat", "lon"], data_vars['u']),
+                v_cam=(["lev_p", "lat", "lon"], data_vars['v']),
+                q_cam=(["lev_p", "lat", "lon"], data_vars['q']),
+                cldliq_cam=(["lev_p", "lat", "lon"], data_vars['cldliq']),
+                cldice_cam=(["lev_p", "lat", "lon"], data_vars['cldice']),
+                lat=(["lat"], data_vars['lat']),
+                lon=(["lon"], data_vars['lon'])
+            )
 
         data_vint = vertremap.pres2hyb_all(data_vars, data_vars['ps'], hya, hyb)
 
-        # Use the print_debug_file function to create and save the xarray.Dataset
-        pyfuncs.print_debug_file(
-            DEBUGDIR+"/"+"py_era5_on_hybrid.nc",
-            ps_cam=(["latitude", "longitude"], data_vint['ps']),
-            t_cam=(["level", "latitude", "longitude"], data_vint['t']),
-            u_cam=(["level", "latitude", "longitude"], data_vint['u']),
-            v_cam=(["level", "latitude", "longitude"], data_vint['v']),
-            q_cam=(["level", "latitude", "longitude"], data_vint['q']),
-            cldliq_cam=(["level", "latitude", "longitude"], data_vint['cldliq']),
-            cldice_cam=(["level", "latitude", "longitude"], data_vint['cldice']),
-            latitude=(["latitude"], data_vint['lat']),
-            longitude=(["longitude"], data_vint['lon'])
-        )
+        if write_debug_files:
+            pyfuncs.print_debug_file(
+                DEBUGDIR+"/"+"py_era5_on_hybrid.nc",
+                ps_cam=(["latitude", "longitude"], data_vint['ps']),
+                t_cam=(["level", "latitude", "longitude"], data_vint['t']),
+                u_cam=(["level", "latitude", "longitude"], data_vint['u']),
+                v_cam=(["level", "latitude", "longitude"], data_vint['v']),
+                q_cam=(["level", "latitude", "longitude"], data_vint['q']),
+                cldliq_cam=(["level", "latitude", "longitude"], data_vint['cldliq']),
+                cldice_cam=(["level", "latitude", "longitude"], data_vint['cldice']),
+                latitude=(["latitude"], data_vint['lat']),
+                longitude=(["longitude"], data_vint['lon'])
+            )
 
         pyfuncs.print_min_max_dict(data_vint)
 
@@ -215,43 +220,44 @@ def main():
 
     data_horiz = horizremap.remap_all(data_vint, wgt_filename, dycore=dycore)
 
-    if dycore == "se":
-        pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_regrid.nc",
-                     lat=(["ncol"], data_horiz['lat']),
-                     lon=(["ncol"], data_horiz['lon']),
-                     ps_fv=(["ncol"], data_horiz['ps']),
-                     t_fv=(["level", "ncol"], data_horiz['t']),
-                     u_fv=(["level", "ncol"], data_horiz['u']),
-                     v_fv=(["level", "ncol"], data_horiz['v']),
-                     q_fv=(["level", "ncol"], data_horiz['q']),
-                     cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
-                     cldice_fv=(["level", "ncol"], data_horiz['cldice']))
-    elif dycore == "fv":
-        pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_regrid.nc",
-                     lat=(["lat"], data_horiz['lat']),
-                     lon=(["lon"], data_horiz['lon']),
-                     ps_fv=(["lat", "lon"], data_horiz['ps']),
-                     t_fv=(["level", "lat", "lon"], data_horiz['t']),
-                     u_fv=(["level", "lat", "lon"], data_horiz['u']),
-                     v_fv=(["level", "lat", "lon"], data_horiz['v']),
-                     q_fv=(["level", "lat", "lon"], data_horiz['q']),
-                     cldliq_fv=(["level", "lat", "lon"], data_horiz['cldliq']),
-                     cldice_fv=(["level", "lat", "lon"], data_horiz['cldice']))
-    elif dycore == "mpas":
-        pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_regrid.nc",
-                     lat=(["ncol"], data_horiz['lat']),
-                     lon=(["ncol"], data_horiz['lon']),
-                     ps_fv=(["ncol"], data_horiz['ps']),
-                     t_fv=(["level", "ncol"], data_horiz['t']),
-                     u_fv=(["level", "ncol"], data_horiz['u']),
-                     v_fv=(["level", "ncol"], data_horiz['v']),
-                     q_fv=(["level", "ncol"], data_horiz['q']),
-                     cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
-                     cldice_fv=(["level", "ncol"], data_horiz['cldice']),
-                     z_fv=(["level", "ncol"], data_horiz['z']),
-                     theta_fv=(["level", "ncol"], data_horiz['theta']),
-                     rho_fv=(["level", "ncol"], data_horiz['rho']),
-                     w_fv=(["level", "ncol"], data_horiz['w']))
+    if write_debug_files:
+        if dycore == "se":
+            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_regrid.nc",
+                         lat=(["ncol"], data_horiz['lat']),
+                         lon=(["ncol"], data_horiz['lon']),
+                         ps_fv=(["ncol"], data_horiz['ps']),
+                         t_fv=(["level", "ncol"], data_horiz['t']),
+                         u_fv=(["level", "ncol"], data_horiz['u']),
+                         v_fv=(["level", "ncol"], data_horiz['v']),
+                         q_fv=(["level", "ncol"], data_horiz['q']),
+                         cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
+                         cldice_fv=(["level", "ncol"], data_horiz['cldice']))
+        elif dycore == "fv":
+            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_regrid.nc",
+                         lat=(["lat"], data_horiz['lat']),
+                         lon=(["lon"], data_horiz['lon']),
+                         ps_fv=(["lat", "lon"], data_horiz['ps']),
+                         t_fv=(["level", "lat", "lon"], data_horiz['t']),
+                         u_fv=(["level", "lat", "lon"], data_horiz['u']),
+                         v_fv=(["level", "lat", "lon"], data_horiz['v']),
+                         q_fv=(["level", "lat", "lon"], data_horiz['q']),
+                         cldliq_fv=(["level", "lat", "lon"], data_horiz['cldliq']),
+                         cldice_fv=(["level", "lat", "lon"], data_horiz['cldice']))
+        elif dycore == "mpas":
+            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_regrid.nc",
+                         lat=(["ncol"], data_horiz['lat']),
+                         lon=(["ncol"], data_horiz['lon']),
+                         ps_fv=(["ncol"], data_horiz['ps']),
+                         t_fv=(["level", "ncol"], data_horiz['t']),
+                         u_fv=(["level", "ncol"], data_horiz['u']),
+                         v_fv=(["level", "ncol"], data_horiz['v']),
+                         q_fv=(["level", "ncol"], data_horiz['q']),
+                         cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
+                         cldice_fv=(["level", "ncol"], data_horiz['cldice']),
+                         z_fv=(["level", "ncol"], data_horiz['z']),
+                         theta_fv=(["level", "ncol"], data_horiz['theta']),
+                         rho_fv=(["level", "ncol"], data_horiz['rho']),
+                         w_fv=(["level", "ncol"], data_horiz['w']))
 
     pyfuncs.print_min_max_dict(data_horiz)
 
@@ -322,30 +328,31 @@ def main():
     if dycore == "fv":
         data_horiz = packing.repack_fv(data_horiz, grid_dims)
 
-    if dycore == "se":
-        pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_topoadjust.nc",
-                        lat=(["ncol"], data_horiz['lat']),
-                        lon=(["ncol"], data_horiz['lon']),
-                        ps_fv=(["ncol"], data_horiz['ps']),
-                        correct_or_not=(["ncol"], data_horiz['correct_or_not']),
-                        t_fv=(["level", "ncol"], data_horiz['t']),
-                        u_fv=(["level", "ncol"], data_horiz['u']),
-                        v_fv=(["level", "ncol"], data_horiz['v']),
-                        q_fv=(["level", "ncol"], data_horiz['q']),
-                        cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
-                        cldice_fv=(["level", "ncol"], data_horiz['cldice']))
-    elif dycore == "fv":
-        pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_topoadjust.nc",
-                        lat=(["lat"], data_horiz['lat']),
-                        lon=(["lon"], data_horiz['lon']),
-                        ps_fv=(["lat", "lon"], data_horiz['ps']),
-                        correct_or_not=(["lat", "lon"], data_horiz['correct_or_not']),
-                        t_fv=(["level", "lat", "lon"], data_horiz['t']),
-                        u_fv=(["level", "lat", "lon"], data_horiz['u']),
-                        v_fv=(["level", "lat", "lon"], data_horiz['v']),
-                        q_fv=(["level", "lat", "lon"], data_horiz['q']),
-                        cldliq_fv=(["level", "lat", "lon"], data_horiz['cldliq']),
-                        cldice_fv=(["level", "lat", "lon"], data_horiz['cldice']))
+    if write_debug_files:
+        if dycore == "se":
+            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_topoadjust.nc",
+                            lat=(["ncol"], data_horiz['lat']),
+                            lon=(["ncol"], data_horiz['lon']),
+                            ps_fv=(["ncol"], data_horiz['ps']),
+                            correct_or_not=(["ncol"], data_horiz['correct_or_not']),
+                            t_fv=(["level", "ncol"], data_horiz['t']),
+                            u_fv=(["level", "ncol"], data_horiz['u']),
+                            v_fv=(["level", "ncol"], data_horiz['v']),
+                            q_fv=(["level", "ncol"], data_horiz['q']),
+                            cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
+                            cldice_fv=(["level", "ncol"], data_horiz['cldice']))
+        elif dycore == "fv":
+            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_topoadjust.nc",
+                            lat=(["lat"], data_horiz['lat']),
+                            lon=(["lon"], data_horiz['lon']),
+                            ps_fv=(["lat", "lon"], data_horiz['ps']),
+                            correct_or_not=(["lat", "lon"], data_horiz['correct_or_not']),
+                            t_fv=(["level", "lat", "lon"], data_horiz['t']),
+                            u_fv=(["level", "lat", "lon"], data_horiz['u']),
+                            v_fv=(["level", "lat", "lon"], data_horiz['v']),
+                            q_fv=(["level", "lat", "lon"], data_horiz['q']),
+                            cldliq_fv=(["level", "lat", "lon"], data_horiz['cldliq']),
+                            cldice_fv=(["level", "lat", "lon"], data_horiz['cldice']))
 
     if dycore == "fv":
         logging.info("FV: need to interpolate u/v to slat/slon")

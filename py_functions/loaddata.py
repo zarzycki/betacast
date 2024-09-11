@@ -283,7 +283,7 @@ def flip_level_dimension(data_vars, state_dimensions=3):
     return data_vars
 
 
-def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, debug=False):
+def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=False):
 
     data_vars = {}
 
@@ -354,27 +354,27 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
         #data_vars['pdel'] = dpres_hybrid_ccm(data_vars['ps'], p0, hyai, hybi)
         #data_vars['pmid'] = pres_hybrid_ccm(data_vars['ps'], p0, hyam, hybm)
 
-        # Use the print_debug_file function to create and save the xarray.Dataset
-        pyfuncs.print_debug_file(
-              DEBUGDIR+"/"+"py_cam_raw.nc",
-              ps_cam=(["lat", "lon"], data_vars['ps']),
-              phis_cam=(["lat", "lon"], data_vars['phis']),
-              ts_cam=(["lat", "lon"], data_vars['ts']),
-              t_cam=(["lev", "lat", "lon"], data_vars['t']),
-              u_cam=(["lev", "lat", "lon"], data_vars['u']),
-              v_cam=(["lev", "lat", "lon"], data_vars['v']),
-              q_cam=(["lev", "lat", "lon"], data_vars['q']),
-              #tkv_cam=(["lev", "lat", "lon"], data_vars['tkv']),
-              z_cam=(["lev", "lat", "lon"], data_vars['z']),
-              #dpsl_cam=(["lat", "lon"], data_vars['dpsl']),
-              #dpsm_cam=(["lat", "lon"], data_vars['dpsm']),
-              #div_cam=(["lev", "lat", "lon"], data_vars['div']),
-              #pdel_cam=(["lev", "lat", "lon"], data_vars['pdel']),
-              #pmid_cam=(["lev", "lat", "lon"], data_vars['pmid']),
-              w_cam=(["lev", "lat", "lon"], data_vars['w']),
-              lat=(["lat"], data_vars['lat']),
-              lon=(["lon"], data_vars['lon'])
-        )
+        if write_debug_files:
+            pyfuncs.print_debug_file(
+                  DEBUGDIR+"/"+"py_cam_raw.nc",
+                  ps_cam=(["lat", "lon"], data_vars['ps']),
+                  phis_cam=(["lat", "lon"], data_vars['phis']),
+                  ts_cam=(["lat", "lon"], data_vars['ts']),
+                  t_cam=(["lev", "lat", "lon"], data_vars['t']),
+                  u_cam=(["lev", "lat", "lon"], data_vars['u']),
+                  v_cam=(["lev", "lat", "lon"], data_vars['v']),
+                  q_cam=(["lev", "lat", "lon"], data_vars['q']),
+                  #tkv_cam=(["lev", "lat", "lon"], data_vars['tkv']),
+                  z_cam=(["lev", "lat", "lon"], data_vars['z']),
+                  #dpsl_cam=(["lat", "lon"], data_vars['dpsl']),
+                  #dpsm_cam=(["lat", "lon"], data_vars['dpsm']),
+                  #div_cam=(["lev", "lat", "lon"], data_vars['div']),
+                  #pdel_cam=(["lev", "lat", "lon"], data_vars['pdel']),
+                  #pmid_cam=(["lev", "lat", "lon"], data_vars['pmid']),
+                  w_cam=(["lev", "lat", "lon"], data_vars['w']),
+                  lat=(["lat"], data_vars['lat']),
+                  lon=(["lon"], data_vars['lon'])
+            )
 
     pyfuncs.print_min_max_dict(data_vars)
 

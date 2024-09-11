@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 import argparse
+import subprocess
 import os
 import sys
 import cftime
@@ -32,11 +33,11 @@ def configure_logging(verbose=False):
 def get_betacast_path():
     BETACAST = os.getenv("BETACAST")
     if BETACAST is None:
-        logging.info("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
+        logging.info("BETACAST unset. Running local only. Export BETACAST env to run elsewhere")
         local_only = True
         PATHTOHERE = "./"
     else:
-        logging.info("Not local only!")
+        logging.info(f"BETACAST is set to {BETACAST}")
         local_only = False
         PATHTOHERE = os.path.join(BETACAST, "atm_to_cam")
 
@@ -84,6 +85,7 @@ def parse_args():
     parser.add_argument('--mpasfile', type=str, default='',
                         help='XXXXXXX')
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity for debugging')
+    parser.add_argument('-f', '--write_debug_files', action='store_true', help='Write debug files')
 
     return parser.parse_args()
 
@@ -120,6 +122,16 @@ def parse_args_sst():
                         help='Increase output verbosity for debugging')
 
     return parser.parse_args()
+
+
+def delete_files(directory, wildcard_string):
+    full_path = os.path.join(directory, wildcard_string)
+    command = f"rm -v {full_path}"
+    try:
+        subprocess.run(command, shell=True, check=True)
+        print(f"Files matching {wildcard_string} in {directory} have been deleted.")
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred while deleting files: {e}")
 
 
 def split_by_lengths(s, lengths):
