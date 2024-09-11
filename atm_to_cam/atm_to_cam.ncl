@@ -108,6 +108,11 @@ end if
 print("USING write_debug_files:  "+write_debug_files)
 print("USING DEBUGDIR:  "+DEBUGDIR)
 
+if (systemfunc("test -d "+DEBUGDIR+"; echo $?") .ne. 0) then
+  print(DEBUGDIR+" doesn't exist, must create")
+  system("mkdir -p "+DEBUGDIR)
+end if
+
 ; ===== Getting date from YYYYMMDDHH
 dtime_map = (/4,2,2,2/)
 splitDate = str_split_by_length(tostring(YYYYMMDDHH),dtime_map)

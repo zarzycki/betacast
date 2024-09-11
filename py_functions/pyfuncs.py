@@ -2,6 +2,7 @@ import numpy as np
 import xarray as xr
 import argparse
 import subprocess
+import glob
 import os
 import sys
 import cftime
@@ -127,13 +128,34 @@ def parse_args_sst():
 
 
 def delete_files(directory, wildcard_string):
+
     full_path = os.path.join(directory, wildcard_string)
+    files_to_delete = glob.glob(full_path)
+
+    if not files_to_delete:
+        logging.info(f"No files matching {wildcard_string} in {directory}.")
+        return
+
     command = f"rm -v {full_path}"
+
     try:
         subprocess.run(command, shell=True, check=True)
-        print(f"Files matching {wildcard_string} in {directory} have been deleted.")
+        logging.info(f"Files matching {wildcard_string} in {directory} have been deleted.")
     except subprocess.CalledProcessError as e:
-        print(f"An error occurred while deleting files: {e}")
+        logging.info(f"An error occurred while deleting files: {e}")
+    except OSError as e:
+        logging.info(f"An OS error occurred: {e}")
+
+
+def create_folder(directory):
+    if not os.path.exists(directory):
+        try:
+            os.makedirs(directory)
+            logging.info(f"Directory {directory} created.")
+        except OSError as e:
+            logging.info(f"An error occurred while creating the directory: {e}")
+    else:
+        logging.info(f"Directory {directory} already exists.")
 
 
 def split_by_lengths(s, lengths):

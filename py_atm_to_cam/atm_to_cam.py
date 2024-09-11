@@ -82,6 +82,7 @@ def main():
     DEBUGDIR = args.write_debug_dir
 
     if write_debug_files:
+        pyfuncs.create_folder(DEBUGDIR)
         pyfuncs.delete_files(DEBUGDIR, "py_*.nc")
 
     # Check if we are using MPAS and the model topo file is provided and exists
