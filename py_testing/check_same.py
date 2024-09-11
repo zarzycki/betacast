@@ -43,8 +43,15 @@ def check_same(file1, file2, variables_to_check=None):
         common_vars = common_vars.intersection(variables_to_check)
 
     for var_name in common_vars:
+        print("-----------------------------------------------------------------------")
         data1 = ds1[var_name].values
         data2 = ds2[var_name].values
+
+        # Convert to float64 if one is float32 and the other is float64
+        if (data1.dtype == np.float32 and data2.dtype == np.float64) or (data1.dtype == np.float64 and data2.dtype == np.float32):
+            print(f"Converting both {var_name} to float64")
+            data1 = data1.astype(np.float64)
+            data2 = data2.astype(np.float64)
 
         # Skip comparison if data types are not compatible
         if data1.dtype != data2.dtype:
@@ -62,11 +69,20 @@ def check_same(file1, file2, variables_to_check=None):
                 nmb = calculate_normalized_mean_bias(data1, data2)
                 nrmse = calculate_normalized_rmse(data1, data2)
 
+                if correlation < 0.99:
+                    print(f"******************** Correlation: {correlation}")
+                else:
+                    print(f"   Correlation: {correlation}")
+
                 print(f"   Mean Absolute Error: {mae}")
-                print(f"   Correlation: {correlation}")
                 print(f"   Mean Value: {mean_value}")
                 print(f"   Normalized Mean Bias (NMB): {nmb}")
-                print(f"   Normalized RMSE (NRMSE): {nrmse}")
+
+                if np.abs(nrmse) > 1.0:
+                    print(f"******************** Normalized RMSE (NRMSE): {nrmse}")
+                else:
+                    print(f"   Normalized RMSE (NRMSE): {nrmse}")
+
             else:
                 print(f"Variable: {var_name} has different shapes: {data1.shape} vs {data2.shape}")
         else:
