@@ -34,7 +34,7 @@ def main():
     logger.info("Main function started")
 
     # Is the Betacast path available to us?
-    local_only, PATHTOHERE = pyfuncs.get_betacast_path()
+    local_only, PATHTOHERE = pyfuncs.get_betacast_path("atm_to_cam")
 
     args_dict = {
         "Datasource": args.datasource,

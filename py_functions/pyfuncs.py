@@ -31,7 +31,7 @@ def configure_logging(verbose=False):
         logging.info("Verbose mode is on. More detailed logging information will be shown.")
 
 
-def get_betacast_path():
+def get_betacast_path(subfolder):
     BETACAST = os.getenv("BETACAST")
     if BETACAST is None:
         logging.info("BETACAST unset. Running local only. Export BETACAST env to run elsewhere")
@@ -40,7 +40,7 @@ def get_betacast_path():
     else:
         logging.info(f"BETACAST is set to {BETACAST}")
         local_only = False
-        PATHTOHERE = os.path.join(BETACAST, "atm_to_cam")
+        PATHTOHERE = os.path.join(BETACAST, subfolder)
 
     return local_only, PATHTOHERE
 

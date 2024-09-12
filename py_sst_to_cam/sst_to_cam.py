@@ -12,7 +12,7 @@ import pyfuncs
 import horizremap
 
 
-def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, iceDataFile, SST_write_file):
+def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, iceDataFile, SST_write_file, PATHTOHERE="./"):
     # Constants
     TTHRESH = 271.9  # Initial cut for ice vs. open ocean
     KtoC = 273.15    # Kelvin to Celsius conversion
@@ -21,7 +21,7 @@ def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, i
 
     logging.info(f"inputres set to: {inputres}")
 
-    readinFile = f"./domains/domain.ocn.{inputres}.nc"
+    readinFile = f"{PATHTOHERE}/domains/domain.ocn.{inputres}.nc"
 
     do_anom = predict_docn == 1
     logging.info(f"do_anom (i.e., predict_docn) set to: {do_anom}")
@@ -37,7 +37,6 @@ def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, i
 
     if datasource == "GDAS":
         sst_file = xr.open_dataset(sstDataFile)
-        print(sst_file)
         sstlat = sst_file['latitude'].values
         sstlon = sst_file['longitude'].values
         sst_gfs = sst_file['t'].values
@@ -150,9 +149,12 @@ def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, i
 
 
 def main():
+
     args = pyfuncs.parse_args_sst()
 
     pyfuncs.configure_logging(args.verbose)
+
+    local_only, PATHTOHERE = pyfuncs.get_betacast_path("sst_to_cam")
 
     process_sst_ice(
         args.initdate,
@@ -161,7 +163,8 @@ def main():
         args.datasource,
         args.sstDataFile,
         args.iceDataFile,
-        args.SST_write_file
+        args.SST_write_file,
+        PATHTOHERE=PATHTOHERE
     )
 
 if __name__ == "__main__":
