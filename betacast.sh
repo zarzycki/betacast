@@ -122,9 +122,9 @@ if [ -z "${dotracking+x}" ]; then dotracking=false; fi
 if [ -z "${m2m_gridfile+x}" ]; then m2m_gridfile=""; fi
 if [ -z "${m2m_remap_file+x}" ]; then m2m_remap_file=""; fi
 
-DO_PYTHON=true  # or false
+DO_PYTHON=false # or false
 echo "DO_PYTHON set to $DO_PYTHON"
-if [ "$DO_PYTHON" ]; then
+if [ "$DO_PYTHON" = true ]; then
   atm_to_cam_path=${SCRIPTPATH}/py_atm_to_cam
   sst_to_cam_path=${SCRIPTPATH}/py_sst_to_cam
 fi
@@ -513,7 +513,7 @@ if [ $debug = false ] ; then
     # check if domain or SCRIP exist, if one is missing create both domain and scrip
     if [ ! -f "$sst_domain_file" ] || [ ! -f "$sst_scrip_file" ]; then
       echo "Creating SST domain file for: ${docnres}"
-      if [ "$DO_PYTHON" ]; then
+      if [ "$DO_PYTHON" = true ]; then
         echo "Oops" ; exit
       else
         set +e
@@ -530,7 +530,7 @@ if [ $debug = false ] ; then
     fi
 
     # Now generate the SST/ice datastream
-    if [ "$DO_PYTHON" ]; then
+    if [ "$DO_PYTHON" = true ]; then
       (set -x; python sst_to_cam.py \
           --initdate "${yearstr}${monthstr}${daystr}${cyclestr}" \
           --predict_docn ${INT_PREDICT_DOCN} \
@@ -586,7 +586,7 @@ if [ $debug = false ] ; then
     # Check if anl2mdlWeights exist or not, if not try to generate them
     if [ ! -f ${anl2mdlWeights} ]; then
       echo "Writing anl2mdlWeights --> ${anl2mdlWeights}"
-      if [ "$DO_PYTHON" ]; then
+      if [ "$DO_PYTHON" = true ]; then
         (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
           --ANLGRID "${RLLSOURCEGRID}" \
           --DSTGRIDNAME "${modelgridshortname}" \
@@ -651,7 +651,7 @@ if [ $debug = false ] ; then
     # If do_model2model is true, then we need to find the file
     if [[ -d "$m2m_parent_source" ]]; then
       echo "m2m_parent_source ($m2m_parent_source) is provided as a dir of nc files."
-      if [ "$DO_PYTHON" ]; then
+      if [ "$DO_PYTHON" = true ]; then
         (set -x; python find-time-file.py \
           --DIR "${m2m_parent_source}" \
           --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
@@ -682,7 +682,7 @@ if [ $debug = false ] ; then
 
   echo "Doing atm_to_cam"
 
-  if [ "$DO_PYTHON" ]; then
+  if [ "$DO_PYTHON" = true ]; then
     (set -x ; python atm_to_cam.py \
       --datasource "${atm_data_sources[$atmDataType]}" \
       --numlevels ${numLevels} \
@@ -730,7 +730,7 @@ if [ $debug = false ] ; then
 
     TMPWGTFILE="./map_hwrf_storm_TO_modelgrid_patc.nc"
 
-    if [ "$DO_PYTHON" ]; then
+    if [ "$DO_PYTHON" = true ]; then
       (set -x; python ../py_remapping/gen_reglatlon_SCRIP.py \
         --dstGridName "hwrf_storm_scrip.nc" \
         --dstDir "./" \
@@ -745,7 +745,7 @@ if [ $debug = false ] ; then
       check_ncl_exit "gen_reglatlon_SCRIP.ncl" $exit_status
     fi
 
-    if [ "$DO_PYTHON" ]; then
+    if [ "$DO_PYTHON" = true ]; then
       (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
         --ANLGRID "hwrf_storm" \
         --DSTGRIDNAME "modelgrid" \
@@ -763,7 +763,7 @@ if [ $debug = false ] ; then
       check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
     fi
 
-    if [ "$DO_PYTHON" ]; then
+    if [ "$DO_PYTHON" = true ]; then
       (set -x ; python atm_to_cam.py \
         --datasource "HWRF" \
         --numlevels ${numLevels} \
