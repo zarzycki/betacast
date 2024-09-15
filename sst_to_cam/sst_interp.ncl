@@ -1,3 +1,13 @@
+if ismissing(getenv("BETACAST")) then
+  print("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
+  local_only=True
+  PATHTOHERE="./"
+else
+  print("Not local only!")
+  local_only=False
+  PATHTOHERE=getenv("BETACAST")+"/sst_to_cam/"
+end if
+
 begin
 
 ; This file takes either GDAS SST or NOAAOI SST and interpolates to 1x1 SST datafile for
@@ -39,10 +49,10 @@ print("inputres set to: "+inputres)
 copy_orig = False
 if (copy_orig) then
   print("copying SST file from repo to "+SST_write_file)
-  system("cp ./sst_1x1.nc "+SST_write_file)
+  system("cp "+PATHTOHERE+"/sst_1x1.nc "+SST_write_file)
   readinFile=SST_write_file
 else
-  readinFile="./domains/domain.ocn."+inputres+".nc"
+  readinFile=PATHTOHERE+"/domains/domain.ocn."+inputres+".nc"
 end if
 
 if (.not. isvar("predict_docn")) then
