@@ -305,7 +305,7 @@ def main():
 
     grid_dims = data_horiz['ps'].shape
     if dycore == "se" or dycore == "mpas":
-        ncol = grid_dims
+        nncol = grid_dims
     elif dycore == "fv":
         nfvlat, nfvlon = grid_dims
 
@@ -539,34 +539,44 @@ def main():
             setattr(time_nc, attr, value)
         time_nc[:] = time
 
-        nc_file.createDimension('lev', data_horiz['u'].shape[0])
-        nc_file.createDimension('ilev', data_horiz['u'].shape[0]+1)
+        nc_file.createDimension('lev', numlevels)
+        nc_file.createDimension('ilev', numlevels + 1)
 
+        # Horiz coordinates
         if dycore == "se" or dycore == "mpas":
-            nc_file.createDimension('ncol', data_horiz['ps'].shape[0])
+            nc_file.createDimension('ncol', nncol[0])
+            lat_nc = nc_file.createVariable('lat', 'f8', ('ncol',), fill_value=-900., **compression_opts)
+            lon_nc = nc_file.createVariable('lon', 'f8', ('ncol',), fill_value=-900., **compression_opts)
+            lat_nc[:] = data_horiz['lat']
+            lon_nc[:] = data_horiz['lon']
         elif dycore == "fv":
-            nc_file.createDimension('lat', data_horiz['ps'].shape[0])
-            nc_file.createDimension('lon', data_horiz['ps'].shape[1])
+            nc_file.createDimension('lat', nfvlat)
+            nc_file.createDimension('lon', nfvlon)
+            lat_nc = nc_file.createVariable('lat', 'f8', ('lat',), fill_value=-900., **compression_opts)
+            lon_nc = nc_file.createVariable('lon', 'f8', ('lon',), fill_value=-900., **compression_opts)
+            lat_nc[:] = data_horiz['lat']
+            lon_nc[:] = data_horiz['lon']
 
+        # Create nc variables for state fields
         ps_nc = nc_file.createVariable('PS', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
         u_nc = nc_file.createVariable('U', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
         v_nc = nc_file.createVariable('V', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
         t_nc = nc_file.createVariable('T', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
         q_nc = nc_file.createVariable('Q', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        cldliq_nc = nc_file.createVariable('CLDLIQ', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        cldice_nc = nc_file.createVariable('CLDICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        if 'correct_or_not' in locals():
-            correct_or_not = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=-1.0, **compression_opts)
-
-        # Add variable attributes
         ps_nc.units = 'Pa'
         u_nc.units = 'm/s'
         v_nc.units = 'm/s'
         t_nc.units = 'K'
         q_nc.units = 'kg/kg'
-        cldliq_nc.units = "kg/kg"
-        cldice_nc.units = "kg/kg"
+        if dycore != "mpas":
+            cldliq_nc = nc_file.createVariable('CLDLIQ', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            cldice_nc = nc_file.createVariable('CLDICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            cldliq_nc.units = "kg/kg"
+            cldice_nc.units = "kg/kg"
+        if 'correct_or_not' in locals():
+            correct_or_not = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=-1.0, **compression_opts)
 
+        # Place data_horiz data into var fields
         if dycore == "fv":
             ps_nc[0, :, :] = data_horiz['ps']
             u_nc[0, :, :, :] = data_horiz['u']
@@ -593,11 +603,10 @@ def main():
             v_nc[0, :, :] = data_horiz['v'][::-1, :]
             t_nc[0, :, :] = data_horiz['t'][::-1, :]
             q_nc[0, :, :] = data_horiz['q'][::-1, :]
-            cldliq_nc[0, :, :] = data_horiz['cldliq'][::-1, :]
-            cldice_nc[0, :, :] = data_horiz['cldice'][::-1, :]
             if 'correct_or_not' in locals():
                 correct_or_not_nc[0, :] = data_horiz['correct_or_not']
 
+        # If the model has a hybrid coordinate, do that here
         if dycore == "se" or dycore == "fv":
             hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(PATHTOHERE, numlevels, load_xarray=False)
 
@@ -615,28 +624,20 @@ def main():
             lev_nc[:] = lev
             ilev_nc[:] = ilev
 
+        # If FV, add staggered information
         if dycore == "fv":
-            us_nc = nc_file.createVariable('US', 'f4', ('time', 'lev', 'slat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            vs_nc = nc_file.createVariable('VS', 'f4', ('time', 'lev', 'lat', 'slon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            nc_file.createDimension('slat', nfvlat - 1)
+            nc_file.createDimension('slon', nfvlon)
+
             slat_nc = nc_file.createVariable('slat', 'f8', ('slat',), fill_value=-900., **compression_opts)
             slon_nc = nc_file.createVariable('slon', 'f8', ('slon',), fill_value=-900., **compression_opts)
+            us_nc = nc_file.createVariable('US', 'f4', ('time', 'lev', 'slat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            vs_nc = nc_file.createVariable('VS', 'f4', ('time', 'lev', 'lat', 'slon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
-            us_nc[0, :, :, :] = data_horiz['us']
-            vs_nc[0, :, :, :] = data_horiz['vs']
             slat_nc[:] = data_horiz['fvslat']
             slon_nc[:] = data_horiz['fvslon']
-
-        # If needed, add additional variables like lat/lon
-        if dycore == "se" or dycore == "mpas":
-            lat_nc = nc_file.createVariable('lat', 'f8', ('ncol',), fill_value=-900., **compression_opts)
-            lon_nc = nc_file.createVariable('lon', 'f8', ('ncol',), fill_value=-900., **compression_opts)
-            lat_nc[:] = data_horiz['lat']
-            lon_nc[:] = data_horiz['lon']
-        else:
-            lat_nc = nc_file.createVariable('lat', 'f8', ('lat',), fill_value=-900., **compression_opts)
-            lon_nc = nc_file.createVariable('lon', 'f8', ('lon',), fill_value=-900., **compression_opts)
-            lat_nc[:] = data_horiz['lat']
-            lon_nc[:] = data_horiz['lon']
+            us_nc[0, :, :, :] = data_horiz['us']
+            vs_nc[0, :, :, :] = data_horiz['vs']
 
         # Add global attributes
         nc_file.title = "Betacast-generated ncdata file"
