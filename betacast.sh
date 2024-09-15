@@ -790,7 +790,8 @@ if [ $debug = false ] ; then
 
     echo "Overlay regional file on top of basefile"
     cp -v ${sePreFilterIC} ${sePreFilterIC}_base.nc
-    python overlay.py "${sePreFilterIC}" "${sePreFilterIC}_reg.nc" --maxLev 80.
+    (set -x; python overlay.py "${sePreFilterIC}" "${sePreFilterIC}_reg.nc" --maxLev 80. )
+
 
     echo "Cleaning up temporary ESMF files"
     rm -v $TMPWGTFILE
