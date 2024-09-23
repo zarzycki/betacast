@@ -48,16 +48,17 @@ def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_g
     return data_out
 
 
-def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
+def remap_with_weights_wrapper(src_data, wgt_filename, return_xarray=False, **kwargs):
     """
     Wrapper to handle regridding of multi-dimensional data using ESMF weights.
 
     Parameters:
-    - src_data: Multi-dimensional numpy array of the source data.
+    - src_data: Multi-dimensional numpy array or xarray DataArray of the source data.
     - wgt_filename: Path to the ESMF weight file.
+    - return_xarray: Boolean, if True, returns an xarray DataArray with coordinates and dimensions.
 
     Returns:
-    - regridded_data: Multi-dimensional numpy array after regridding.
+    - regridded_data: Multi-dimensional numpy array or xarray DataArray after regridding.
     """
 
     start_time = time.time()
@@ -91,31 +92,54 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
     # Create sparse matrix map
     sparse_map = sp.coo_matrix((nnzvals, (rows, cols)), shape=(n_b, n_a))
 
+    # Check if src_data is xarray DataArray and extract dimensions and coordinates
+    is_xarray_input = isinstance(src_data, xr.DataArray)
     src_dims = src_data.shape
+    src_coords = src_data.coords if is_xarray_input else {}
+
+    # Get src spatial information and then back out non-spatial dimensions
     if src_grid_type == "structured":
         # Structured grid: last two dimensions are nlat, nlon
         nlat, nlon = src_dims[-2], src_dims[-1]
-        extra_dims = src_dims[:-2]
+        non_spatial_dims = src_data.dims[:-2] if is_xarray_input else range(len(src_dims) - 2)
     elif src_grid_type == "unstructured":
-        # Unstructured grid: only last dimension
+        # Unstructured grid: last dimension is ncol
         npoints = src_dims[-1]
-        extra_dims = src_dims[:-1]
+        non_spatial_dims = src_data.dims[:-1] if is_xarray_input else range(len(src_dims) - 1)
     else:
         raise ValueError(f"Unknown grid type: {src_grid_type}")
 
-    # Prepare an array to hold the regridded data
-    dst_grid_dims = xr.open_dataset(wgt_filename)['dst_grid_dims'].values
-    regridded_shape = extra_dims + tuple(dst_grid_dims)
+    # If structured, cut last two dims off -- if unstructured, cut last one off.
+    # This gives aux dims like time, lev, etc.
+    # Then add the destination dimensions on the back. This way you get merger of
+    # src aux dims and dest spatial dims
+    regridded_shape = src_dims[:-2 if src_grid_type == "structured" else -1] + tuple(dst_grid_dims)
     regridded_data = np.zeros(regridded_shape)
 
-    # Iterate over all combinations of the extra dimensions
-    for idx in np.ndindex(*extra_dims):
+    logging.debug(f"is_xarray_input: {is_xarray_input}")
+    logging.debug(f"non_spatial_dims: {non_spatial_dims}")
+    logging.debug(f"regridded_shape: {tuple(map(int, regridded_shape))}")
+
+    # Use .sizes for xarray DataArray, and .shape for numpy arrays
+    if is_xarray_input:
+        dim_sizes = [src_data.sizes[dim] for dim in non_spatial_dims]
+    else:
+        dim_sizes = [src_data.shape[i] for i in range(len(non_spatial_dims))]
+
+    # Calculate total number of iterations for the loop
+    total_iterations = np.prod(dim_sizes)
+
+    # Iterate over all combinations of the non-spatial dimensions
+    for iteration, idx in enumerate(np.ndindex(*dim_sizes), start=1):
+        # Logging message with detailed information
+        logging.debug(f"Horizontally remapping index {idx} ({iteration}/{total_iterations}) "
+                     f"of shape {tuple(dim_sizes)} with destination grid {tuple(dst_grid_dims)}")
 
         # Extract horizontal slice
-        slice_2d = src_data[idx]
+        slice_2d = src_data[idx] if is_xarray_input else src_data[idx]
 
         if isinstance(slice_2d, xr.DataArray):
-            logging.info("converting slice_2d to numpy")
+            logging.debug("Converting slice_2d to numpy")
             slice_2d = slice_2d.values  # Convert to numpy.ndarray
 
         logging.debug(f"slice_2d shape before newaxis: {slice_2d.shape} and type: {type(slice_2d)}")
@@ -132,7 +156,7 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
         regridded_data[idx] = regridded_slice
 
     elapsed_time = time.time() - start_time
-    logging.info(f"Regridding completed in {elapsed_time:.2f} seconds.")
+    logging.info(f"Horizointal regridding completed in {elapsed_time:.2f} seconds.")
 
     if dst_grid_type == "structured":
         # Swap the last two axes to go from lon, lat axes to lat, lon.
@@ -147,6 +171,25 @@ def remap_with_weights_wrapper(src_data, wgt_filename, **kwargs):
         # Otherwise, just return 1D ncol
         dstlat = dstlat.values
         dstlon = dstlon.values
+
+    if return_xarray:
+        # Construct xarray DataArray with appropriate coordinates and dimensions
+        coords = {}
+        dims = list(non_spatial_dims)
+        if dst_grid_type == "structured":
+            coords.update({dim: src_coords[dim].values for dim in non_spatial_dims})
+            coords['lat'] = dstlat
+            coords['lon'] = dstlon
+            dims.extend(['lat', 'lon'])
+        else:
+            coords.update({dim: src_coords[dim].values for dim in non_spatial_dims})
+            coords['ncol'] = np.arange(dst_grid_dims[0])
+            dims.append('ncol')
+
+        logging.debug(f"return_xarray: regridded_data shape: {regridded_data.shape}")
+        logging.debug(f"return_xarray: dims: {dims}")
+
+        regridded_data = xr.DataArray(regridded_data, dims=dims, coords=coords)
 
     return regridded_data, dstlat, dstlon
 
