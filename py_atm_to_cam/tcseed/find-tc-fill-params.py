@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import shutil
 
-from py_seedfuncs import keyword_values, gc_latlon, tctestcase, radialAvg2D_unstruc, radialAvg3D_unstruc
+from py_seedfuncs import keyword_values, gc_latlon, tctestcase, radialAvg2D_unstruc, radialAvg3D_unstruc, replace_or_add_variable
 
 def process_vortex(pthi, inic_file):
     invert_vortex = keyword_values(pthi, "invert_vortex", "bool")
@@ -250,20 +250,6 @@ def process_vortex(pthi, inic_file):
 
     # Create a backup of the namelist file
     shutil.copy(pthi, f"{pthi}.BAK")
-
-    def replace_or_add_variable(file_path, variable, value):
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
-
-        # Remove any previous occurrence of the variable
-        lines = [line for line in lines if not line.strip().startswith(f"{variable}=")]
-
-        # Add the new variable at the end of the file
-        lines.append(f"{variable} = {value}\n")
-
-        # Write the modified content back to the file
-        with open(file_path, 'w') as file:
-            file.writelines(lines)
 
     # Replace or add new variables in the namelist file
     replace_or_add_variable(pthi, "rp", rp)

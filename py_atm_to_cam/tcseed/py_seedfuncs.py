@@ -1,6 +1,6 @@
 import numpy as np
 from math import sin, cos, sqrt, pi, atan, exp, radians, degrees
-
+import re
 
 def convert_lon(tmplon, jcode):
     """
@@ -16,9 +16,22 @@ def convert_lon(tmplon, jcode):
         tmplon[tmplon > 180] -= 360
     return tmplon
 
-import numpy as np
 
-import numpy as np
+def replace_or_add_variable(file_path, variable, value):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    # Eliminate any leading or trailing spaces in the delete command
+    re_pattern = re.compile(rf"^\s*{variable}\s*=")
+    lines = [line for line in lines if not re_pattern.match(line)]
+
+    # Add the new variable at the end of the file
+    lines.append(f"{variable} = {value}\n")
+
+    # Write the modified content back to the file
+    with open(file_path, 'w') as file:
+        file.writelines(lines)
+
 
 def gc_latlon(lat1, lon1, lat2, lon2, npts, iu):
     """
