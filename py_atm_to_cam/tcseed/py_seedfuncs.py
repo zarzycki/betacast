@@ -169,28 +169,7 @@ def convert_lon(lon, iu):
 
 
 def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoords, psin, uin, vin, Tin, qin, invert_vortex, modify_q, modify_q_mult):
-    # Constants
-    a = 6371220.  # Earth's Radius (m)
-    Rd = 287.0  # Ideal gas const dry air (J kg^-1 K^1)
-    g = 9.80616  # Gravity (m s^2)
-    omega = 7.292115e-5  # angular velocity 1/s
-    convert = 180. / pi  # conversion factor: radians to degrees
-    q0 = 0.021  # q at surface from Jordan
-    Ts0 = 302.0  # Surface temperature (SST)
-    p00 = 101500.  # global mean surface pressure
-    p0 = 100000.  # p for model level calculation
-    zq1 = 3000.  # Height 1 for q calculation
-    zq2 = 8000.  # Height 2 for q calculation
-    exppz = 2.0  # Exponent for z dependence of p
-    ztrop = 20000.  # Tropopause Height
-    qtrop = 1.e-11  # Tropopause specific humidity
-    constTv = 0.608  # Constant for Virtual Temp Conversion
-    deltaz = 2.e-5  # Small number to ensure convergence in FPI
-    epsilon = 1.e-25  # Small number to avoid dividing by zero in wind calc
-    exponent = Rd * gamma_ / g  # exponent
-    T0 = Ts0 * (1. + constTv * q0)  # Surface temp
-    Ttrop = T0 - gamma_ * ztrop  # Tropopause temp
-    ptrop = p00 * (Ttrop / T0) ** (1. / exponent)  # Tropopause pressure
+    print(f"cen_lon: {cen_lon}, cen_lat: {cen_lat}, dp: {dp}, rp: {rp}, zp: {zp}, exppr: {exppr}, gamma_: {gamma_}, lon: {lon}, lat: {lat}, p: {p}, z: {z}, zcoords: {zcoords}, psin: {psin}, uin: {uin}, vin: {vin}, Tin: {Tin}, qin: {qin}, invert_vortex: {invert_vortex}, modify_q: {modify_q}, modify_q_mult: {modify_q_mult}")
 
     if rp <= 0.0:
         rp = 273000.  # Default value
@@ -209,11 +188,44 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
     if modify_q_mult < 0.:
         modify_q_mult = 1.0  # Default value
 
+    # Constants
+    a = 6371220.  # Earth's Radius (m)
+    Rd = 287.0  # Ideal gas const dry air (J kg^-1 K^1)
+    g = 9.80616  # Gravity (m s^2)
+    omega = 7.292115e-5  # angular velocity 1/s
+    convert = 180. / pi  # conversion factor: radians to degrees
+    q0 = 0.021  # q at surface from Jordan
+    Ts0 = 302.0  # Surface temperature (SST)
+    p00 = psin #101500.  # global mean surface pressure
+    p0 = 100000.  # p for model level calculation
+    zq1 = 3000.  # Height 1 for q calculation
+    zq2 = 8000.  # Height 2 for q calculation
+    exppz = 2.0  # Exponent for z dependence of p
+    ztrop = 20000.  # Tropopause Height
+    qtrop = 1.e-11  # Tropopause specific humidity
+    constTv = 0.608  # Constant for Virtual Temp Conversion
+    deltaz = 2.e-5  # Small number to ensure convergence in FPI
+    epsilon = 1.e-25  # Small number to avoid dividing by zero in wind calc
+    exponent = Rd * gamma_ / g  # exponent
+    T0 = Ts0 * (1. + constTv * q0)  # Surface temp
+    Ttrop = T0 - gamma_ * ztrop  # Tropopause temp
+    ptrop = p00 * (Ttrop / T0) ** (1. / exponent)  # Tropopause pressure
+
+    print(f"cen_lon: {cen_lon}, cen_lat: {cen_lat}, dp: {dp}, rp: {rp}, zp: {zp}, exppr: {exppr}, gamma_: {gamma_}, lon: {lon}, lat: {lat}, p: {p}, z: {z}, zcoords: {zcoords}, psin: {psin}, uin: {uin}, vin: {vin}, Tin: {Tin}, qin: {qin}, invert_vortex: {invert_vortex}, modify_q: {modify_q}, modify_q_mult: {modify_q_mult}")
+
     # Coriolis parameter
     f = 2. * omega * sin(radians(cen_lat))
 
     # Great circle distance calculation (assuming `gc_latlon` is provided)
-    gr = gc_latlon(cen_lat, cen_lon, lat, lon, 2, 3)
+    gr, _ = gc_latlon(cen_lat, cen_lon, lat, lon, 2, 3)
+
+    print(f"gr: {gr}")
+    print(f"dp: {dp}")
+    print(f"rp: {rp}")
+    print(f"exppr: {exppr}")
+    print(f"p00: {p00}")
+    print(f"T0: {T0}")
+    print(f"exponent: {exponent}")
 
     if zcoords == 1:
         height = z
@@ -238,6 +250,7 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
         u = uin
         v = vin
     else:
+        print(f"height: {height}, zp: {zp}, exppz: {exppz}, dp: {dp}, rp: {rp}, gr: {gr}")
         vt = (-f * gr / 2 + sqrt((f * gr / 2) ** 2 - (exppr * (gr / rp) ** exppr) *
                                  (Rd * (T0 - gamma_ * height)) / (exppz * height * Rd * (T0 - gamma_ * height) / (g * zp ** exppz) + 1. - p00 / dp * exp((gr / rp) ** exppr) * exp((height / zp) ** exppz))))
         v = vin + vfac * vt
@@ -389,3 +402,123 @@ def keyword_values(namelist_file, key, return_type):
                         return v
     # If key is not found
     raise KeyError(f"Key '{key}' not found in the namelist file.")
+
+
+
+
+def radialAvg2D_unstruc(data, lat, lon, deltaMax, psminlat, psminlon, outerRad, mergeInnerBins):
+    # km per degree at the equator
+    kmInDeg = 111.32
+    kmGrid = kmInDeg * deltaMax
+    print(f"The max lat/lon km grid spacing at equator is {kmGrid} km")
+
+    ncol = len(lat)
+    pi = np.pi
+    d2r = pi / 180.0
+
+    # Prepare radial bins
+    timesGrid = 1.1  # We want each radius bin to be timesGrid * kmGrid
+    nx = int(outerRad / (timesGrid * kmGrid))
+    print(f"Number of bins is equal to {nx}")
+
+    if mergeInnerBins:
+        numMerge = 2  # Number of innermost radial bins to merge
+        print(f"Merging innermost {numMerge} bins because radial average is so small.")
+        numMergeMinusOne = numMerge - 1
+        origRadiusArr = np.linspace(0, outerRad, nx + numMergeMinusOne)
+        radiusArr = np.zeros(len(origRadiusArr) - numMergeMinusOne)
+        radiusArr[0] = origRadiusArr[0]
+        radiusArr[1:] = origRadiusArr[numMerge:]
+    else:
+        print("Not merging any innermost bins -- be careful that your inner bins have > 1 pt.")
+        radiusArr = np.linspace(0, outerRad, nx)
+
+    numRadBins = len(radiusArr)
+
+    rad_thevar_hit = np.zeros(numRadBins, dtype=int)
+    rad_thevar_cum = np.zeros(numRadBins, dtype=float)
+
+    # Iterate over each point in the dataset
+    print("Starting loop")
+    for i in range(ncol):
+        # Use the gc_latlon function to calculate the great circle distance
+        gcdist, _ = gc_latlon(psminlat, psminlon, lat[i], lon[i], 2, 4)
+
+        if gcdist <= outerRad:
+            bin_idx = np.argmin(np.abs(radiusArr - gcdist))
+            rad_thevar_hit[bin_idx] += 1
+            rad_thevar_cum[bin_idx] += data[i]
+
+    print(f"Minimum number of hits per gridbox: {np.min(rad_thevar_hit)}")
+    print(f"Maximum number of hits per gridbox: {np.max(rad_thevar_hit)}")
+
+    # Calculate the radial average
+    rad_thevar = np.divide(rad_thevar_cum, rad_thevar_hit, out=np.zeros_like(rad_thevar_cum), where=rad_thevar_hit != 0)
+
+    # Returning as dictionary for simplicity, with 'radius' key and the radial averages
+    return {
+        'radius': radiusArr,
+        'radial_average': rad_thevar,
+        'hit_count': rad_thevar_hit
+    }
+
+
+def radialAvg3D_unstruc(data, lat, lon, lev, deltaMax, psminlat, psminlon, outerRad, mergeInnerBins):
+    # km per degree at the equator
+    kmInDeg = 111.32
+    kmGrid = kmInDeg * deltaMax
+    print(f"The max lat/lon km grid spacing at equator is {kmGrid} km")
+
+    ncol = len(lat)
+    nlev = len(lev)
+    pi = np.pi
+    d2r = pi / 180.0
+
+    # Prepare radial bins
+    timesGrid = 1.1  # We want each radius bin to be timesGrid * kmGrid
+    nx = int(outerRad / (timesGrid * kmGrid))
+    print(f"Number of bins is equal to {nx}")
+
+    if mergeInnerBins:
+        numMerge = 2  # Number of innermost radial bins to merge
+        print(f"Merging innermost {numMerge} bins because radial average is so small.")
+        numMergeMinusOne = numMerge - 1
+        origRadiusArr = np.linspace(0, outerRad, nx + numMergeMinusOne)
+        radiusArr = np.zeros(len(origRadiusArr) - numMergeMinusOne)
+        radiusArr[0] = origRadiusArr[0]
+        radiusArr[1:] = origRadiusArr[numMerge:]
+    else:
+        print("Not merging any innermost bins -- be careful that your inner bins have > 1 pt.")
+        radiusArr = np.linspace(0, outerRad, nx)
+
+    numRadBins = len(radiusArr)
+
+    rad_thevar_hit = np.zeros((nlev, numRadBins), dtype=int)
+    rad_thevar_cum = np.zeros((nlev, numRadBins), dtype=float)
+
+    # Iterate over each column in the dataset
+    print("Starting loop")
+    for i in range(ncol):
+        # Use the gc_latlon function to calculate the great circle distance
+        gcdist, _ = gc_latlon(psminlat, psminlon, lat[i], lon[i], 2, 4)
+
+        if gcdist <= outerRad:
+            bin_idx = np.argmin(np.abs(radiusArr - gcdist))
+            rad_thevar_hit[:, bin_idx] += 1
+            rad_thevar_cum[:, bin_idx] += data[:, i]
+
+    # Handle grid boxes with no hits
+    rad_thevar_hit = np.where(rad_thevar_hit == 0, np.nan, rad_thevar_hit)
+
+    print(f"Minimum number of hits per gridbox: {np.nanmin(rad_thevar_hit)}")
+    print(f"Maximum number of hits per gridbox: {np.nanmax(rad_thevar_hit)}")
+
+    # Calculate the radial average
+    rad_thevar = np.divide(rad_thevar_cum, rad_thevar_hit, out=np.zeros_like(rad_thevar_cum), where=rad_thevar_hit != 0)
+
+    # Returning the result as a dictionary for simplicity
+    return {
+        'radius': radiusArr,
+        'radial_average': rad_thevar,
+        'hit_count': rad_thevar_hit
+    }
