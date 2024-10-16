@@ -110,6 +110,12 @@ def main():
             logging.error("Using CAM data, but no mod_remap_file passed in, exiting...")
             sys.exit(1)
 
+    if (dycore == 'mpas'):
+        load_vert_templates = False
+    else:
+        load_vert_templates = True
+    logging.info(f"load_vert_templates: {load_vert_templates}")
+
     # Toggle whether the output streams will be floats or doubles
     write_type = "float" if write_floats else "double"
     logging.info(f"Output type set to: {write_type}")
@@ -123,7 +129,8 @@ def main():
     logging.info(f"Using this file: {data_filename}")
     logging.info(f"Using this remap: {wgt_filename}")
 
-    hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(PATHTOHERE, numlevels)
+    if load_vert_templates:
+        hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(PATHTOHERE, numlevels)
 
     # IMPORTANT! data_vars should be organized top-to-bottom when loaddata returns
     # (i.e., lowest pressure/highest z at 0 index of lev)
@@ -292,7 +299,7 @@ def main():
             data_horiz['q'] = pyfuncs.clip_and_count(data_horiz['q'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
 
             # If not MPAS as CAM, we can just end here.
-            logging.info("Writing MPAS file...")
+            logging.info(f"Writing MPAS file: {se_inic}...")
             mpas_file['u'].values[0, :, :] = data_horiz['uNorm'].T
             mpas_file['qv'].values[0, :, :] = data_horiz['q'].T
             mpas_file['rho'].values[0, :, :] = data_horiz['rho'].T
@@ -300,7 +307,7 @@ def main():
             mpas_file['w'].values[0, :, :] = data_horiz['w'].T
             mpas_file.to_netcdf(se_inic, format='NETCDF4')
             mpas_file.close()
-            logging.info("Done generating MPAS initial condition file, exiting...")
+            logging.info(f"Done generating MPAS initial condition file: {se_inic}, exiting...")
             sys.exit(0)
 
     grid_dims = data_horiz['ps'].shape
