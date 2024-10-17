@@ -381,6 +381,11 @@ def main():
     data_horiz['cldliq'] = pyfuncs.clip_and_count(data_horiz['cldliq'], min_thresh=CLDMINTHRESH, var_name="CLDLIQ")
     data_horiz['cldice'] = pyfuncs.clip_and_count(data_horiz['cldice'], min_thresh=CLDMINTHRESH, var_name="CLDICE")
 
+    add_pmid = True
+    if add_pmid:
+        data_horiz['pmid'] = meteo.compute_pmid(data_horiz['t'],data_horiz['rho'])
+        pyfuncs.print_min_max_dict(data_horiz)
+
     if datasource == "HWRF":
         logging.info(f"{datasource} replacing nan with _FillValue {NC_FLOAT_FILL} since regional")
         data_horiz = pyfuncs.replace_nans_with_fill_value(data_horiz, ['ps', 'u', 'v', 't', 'q', 'cldliq', 'cldice'], NC_FLOAT_FILL)
@@ -582,7 +587,8 @@ def main():
             cldice_nc.units = "kg/kg"
         if 'correct_or_not' in locals():
             correct_or_not = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=-1.0, **compression_opts)
-
+        if add_pmid:
+            pmid_nc = nc_file.createVariable('PMID', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
         # Place data_horiz data into var fields
         if dycore == "fv":
             ps_nc[0, :, :] = data_horiz['ps']
@@ -612,6 +618,8 @@ def main():
             q_nc[0, :, :] = data_horiz['q'][::-1, :]
             if 'correct_or_not' in locals():
                 correct_or_not_nc[0, :] = data_horiz['correct_or_not']
+            if add_pmid:
+                pmid_nc[0, :, :] = data_horiz['pmid'][::-1, :]
 
         # If the model has a hybrid coordinate, do that here
         if dycore == "se" or dycore == "fv":

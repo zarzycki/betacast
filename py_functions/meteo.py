@@ -13,6 +13,27 @@ from constants import (
 )
 
 
+def compute_pmid(t, rho):
+    """
+    Compute the mid-level pressure (pmid) from temperature (T) and density (rho).
+
+    Parameters:
+    - t: numpy array, temperature (can be 2D, 3D, 4D, etc.).
+    - rho: numpy array, density (must have the same shape as t).
+
+    Returns:
+    - pmid: numpy array, computed pressure with the same shape as t and rho.
+    """
+    # Check if input arrays have the same shape
+    if t.shape != rho.shape:
+        raise ValueError("Temperature and density arrays must have the same shape.")
+
+    # Compute pressure using the ideal gas law: pmid = rho * R_dry_air * T
+    pmid = rho * Rd * t
+
+    return pmid
+
+
 def mixhum_ptrh(p, tk, rh, iswit=2):
     """
     Computes the specific humidity or mixing ratio from pressure, temperature, and relative humidity.
