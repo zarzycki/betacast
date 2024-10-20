@@ -36,6 +36,7 @@ def main():
 
     # Is the Betacast path available to us?
     BETACAST, PATHTOHERE = pyfuncs.get_betacast_path()
+    TEMPLATESPATH = os.path.join(BETACAST, 'templates')
 
     args_dict = {
         "Datasource": args.datasource,
@@ -130,7 +131,7 @@ def main():
     logging.info(f"Using this remap: {wgt_filename}")
 
     if load_vert_templates:
-        hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(PATHTOHERE, numlevels)
+        hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels)
 
     # IMPORTANT! data_vars should be organized top-to-bottom when loaddata returns
     # (i.e., lowest pressure/highest z at 0 index of lev)
@@ -383,7 +384,7 @@ def main():
     data_horiz['cldliq'] = pyfuncs.clip_and_count(data_horiz['cldliq'], min_thresh=CLDMINTHRESH, var_name="CLDLIQ")
     data_horiz['cldice'] = pyfuncs.clip_and_count(data_horiz['cldice'], min_thresh=CLDMINTHRESH, var_name="CLDICE")
 
-    add_pmid = True
+    add_pmid = False
     if add_pmid:
         data_horiz['pmid'] = meteo.compute_pmid(data_horiz['t'],data_horiz['rho'])
         pyfuncs.print_min_max_dict(data_horiz)
@@ -480,7 +481,7 @@ def main():
 
         if dycore == "se" or dycore == "fv":
             # Reload from the template xarray for metadata purposes
-            hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(PATHTOHERE, numlevels, load_xarray = True)
+            hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels, load_xarray = True)
             ds["CLDLIQ"] = out_data['cldliq']
             ds["CLDICE"] = out_data['cldice']
             ds["hyam"] = hya
@@ -625,7 +626,7 @@ def main():
 
         # If the model has a hybrid coordinate, do that here
         if dycore == "se" or dycore == "fv":
-            hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(PATHTOHERE, numlevels, load_xarray=False)
+            hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels, load_xarray=False)
 
             hyam_nc = nc_file.createVariable('hyam', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
             hybm_nc = nc_file.createVariable('hybm', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
