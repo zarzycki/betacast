@@ -1,13 +1,27 @@
 if ismissing(getenv("BETACAST")) then
   print("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
-  local_only=True
-  PATHTOHERE="./"
+  ; if we don't have BETACAST, check to see where are located...
+  ; we cannot do relative paths
+  this_script_name=get_script_name()
+  slash_index=str_index_of_substr(this_script_name, "/", -1)
+  if (.not. ismissing(slash_index)) then
+    print("The script is called from another directory")
+    print("I found: "+this_script_name+" which contains a /")
+    print("This isn't supported! Either set BETACAST as env param or run from local dir!")
+    exit
+  else
+    print("The script is called from the local directory")
+    PATHTOHERE=systemfunc("pwd")
+  end if
+  ; get BETACAST based on current dir assuming one up
+  BETACAST = systemfunc("echo $(dirname $(pwd))")
 else
   print("Not local only!")
-  local_only=False
   PATHTOHERE=getenv("BETACAST")+"/atm_to_cam/"
+  BETACAST=getenv("BETACAST")
 end if
 
+print(""+BETACAST)
 print(""+PATHTOHERE)
 loadscript("$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl")
 loadscript(PATHTOHERE+"/helpers.ncl")
@@ -641,7 +655,7 @@ if (dycore .ne. "mpas") then
   print("---------------------------------------------------------")
   print("Loading CAM levels")
   print("Loading "+numlevels+" level data")
-  fC   = addfile (PATHTOHERE+"/templates/L"+numlevels+"template.nc", "r")
+  fC   = addfile (BETACAST+"/templates/L"+numlevels+"template.nc", "r")
   hya  = fC->hyam
   hyb  = fC->hybm
   hyai  = fC->hyai
@@ -661,7 +675,7 @@ if (dycore .ne. "mpas") then
   end if
   if (datasource .eq. "ERAI") then
     print("Using hybrid to hybrid interpolation")
-    eraVertFile = addfile(PATHTOHERE+"/templates/ERA-Interim_coordvars.nc","r")
+    eraVertFile = addfile(BETACAST+"/templates/ERA-Interim_coordvars.nc","r")
     hya_era = eraVertFile->a_model_ave
     hyb_era = eraVertFile->b_model_ave
     hya_era = hya_era/p0
