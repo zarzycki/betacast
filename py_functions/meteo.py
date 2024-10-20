@@ -1,5 +1,6 @@
 import numpy as np
 import logging
+import numba as nb
 # import xarray as xr
 # import datetime
 # import argparse
@@ -85,74 +86,94 @@ def mixhum_ptrh(p, tk, rh, iswit=2):
     return qw
 
 
+@nb.jit(nopython=True)
 def prcwater_dp(Q, DP, QMSG=np.nan, DPMSG=np.nan):
     """
     Calculate precipitable water given specific humidity and layer thickness.
-
     Parameters:
     - Q: Specific humidity array [kg/kg; dimensionless].
     - DP: Layer thickness array [Pa].
     - QMSG: Missing value indicator for Q (optional, default: NaN).
     - DPMSG: Missing value indicator for DP (optional, default: NaN).
-
     Returns:
     - prcwat: Precipitable water [kg/m2].
     """
-
-    # Initialize precipitable water
     prcwat = 0.0
-
-    # Count valid layers
     valid_layers = 0
-
-    # Loop over each layer
-    for q, dp in zip(Q, DP):
+    for i in range(len(Q)):
+        q, dp = Q[i], DP[i]
         if not np.isnan(q) and not np.isnan(dp):
             if q != QMSG and dp != DPMSG:
                 valid_layers += 1
                 prcwat += q * abs(dp)
-
-    # Final precipitable water calculation
     if valid_layers > 0:
         prcwat /= grav
     else:
         prcwat = QMSG
-
     return prcwat
+
+
+@nb.jit(nopython=True)
+def ps_wet_to_dry_conversion_core(ps_fv, q_fv, hyai, hybi, p0):
+    """Numba-optimized core of the conversion function"""
+    ncol = ps_fv.shape[1]
+    pw_fv = np.zeros_like(ps_fv)
+
+    for kk in range(ncol):
+        pi_orig = hyai * p0 + hybi * ps_fv[0, kk]
+        nlevp1 = pi_orig.size
+        dp = pi_orig[1:nlevp1] - pi_orig[0:nlevp1 - 1]
+        pw_fv[0, kk] = prcwater_dp(q_fv[:, 0, kk], dp)
+        ps_fv[0, kk] = ps_fv[0, kk] - pw_fv[0, kk] * grav
+
+    return ps_fv, pw_fv
 
 
 def ps_wet_to_dry_conversion(ps_fv, q_fv, hyai, hybi, p0, verbose=False):
     """
     Converts wet surface pressure to dry surface pressure by subtracting
     the total column precipitable water.
-
     Parameters:
-    - ps_fv: Surface pressure array (1D).
-    - q_fv: Specific humidity array (2D, with shape [levels, columns]).
+    - ps_fv: Surface pressure array (1D or 2D).
+    - q_fv: Specific humidity array (2D or 3D, with shape [levels, ...]).
     - hyai: Hybrid A interface coefficients (1D).
     - hybi: Hybrid B interface coefficients (1D).
     - p0: Reference pressure (scalar).
     - verbose: If True, print intermediate results for every 10000th column.
-
     Returns:
     - ps_fv: Updated dry surface pressure array.
+    - pw_fv: Precipitable water array.
     """
+    # Determine input dimensions
+    if ps_fv.ndim == 1:
+        is_1d = True
+        ps_fv = ps_fv.reshape(1, -1)
+        q_fv = q_fv.reshape(q_fv.shape[0], 1, -1)
+    elif ps_fv.ndim == 2:
+        is_1d = False
+        nlat, nlon = ps_fv.shape
+        ps_fv = ps_fv.reshape(1, -1)
+        q_fv = q_fv.reshape(q_fv.shape[0], 1, -1)
+    else:
+        raise ValueError("ps_fv must be 1D or 2D")
 
-    ncol = ps_fv.shape[0]
-    pw_fv = np.zeros_like(ps_fv)
+    # Call the Numba-optimized core function
+    ps_fv, pw_fv = ps_wet_to_dry_conversion_core(ps_fv, q_fv, hyai, hybi, p0)
 
-    for kk in range(ncol):
-        pi_orig = hyai * p0 + hybi * ps_fv[kk]
-        nlevp1 = pi_orig.size
-        dp = pi_orig[1:nlevp1] - pi_orig[0:nlevp1 - 1]
-        pw_fv[kk] = prcwater_dp(q_fv[:, kk], dp)  # prcwater_dp is assumed to be a pre-defined function
-        ps_fv[kk] = ps_fv[kk] - pw_fv[kk] * grav
-
-        if verbose and kk % 10000 == 0:
-            logging.info(dp)
-            logging.info(f"Correcting PS: {kk} of {ncol-1} from {ps_fv[kk] + pw_fv[kk] * 9.81} to {ps_fv[kk]} since TPW: {pw_fv[kk]}")
+    if verbose:
+        ncol = ps_fv.shape[1]
+        for kk in range(0, ncol, 10000):
+            logging.info(f"Correcting PS: {kk} of {ncol-1} from {ps_fv[0, kk] + pw_fv[0, kk] * grav} to {ps_fv[0, kk]} since TPW: {pw_fv[0, kk]}")
 
     logging.info("Done!")
+
+    # Reshape outputs to original dimensions
+    if is_1d:
+        ps_fv = ps_fv.reshape(-1)
+        pw_fv = pw_fv.reshape(-1)
+    else:
+        ps_fv = ps_fv.reshape(nlat, nlon)
+        pw_fv = pw_fv.reshape(nlat, nlon)
 
     return ps_fv, pw_fv
 

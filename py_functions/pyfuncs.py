@@ -31,18 +31,26 @@ def configure_logging(verbose=False):
         logging.info("Verbose mode is on. More detailed logging information will be shown.")
 
 
-def get_betacast_path(subfolder):
+def get_betacast_path():
     BETACAST = os.getenv("BETACAST")
+
+    # Get the directory of the main script (the one being executed)
+    main_script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+
     if BETACAST is None:
         logging.info("BETACAST unset. Running local only. Export BETACAST env to run elsewhere")
-        local_only = True
-        PATHTOHERE = "./"
-    else:
-        logging.info(f"BETACAST is set to {BETACAST}")
-        local_only = False
-        PATHTOHERE = os.path.join(BETACAST, subfolder)
+        # Go up one directory to get the BETACAST directory
+        BETACAST = os.path.dirname(main_script_dir)
 
-    return local_only, PATHTOHERE
+    # The subfolder is the directory containing the main script
+    subfolder = os.path.basename(main_script_dir)
+
+    PATHTOHERE = os.path.join(BETACAST, subfolder)
+
+    logging.info(f"BETACAST is set to {BETACAST}")
+    logging.info(f"PATHTOHERE is set to {PATHTOHERE}")
+
+    return BETACAST, PATHTOHERE
 
 
 def parse_args():

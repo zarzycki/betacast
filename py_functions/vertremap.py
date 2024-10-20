@@ -4,6 +4,7 @@ import warnings
 
 import numpy as np
 from numba import jit
+from scipy import interpolate
 
 logger = logging.getLogger(__name__)
 
@@ -678,6 +679,99 @@ def interpolate_mpas_columns_wrapper(mpas_data, data_horiz):
     return data_horiz
 
 
+def standard_atmosphere(z):
+    """
+    Generate a US Standard Atmosphere 1976 profile for given heights.
+
+    Parameters:
+    z (array): Heights in meters
+
+    Returns:
+    tuple: (temperature, pressure, density)
+    """
+    # Constants
+    g0 = 9.80665  # m/s^2
+    R = 287.053  # J/(kg*K)
+    M = 0.0289644  # kg/mole (mean molecular mass of air)
+
+    # Layer definitions
+    h = np.array([0, 11000, 20000, 32000, 47000, 51000, 71000, 84852])  # m
+    P = np.array([101325, 22632.1, 5474.89, 868.019, 110.906, 66.9389, 3.95642, 0.3734])  # Pa
+    T = np.array([288.15, 216.65, 216.65, 228.65, 270.65, 270.65, 214.65, 186.95])  # K
+    L = np.array([-6.5, 0, 1.0, 2.8, 0, -2.8, -2.0, 0]) / 1000  # K/m
+
+    # Find the appropriate layer for each altitude
+    layer = np.searchsorted(h, z) - 1
+    layer = np.clip(layer, 0, len(h) - 2)
+
+    # Calculate temperature
+    dh = z - h[layer]
+    T_z = T[layer] + L[layer] * dh
+
+    # Calculate pressure
+    P_z = np.zeros_like(z)
+    for i in range(len(h) - 1):
+        mask = layer == i
+        if L[i] != 0:  # Non-isothermal layer
+            P_z[mask] = P[i] * (T_z[mask] / T[i]) ** (-g0 / (R * L[i]))
+        else:  # Isothermal layer
+            P_z[mask] = P[i] * np.exp(-g0 * dh[mask] / (R * T[i]))
+
+    # Calculate density
+    rho_z = P_z / (R * T_z)
+
+    return T_z, P_z, rho_z
+
+
+
+def taper_to_standard(valid_data, valid_z, full_z, std_data, taper_rate=1.0):
+    """
+    Taper between valid data and standard atmosphere data with controllable taper rate.
+
+    Parameters:
+    valid_data (array): Valid data points
+    valid_z (array): Heights corresponding to valid data
+    full_z (array): Full height array
+    std_data (array): Standard atmosphere data for full height array
+    taper_rate (float): Controls the rate of tapering. Default is 1.0.
+                        Higher values make the taper more abrupt,
+                        lower values make it more gradual.
+
+    Returns:
+    array: Tapered data
+    """
+    nan_mask = np.isnan(valid_data)
+
+    if np.all(nan_mask):
+        return std_data
+    if not np.any(nan_mask):
+        return valid_data
+
+    first_valid = np.argmin(nan_mask)
+    last_valid = len(nan_mask) - np.argmin(nan_mask[::-1]) - 1
+
+    tapered_data = np.copy(valid_data)
+
+    def taper_weight(x):
+        return np.clip(x ** taper_rate, 0, 1)
+
+    if first_valid > 0:
+        w = taper_weight((full_z[:first_valid] - full_z[0]) / (full_z[first_valid] - full_z[0]))
+        tapered_data[:first_valid] = w * valid_data[first_valid] + (1 - w) * std_data[:first_valid]
+
+    if last_valid < len(full_z) - 1:
+        w = taper_weight((full_z[last_valid+1:] - full_z[last_valid]) / (full_z[-1] - full_z[last_valid]))
+        tapered_data[last_valid+1:] = (1 - w) * valid_data[last_valid] + w * std_data[last_valid+1:]
+
+    tapered_data[np.isnan(tapered_data)] = std_data[np.isnan(tapered_data)]
+
+    return tapered_data
+
+
+
+
+
+
 def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv, theta_fv, rho_fv, w_fv, q_fv, u_fv, v_fv):
 
     zmid = (mpas_z[ix, 1:mpas_nlevi] + mpas_z[ix, 0:mpas_nlevi - 1]) / 2.0
@@ -699,68 +793,246 @@ def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv
         logger.debug(f"t_fv range: {t_fv.min()} to {t_fv.max()}")
         logger.debug(f"t_fv size: {t_fv.size}, z_fv size: {z_fv.size}, zmid size: {zmid.size}")
 
-    t_wrf_col = z_to_z_interp(t_fv, z_fv, zmid, extrapLow=True, extrapHigh=True)
-
-    theta_wrf_col = z_to_z_interp(theta_fv, z_fv, zmid, extrapLow=True, extrapHigh=True)
-    rho_wrf_col = z_to_z_interp(rho_fv, z_fv, zmid, extrapLow=True, extrapHigh=True)
-    w_wrf_col = z_to_z_interp(w_fv, z_fv, zint, extrapLow=True, extrapHigh=True)
-    q_wrf_col = z_to_z_interp(q_fv, z_fv, zmid, extrapLow=True, extrapHigh=True)
+    t_wrf_col = z_to_z_interp_wrapper(t_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
+    theta_wrf_col = z_to_z_interp_wrapper(theta_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
+    rho_wrf_col = z_to_z_interp_wrapper(rho_fv, z_fv, zmid, extrap_low="linear", extrap_high="log")
+    w_wrf_col = z_to_z_interp_wrapper(w_fv, z_fv, zint, extrap_low="linear", extrap_high="fade")
+    q_wrf_col = z_to_z_interp_wrapper(q_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
 
     # u and v we don't extrapolate aloft to prevent wind speeds from getting too high
-    u_wrf_col = z_to_z_interp(u_fv, z_fv, zmid, extrapLow=True, extrapHigh=False)
-    v_wrf_col = z_to_z_interp(v_fv, z_fv, zmid, extrapLow=True, extrapHigh=False)
+    u_wrf_col = z_to_z_interp_wrapper(u_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
+    v_wrf_col = z_to_z_interp_wrapper(v_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
 
-#     if ix == 30:
-#       logging.info(u_wrf_col)
-#       logging.info(u_fv[::-1])
-#       logging.info(zmid)
-#       logging.info(z_fv[::-1])
+    # Get standard atmosphere for this column
+    std_T, std_P, std_rho = standard_atmosphere(zmid)
+    std_theta = std_T * (100000 / std_P) ** (2/7)  # Potential temperature
+
+    t_wrf_col = taper_to_standard(t_wrf_col, zmid, zmid, std_T, taper_rate=2.5)
+    theta_wrf_col = taper_to_standard(theta_wrf_col, zmid, zmid, std_theta, taper_rate=2.5)
+    rho_wrf_col = taper_to_standard(rho_wrf_col, zmid, zmid, std_rho, taper_rate=2.5)
+
+    # Initialize all adjustment counters to 0
+    adjustments = {var + '_adjustments': 0 for var in ['t_pos', 'theta_pos', 'rho_pos', 'rho_mono', 'q_pos']}
+    t_wrf_col, adjustments['t_pos_adjustments'] = enforce_positive_values(t_wrf_col, replacement_value=180.0)
+    theta_wrf_col, adjustments['theta_pos_adjustments'] = enforce_positive_values(theta_wrf_col, replacement_value=500.0)
+    rho_wrf_col, adjustments['rho_pos_adjustments'] = enforce_positive_values(rho_wrf_col, replacement_value=1.0e-7)
+    # rho_wrf_col, adjustments['rho_mono_adjustments'] = enforce_monotonic_values(rho_wrf_col)
+    q_wrf_col, adjustments['q_pos_adjustments'] = enforce_positive_values(q_wrf_col, replacement_value=0.0)
+    if ix == 0 or any(adjustments.values()):
+        logger.debug(f"Column {ix} adjustments:")
+        for adjustment_type, count in adjustments.items():
+            logger.debug(f"  {adjustment_type}: {count}")
 
     return t_wrf_col, theta_wrf_col, rho_wrf_col, w_wrf_col, q_wrf_col, u_wrf_col, v_wrf_col
 
 
 @jit(nopython=True)
-def z_to_z_interp(theta_fv, z_fv, thisCol, extrapLow=False, extrapHigh=False):
-    nlev = len(thisCol)
-    t_wrf = np.zeros(nlev)
+def z_to_z_interp(data_src, z_src, z_target, extrap_low, extrap_high):
+    nlev = len(z_target)
+    data_target = np.full(nlev, np.nan, dtype=data_src.dtype)
 
+    # Interpolation
     for i in range(nlev):
-        # logger.debug(f"thisCol[i]: {thisCol[i]}, z_fv[0] {z_fv[0]}, z_fv[-1], {z_fv[-1]}")
-        if thisCol[i] <= z_fv[0] or thisCol[i] >= z_fv[-1]:
-            t_wrf[i] = np.nan
-        else:
-            for j in range(len(z_fv) - 1):
-                if z_fv[j] <= thisCol[i] <= z_fv[j + 1]:
-                    t_wrf[i] = theta_fv[j] + (theta_fv[j + 1] - theta_fv[j]) * (thisCol[i] - z_fv[j]) / (z_fv[j + 1] - z_fv[j])
+        if z_src[0] <= z_target[i] <= z_src[-1]:
+            for j in range(len(z_src) - 1):
+                if z_src[j] <= z_target[i] <= z_src[j + 1]:
+                    data_target[i] = data_src[j] + (data_src[j + 1] - data_src[j]) * (z_target[i] - z_src[j]) / (z_src[j + 1] - z_src[j])
                     break
 
-#     if np.all(np.isnan(t_wrf)):
-#         logging.error("Interpolation failed: t_wrf array is entirely NaN. Exiting program.")
-#         logging.error("This *may* be because the arrays you have sent in are flipped...")
-#         sys.exit(1)
+    # Extrapolation
+    ixvalid = np.where(~np.isnan(data_target))[0]
+    if len(ixvalid) > 0:
+        lowest_valid, highest_valid = ixvalid[0], ixvalid[-1]
 
-    if np.any(np.isnan(t_wrf)):
-        ixvalid = np.where(~np.isnan(t_wrf))[0]
+        # Low extrapolation
+        if extrap_low == -90:  # nan/None
+            pass
+        elif extrap_low == -91:  # Linear
+            deriv = (data_target[lowest_valid + 1] - data_target[lowest_valid]) / (z_target[lowest_valid + 1] - z_target[lowest_valid])
+            for i in range(lowest_valid):
+                data_target[i] = data_target[lowest_valid] + deriv * (z_target[i] - z_target[lowest_valid])
+        elif extrap_low == -92:  # Log
+            log_ratio = np.log(data_target[lowest_valid + 1] / data_target[lowest_valid]) / (z_target[lowest_valid + 1] - z_target[lowest_valid])
+            for i in range(lowest_valid):
+                data_target[i] = data_target[lowest_valid] * np.exp(log_ratio * (z_target[i] - z_target[lowest_valid]))
+        elif extrap_low == -93:  # Persist
+            data_target[:lowest_valid] = data_target[lowest_valid]
+        elif extrap_low == -94:  # Fade
+            for i in range(lowest_valid):
+                w = i / lowest_valid
+                data_target[i] = w * data_target[lowest_valid]
+        else:  # Constant value
+            data_target[:lowest_valid] = extrap_low
 
-        if np.isnan(t_wrf[0]):
-            lowest_valid = np.min(ixvalid)
-            if extrapLow:
-                deriv = (t_wrf[lowest_valid] - t_wrf[lowest_valid + 1]) / (thisCol[lowest_valid] - thisCol[lowest_valid + 1])
+        # High extrapolation
+        if extrap_high == -90:  # nan/None
+            pass
+        elif extrap_high == -91:  # Linear
+            deriv = (data_target[highest_valid] - data_target[highest_valid - 1]) / (z_target[highest_valid] - z_target[highest_valid - 1])
+            for i in range(highest_valid + 1, nlev):
+                data_target[i] = data_target[highest_valid] + deriv * (z_target[i] - z_target[highest_valid])
+        elif extrap_high == -92:  # Log
+            log_ratio = np.log(data_target[highest_valid] / data_target[highest_valid - 1]) / (z_target[highest_valid] - z_target[highest_valid - 1])
+            for i in range(highest_valid + 1, nlev):
+                data_target[i] = data_target[highest_valid] * np.exp(log_ratio * (z_target[i] - z_target[highest_valid]))
+        elif extrap_high == -93:  # Persist
+            data_target[highest_valid + 1:] = data_target[highest_valid]
+        elif extrap_high == -94:  # Fade
+            for i in range(highest_valid + 1, nlev):
+                w = (nlev - i - 1) / (nlev - highest_valid - 1)
+                data_target[i] = w * data_target[highest_valid]
+        else:  # Constant value
+            data_target[highest_valid + 1:] = extrap_high
+
+    return data_target
+
+
+# WARNING: Using -90, -91, -92, -93, -94 as "protected" integers. If you set the extrap option to one of these values it will not behave correctly!
+@jit(nopython=True)
+def get_extrap_option(option):
+    if isinstance(option, (int, float)):
+        return int(option) if option in [0, 1, 2, 3] else float(option)
+    elif isinstance(option, str):
+        option_lower = option.lower()
+        if option_lower == "nan":
+            return -90
+        elif option_lower == "linear":
+            return -91
+        elif option_lower == "log":
+            return -92
+        elif option_lower == "persist":
+            return -93
+        elif option_lower == "fade":
+            return -94
+    return -90  # Default to nan if invalid option
+
+
+@jit(nopython=True)
+def enforce_positive_values(data, eps=1e-8, replacement_value=None):
+    """
+    Enforce positive values in the data array.
+
+    Parameters:
+    -----------
+    data : array-like
+        Input data array.
+    eps : float, optional (default 1e-8)
+        Minimum positive value to enforce if replacement_value is None.
+    replacement_value : float, optional (default None)
+        Value to use for replacing negative values. If None, use max(data[i], eps).
+
+    Returns:
+    --------
+    tuple: (modified_data, num_replacements)
+        modified_data: Array with enforced positive values.
+        num_replacements: Number of values that were replaced.
+    """
+    modified_data = data.copy()
+    num_replacements = 0
+
+    for i in range(len(data)):
+        if data[i] <= 0:
+            if replacement_value is not None:
+                modified_data[i] = replacement_value
             else:
-                deriv = 0.0
-            for ff in range(0, lowest_valid):
-                t_wrf[ff] = t_wrf[lowest_valid] + deriv * (thisCol[ff] - thisCol[lowest_valid])
+                modified_data[i] = max(data[i], eps)
+            num_replacements += 1
 
-        if np.isnan(t_wrf[-1]):
-            highest_valid = np.max(ixvalid)
-            if extrapHigh:
-                deriv = (t_wrf[highest_valid - 1] - t_wrf[highest_valid]) / (thisCol[highest_valid - 1] - thisCol[highest_valid])
-            else:
-                deriv = 0.0
-            for ff in range(highest_valid + 1, nlev):
-                t_wrf[ff] = t_wrf[highest_valid] + deriv * (thisCol[ff] - thisCol[highest_valid])
+    return modified_data, num_replacements
 
-    return t_wrf
+
+@jit(nopython=True)
+def enforce_monotonic_values(data):
+    """
+    Enforce monotonically decreasing values in the data array.
+
+    Parameters:
+    -----------
+    data : array-like
+        Input data array.
+
+    Returns:
+    --------
+    tuple: (modified_data, num_adjustments)
+        modified_data: Array with enforced monotonically decreasing values.
+        num_adjustments: Number of values that were adjusted.
+    """
+    modified_data = data.copy()
+    num_adjustments = 0
+
+    for i in range(1, len(data)):
+        if modified_data[i] >= modified_data[i - 1]:
+            modified_data[i] = modified_data[i - 1] * 0.98
+            num_adjustments += 1
+
+    return modified_data, num_adjustments
+
+
+@jit(nopython=True)
+def z_to_z_interp_wrapper(data_src, z_src, z_target, extrap_low="nan", extrap_high="nan"):
+    """
+    Interpolate data from one set of z-coordinates to another, with options for extrapolation.
+
+    Parameters:
+    -----------
+    data_src : array-like
+        Source data values corresponding to z_src coordinates.
+    z_src : array-like
+        Source z-coordinates.
+    z_target : array-like
+        Target z-coordinates to interpolate onto.
+    extrap_low : str or float, optional (default "nan")
+        Extrapolation method for values below the lowest z_src:
+        - "nan": No extrapolation (returns NaN)
+        - "linear": Linear extrapolation
+        - "log": Logarithmic extrapolation
+        - "persist": Use the lowest valid value
+        - "fade": Linear fade to zero
+        - float: Use this constant value
+    extrap_high : str or float, optional (default "nan")
+        Extrapolation method for values above the highest z_src:
+        - "nan": No extrapolation (returns NaN)
+        - "linear": Linear extrapolation
+        - "log": Logarithmic extrapolation
+        - "persist": Use the highest valid value
+        - "fade": Linear fade to zero
+        - float: Use this constant value
+
+    Returns:
+    --------
+    array-like
+        Interpolated data values corresponding to z_target coordinates.
+
+    Notes:
+    ------
+    - The function uses linear interpolation within the range of z_src.
+    - Extrapolation methods are applied outside the range of z_src.
+    - The result is returned with the same data type as data_src.
+    - This function is optimized with Numba's @jit decorator for performance.
+
+    Warning:
+    --------
+    Do not use -90, -91, -92, -93, or -94 as extrap_low or extrap_high values, as these are
+    reserved for internal use and will not behave as expected.
+    """
+
+    # Ensure all inputs are float64
+    data_src_64 = data_src.astype(np.float64)
+    z_src_64 = z_src.astype(np.float64)
+    z_target_64 = z_target.astype(np.float64)
+
+    # Get "integer" option for handling extrapolation
+    extrap_low_option = get_extrap_option(extrap_low)
+    extrap_high_option = get_extrap_option(extrap_high)
+
+    result = z_to_z_interp(data_src_64, z_src_64, z_target_64, extrap_low_option, extrap_high_option)
+
+    # Convert result back to original dtype of data_src
+    return result.astype(data_src.dtype)
+
+
+
+
 
 
 ###### NEEDS TO BE TESTED

@@ -35,7 +35,7 @@ def main():
     logger.info("Main function started")
 
     # Is the Betacast path available to us?
-    local_only, PATHTOHERE = pyfuncs.get_betacast_path("atm_to_cam")
+    BETACAST, PATHTOHERE = pyfuncs.get_betacast_path()
 
     args_dict = {
         "Datasource": args.datasource,
@@ -139,6 +139,8 @@ def main():
         data_vars = loaddata.load_CFSR_data(data_filename, dycore)
     elif datasource == 'ERA5RDA':
         data_vars = loaddata.load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
+    elif datasource == 'ERA5mlRDA':
+        data_vars = loaddata.load_ERA5mlRDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
     elif datasource == 'CAM':
         data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=write_debug_files,write_debug_dir=DEBUGDIR)
 

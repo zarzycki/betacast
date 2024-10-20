@@ -154,7 +154,7 @@ def main():
 
     pyfuncs.configure_logging(args.verbose)
 
-    local_only, PATHTOHERE = pyfuncs.get_betacast_path("sst_to_cam")
+    BETACAST, PATHTOHERE = pyfuncs.get_betacast_path()
 
     process_sst_ice(
         args.initdate,
