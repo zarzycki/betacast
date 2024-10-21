@@ -1,5 +1,31 @@
-load "../../functions/fcns_seeding.ncl"
-load "../../functions/namelist.ncl"
+if ismissing(getenv("BETACAST")) then
+  print("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
+  ; if we don't have BETACAST, check to see where are located...
+  ; we cannot do relative paths
+  this_script_name=get_script_name()
+  slash_index=str_index_of_substr(this_script_name, "/", -1)
+  if (.not. ismissing(slash_index)) then
+    print("The script is called from another directory")
+    print("I found: "+this_script_name+" which contains a /")
+    print("This isn't supported! Either set BETACAST as env param or run from local dir!")
+    exit
+  else
+    print("The script is called from the local directory")
+    PATHTOHERE=systemfunc("pwd")
+  end if
+  ; get BETACAST based on current dir assuming one up
+  BETACAST = systemfunc("echo $(dirname $(pwd))")
+else
+  print("Not local only!")
+  PATHTOHERE=getenv("BETACAST")+"/atm_to_cam/tcseed/"
+  BETACAST=getenv("BETACAST")
+end if
+
+print(""+BETACAST)
+print(""+PATHTOHERE)
+
+loadscript(BETACAST+"/functions/fcns_seeding.ncl")
+loadscript(BETACAST+"/functions/namelist.ncl")
 
 begin
 
@@ -31,10 +57,10 @@ if (.not. invert_vortex) then
   ; rp and dp will come from minp and target_rmw
   ; minp -> what is the SLP min we want to inject?
   ; target_rmw -> what is the RMW we want?
-  ; setting zp, gamma, exppr, modify_q_mult to -1 uses defaults 
+  ; setting zp, gamma, exppr, modify_q_mult to -1 uses defaults
   minp       = keyword_values( pthi, "minp", "float")
   target_rmw = keyword_values( pthi, "target_rmw", "float")
-  
+
   print(minp)
   if (minp .lt. -19999.0) then
     minp = 995.0
@@ -45,7 +71,7 @@ if (.not. invert_vortex) then
     print("SEED TC: using minp from input file as: "+minp)
   end if
   end if
-  
+
   if (target_rmw .lt. 0.0) then
     target_rmw = 200000.
     print("SEED TC: setting target_rmw to default of "+target_rmw)
@@ -102,7 +128,7 @@ if (restart_file) then
   ps = inputFile->PSDRY
   t = inputFile->T
   dpq = inputFile->dpQ   ; this is the pressure contribution from q to PS
-  
+
   print("getting dp3d")
   ; uses same formulation as in dp_coupling
   dp3d = t
@@ -116,11 +142,11 @@ if (restart_file) then
   q = dpq
   q = dpq / dp3d
   print("min/max q: "+min(q)+" "+max(q))
-  
+
   ; calculate before dry mass
   avg_ps_in = sum(ps(0,:) * area) / sum(area)
   print("Average PSDRY in: "+avg_ps_in)
-  
+
   ; dry to total PS
   corrMass = ps
   corrMass = 0.0
@@ -156,10 +182,10 @@ if (.not. invert_vortex) then
   ;minix = minind(tmps)
   ;print(lat(minix)+" "+lon(minix))
   ;delete(tmps)
-  
+
   minix = minind(gcdist)
   print(lat(minix)+" "+lon(minix))
-  
+
   ambps = ps(0,minix)
   print("ambient ps: "+ambps)
   if (minp .gt. 0.0)
@@ -195,7 +221,7 @@ do ii = 0,ncol-1
 
   ; only edit cells that are within our defined radius of TC seed
   if ( gcdist(ii) .le. deg_bnd ) then
-  
+
     do kk = 0,nlev-1
       ; calc pressure level
       p = hyam(kk)*P0 + hybm(kk)*ps(0,ii)
@@ -207,15 +233,15 @@ do ii = 0,ncol-1
       q(0,kk,ii) = totype(theArr(2), typeof(q))
       t(0,kk,ii) = totype(theArr(3), typeof(t))
     end do
-    
+
     ; we only need to update ps once per column
     ps(0,ii) = totype(theArr(4), typeof(ps))
     if (ps(0,ii) .lt. 80000) then
       print("For diagnostic purposes, PS below 800mb --> "+ps(0,ii))
     end if
-    
+
   end if  ; if this cell is an edited cell
-  
+
 end do  ; end column loop
 
 ; Write file!
@@ -226,7 +252,7 @@ if (restart_file) then
   q_perc = q / q_orig
   print("qperc min/max: "+min(q_perc)+" "+max(q_perc))
   dpq = q_perc * dpq
-  
+
   ; recalculate the dry PS from total PS based on new dpq and unmod'ed condensates
   print("Total PS after adding vortex: "+sum(ps(0,:) * area) / sum(area))
   corrMass = 0.0
@@ -235,14 +261,14 @@ if (restart_file) then
   corrMass = corrMass + dim_sum_n(inputFile->dpCLDLIQ,1)
   print("New wet pressure for mass correction: "+avg(corrMass))
   ps = ps - corrMass
-  
+
   ; calculate new global dry mass and add/substract PS to ensure PSDRY before = PSDRY after
   avg_ps_out = sum(ps(0,:) * area) / sum(area)
   print("Average PSDRY out: "+avg_ps_out)
   ps = ps - (avg_ps_out - avg_ps_in)
   avg_ps_final = sum(ps(0,:) * area) / sum(area)
   print("Final PSDRY out: "+avg_ps_final)
-  
+
   ; write to file
   inputFile->PSDRY=ps
   inputFile->U=u
@@ -297,10 +323,10 @@ wallClockElapseTime(wcSeedStrt, "Time to seed", 0)
 
 if (doplot) then
   wks = gsn_open_wks("x11","tc_mask")
-  
+
   res                      = True
   res@gsnMaximize          = True
-  res@gsnSpreadColors     = True    
+  res@gsnSpreadColors     = True
   res@cnFillOn             = True              ; turn on color
   res@cnLinesOn            = False             ; turn off contour lines
   res@cnLineLabelsOn       = False
@@ -319,7 +345,7 @@ if (doplot) then
   res@cnMaxLevelValF  = 104000.      ; set the maximum contour level
   res@cnLevelSpacingF = 500.      ; set the interval between contours
   map = gsn_csm_contour_map_ce(wks,ps(0,:),res)
-  
+
   res@cnLevelSelectionMode = "ManualLevels"  ; manually set the contour levels with the following 3 resources
   res@cnMinLevelValF  = -20.
   res@cnMaxLevelValF  = 20.
