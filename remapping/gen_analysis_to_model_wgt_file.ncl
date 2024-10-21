@@ -5,14 +5,14 @@ begin
 ; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 ; ============= User settings
 
-; hrrr_3km_scrip.nc, era5_0.25x0.25, gfs_0.50x0.50, gfs_0.25x0.25, rap_13km, hrrr_3km, hwrf_storm
-anlgrid="era5_0.25x0.25"
+; hrrr_3km_scrip.nc, era5_0.25x0.25, era5_0.3gaus, gfs_0.50x0.50, gfs_0.25x0.25, rap_13km, hrrr_3km, hwrf_storm
+anlgrid="era5_0.3gaus"
 anlgridpath="./anl_scrip/"
 
 ; shortname for grid (for naming purposes)
-dstGridName="Philadelphia_TC_grid_v2_ne128x8_pg2"
+dstGridName="mp120a"
 ; full path to model SCRIP file
-dstGridFile="/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/grids/scrip/Philadelphia_TC_grid_v2_ne128x8_pg2_SCRIP.nc"
+dstGridFile="/glade/u/home/zarzycki/work/ASD2017_files/grids/scrip/mp120a_grid_140708.nc"
 ;dstGridFile="./model_scrip/ne30np4_091226_pentagons.nc"
 ;dstGridFile="/glade/work/zarzycki/grids/scrip/ne0np4natlanticwat.ne30x4.g_scrip.nc"
 ;dstGridFile="./rrm.x4_ESMF.nc"
@@ -49,7 +49,7 @@ end if
 ; =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 ; ============= do not edit below this line
 
-if (anlgrid .ne. "era5_0.25x0.25" .and. anlgrid .ne. "gfs_0.25x0.25" .and. anlgrid .ne. "gfs_0.50x0.50" .and. anlgrid .ne. "rap_13km" .and. anlgrid .ne. "hrrr_3km" .and. anlgrid .ne. "hwrf_storm") then
+if (anlgrid .ne. "era5_0.25x0.25" .and. anlgrid .ne. "era5_0.3gaus" .and. anlgrid .ne. "gfs_0.25x0.25" .and. anlgrid .ne. "gfs_0.50x0.50" .and. anlgrid .ne. "rap_13km" .and. anlgrid .ne. "hrrr_3km" .and. anlgrid .ne. "hwrf_storm") then
   print("unsupported analysis grid!   : "+anlgrid)
   exit
 end if
