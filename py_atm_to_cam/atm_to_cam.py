@@ -142,6 +142,7 @@ def main():
         data_vars = loaddata.load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
     elif datasource == 'ERA5mlRDA':
         data_vars = loaddata.load_ERA5mlRDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
+        pyfuncs.log_resource_usage()
     elif datasource == 'CAM':
         data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=write_debug_files,write_debug_dir=DEBUGDIR)
 
@@ -175,10 +176,11 @@ def main():
         # Calculate potential temperature using full pressure and actual T
         data_vars['theta'] = meteo.pot_temp(data_vars['pres'], data_vars['t'])
 
-        # Calculate density from pressure, moisture, and temperature
-        data_vars['rho'] = meteo.calculate_rho_gfs(data_vars['pres'], data_vars['q'], data_vars['t'])
+        # Calculate dry air density from pressure, moisture, and temperature
+        data_vars['rho'] = meteo.calculate_rho_dry(data_vars['pres'], data_vars['q'], data_vars['t'])
 
     # Print diagnostics
+    pyfuncs.log_resource_usage()
     pyfuncs.print_min_max_dict(data_vars)
 
     if dycore == 'fv' or dycore == 'se':
@@ -307,7 +309,7 @@ def main():
             mpas_file['qv'].values[0, :, :] = data_horiz['q'].T
             mpas_file['rho'].values[0, :, :] = data_horiz['rho'].T
             mpas_file['theta'].values[0, :, :] = data_horiz['theta'].T
-            mpas_file['w'].values[0, :, :] = data_horiz['w'].T
+            mpas_file['w'].values[0, :, :] = 0.06 * data_horiz['w'].T
             mpas_file.to_netcdf(se_inic, format='NETCDF4')
             mpas_file.close()
             logging.info(f"Done generating MPAS initial condition file: {se_inic}, exiting...")

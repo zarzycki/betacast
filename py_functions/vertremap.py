@@ -800,16 +800,15 @@ def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv
     q_wrf_col = z_to_z_interp_wrapper(q_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
 
     # u and v we don't extrapolate aloft to prevent wind speeds from getting too high
-    u_wrf_col = z_to_z_interp_wrapper(u_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
-    v_wrf_col = z_to_z_interp_wrapper(v_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
+    u_wrf_col = z_to_z_interp_wrapper(u_fv, z_fv, zmid, extrap_low="linear", extrap_high="persist")
+    v_wrf_col = z_to_z_interp_wrapper(v_fv, z_fv, zmid, extrap_low="linear", extrap_high="persist")
 
     # Get standard atmosphere for this column
-    std_T, std_P, std_rho = standard_atmosphere(zmid)
-    std_theta = std_T * (100000 / std_P) ** (2/7)  # Potential temperature
-
-    t_wrf_col = taper_to_standard(t_wrf_col, zmid, zmid, std_T, taper_rate=2.5)
-    theta_wrf_col = taper_to_standard(theta_wrf_col, zmid, zmid, std_theta, taper_rate=2.5)
-    rho_wrf_col = taper_to_standard(rho_wrf_col, zmid, zmid, std_rho, taper_rate=2.5)
+    #std_T, std_P, std_rho = standard_atmosphere(zmid)
+    #std_theta = std_T * (100000 / std_P) ** (2/7)  # Potential temperature
+    #t_wrf_col = taper_to_standard(t_wrf_col, zmid, zmid, std_T, taper_rate=2.5)
+    #theta_wrf_col = taper_to_standard(theta_wrf_col, zmid, zmid, std_theta, taper_rate=2.5)
+    #rho_wrf_col = taper_to_standard(rho_wrf_col, zmid, zmid, std_rho, taper_rate=2.5)
 
     # Initialize all adjustment counters to 0
     adjustments = {var + '_adjustments': 0 for var in ['t_pos', 'theta_pos', 'rho_pos', 'rho_mono', 'q_pos']}

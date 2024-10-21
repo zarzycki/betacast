@@ -2,6 +2,7 @@ import numpy as np
 import xarray as xr
 import argparse
 import subprocess
+import psutil
 import glob
 import os
 import sys
@@ -10,6 +11,14 @@ from scipy.ndimage import gaussian_filter
 from numba import jit
 import logging
 logger = logging.getLogger(__name__)
+
+
+def log_resource_usage():
+    process = psutil.Process()
+    cpu_percent = process.cpu_percent(interval=1)
+    memory_info = process.memory_info()
+    memory_usage = memory_info.rss / 1024 / 1024  # Convert to MB
+    logger.info(f"CPU Usage: {cpu_percent}%, Memory Usage: {memory_usage:.2f} MB")
 
 
 def configure_logging(verbose=False):

@@ -368,7 +368,7 @@ def load_ERA5mlRDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cycles
         data_vars['z_is_phi'] = False
 
     # Convert dry to wet?
-    data_vars['ps'], data_vars['pw'] = meteo.ps_wet_to_dry_conversion(data_vars['ps'], data_vars['q'], hyai, hybi, p0, verbose=True)
+    # data_vars['psdry'], data_vars['pw'] = meteo.ps_wet_to_dry_conversion(data_vars['ps'], data_vars['q'], hyai, hybi, p0, verbose=True)
 
     # Vertically interpolate the CAM hybrid levels to constant pressure surfaces
     data_vars = vertremap.interp_hybrid_to_pressure_wrapper(

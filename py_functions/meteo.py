@@ -210,6 +210,35 @@ def calculate_rho_gfs(pres_gfs, q_gfs, t_gfs, rho_d_algo=1):
     return rho_gfs
 
 
+def calculate_rho_dry(pres_gfs, q_gfs, t_gfs, rho_d_algo=1):
+    """
+    Calculates the dry air density (rho_dry) using either a simple or advanced method.
+
+    Parameters:
+    -----------
+    pres_gfs : numpy.ndarray
+        Pressure field
+    q_gfs : numpy.ndarray
+        Specific humidity field
+    t_gfs : numpy.ndarray
+        Temperature field
+
+    Returns:
+    --------
+    rho_dry : numpy.ndarray
+        Dry air density with the same shape as pres_gfs.
+    """
+    Rd = 287.05  # Specific gas constant for dry air in J/(kg·K)
+    Rv = 461.5  # Specific gas constant for water vapor in J/(kg·K)
+    Rv_over_Rd = Rv / Rd
+
+    e = (q_gfs * pres_gfs) / (0.622 + 0.378 * q_gfs)
+    pd = pres_gfs - e
+    rho_dry = pd / (Rd * t_gfs)
+
+    return rho_dry
+
+
 def pot_temp(p, t):
     """
     Compute potential temperature.
