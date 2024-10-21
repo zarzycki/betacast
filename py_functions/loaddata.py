@@ -29,7 +29,7 @@ def load_cam_levels(PATHTOHERE, numlevels, load_xarray=False):
     hya, hyb, hyai, hybi, lev, ilev: The hybrid coefficients and levels
     """
     # Load the CAM levels file
-    template_path = f"{PATHTOHERE}/templates/L{numlevels}template.nc"
+    template_path = f"{PATHTOHERE}/L{numlevels}template.nc"
     fC = xr.open_dataset(template_path)
 
     # Extract the hybrid coefficients and levels

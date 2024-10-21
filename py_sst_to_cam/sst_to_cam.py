@@ -12,7 +12,7 @@ import pyfuncs
 import horizremap
 
 
-def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, iceDataFile, SST_write_file, PATHTOHERE="./"):
+def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, iceDataFile, SST_write_file, DOMAINSPATH="./"):
     # Constants
     TTHRESH = 271.9  # Initial cut for ice vs. open ocean
     KtoC = 273.15    # Kelvin to Celsius conversion
@@ -21,7 +21,7 @@ def process_sst_ice(initdate, predict_docn, inputres, datasource, sstDataFile, i
 
     logging.info(f"inputres set to: {inputres}")
 
-    readinFile = f"{PATHTOHERE}/domains/domain.ocn.{inputres}.nc"
+    readinFile = f"{DOMAINSPATH}/domain.ocn.{inputres}.nc"
 
     do_anom = predict_docn == 1
     logging.info(f"do_anom (i.e., predict_docn) set to: {do_anom}")
@@ -155,6 +155,7 @@ def main():
     pyfuncs.configure_logging(args.verbose)
 
     BETACAST, PATHTOHERE = pyfuncs.get_betacast_path()
+    DOMAINSPATH = os.path.join(BETACAST, 'domains')
 
     process_sst_ice(
         args.initdate,
@@ -164,7 +165,7 @@ def main():
         args.sstDataFile,
         args.iceDataFile,
         args.SST_write_file,
-        PATHTOHERE=PATHTOHERE
+        DOMAINSPATH=DOMAINSPATH
     )
 
 if __name__ == "__main__":
