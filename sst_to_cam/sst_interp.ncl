@@ -21,6 +21,9 @@ else
   BETACAST=getenv("BETACAST")
 end if
 
+DOMAINSDIR=BETACAST+"/grids/domains/"
+DOCNDIR=BETACAST+"/grids/sst_docn/"
+
 print(""+BETACAST)
 print(""+PATHTOHERE)
 
@@ -65,10 +68,10 @@ print("inputres set to: "+inputres)
 copy_orig = False
 if (copy_orig) then
   print("copying SST file from repo to "+SST_write_file)
-  system("cp "+PATHTOHERE+"/sst_1x1.nc "+SST_write_file)
+  system("cp "+DOCNDIR+"/sst_1x1.nc "+SST_write_file)
   readinFile=SST_write_file
 else
-  readinFile=BETACAST+"/domains/domain.ocn."+inputres+".nc"
+  readinFile=DOMAINSDIR+"/domain.ocn."+inputres+".nc"
 end if
 
 if (.not. isvar("predict_docn")) then

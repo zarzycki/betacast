@@ -36,7 +36,7 @@ def main():
 
     # Is the Betacast path available to us?
     BETACAST, PATHTOHERE = pyfuncs.get_betacast_path()
-    TEMPLATESPATH = os.path.join(BETACAST, 'templates')
+    TEMPLATESPATH = os.path.join(BETACAST, 'grids/templates/')
 
     args_dict = {
         "Datasource": args.datasource,

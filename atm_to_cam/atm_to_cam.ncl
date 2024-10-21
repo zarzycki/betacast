@@ -23,6 +23,9 @@ end if
 
 print(""+BETACAST)
 print(""+PATHTOHERE)
+
+TEMPLATESPATH=BETACAST+"/grids/templates/"
+
 loadscript("$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl")
 loadscript(PATHTOHERE+"/helpers.ncl")
 
@@ -655,7 +658,7 @@ if (dycore .ne. "mpas") then
   print("---------------------------------------------------------")
   print("Loading CAM levels")
   print("Loading "+numlevels+" level data")
-  fC   = addfile (BETACAST+"/templates/L"+numlevels+"template.nc", "r")
+  fC   = addfile (TEMPLATESPATH+"/L"+numlevels+"template.nc", "r")
   hya  = fC->hyam
   hyb  = fC->hybm
   hyai  = fC->hyai
@@ -675,7 +678,7 @@ if (dycore .ne. "mpas") then
   end if
   if (datasource .eq. "ERAI") then
     print("Using hybrid to hybrid interpolation")
-    eraVertFile = addfile(BETACAST+"/templates/ERA-Interim_coordvars.nc","r")
+    eraVertFile = addfile(TEMPLATESPATH+"/ERA-Interim_coordvars.nc","r")
     hya_era = eraVertFile->a_model_ave
     hyb_era = eraVertFile->b_model_ave
     hya_era = hya_era/p0
