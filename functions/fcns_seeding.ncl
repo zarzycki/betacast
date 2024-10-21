@@ -4,6 +4,32 @@ function tctestcase(cen_lon:numeric,cen_lat:numeric,dp:numeric,rp:numeric,zp:num
 
 begin
 
+debug = False
+
+if debug then
+  print("cen_lon: " + cen_lon)
+  print("cen_lat: " + cen_lat)
+  print("dp: " + dp)
+  print("rp: " + rp)
+  print("zp: " + zp)
+  print("exppr: " + exppr)
+  print("gamma_: " + gamma_)
+  print("lon: " + lon)
+  print("lat: " + lat)
+  print("p: " + p)
+  print("z: " + z)
+  print("zcoords: " + zcoords)
+  print("psin: " + psin)
+  print("uin: " + uin)
+  print("vin: " + vin)
+  print("Tin: " + Tin)
+  print("qin: " + qin)
+  print("invert_vortex: " + invert_vortex)
+  print("modify_q: " + modify_q)
+  print("modify_q_mult: " + modify_q_mult)
+  print("----")
+end if
+
 output = new(5,float)
 
 ;zcoords = 0 ;0 = pressure, 1 = z
@@ -68,7 +94,7 @@ ptrop = p00*(Ttrop/T0)^(1./exponent); Tropopause pressure
 ;print("cen_lat: "+cen_lat)
 ;print("cen_lon: "+cen_lon)
 ;print("modify_q: "+modify_q)
-;print("modify_q_mult: "+modify_q_mult)      
+;print("modify_q_mult: "+modify_q_mult)
 ;print("--------------------------")
 
 ; Do calculations
@@ -78,12 +104,21 @@ f  = 2.*omega*sin(cen_lat/convert)           ; Coriolis parameter
 ; Great circle calculations
 ; CMZ, using internal NCL to avoid nans when cen_lat is too close to this lat...
 ;gr = a*acos(sin(cen_lat/convert)*sin(lat/convert) + \
-;           (cos(cen_lat/convert)*cos(lat/convert)*cos((lon-cen_lon)/convert)))          
+;           (cos(cen_lat/convert)*cos(lat/convert)*cos((lon-cen_lon)/convert)))
 gr = gc_latlon(cen_lat,cen_lon,lat,lon,2,3)
 
-; Define surface pressure as pressure in instead of constant  
+; Define surface pressure as pressure in instead of constant
 p00 = tofloat(psin)
 
+if debug then
+  print("gr: " + gr)
+  print("dp: " + dp)
+  print("rp: " + rp)
+  print("exppr: " + exppr)
+  print("p00: " + p00)
+  print("T0: " + T0)
+  print("exponent: " + exponent)
+end if
 
 ;-----------------------------------------------------------------------
 ;    initialize height field if provided pressure or pressure if provided z
@@ -104,7 +139,7 @@ if (zcoords .eq. 1) then
 else
   ; Reading in p coords
   ps = -dp*exp(-1*(gr/rp)^exppr) + p00
-      
+
   ;print("ps "+ps+"   p00 "+p00)
 
   height = (T0/gamma_)*(1.-(p/ps)^exponent)
@@ -122,19 +157,19 @@ else
 
       fpidFdz =-exppz*zhere*dp*exp(-1*(gr/rp)^exppr)*exp(-1*(zhere/zp)^exppz)/(zp*zp)*((T0-gamma_*zhere)/T0)^(g/(Rd*gamma_)) \
       +g/(Rd*T0)*(p00-dp*exp(-1*(gr/rp)^exppr)*exp(-1*(zhere/zp)^exppz))*((T0-gamma_*zhere)/T0)^(g/(Rd*gamma_)-1.)
-  
+
       fpiF = p-(p00-dp*exp(-1*(gr/rp)^exppr)*exp(-1*(zhere/zp)^exppz)) \
          *((T0-gamma_*zhere)/T0)^(g/(Rd*gamma_))
-     
+
       zn = zhere - fpiF/fpidFdz
-  
+
       if ( abs(zn-zhere)/abs(zn) .lt. deltaz) then
           ;print("We are done with "+n+" iterations")
           break
       end if
-  
+
       zhere = zn
-  
+
       if (n .eq. 1000) then
         print("FPI did not converge after 1000 interations in q & T!!!")
         exit
@@ -142,15 +177,15 @@ else
     end do
 
     height = zn
-    
+
   end if
 
 end if
-          
+
 ;-----------------------------------------------------------------------
 ;    initialize U and V (wind components)
 ;-----------------------------------------------------------------------
-      
+
 d1 = sin(cen_lat/convert)*cos(lat/convert) - cos(cen_lat/convert)*sin(lat/convert)*cos((lon/convert)-(cen_lon/convert))
 d2 = cos(cen_lat/convert)*sin((lon/convert)-(cen_lon/convert))
 d  = max( (/ epsilon, sqrt(d1^2. + d2^2.) /) )
@@ -161,6 +196,9 @@ if (height .gt. ztrop) then
   u = uin
   v = vin
 else
+  if debug then
+    print("height: " + height + ", zp: " + zp + ", exppz: " + exppz + ", dp: " + dp + ", rp: " + rp + ", gr: " + gr)
+  end if
   vt = (-f*gr/2+sqrt((f*gr/2)^(2) - (exppr*(gr/rp)^exppr)*(Rd*(T0-gamma_*height)) / (exppz*height*Rd*(T0-gamma_*height)/(g*zp^exppz) + 1. - p00/dp*exp((gr/rp)^exppr)*exp((height/zp)^exppz))))
   ;term1 = -f*gr/2
   ;term2 = f*f*gr*gr/4
@@ -170,7 +208,7 @@ else
   ;term6 = (p00/dp)*exp((gr/rp)^(1.5))*exp((height/zp)^2)
   ;vt = term1 + sqrt(term2 - ((term3*term4)/(1+term5-term6)))
   ;print(term1)
-  ;print(sqrt(term2 - ((term3*term4)/(1+term5-term6))))          
+  ;print(sqrt(term2 - ((term3*term4)/(1+term5-term6))))
   v = vin + vfac*vt
   u = uin + ufac*vt
 end if
@@ -186,7 +224,7 @@ if (modify_q) then
   ; from https://earthscience.stackexchange.com/questions/2360/how-do-i-convert-specific-humidity-to-relative-humidity
   rh = 0.263 * p * qin / exp( (17.67*(Tin - 273.15)) / (Tin - 29.65) )
 end if
-    
+
 ;-----------------------------------------------------------------------
 ;    initialize T (temperature)
 ;-----------------------------------------------------------------------
@@ -258,7 +296,7 @@ if (modify_q) then
   ; otherwise, add the delq to qin
   q = qin + delq
 end if
-  
+
 if (invert_vortex) then
   ; back out dels and then flip the sign so we are "subtracting" the vortex from state
   output(0) = tofloat(vin-delv)
@@ -362,21 +400,21 @@ do jj = 0,maxiter-1
   rmw = rr(maxind(vt))
 
   err_here = rmw - target_rmw
-  
+
   print("iter: "+jj+"  rpi: "+rpi+"  rmw: "+rmw+"  target: "+target_rmw+"  err: "+abs(err_here))
 
   ; If we've gotten enough convergence, break out of loop, we're done
   if (abs(err_here) .lt. err_stop) then
     break
   end if
-  
+
   ; check if error last step and error this step is different sign, constrict step
   if (jj .ne. 0) then
     if (erri * err_here .lt. 0) then
       step = step/2.
     end if
   end if
-  
+
   ; if not break, update rpi
   if (err_here .ge. 0) then
     ; if predicted RMW > target RMW, make rp smaller
@@ -385,15 +423,15 @@ do jj = 0,maxiter-1
     ; otherwise, make rp bigger
     rpi = rpi + step
   end if
-  
+
   ; update error
   erri = err_here
-  
+
   if (jj .eq. maxiter-1)
     print("did not converge!")
     exit
   end if
-  
+
 end do
 
 print("dp="+dp)

@@ -78,7 +78,7 @@ timesGrid = 1.1 ; we want each radius bin to be timeGrid times kmGrid
 
 nx = toint(outerRad/(timesGrid*kmGrid))
 print("Number of bins is equal to "+nx)
-  
+
 if (mergeInnerBins) then
 ;  origRadiusArr = fspan(0,outerRad,nx)
 ;  radiusArr = new(dimsizes(origRadiusArr)-1,double)
@@ -125,11 +125,11 @@ do i = psminLocY-loopWidthS,psminLocY+loopWidthN
     gcdist = tofloat(gc_latlon(psminlat,psminlon,lat(i),lon(j),2,4))
     if (gcdist .le. outerRad)
       ;do k = 0,dimsizes(lev)-1
-      ;  rad_thevar_hit(k,{gcdist}) = rad_thevar_hit(k,{gcdist}) + 1 
+      ;  rad_thevar_hit(k,{gcdist}) = rad_thevar_hit(k,{gcdist}) + 1
       ;  rad_thevar_cum(k,{gcdist}) = rad_thevar_cum(k,{gcdist}) + data(k,i,j)
       ;end do
       ;if (.not. any(ismissing(data(:,i,j)))) then
-        rad_thevar_hit(:,{gcdist}) = rad_thevar_hit(:,{gcdist}) + 1 
+        rad_thevar_hit(:,{gcdist}) = rad_thevar_hit(:,{gcdist}) + 1
         rad_thevar_cum(:,{gcdist}) = rad_thevar_cum(:,{gcdist}) + data(:,i,j)
       ;end if
     end if
@@ -207,7 +207,7 @@ timesGrid = 1.1 ; we want each radius bin to be timeGrid times kmGrid
 
 nx = toint(outerRad/(timesGrid*kmGrid))
 print("Number of bins is equal to "+nx)
-  
+
 if (mergeInnerBins) then
 ;  origRadiusArr = fspan(0,outerRad,nx)
 ;  radiusArr = new(dimsizes(origRadiusArr)-1,double)
@@ -248,7 +248,7 @@ do i = psminLocY-loopWidth,psminLocY+loopWidth
   do j = psminLocX-loopWidth,psminLocX+loopWidth
       gcdist = tofloat(gc_latlon(psminlat,psminlon,lat(i),lon(j),2,4))
       if (gcdist .le. outerRad)
-        rad_thevar_hit({gcdist}) = rad_thevar_hit({gcdist}) + 1 
+        rad_thevar_hit({gcdist}) = rad_thevar_hit({gcdist}) + 1
         rad_thevar_cum({gcdist}) = rad_thevar_cum({gcdist}) + data(i,j)
       end if
   end do
@@ -511,7 +511,7 @@ timesGrid = 1.1 ; we want each radius bin to be timeGrid times kmGrid
 
 nx = toint(outerRad/(timesGrid*kmGrid))
 print("Number of bins is equal to "+nx)
-  
+
 if (mergeInnerBins) then
 ;  origRadiusArr = fspan(0,outerRad,nx)
 ;  radiusArr = new(dimsizes(origRadiusArr)-1,double)
@@ -550,7 +550,7 @@ print("Starting loop")
 do i = 0,ncol-1
   gcdist = tofloat(gc_latlon(psminlat,psminlon,lat(i),lon(i),2,4))
   if (gcdist .le. outerRad)
-    rad_thevar_hit({gcdist}) = rad_thevar_hit({gcdist}) + 1 
+    rad_thevar_hit({gcdist}) = rad_thevar_hit({gcdist}) + 1
     rad_thevar_cum({gcdist}) = rad_thevar_cum({gcdist}) + data(i)
   end if
 end do
@@ -563,6 +563,7 @@ copy_VarCoords(rad_thevar_hit,rad_thevar)
 
 rad_thevar@units = data@units
 rad_thevar@long_name=data@long_name
+rad_thevar@rad_thevar_hit=rad_thevar_hit
 
 return(rad_thevar)
 
@@ -616,7 +617,7 @@ timesGrid = 1.1 ; we want each radius bin to be timeGrid times kmGrid
 
 nx = toint(outerRad/(timesGrid*kmGrid))
 print("Number of bins is equal to "+nx)
-  
+
 if (mergeInnerBins) then
 ;  origRadiusArr = fspan(0,outerRad,nx)
 ;  radiusArr = new(dimsizes(origRadiusArr)-1,double)
@@ -661,11 +662,11 @@ do i = 0,ncol-1
   gcdist = tofloat(gc_latlon(psminlat,psminlon,lat(i),lon(i),2,4))
   if (gcdist .le. outerRad)
     ;do k = 0,dimsizes(lev)-1
-    ;  rad_thevar_hit(k,{gcdist}) = rad_thevar_hit(k,{gcdist}) + 1 
+    ;  rad_thevar_hit(k,{gcdist}) = rad_thevar_hit(k,{gcdist}) + 1
     ;  rad_thevar_cum(k,{gcdist}) = rad_thevar_cum(k,{gcdist}) + data(k,i,j)
     ;end do
     ;if (.not. any(ismissing(data(:,i,j)))) then
-      rad_thevar_hit(:,{gcdist}) = rad_thevar_hit(:,{gcdist}) + 1 
+      rad_thevar_hit(:,{gcdist}) = rad_thevar_hit(:,{gcdist}) + 1
       rad_thevar_cum(:,{gcdist}) = rad_thevar_cum(:,{gcdist}) + data(:,i)
     ;end if
   end if
