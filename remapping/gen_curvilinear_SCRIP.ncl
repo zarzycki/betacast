@@ -8,7 +8,7 @@ begin
   ; full path to nc or GRIB file of analysis
   srcFileName = "/glade/u/home/zarzycki/work/2012_derecho/hrrr.t00z.wrfprsf00.grib2"
   ; filename to write SCRIP grid to
-  srcGridName = "./anl_scrip/hrrr_3km_scrip_tmp.nc"
+  srcGridName = "./hrrr_3km_scrip_tmp.nc"
 
   sfile = addfile(srcFileName,"r")
 

@@ -4,7 +4,7 @@ from ESMF_regridding import curvilinear_to_SCRIP  # Make sure to import your cus
 # Full path to the nc or GRIB file of the analysis
 srcFileName = "/glade/u/home/zarzycki/work/2012_derecho/hrrr.t00z.wrfprsf00.grib2"
 # Filename to write SCRIP grid to
-srcGridName = "./anl_scrip/hrrr_3km_scrip_tmp.nc"
+srcGridName = "./hrrr_3km_scrip_tmp.nc"
 
 # Open the source file
 sfile = xr.open_dataset(srcFileName, engine="cfgrib")

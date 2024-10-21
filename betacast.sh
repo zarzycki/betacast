@@ -591,13 +591,13 @@ if [ $debug = false ] ; then
           --ANLGRID "${RLLSOURCEGRID}" \
           --DSTGRIDNAME "${modelgridshortname}" \
           --DSTGRIDFILE "${modelgridfile}" \
-          --ANLGRIDPATH "../py_remapping/anl_scrip/" \
+          --ANLGRIDPATH "../grids/anl_scrip/" \
           --WGTFILEDIR "${mapping_files_path}" )
       else
         set +e
         (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
           'ANLGRID="'${RLLSOURCEGRID}'"' \
-          'ANLGRIDPATH="../remapping/anl_scrip/"' \
+          'ANLGRIDPATH="../grids/anl_scrip/"' \
           'DSTGRIDNAME="'${modelgridshortname}'"' \
           'DSTGRIDFILE="'${modelgridfile}'"' \
           'WGTFILEDIR="'${mapping_files_path}'"' \
@@ -631,7 +631,7 @@ if [ $debug = false ] ; then
         set +e
         (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
           'ANLGRID="era5_0.25x0.25"' \
-          'ANLGRIDPATH="../remapping/anl_scrip/"' \
+          'ANLGRIDPATH="../grids/anl_scrip/"' \
           'DSTGRIDNAME="'${m2mgridshortname}'"' \
           'DSTGRIDFILE="'${m2m_gridfile}'"' \
           'WGTFILEDIR="'${mapping_files_path}'"' \

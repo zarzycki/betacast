@@ -5,7 +5,7 @@ begin
 
 InterpMethod="patch"   ;bilinear, patch, conserve
 dstName="era5_0.25"
-dstGridName="./anl_scrip/era5_0.25x0.25_scrip.nc"
+dstGridName="../grids/anl_scrip/era5_0.25x0.25_scrip.nc"
 srcName="rrmx4"
 srcGridName="./rrm.x4_ESMF.nc"
 wgtFileDir="/glade/scratch/zarzycki/"

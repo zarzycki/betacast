@@ -7,7 +7,7 @@ begin
 
 ; hrrr_3km_scrip.nc, era5_0.25x0.25, era5_0.3gaus, gfs_0.50x0.50, gfs_0.25x0.25, rap_13km, hrrr_3km, hwrf_storm
 anlgrid="era5_0.3gaus"
-anlgridpath="./anl_scrip/"
+anlgridpath="../grids/anl_scrip/"
 
 ; shortname for grid (for naming purposes)
 dstGridName="mp120a"

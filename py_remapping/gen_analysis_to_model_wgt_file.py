@@ -1,10 +1,18 @@
 import os
+import sys
 import subprocess
 import logging
 import argparse
 import shutil
 import xarray as xr
+
 from ESMF_regridding import esmf_regrid_gen_weights  # Import the function
+
+# Betacast modules
+module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'py_functions'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
+import pyfuncs
 
 logging.basicConfig(
     level=logging.INFO,  # Change to logging.DEBUG for more detailed logs
@@ -14,10 +22,14 @@ logging.basicConfig(
     ]
 )
 
+# Is the Betacast path available to us?
+BETACAST, PATHTOHERE = pyfuncs.get_betacast_path()
+ANLSCRIPPATH = os.path.join(BETACAST, '/grids/anl_scrip/')
+
 # Argument parser
 parser = argparse.ArgumentParser(description="Generate ESMF regrid weights")
 parser.add_argument("--ANLGRID", type=str, default="era5_0.25x0.25", help="Analysis grid (e.g., era5_0.25x0.25)")
-parser.add_argument("--ANLGRIDPATH", type=str, default="./anl_scrip/", help="Path to the analysis grid SCRIP files")
+parser.add_argument("--ANLGRIDPATH", type=str, default=ANLSCRIPPATH, help="Path to the analysis grid SCRIP files")
 parser.add_argument("--DSTGRIDNAME", type=str, default="Philadelphia_TC_grid_v2_ne128x8_pg2", help="Destination grid name")
 parser.add_argument("--DSTGRIDFILE", type=str, required=True, help="Full path to the model SCRIP file")
 parser.add_argument("--WGTFILEDIR", type=str, default="./", help="Directory to save the weight file")
@@ -34,7 +46,7 @@ wgtFileDir = args.WGTFILEDIR
 flip_model_and_analysis = args.FLIP_MODEL_AND_ANALYSIS
 
 # Validate anlgrid
-valid_anlgrids = ["era5_0.25x0.25", "gfs_0.25x0.25", "gfs_0.50x0.50", "rap_13km", "hrrr_3km", "hwrf_storm"]
+valid_anlgrids = ["era5_0.25x0.25", "era5_0.3gaus", "gfs_0.25x0.25", "gfs_0.50x0.50", "rap_13km", "hrrr_3km", "hwrf_storm"]
 if anlgrid not in valid_anlgrids:
     logging.error(f"Unsupported analysis grid: {anlgrid}")
     exit()
