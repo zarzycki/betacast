@@ -172,35 +172,58 @@ deltaPS = np.nan_to_num(deltaPS, 0)
 
 # ESMF remapping section
 if esmf_remap:
-    import ESMF
+   print("Generating weights!")
+   if os.path.isfile(gridfile):
+       gridfilebasename = os.path.basename(gridfile)
+       gridfilebasename = os.path.splitext(gridfilebasename)[0]
+       print(f"Using existing SCRIP grid: {gridfilebasename}")
+   else:
+       print("No gridfile available, generating one using unstructured_to_scrip")
+       seGridName = f"grid_se_{ncol}.nc"
+       if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, seGridName)):
+           unstructured_to_scrip(os.path.join(mapfilepath, seGridName), lat, lon, Opt_se)
 
-    def create_esmf_grid(lats, lons, is_sphere=True):
-        grid = ESMF.Grid(np.array([len(lats), len(lons)]),
-                        staggering=[False, False],
-                        coord_sys=ESMF.CoordSys.SPH_DEG if is_sphere else ESMF.CoordSys.CART,
-                        num_peri_dims=0, periodic_dim=None)
+   # gen RLL grid
+   Opt_ll = {
+       "ForceOverwrite": True,
+       "PrintTimings": True,
+       "Title": "Deltas grid"
+   }
+   llGridName = "grid_deltas.nc"
+   if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, llGridName)):
+       rectilinear_to_scrip(os.path.join(mapfilepath, llGridName), deltaT.lat, deltaT.lon, Opt_ll)
 
-        [lon_grid, lat_grid] = [0, 1] if is_sphere else [1, 0]
-        lon_ptr = grid.get_coords(lon_grid)
-        lat_ptr = grid.get_coords(lat_grid)
+   # Create weights
+   Opt = {
+       "InterpMethod": "patch",
+       "ForceOverwrite": True,
+       "PrintTimings": True,
+       "DstESMF": False
+   }
 
-        lon_ptr[...] = lons.reshape((len(lons), 1))
-        lat_ptr[...] = lats.reshape((1, len(lats)))
+    # Forward mapping (source->ll)
+    src_path = gridfile if os.path.isfile(gridfile) else os.path.join(mapfilepath, seGridName)
+    wgtFileName1 = f"map_{'se_'+str(ncol) if not os.path.isfile(gridfile) else gridfilebasename}_to_ll.nc"
 
-        return grid
+    if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, wgtFileName1)):
+       ESMF_regrid_gen_weights(src_path,
+                              os.path.join(mapfilepath, llGridName),
+                              os.path.join(mapfilepath, wgtFileName1),
+                              Opt)
 
-    # Create source and destination grids
-    if 'gridfile' in locals():
-        grid_src = xr.open_dataset(gridfile)
-        src_grid = create_esmf_grid(grid_src.lat.values, grid_src.lon.values)
-    else:
-        src_grid = create_esmf_grid(lat, lon)
+    # Backward mapping (ll->source)
+    dst_path = gridfile if os.path.isfile(gridfile) else os.path.join(mapfilepath, seGridName)
+    wgtFileName2 = f"map_ll_to_{'se_'+str(ncol) if not os.path.isfile(gridfile) else gridfilebasename}.nc"
 
-    dst_grid = create_esmf_grid(deltaT.lat.values, deltaT.lon.values)
+    if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, wgtFileName2)):
+       ESMF_regrid_gen_weights(os.path.join(mapfilepath, llGridName),
+                              dst_path,
+                              os.path.join(mapfilepath, wgtFileName2),
+                              Opt)
 
-    # Create ESMF regridder
-    regridder = ESMF.Regridder(src_grid, dst_grid, "bilinear")
+quit()
 
+if esmf_remap:
     # Perform regridding
     PS_deltaGrid = regridder(PS[0])
 else:
