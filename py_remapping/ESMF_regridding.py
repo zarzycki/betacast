@@ -1064,11 +1064,35 @@ def calculate_spherical_areas(corner_lats, corner_lons):
 
     return areas
 
-def unstructured_to_scrip(filename, lat, lon, grid_corners=None, grid_mask=None,
-                         grid_area=None, title=None, debug=False):
+def unstructured_to_scrip(filename, lat, lon, Opt):
     """
     Convert latitude and longitude arrays to SCRIP unstructured grid format.
+
+    Parameters:
+    filename : str
+        Path to output SCRIP file
+    lat : array_like
+        Latitude values
+    lon : array_like
+        Longitude values
+    Opt : dict
+        Dictionary of options containing:
+        - Title (str): Title for the grid file
+        - Debug (bool): Enable debug output
+        - GridCornerLat (array, optional): Corner latitudes if pre-calculated
+        - GridCornerLon (array, optional): Corner longitudes if pre-calculated
+        - GridMask (array, optional): Grid mask array
+        - GridArea (array, optional): Grid area array
     """
+    # Get options from Opt dictionary
+    title = Opt.get("Title", f"SCRIP Grid ({len(lat)} points)")
+    debug = Opt.get("Debug", False)
+    grid_corners = None
+    if "GridCornerLat" in Opt and "GridCornerLon" in Opt:
+        grid_corners = (Opt["GridCornerLat"], Opt["GridCornerLon"])
+    grid_mask = Opt.get("GridMask", None)
+    grid_area = Opt.get("GridArea", None)
+
     # Convert inputs to numpy arrays and check dimensions
     lat = np.asarray(lat).ravel()
     lon = np.asarray(lon).ravel()
@@ -1134,7 +1158,7 @@ def unstructured_to_scrip(filename, lat, lon, grid_corners=None, grid_mask=None,
         },
         attrs={
             'Conventions': 'SCRIP',
-            'title': title if title else f'SCRIP Grid ({grid_size} points)',
+            'title': title,
             'created_by': 'Python unstructured_to_scrip function'
         }
     )

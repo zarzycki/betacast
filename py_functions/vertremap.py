@@ -1032,6 +1032,370 @@ def z_to_z_interp_wrapper(data_src, z_src, z_target, extrap_low="nan", extrap_hi
 
 
 
+# @jit(nopython=True)
+# def _hyi2hyo_core_1d(p0, hyai, hybi, psfc, xi, hyao, hybo, intflg):
+#     """
+#     Core computation for single column or 1D unstructured grid case.
+#     """
+#     ncol = psfc.shape[0]
+#     klevi = len(hyai)
+#     klevo = len(hyao)
+#     xo = np.full((klevo, ncol), np.nan)
+#
+#     peps = 1.0e-3
+#
+#     # Loop over each column
+#     for ic in range(ncol):
+#         # Calculate input pressure levels
+#         pi = hyai * p0 + hybi * psfc[ic]
+#         pilow = pi[-1] - peps
+#
+#         # Calculate output pressure levels
+#         po = hyao * p0 + hybo * psfc[ic]
+#
+#         # Interpolate to each output level
+#         for ko in range(klevo):
+#             if po[ko] < pi[0] or po[ko] > pilow:
+#                 if intflg == 0:
+#                     continue  # Leave as NaN
+#                 elif intflg == 1:
+#                     # Set to nearest input value
+#                     if po[ko] < pi[0]:
+#                         xo[ko, ic] = xi[0, ic]
+#                     else:
+#                         xo[ko, ic] = xi[-1, ic]
+#             else:
+#                 for ki in range(klevi - 1):
+#                     if pi[ki] <= po[ko] < pi[ki + 1]:
+#                         xo[ko, ic] = xi[ki, ic] + \
+#                             (xi[ki + 1, ic] - xi[ki, ic]) * \
+#                             (np.log(po[ko]) - np.log(pi[ki])) / \
+#                             (np.log(pi[ki + 1]) - np.log(pi[ki]))
+#                         break
+#
+#     return xo
+#
+# @jit(nopython=True)
+# def _hyi2hyo_core_2d(p0, hyai, hybi, psfc, xi, hyao, hybo, intflg):
+#     """
+#     Core computation for 2D structured grid case (no time dimension).
+#     """
+#     nlat, nlon = psfc.shape
+#     klevi = len(hyai)
+#     klevo = len(hyao)
+#     xo = np.full((klevo, nlat, nlon), np.nan)
+#
+#     peps = 1.0e-3
+#
+#     for j in range(nlat):
+#         for i in range(nlon):
+#             # Calculate input pressure levels
+#             pi = hyai * p0 + hybi * psfc[j, i]
+#             pilow = pi[-1] - peps
+#
+#             # Calculate output pressure levels
+#             po = hyao * p0 + hybo * psfc[j, i]
+#
+#             # Interpolate to each output level
+#             for ko in range(klevo):
+#                 if po[ko] < pi[0] or po[ko] > pilow:
+#                     if intflg == 0:
+#                         continue  # Leave as NaN
+#                     elif intflg == 1:
+#                         # Set to nearest input value
+#                         if po[ko] < pi[0]:
+#                             xo[ko, j, i] = xi[0, j, i]
+#                         else:
+#                             xo[ko, j, i] = xi[-1, j, i]
+#                 else:
+#                     for ki in range(klevi - 1):
+#                         if pi[ki] <= po[ko] < pi[ki + 1]:
+#                             xo[ko, j, i] = xi[ki, j, i] + \
+#                                 (xi[ki + 1, j, i] - xi[ki, j, i]) * \
+#                                 (np.log(po[ko]) - np.log(pi[ki])) / \
+#                                 (np.log(pi[ki + 1]) - np.log(pi[ki]))
+#                             break
+#
+#     return xo
+#
+# @jit(nopython=True)
+# def _hyi2hyo_core_4d(p0, hyai, hybi, psfc, xi, hyao, hybo, intflg):
+#     """Time, lat, lon structured grid case."""
+#     ntime, nlat, nlon = psfc.shape
+#     klevi = len(hyai)
+#     klevo = len(hyao)
+#     xo = np.full((ntime, klevo, nlat, nlon), np.nan)
+#
+#     peps = 1.0e-3
+#
+#     for t in range(ntime):
+#         for j in range(nlat):
+#             for i in range(nlon):
+#                 pi = hyai * p0 + hybi * psfc[t, j, i]
+#                 pilow = pi[-1] - peps
+#                 po = hyao * p0 + hybo * psfc[t, j, i]
+#
+#                 for ko in range(klevo):
+#                     if po[ko] < pi[0] or po[ko] > pilow:
+#                         if intflg == 0:
+#                             continue
+#                         elif intflg == 1:
+#                             if po[ko] < pi[0]:
+#                                 xo[t, ko, j, i] = xi[t, 0, j, i]
+#                             else:
+#                                 xo[t, ko, j, i] = xi[t, -1, j, i]
+#                     else:
+#                         for ki in range(klevi - 1):
+#                             if pi[ki] <= po[ko] < pi[ki + 1]:
+#                                 xo[t, ko, j, i] = xi[t, ki, j, i] + \
+#                                     (xi[t, ki + 1, j, i] - xi[t, ki, j, i]) * \
+#                                     (np.log(po[ko]) - np.log(pi[ki])) / \
+#                                     (np.log(pi[ki + 1]) - np.log(pi[ki]))
+#                                 break
+#     return xo
+#
+# @jit(nopython=True)
+# def _hyi2hyo_core_time_col(p0, hyai, hybi, psfc, xi, hyao, hybo, intflg):
+#     """Time, column unstructured case."""
+#     ntime, ncol = psfc.shape
+#     klevi = len(hyai)
+#     klevo = len(hyao)
+#     xo = np.full((ntime, klevo, ncol), np.nan)
+#
+#     peps = 1.0e-3
+#
+#     for t in range(ntime):
+#         for ic in range(ncol):
+#             pi = hyai * p0 + hybi * psfc[t, ic]
+#             pilow = pi[-1] - peps
+#             po = hyao * p0 + hybo * psfc[t, ic]
+#
+#             for ko in range(klevo):
+#                 if po[ko] < pi[0] or po[ko] > pilow:
+#                     if intflg == 0:
+#                         continue
+#                     elif intflg == 1:
+#                         if po[ko] < pi[0]:
+#                             xo[t, ko, ic] = xi[t, 0, ic]
+#                         else:
+#                             xo[t, ko, ic] = xi[t, -1, ic]
+#                 else:
+#                     for ki in range(klevi - 1):
+#                         if pi[ki] <= po[ko] < pi[ki + 1]:
+#                             xo[t, ko, ic] = xi[t, ki, ic] + \
+#                                 (xi[t, ki + 1, ic] - xi[t, ki, ic]) * \
+#                                 (np.log(po[ko]) - np.log(pi[ki])) / \
+#                                 (np.log(pi[ki + 1]) - np.log(pi[ki]))
+#                             break
+#     return xo
+#
+# def hyi2hyo(p0, hyai, hybi, psfc, xi, hyao, hybo, intflg=0, unstructured=False):
+#     """
+#     Interpolate data from one set of hybrid levels to another.
+#
+#     Parameters
+#     ----------
+#     p0 : float
+#         Reference pressure in Pa.
+#     hyai : ndarray
+#         Input hybrid coefficients A, must be ordered top-to-bottom.
+#     hybi : ndarray
+#         Input hybrid coefficients B, must be ordered top-to-bottom.
+#     psfc : float or ndarray
+#         Surface pressure in Pa. Can be:
+#         - scalar: single column
+#         - 1D array: (ncol,) for unstructured or (nlat,) for structured
+#         - 2D array: (time, ncol) for unstructured or (nlat, nlon) for structured
+#         - 3D array: (time, nlat, nlon) for structured
+#     xi : ndarray
+#         Input data to interpolate. Shape must be:
+#         - (nlev,) if psfc is scalar
+#         - (nlev, ncol) for 1D unstructured or (nlev, nlat) for 1D structured
+#         - (time, nlev, ncol) for 2D unstructured or (nlev, nlat, nlon) for 2D structured
+#         - (time, nlev, nlat, nlon) for 3D structured
+#     hyao : ndarray
+#         Output hybrid coefficients A, must be ordered top-to-bottom.
+#     hybo : ndarray
+#         Output hybrid coefficients B, must be ordered top-to-bottom.
+#     intflg : int, optional
+#         Interpolation flag:
+#         - 0: Set values outside input pressure range to NaN (default)
+#         - 1: Set values to nearest input pressure level
+#     unstructured : bool, optional
+#         If True, treats non-level dimensions as unstructured columns.
+#         If False, assumes structured lat/lon grid. Default is False.
+#
+#     Returns
+#     -------
+#     ndarray
+#         Interpolated data on new hybrid levels.
+#         Shape matches input but with lev dimension replaced by new length.
+#     """
+#     # Basic input validation
+#     if not isinstance(p0, (int, float)):
+#         raise ValueError("p0 must be a scalar value")
+#
+#     for arr, name in [(hyai, 'hyai'), (hybi, 'hybi'), (hyao, 'hyao'), (hybo, 'hybo')]:
+#         if not isinstance(arr, np.ndarray):
+#             raise ValueError(f"{name} must be a numpy array")
+#
+#     if hyai.shape != hybi.shape or hyao.shape != hybo.shape:
+#         raise ValueError("hybrid coefficients must have matching shapes")
+#
+#     if intflg not in [0, 1]:
+#         raise ValueError("intflg must be 0 or 1")
+#
+#     # Convert scalar psfc to array for consistency
+#     if isinstance(psfc, (int, float)):
+#         psfc = np.asarray([psfc])
+#         xi = np.atleast_2d(xi)
+#     else:
+#         psfc = np.asarray(psfc)
+#
+#     # Handle different dimensionality cases
+#     if unstructured:
+#         if psfc.ndim == 1:  # Single time, columns
+#             if xi.ndim != 2 or xi.shape[0] != len(hyai):
+#                 raise ValueError("For 1D unstructured psfc, xi must be 2D (nlev, ncol)")
+#             return _hyi2hyo_core_1d(p0, hyai, hybi, psfc, xi, hyao, hybo, intflg)
+#         elif psfc.ndim == 2:  # Time, columns
+#             if xi.ndim != 3 or xi.shape[1] != len(hyai):
+#                 raise ValueError("For 2D unstructured psfc, xi must be 3D (time, nlev, ncol)")
+#             return _hyi2hyo_core_time_col(p0, hyai, hybi, psfc, xi, hyao, hybo, intflg)
+#         else:
+#             raise ValueError("For unstructured grids, psfc must be 1D or 2D")
+#     else:  # Structured grid
+#         if psfc.ndim == 2:  # Single time, lat/lon
+#             if xi.ndim != 3 or xi.shape[0] != len(hyai):
+#                 raise ValueError("For 2D structured psfc, xi must be 3D (nlev, nlat, nlon)")
+#             return _hyi2hyo_core_2d(p0, hyai, hybi, psfc, xi, hyao, hybo, intflg)
+#         elif psfc.ndim == 3:  # Time, lat, lon
+#             if xi.ndim != 4 or xi.shape[1] != len(hyai):
+#                 raise ValueError("For 3D structured psfc, xi must be 4D (time, nlev, nlat, nlon)")
+#             return _hyi2hyo_core_4d(p0, hyai, hybi, psfc, xi, hyao, hybo, intflg)
+#         else:
+#             raise ValueError("For structured grids, psfc must be 2D or 3D")
+
+
+
+@jit(nopython=True)
+def _hyi2hyo_column(p0, hyai, hybi, ps, xi, hyao, hybo, intflg):
+    """
+    Core computation for a single vertical column interpolation.
+    """
+    klevo = len(hyao)
+    xo = np.full(klevo, np.nan)
+
+    # Calculate pressures for this column
+    pi = hyai * p0 + hybi * ps
+    po = hyao * p0 + hybo * ps
+    pilow = pi[-1] - 1.0e-3
+
+    # Interpolate each output level
+    for ko in range(klevo):
+        if po[ko] < pi[0] or po[ko] > pilow:
+            if intflg == 0:
+                continue
+            elif intflg == 1:
+                xo[ko] = xi[0] if po[ko] < pi[0] else xi[-1]
+        else:
+            for ki in range(len(hyai) - 1):
+                if pi[ki] <= po[ko] < pi[ki + 1]:
+                    xo[ko] = xi[ki] + \
+                        (xi[ki + 1] - xi[ki]) * \
+                        (np.log(po[ko]) - np.log(pi[ki])) / \
+                        (np.log(pi[ki + 1]) - np.log(pi[ki]))
+                    break
+    return xo
+
+def hyi2hyo(p0, hyai, hybi, psfc, xi, hyao, hybo, intflg=0, unstructured=False):
+    """
+    Interpolate data from one set of hybrid levels to another.
+
+    Parameters
+    ----------
+    [same as before]
+    """
+    # Basic input validation
+    if not isinstance(p0, (int, float)):
+        raise ValueError("p0 must be a scalar value")
+
+    for arr, name in [(hyai, 'hyai'), (hybi, 'hybi'), (hyao, 'hyao'), (hybo, 'hybo')]:
+        if not isinstance(arr, np.ndarray):
+            raise ValueError(f"{name} must be a numpy array")
+
+    if hyai.shape != hybi.shape or hyao.shape != hybo.shape:
+        raise ValueError("hybrid coefficients must have matching shapes")
+
+    if intflg not in [0, 1]:
+        raise ValueError("intflg must be 0 or 1")
+
+    # Handle scalar case
+    if isinstance(psfc, (int, float)):
+        psfc = np.array([psfc])
+        xi = np.atleast_2d(xi)
+    else:
+        psfc = np.asarray(psfc)
+
+    # Determine if we have a time dimension and level axis
+    if unstructured:
+        has_time = psfc.ndim == 2  # (time, ncol) vs (ncol,)
+        lev_axis = 1 if has_time else 0
+    else:
+        has_time = psfc.ndim == 3  # (time, nlat, nlon) vs (nlat, nlon)
+        lev_axis = 1 if has_time else 0
+
+    print(f"unstructured: {unstructured}")
+    print(f"has_time: {has_time}")
+
+    # Verify dimensions match expectations
+    if has_time:
+        if unstructured and xi.ndim != 3:  # (time, nlev, ncol)
+            raise ValueError("For time + unstructured, xi must be 3D (time, nlev, ncol)")
+        elif not unstructured and xi.ndim != 4:  # (time, nlev, nlat, nlon)
+            raise ValueError("For time + structured, xi must be 4D (time, nlev, nlat, nlon)")
+    else:
+        if unstructured and xi.ndim != 2:  # (nlev, ncol)
+            raise ValueError("For unstructured, xi must be 2D (nlev, ncol)")
+        elif not unstructured and xi.ndim != 3:  # (nlev, nlat, nlon)
+            raise ValueError("For structured, xi must be 3D (nlev, nlat, nlon)")
+
+    if xi.shape[lev_axis] != len(hyai):
+        raise ValueError("Level dimension of xi must match length of hybrid coefficients")
+
+    # Prepare output array
+    out_shape = list(xi.shape)
+    out_shape[lev_axis] = len(hyao)
+    xo = np.full(out_shape, np.nan)
+
+    # Handle different dimensionality cases through iteration
+    if has_time:
+        for t in range(xi.shape[0]):
+            if unstructured:
+                # Time, level, column case
+                for c in range(psfc.shape[1]):
+                    xo[t, :, c] = _hyi2hyo_column(p0, hyai, hybi, psfc[t, c],
+                                               xi[t, :, c], hyao, hybo, intflg)
+            else:
+                # Time, level, lat, lon case
+                for j in range(psfc.shape[1]):
+                    for i in range(psfc.shape[2]):
+                        xo[t, :, j, i] = _hyi2hyo_column(p0, hyai, hybi, psfc[t, j, i],
+                                                      xi[t, :, j, i], hyao, hybo, intflg)
+    else:
+        if unstructured:
+            # Level, column case
+            for c in range(psfc.shape[0]):
+                xo[:, c] = _hyi2hyo_column(p0, hyai, hybi, psfc[c],
+                                        xi[:, c], hyao, hybo, intflg)
+        else:
+            # Level, lat, lon case
+            for j in range(psfc.shape[0]):
+                for i in range(psfc.shape[1]):
+                    xo[:, j, i] = _hyi2hyo_column(p0, hyai, hybi, psfc[j, i],
+                                               xi[:, j, i], hyao, hybo, intflg)
+
+    return xo
 
 
 ###### NEEDS TO BE TESTED
