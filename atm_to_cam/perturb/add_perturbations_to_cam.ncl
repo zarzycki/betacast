@@ -1,5 +1,31 @@
-load "../../functions/namelist.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
+if ismissing(getenv("BETACAST")) then
+  print("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
+  ; if we don't have BETACAST, check to see where are located...
+  ; we cannot do relative paths
+  this_script_name=get_script_name()
+  slash_index=str_index_of_substr(this_script_name, "/", -1)
+  if (.not. ismissing(slash_index)) then
+    print("The script is called from another directory")
+    print("I found: "+this_script_name+" which contains a /")
+    print("This isn't supported! Either set BETACAST as env param or run from local dir!")
+    exit
+  else
+    print("The script is called from the local directory")
+    PATHTOHERE=systemfunc("pwd")
+  end if
+  ; get BETACAST based on current dir assuming one up
+  BETACAST = systemfunc("echo $(dirname $(pwd))")
+else
+  print("Not local only!")
+  PATHTOHERE=getenv("BETACAST")+"/atm_to_cam/perturb/"
+  BETACAST=getenv("BETACAST")
+end if
+
+print(""+BETACAST)
+print(""+PATHTOHERE)
+
+loadscript(BETACAST+"/functions/namelist.ncl")
+;load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
@@ -60,6 +86,7 @@ else
   mapfilepath="./"
 end if
 print("mapfilepath: "+mapfilepath)
+tmpfilepath=mapfilepath
 
 system("cp" + " " + BEFOREPERTFILE + " " + AFTERPERTFILE)
 fileName=AFTERPERTFILE
@@ -170,6 +197,7 @@ if (esmf_remap) then
   ;system ("which ESMF_RegridWeightGen")
 
   Opt                      = True
+  Opt@RemovePETLog = True
   Opt@InterpMethod         = "patch"
   Opt@ForceOverwrite       = True
   Opt@PrintTimings         = True
@@ -417,7 +445,7 @@ if (update_pressure .or. do_ps_corr) then
 end if
 
 if (output_atm_diag) then
-  diag_filename="deltas_atm.nc"
+  diag_filename=tmpfilepath+"/deltas_atm.nc"
   print("outputting diags to "+diag_filename)
 
   system("/bin/rm -f "+diag_filename)   ; remove any pre-existing file
