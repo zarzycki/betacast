@@ -6,6 +6,10 @@ from matplotlib import cm
 import matplotlib.tri as tri
 import argparse
 
+# Betacast modules
+module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..', 'py_functions'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
 from py_seedfuncs import *
 
 def wallClockElapseTime(start_time, message):

@@ -4,6 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import shutil
 
+# Betacast modules
+module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..', 'py_functions'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
 from py_seedfuncs import keyword_values, gc_latlon, tctestcase, radialAvg2D_unstruc, radialAvg3D_unstruc, replace_or_add_variable
 
 def process_vortex(pthi, inic_file):
