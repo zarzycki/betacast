@@ -2,10 +2,26 @@ import os
 import sys
 import xarray as xr
 import numpy as np
-from pathlib import Path
 import shutil
-from scipy.interpolate import griddata
 import argparse
+
+# Betacast modules
+module_paths = [
+    ('functions_path', ['../..', 'py_functions']),
+    ('functions_path', ['../..', 'py_remapping'])
+]
+for path_name, path_parts in module_paths:
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), *path_parts))
+    print(f"{path_name}: {path}")
+    if path not in sys.path:
+        sys.path.append(path)
+from py_seedfuncs import keyword_values, gc_latlon
+import pyfuncs
+import meteo
+import cam2cam
+import horizremap
+import vertremap
+from ESMF_regridding import *
 
 # Set up argument parser
 parser = argparse.ArgumentParser(description='Add perturbations to CAM file')
@@ -21,26 +37,6 @@ parser.add_argument('--pthi', type=str, required=True,
                     help='Path to perturbation namelist file')
 
 args = parser.parse_args()
-
-# Betacast modules
-module_paths = [
-    ('tcseed_path', ['..', 'tcseed']),
-    ('functions_path', ['../..', 'py_functions']),
-    ('functions_path', ['../..', 'py_remapping'])
-]
-for path_name, path_parts in module_paths:
-    path = os.path.abspath(os.path.join(os.path.dirname(__file__), *path_parts))
-    print(f"{path_name}: {path}")
-    if path not in sys.path:
-        sys.path.append(path)
-
-from py_seedfuncs import keyword_values, gc_latlon
-import pyfuncs
-import meteo
-import cam2cam
-import horizremap
-import vertremap
-from ESMF_regridding import *
 
 # Set variables from command line arguments
 beforefile = args.BEFOREPERTFILE
@@ -73,7 +69,6 @@ plevs = keyword_values(pthi, "plevs", "bool")
 update_pressure = keyword_values(pthi, "update_pressure", "bool")
 update_winds = keyword_values(pthi, "update_winds", "bool")
 do_ps_corr = keyword_values(pthi, "do_ps_corr", "bool")
-esmf_remap = keyword_values(pthi, "esmf_remap", "bool")
 smooth_deltas = keyword_values(pthi, "smooth_deltas", "bool")
 
 if smooth_deltas:
@@ -100,7 +95,6 @@ print(f"update_pressure: {update_pressure}")
 print(f"update_winds: {update_winds}")
 print(f"do_ps_corr: {do_ps_corr}")
 
-print(f"esmf_remap: {esmf_remap}")
 print(f"keep_esmf: {keep_esmf}")
 
 print(f"smooth_deltas: {smooth_deltas}")
@@ -189,9 +183,9 @@ elif warming_case == "CESMLENS":  # Can be used for attribution and future proje
     current_start_idx = (current_year * 12 - 1920 * 12) + start_month - 1
     current_end_idx = (current_year * 12 - 1920 * 12) + end_month - 1
 
-    deltaPS_in = deltaFilePS.PS[current_start_idx:current_end_idx+1].astype(np.float64)
-    deltaT_in = deltaFileT.T[current_start_idx:current_end_idx+1].astype(np.float64)
-    deltaQ_in = deltaFileQ.Q[current_start_idx:current_end_idx+1].astype(np.float64)
+    deltaPS_in = deltaFilePS.PS[current_start_idx:current_end_idx+1]
+    deltaT_in = deltaFileT.T[current_start_idx:current_end_idx+1]
+    deltaQ_in = deltaFileQ.Q[current_start_idx:current_end_idx+1]
 
     # Average over months
     deltaPS_current = deltaPS_in.mean(dim='time')
@@ -207,9 +201,9 @@ elif warming_case == "CESMLENS":  # Can be used for attribution and future proje
         comp_start_idx = (comp_year * 12 - 1920 * 12) + start_month - 1
         comp_end_idx = (comp_year * 12 - 1920 * 12) + end_month - 1
 
-        deltaPS_in = deltaFilePS.PS[comp_start_idx:comp_end_idx+1].astype(np.float64)
-        deltaT_in = deltaFileT.T[comp_start_idx:comp_end_idx+1].astype(np.float64)
-        deltaQ_in = deltaFileQ.Q[comp_start_idx:comp_end_idx+1].astype(np.float64)
+        deltaPS_in = deltaFilePS.PS[comp_start_idx:comp_end_idx+1]
+        deltaT_in = deltaFileT.T[comp_start_idx:comp_end_idx+1]
+        deltaQ_in = deltaFileQ.Q[comp_start_idx:comp_end_idx+1]
 
         deltaPS_comp = deltaPS_in.mean(dim='time')
         deltaT_comp = deltaT_in.mean(dim='time')
@@ -228,88 +222,84 @@ deltaT = np.nan_to_num(deltaT, 0)
 deltaQ = np.nan_to_num(deltaQ, 0)
 deltaPS = np.nan_to_num(deltaPS, 0)
 
-if esmf_remap:
-   print("Generating weights!")
-   if os.path.isfile(gridfile):
-       gridfilebasename = os.path.basename(gridfile)
-       gridfilebasename = os.path.splitext(gridfilebasename)[0]
-       print(f"Using existing SCRIP grid: {gridfilebasename}")
-   else:
-       print("No gridfile available, generating one using unstructured_to_scrip")
-       # gen SE grid
-       Opt_se = {
-           "ForceOverwrite": True,
-           "PrintTimings": True,
-           "Title": "SE Grid"
-       }
-       seGridName = f"grid_se_{ncol}.nc"
-       if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, seGridName)):
-           unstructured_to_scrip(os.path.join(mapfilepath, seGridName), lat, lon, Opt_se)
+print("Generating weights!")
+if os.path.isfile(gridfile):
+    gridfilebasename = os.path.basename(gridfile)
+    gridfilebasename = os.path.splitext(gridfilebasename)[0]
+    print(f"Using existing SCRIP grid: {gridfilebasename}")
+else:
+    print("No gridfile available, generating one using unstructured_to_scrip")
+    # gen SE grid
+    Opt_se = {
+        "ForceOverwrite": True,
+        "PrintTimings": True,
+        "Title": "SE Grid"
+    }
+    seGridName = f"grid_se_{ncol}.nc"
+    if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, seGridName)):
+        unstructured_to_scrip(os.path.join(mapfilepath, seGridName), lat, lon, Opt_se)
 
-   # gen RLL grid
-   Opt_ll = {
-       "ForceOverwrite": True,
-       "PrintTimings": True,
-       "Title": "Deltas grid"
-   }
-   llGridName = "grid_deltas.nc"
-   if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, llGridName)):
-       rectilinear_to_SCRIP(os.path.join(mapfilepath, llGridName), lat_in, lon_in, Opt_ll)
+# gen RLL grid
+Opt_ll = {
+   "ForceOverwrite": True,
+   "PrintTimings": True,
+   "Title": "Deltas grid"
+}
+llGridName = "grid_deltas.nc"
+if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, llGridName)):
+    rectilinear_to_SCRIP(os.path.join(mapfilepath, llGridName), lat_in, lon_in, Opt_ll)
 
-   # Create weights
-   Opt = {
-       "RemovePETLog": True,
-       "InterpMethod": "patch",
-       "ForceOverwrite": True,
-       "PrintTimings": True,
-       "DstESMF": False
-   }
+# Create weights
+Opt = {
+   "RemovePETLog": True,
+   "InterpMethod": "patch",
+   "ForceOverwrite": True,
+   "PrintTimings": True,
+   "DstESMF": False
+}
 
-   # Forward mapping (source->ll)
-   if os.path.isfile(gridfile):
-       Opt["SrcESMF"] = False
-       src_path = gridfile
-       wgtFileName1 = f"map_{gridfilebasename}_to_ll.nc"
-   else:
-       Opt["SrcESMF"] = True
-       src_path = os.path.join(mapfilepath, seGridName)
-       wgtFileName1 = f"map_se_{ncol}_to_ll.nc"
+# Forward mapping (source->ll)
+if os.path.isfile(gridfile):
+    Opt["SrcESMF"] = False
+    src_path = gridfile
+    wgtFileName1 = f"map_{gridfilebasename}_to_ll.nc"
+else:
+    Opt["SrcESMF"] = True
+    src_path = os.path.join(mapfilepath, seGridName)
+    wgtFileName1 = f"map_se_{ncol}_to_ll.nc"
 
-   if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, wgtFileName1)):
-       esmf_regrid_gen_weights(src_path,
-                              os.path.join(mapfilepath, llGridName),
-                              os.path.join(mapfilepath, wgtFileName1),
-                              Opt)
+if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, wgtFileName1)):
+    esmf_regrid_gen_weights(
+                          src_path,
+                          os.path.join(mapfilepath, llGridName),
+                          os.path.join(mapfilepath, wgtFileName1),
+                          Opt)
 
-   # Backward mapping (ll->source)
-   Opt["SrcESMF"] = False
-   if os.path.isfile(gridfile):
-       Opt["DstESMF"] = False
-       dst_path = gridfile
-       wgtFileName2 = f"map_ll_to_{gridfilebasename}.nc"
-   else:
-       Opt["DstESMF"] = True
-       dst_path = os.path.join(mapfilepath, seGridName)
-       wgtFileName2 = f"map_ll_to_se_{ncol}.nc"
+# Backward mapping (ll->source)
+Opt["SrcESMF"] = False
+if os.path.isfile(gridfile):
+    Opt["DstESMF"] = False
+    dst_path = gridfile
+    wgtFileName2 = f"map_ll_to_{gridfilebasename}.nc"
+else:
+    Opt["DstESMF"] = True
+    dst_path = os.path.join(mapfilepath, seGridName)
+    wgtFileName2 = f"map_ll_to_se_{ncol}.nc"
 
-   if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, wgtFileName2)):
-       esmf_regrid_gen_weights(os.path.join(mapfilepath, llGridName),
-                              dst_path,
-                              os.path.join(mapfilepath, wgtFileName2),
-                              Opt)
+if not keep_esmf or not os.path.isfile(os.path.join(mapfilepath, wgtFileName2)):
+    esmf_regrid_gen_weights(
+                          os.path.join(mapfilepath, llGridName),
+                          dst_path,
+                          os.path.join(mapfilepath, wgtFileName2),
+                          Opt)
 
 print("Beginning PS to lat-lon interp...")
 print(f"PS.shape: {PS.shape}")
-if esmf_remap:
-    # NOTE, PS[0] squeezes off the singleton dimension "time" -- it works for ND arrays (so both struct and unstruct)
-    # versions PS[0,:], PS[0,:,:], etc.
-    PS_deltaGrid, _, _ = horizremap.remap_with_weights_wrapper(PS[0],
-                                                   os.path.join(mapfilepath, wgtFileName1))
-else:
-    print("unsupported in port")
-    quit()
-
-### Everything should be numpy arrays at this point
+# NOTE, PS[0] squeezes off the singleton dimension "time" -- it works for ND arrays (so both struct and unstruct)
+# versions PS[0,:], PS[0,:,:], etc.
+PS_deltaGrid, _, _ = horizremap.remap_with_weights_wrapper(
+                                        PS[0],
+                                        os.path.join(mapfilepath, wgtFileName1))
 
 # Perform vertical interpolation
 print("Beginning vertical interpolation...")
@@ -322,8 +312,6 @@ elif warming_case == "CESMLENS":
         deltaTCAM = vertremap.pressure_to_hybrid(plev_in, deltaT, PS_deltaGrid, hyam, hybm)
         deltaQCAM = vertremap.pressure_to_hybrid(plev_in, deltaQ, PS_deltaGrid, hyam, hybm)
     else:
-        print(f"deltaT.shape: {deltaT.shape}")
-        print(f"PS_deltaGrid.shape: {PS_deltaGrid.shape}")
         deltaTCAM = vertremap.hyi2hyo(P0, hyam_in, hybm_in, PS_deltaGrid, deltaT, hyam, hybm, intflg=1, unstructured=False)
         deltaQCAM = vertremap.hyi2hyo(P0, hyam_in, hybm_in, PS_deltaGrid, deltaQ, hyam, hybm, intflg=1, unstructured=False)
 
@@ -338,18 +326,20 @@ if smooth_deltas:
 
 # Calculate extra diagnostics if requested
 if extra_diags_atm:
-    dp = cam2cam.dpres_hybrid_ccm(data_vars['ps'], p0, hyai, hybi)
+    dp = cam2cam.dpres_hybrid_ccm(deltaPSCAM, p0, hyai, hybi)
     pw = meteo.prcwater_dp(deltaQCAM, dp)
 
 # Interpolate deltas back to original grid
 print("Interpolating deltas back to original grid...")
-if esmf_remap:
-    deltaTCAM_interp, _, _ = horizremap.remap_with_weights_wrapper(deltaTCAM,
-                                                   os.path.join(mapfilepath, wgtFileName2))
-    deltaQCAM_interp, _, _ = horizremap.remap_with_weights_wrapper(deltaQCAM,
-                                                   os.path.join(mapfilepath, wgtFileName2))
-    deltaPSCAM_interp, _, _ = horizremap.remap_with_weights_wrapper(deltaPSCAM,
-                                                   os.path.join(mapfilepath, wgtFileName2))
+deltaTCAM_interp, _, _ = horizremap.remap_with_weights_wrapper(
+                                deltaTCAM,
+                                os.path.join(mapfilepath, wgtFileName2))
+deltaQCAM_interp, _, _ = horizremap.remap_with_weights_wrapper(
+                                deltaQCAM,
+                                os.path.join(mapfilepath, wgtFileName2))
+deltaPSCAM_interp, _, _ = horizremap.remap_with_weights_wrapper(
+                                deltaPSCAM,
+                                os.path.join(mapfilepath, wgtFileName2))
 
 # Fill any missing values
 deltaTCAM_interp = np.nan_to_num(deltaTCAM_interp, 0)
@@ -357,9 +347,6 @@ deltaQCAM_interp = np.nan_to_num(deltaQCAM_interp, 0)
 deltaPSCAM_interp = np.nan_to_num(deltaPSCAM_interp, 0)
 
 if do_ps_corr:
-    if not esmf_remap:
-        print("do_ps_corr not supported without ESMF right now...")
-        sys.exit(1)  # equivalent to NCL's break
 
     # Perform empirical correction to PS with emphasis over low PS areas
     anom_scaling = 3.0  # vertical average reference Tanom for scaling
@@ -381,20 +368,20 @@ if do_ps_corr:
     Tsign = np.where(Tanom >= 0.0, 1.0, -1.0)
 
     print("Remap to RLL")
-    if esmf_remap:
-        Tsign_deltaGrid, _, _ = horizremap.remap_with_weights_wrapper(Tsign,
-                                                         os.path.join(mapfilepath, wgtFileName1))
+    Tsign_deltaGrid, _, _ = horizremap.remap_with_weights_wrapper(
+                                    Tsign,
+                                    os.path.join(mapfilepath, wgtFileName1))
 
     print("Smooth")
-    smoothiter=50
+    smoothiter = 50
     Tsign_deltaGrid = pyfuncs.smooth_with_smth9(Tsign_deltaGrid, smoothiter, p=0.5, q=0.25)
 
     print(f"Missing values: {np.sum(np.isnan(Tsign_deltaGrid))}")
 
     print("Remap to SE")
-    if esmf_remap:
-        Tsign, _, _ = horizremap.remap_with_weights_wrapper(Tsign_deltaGrid,
-                                                os.path.join(mapfilepath, wgtFileName2))
+    Tsign, _, _ = horizremap.remap_with_weights_wrapper(
+                                    Tsign_deltaGrid,
+                                    os.path.join(mapfilepath, wgtFileName2))
 
     print(f"before {np.sum(np.isnan(Tsign))}")
 
@@ -418,7 +405,7 @@ if do_ps_corr:
     print(f"after {np.sum(np.isnan(Tsign))}")
 
     # Scale the multiplier based on the magnitude of the column anomaly
-    Tsign = Tsign * (np.abs(Tanom.astype(np.float32))/anom_scaling)
+    Tsign = Tsign * (np.abs(Tanom)/anom_scaling)
 
     print(f"Missing values: {np.sum(np.isnan(Tsign))}")
 
@@ -428,7 +415,7 @@ if do_ps_corr:
     print(f"CORR: using dPSL = {rc}*PS + {rc_intercept}")
 
     # Generate PS corr based on PS and constants
-    PScorr = PS[0,:]*rc + rc_intercept
+    PScorr = PS[0,:] * rc + rc_intercept
 
     print(f"Missing values: {np.sum(np.isnan(PScorr))}")
 
@@ -440,18 +427,18 @@ if do_ps_corr:
     PS[0,:] = PS[0,:] + PScorr
 
 # Update arrays
-T[0,:,:] = T[0,:,:] + deltaTCAM_interp.astype(T.dtype)
-Q[0,:,:] = Q[0,:,:] + deltaQCAM_interp.astype(Q.dtype)
+T[0,:,:] = T[0,:,:] + deltaTCAM_interp
+Q[0,:,:] = Q[0,:,:] + deltaQCAM_interp
 if update_pressure:
-    PS[0,:] = PS[0,:] + deltaPSCAM_interp.astype(PS.dtype)
+    PS[0,:] = PS[0,:] + deltaPSCAM_interp
 if update_winds:
-    U[0,:,:] = U[0,:,:] + deltaUCAM_interp.astype(U.dtype)
-    V[0,:,:] = V[0,:,:] + deltaVCAM_interp.astype(V.dtype)
+    U[0,:,:] = U[0,:,:] + deltaUCAM_interp
+    V[0,:,:] = V[0,:,:] + deltaVCAM_interp
 
 if correct_sfc:
     for ii in range(nlev):
-        T[0,ii,:] = T[0,ii,:] - deltaTCAM_interp[nlev-1,:].astype(T.dtype)
-        Q[0,ii,:] = Q[0,ii,:] - deltaQCAM_interp[nlev-1,:].astype(Q.dtype)
+        T[0,ii,:] = T[0,ii,:] - deltaTCAM_interp[nlev-1,:]
+        Q[0,ii,:] = Q[0,ii,:] - deltaQCAM_interp[nlev-1,:]
 
 # Where moisture is negative due to deltas, reset
 print(f"Reset {np.sum(Q <= 0)} Q elements for being negative")
@@ -504,16 +491,17 @@ if output_atm_diag:
         diag_ds['pw'] = pw
 
     if do_ps_corr:
-        if esmf_remap:
-            Tanom_remap, _, _ = horizremap.remap_with_weights_wrapper(Tanom,
-                                                         os.path.join(mapfilepath, wgtFileName1))
-            Tsign_remap, _, _ = horizremap.remap_with_weights_wrapper(Tsign,
-                                                         os.path.join(mapfilepath, wgtFileName1))
-            PScorr_remap, _, _ = horizremap.remap_with_weights_wrapper(PScorr,
-                                                          os.path.join(mapfilepath, wgtFileName1))
-            diag_ds['Tanom'] = (('lat', 'lon'), Tanom_remap)
-            diag_ds['Tsign'] = (('lat', 'lon'), Tsign_remap)
-            diag_ds['PScorr'] = (('lat', 'lon'), PScorr_remap)
+        Tanom_remap, _, _ = horizremap.remap_with_weights_wrapper(
+                                    Tanom,
+                                    os.path.join(mapfilepath, wgtFileName1))
+        Tsign_remap, _, _ = horizremap.remap_with_weights_wrapper(
+                                    Tsign,
+                                    os.path.join(mapfilepath, wgtFileName1))
+        PScorr_remap, _, _ = horizremap.remap_with_weights_wrapper(
+                                    PScorr,
+                                    os.path.join(mapfilepath, wgtFileName1))
+        diag_ds['Tanom'] = (('lat', 'lon'), Tanom_remap)
+        diag_ds['Tsign'] = (('lat', 'lon'), Tsign_remap)
+        diag_ds['PScorr'] = (('lat', 'lon'), PScorr_remap)
 
     diag_ds.to_netcdf(diag_filename)
-
