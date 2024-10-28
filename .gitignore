@@ -1,3 +1,5 @@
+py_atm_to_cam/perturb/*.nc
+
 *.log
 
 # Jupyter things
