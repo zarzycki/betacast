@@ -1,6 +1,7 @@
 import sys
 import xarray as xr
 import numpy as np
+import argparse
 
 def calculate_mean_absolute_error(var1, var2):
     return np.nanmean(np.abs(var1 - var2))
@@ -34,13 +35,15 @@ def calculate_normalized_rmse(var1, var2):
     return rmse / mean_var1
 
 def check_same(file1, file2, variables_to_check=None):
+    """Returns True if files match within acceptable tolerances, False otherwise."""
     ds1 = xr.open_dataset(file1)
     ds2 = xr.open_dataset(file2)
 
     common_vars = set(ds1.variables).intersection(ds2.variables)
-
     if variables_to_check:
         common_vars = common_vars.intersection(variables_to_check)
+
+    all_vars_ok = True
 
     for var_name in common_vars:
         print("-----------------------------------------------------------------------")
@@ -56,6 +59,7 @@ def check_same(file1, file2, variables_to_check=None):
         # Skip comparison if data types are not compatible
         if data1.dtype != data2.dtype:
             print(f"Skipping variable {var_name} due to incompatible data types: {data1.dtype} vs {data2.dtype}")
+            all_vars_ok = False
             continue
 
         if np.issubdtype(data1.dtype, np.number):
@@ -69,8 +73,11 @@ def check_same(file1, file2, variables_to_check=None):
                 nmb = calculate_normalized_mean_bias(data1, data2)
                 nrmse = calculate_normalized_rmse(data1, data2)
 
+                # Check if this variable passes validation
+                var_ok = True
                 if correlation < 0.99:
                     print(f"******************** Correlation: {correlation}")
+                    var_ok = False
                 else:
                     print(f"   Correlation: {correlation}")
 
@@ -80,27 +87,38 @@ def check_same(file1, file2, variables_to_check=None):
 
                 if np.abs(nrmse) > 1.0:
                     print(f"******************** Normalized RMSE (NRMSE): {nrmse}")
+                    var_ok = False
                 else:
                     print(f"   Normalized RMSE (NRMSE): {nrmse}")
 
+                all_vars_ok = all_vars_ok and var_ok
+
             else:
                 print(f"Variable: {var_name} has different shapes: {data1.shape} vs {data2.shape}")
+                all_vars_ok = False
         else:
             print(f"Skipping non-numeric variable {var_name} with dtype {data1.dtype}")
 
     ds1.close()
     ds2.close()
+    return all_vars_ok
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3 or len(sys.argv) > 4:
-        print("Usage: python check_same.py FILE1.nc FILE2.nc [VAR1,VAR2,...]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Compare two NetCDF files')
+    parser.add_argument('file1', help='First NetCDF file')
+    parser.add_argument('file2', help='Second NetCDF file')
+    parser.add_argument('variables', nargs='?', help='Comma-separated list of variables to compare')
 
-    file1 = sys.argv[1]
-    file2 = sys.argv[2]
+    args = parser.parse_args()
 
     variables_to_check = None
-    if len(sys.argv) == 4:
-        variables_to_check = set(sys.argv[3].split(','))
+    if args.variables:
+        variables_to_check = set(args.variables.split(','))
 
-    check_same(file1, file2, variables_to_check)
+    try:
+        match = check_same(args.file1, args.file2, variables_to_check)
+        # Exit with 0 if files match, 1 if they don't
+        sys.exit(0 if match else 1)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        sys.exit(2)  # Exit with 2 for errors
