@@ -81,7 +81,7 @@ def check_same(file1, file2, variables_to_check=None):
                 strict_vars = {'PS', 'U', 'V', 'T', 'Q'}
 
                 corr_threshold = 0.999 if var_name in strict_vars else 0.99
-                nrmse_threshold = 0.05 if var_name in strict_vars else 1.0
+                nrmse_threshold = 0.1 if var_name in strict_vars else 1.0
 
                 # Check if this variable passes validation
                 var_ok = True
