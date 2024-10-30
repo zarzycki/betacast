@@ -116,14 +116,9 @@ tmpfilepath = mapfilepath
 # Copy before to after file
 beforefile = args.BEFOREPERTFILE
 afterfile = args.AFTERPERTFILE
-if not beforefile or not afterfile:
-    raise ValueError("BEFOREPERTFILE and AFTERPERTFILE must be provided")
-if not os.path.exists(beforefile):
-    raise FileNotFoundError(f"Input file not found: {beforefile}")
-shutil.copy2(beforefile, afterfile)
 
-# Open the CAM file for modification
-cam_ds = xr.open_dataset(afterfile, mode='a')
+# Open the after CAM file for modification
+cam_ds = xr.open_dataset(beforefile)
 
 # Extract variables from target mesh
 T = cam_ds.T.values
@@ -427,13 +422,23 @@ if do_ps_corr:
     PS[0,:] = PS[0,:] + PScorr
 
 # Update arrays
+print(f"T before adding deltas - min: {T.min():.2f}, max: {T.max():.2f}, mean: {T.mean():.2f}")
 T[0,:,:] = T[0,:,:] + deltaTCAM_interp
+print(f"T after adding deltas - min: {T.min():.2f}, max: {T.max():.2f}, mean: {T.mean():.2f}")
+print(f"Q before adding deltas - min: {Q.min():.6f}, max: {Q.max():.6f}, mean: {Q.mean():.6f}")
 Q[0,:,:] = Q[0,:,:] + deltaQCAM_interp
+print(f"Q after adding deltas - min: {Q.min():.6f}, max: {Q.max():.6f}, mean: {Q.mean():.6f}")
 if update_pressure:
+    print(f"PS before adding deltas - min: {PS.min():.2f}, max: {PS.max():.2f}, mean: {PS.mean():.2f}")
     PS[0,:] = PS[0,:] + deltaPSCAM_interp
+    print(f"PS after adding deltas - min: {PS.min():.2f}, max: {PS.max():.2f}, mean: {PS.mean():.2f}")
 if update_winds:
+    print(f"U before adding deltas - min: {U.min():.2f}, max: {U.max():.2f}, mean: {U.mean():.2f}")
     U[0,:,:] = U[0,:,:] + deltaUCAM_interp
+    print(f"U after adding deltas - min: {U.min():.2f}, max: {U.max():.2f}, mean: {U.mean():.2f}")
+    print(f"V before adding deltas - min: {V.min():.2f}, max: {V.max():.2f}, mean: {V.mean():.2f}")
     V[0,:,:] = V[0,:,:] + deltaVCAM_interp
+    print(f"V after adding deltas - min: {V.min():.2f}, max: {V.max():.2f}, mean: {V.mean():.2f}")
 
 if correct_sfc:
     for ii in range(nlev):
@@ -451,16 +456,20 @@ for var_name, var in [('Q', Q), ('T', T), ('PS', PS)]:
         print(f"Number of missing values: {np.sum(np.isnan(var))}")
 
 # Write variables back to file
+print("Writing variables back to file...")
 print("Writing T and Q")
-cam_ds['T'] = xr.DataArray(T, dims=cam_ds.T.dims, coords=cam_ds.T.coords)
-cam_ds['Q'] = xr.DataArray(Q, dims=cam_ds.Q.dims, coords=cam_ds.Q.coords)
-if update_winds:
-    print("Writing U and V")
-    cam_ds['U'] = xr.DataArray(U, dims=cam_ds.U.dims, coords=cam_ds.U.coords)
-    cam_ds['V'] = xr.DataArray(V, dims=cam_ds.V.dims, coords=cam_ds.V.coords)
+cam_ds['T'].values[...] = T
+cam_ds['Q'].values[...] = Q
 if update_pressure or do_ps_corr:
     print("Writing PS")
-    cam_ds['PS'] = xr.DataArray(PS, dims=cam_ds.PS.dims, coords=cam_ds.PS.coords)
+    cam_ds['PS'].values[...] = PS
+if update_winds:
+    print("Writing U and V")
+    cam_ds['U'].values[...] = U
+    cam_ds['V'].values[...] = V
+
+cam_ds.to_netcdf(afterfile, mode='w')
+cam_ds.close()
 
 if output_atm_diag:
     diag_filename = os.path.join(tmpfilepath, "deltas_atm.nc")
