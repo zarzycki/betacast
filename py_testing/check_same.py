@@ -41,7 +41,12 @@ def check_same(file1, file2, variables_to_check=None):
 
     common_vars = set(ds1.variables).intersection(ds2.variables)
     if variables_to_check:
+        print(f"\nChecking only these specific variables: {', '.join(sorted(variables_to_check))}")
         common_vars = common_vars.intersection(variables_to_check)
+        if not common_vars:
+            print("Warning: None of the specified variables were found in both files!")
+    else:
+        print("\nChecking all common variables between files")
 
     all_vars_ok = True
 
@@ -73,23 +78,28 @@ def check_same(file1, file2, variables_to_check=None):
                 nmb = calculate_normalized_mean_bias(data1, data2)
                 nrmse = calculate_normalized_rmse(data1, data2)
 
+                strict_vars = {'PS', 'U', 'V', 'T', 'Q'}
+
+                corr_threshold = 0.999 if var_name in strict_vars else 0.99
+                nrmse_threshold = 0.05 if var_name in strict_vars else 1.0
+
                 # Check if this variable passes validation
                 var_ok = True
-                if correlation < 0.99:
-                    print(f"******************** Correlation: {correlation}")
-                    var_ok = False
+                if correlation < corr_threshold:
+                   print(f"******************** Correlation: {correlation} (threshold: {corr_threshold})")
+                   var_ok = False
                 else:
-                    print(f"   Correlation: {correlation}")
+                   print(f"   Correlation: {correlation}")
 
                 print(f"   Mean Absolute Error: {mae}")
                 print(f"   Mean Value: {mean_value}")
                 print(f"   Normalized Mean Bias (NMB): {nmb}")
 
-                if np.abs(nrmse) > 1.0:
-                    print(f"******************** Normalized RMSE (NRMSE): {nrmse}")
-                    var_ok = False
+                if np.abs(nrmse) > nrmse_threshold:
+                   print(f"******************** Normalized RMSE (NRMSE): {nrmse} (threshold: {nrmse_threshold})")
+                   var_ok = False
                 else:
-                    print(f"   Normalized RMSE (NRMSE): {nrmse}")
+                   print(f"   Normalized RMSE (NRMSE): {nrmse}")
 
                 all_vars_ok = all_vars_ok and var_ok
 
