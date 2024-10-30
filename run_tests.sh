@@ -2,17 +2,49 @@
 # Betacast Test Runner
 #
 # This script runs comparison tests between Python and NCL implementations
-# of the BetaCast weather model initialization system. Each test will:
-#   1. Run the Python version
-#   2. Run the NCL version
-#   3. Compare the results
-#   4. Clean up temporary files
+# of the BetaCast weather model initialization system with timing measurements.
 
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
+
+# Timing variables
+declare -A TEST_TIMINGS
+
+# Function to format time in seconds to a readable format
+format_time() {
+    local seconds=$1
+    if [[ -z "$seconds" ]] || [[ ! "$seconds" =~ ^[0-9]*\.?[0-9]+$ ]]; then
+        echo "N/A"
+        return
+    fi
+
+    if (( $(echo "$seconds < 60" | bc -l) )); then
+        printf "%.2f seconds" $seconds
+    else
+        local minutes=$(echo "$seconds/60" | bc -l)
+        printf "%.2f minutes" $minutes
+    fi
+}
+
+# Function to start timing
+start_timing() {
+    local phase=$1
+    TEST_TIMINGS["${phase}_start"]=$(date +%s.%N)
+}
+
+# Function to end timing and get duration
+end_timing() {
+    local phase=$1
+    local end_time=$(date +%s.%N)
+    local start_time=${TEST_TIMINGS["${phase}_start"]}
+    local duration=$(echo "$end_time - $start_time" | bc -l)
+    TEST_TIMINGS["${phase}_duration"]=$duration
+    echo -e "${YELLOW}Time taken for $phase: $(format_time $duration)${NC}"
+}
 
 # Help function
 show_help() {
@@ -40,11 +72,13 @@ TOTAL=0
 declare -a PASSED_TESTS=()
 declare -a FAILED_TESTS=()
 declare -A TEST_FAILURE_REASONS=()
+declare -A TEST_TOTAL_TIMES=()
 
 # Function to run a test
 run_test() {
     local test_name=$1
     local test_file=$2
+    local test_start_time=$(date +%s.%N)
 
     echo -e "\n${BLUE}=====================================${NC}"
     echo -e "${BLUE}Running test: ${test_name}${NC}"
@@ -55,16 +89,21 @@ run_test() {
 
     # Run the Python version
     echo -e "${BLUE}Running Python version...${NC}"
+    start_timing "python_${test_name}"
     if ! run_python_test; then
+        end_timing "python_${test_name}"
         TEST_FAILURE_REASONS[$test_name]="Python test failed"
         return 1
     fi
+    end_timing "python_${test_name}"
     echo -e "${GREEN}Python test completed${NC}"
 
     # Run the NCL version
     echo -e "\n${BLUE}Running NCL version...${NC}"
+    start_timing "ncl_${test_name}"
     run_ncl_test
     ncl_status=$?
+    end_timing "ncl_${test_name}"
     if [ "$ncl_status" -ne 9 ]; then
         TEST_FAILURE_REASONS[$test_name]="NCL test failed (exit code: $ncl_status)"
         return 1
@@ -73,10 +112,13 @@ run_test() {
 
     # Run validation
     echo -e "\n${BLUE}Validating results...${NC}"
+    start_timing "validation_${test_name}"
     if ! run_validation; then
+        end_timing "validation_${test_name}"
         TEST_FAILURE_REASONS[$test_name]="Validation failed"
         return 1
     fi
+    end_timing "validation_${test_name}"
     echo -e "${GREEN}Validation passed${NC}"
 
     # Run cleanup if defined
@@ -85,6 +127,11 @@ run_test() {
         cleanup
     fi
 
+    # Calculate total test time
+    local test_end_time=$(date +%s.%N)
+    local total_time=$(echo "$test_end_time - $test_start_time" | bc -l)
+    TEST_TOTAL_TIMES[$test_name]=$total_time
+
     return 0
 }
 
@@ -92,6 +139,7 @@ run_test() {
 main() {
     # Default test directory
     TEST_DIR="tests"
+    local script_start_time=$(date +%s.%N)
 
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
@@ -154,6 +202,10 @@ main() {
         done
     fi
 
+    # Calculate total script runtime
+    local script_end_time=$(date +%s.%N)
+    local total_runtime=$(echo "$script_end_time - $script_start_time" | bc -l)
+
     # Print summary
     echo -e "\n${BLUE}=====================================${NC}"
     echo -e "${BLUE}Test Summary${NC}"
@@ -161,20 +213,24 @@ main() {
     echo -e "Total tests: $TOTAL"
     echo -e "Passed: ${GREEN}$PASSED${NC}"
     echo -e "Failed: ${RED}$FAILED${NC}"
+    echo -e "Total runtime: ${YELLOW}$(format_time $total_runtime)${NC}"
 
-    # Print passed tests
+    # Print passed tests with timing
     if [ ${#PASSED_TESTS[@]} -gt 0 ]; then
         echo -e "\n${GREEN}Passed Tests:${NC}"
         for test in "${PASSED_TESTS[@]}"; do
-            echo -e "${GREEN}✓ $test${NC}"
+            echo -e "${GREEN}✓ $test${NC} (Total time: $(format_time ${TEST_TOTAL_TIMES[$test]}))"
+            echo -e "  Python: $(format_time ${TEST_TIMINGS["python_${test}_duration"]})"
+            echo -e "  NCL: $(format_time ${TEST_TIMINGS["ncl_${test}_duration"]})"
+            echo -e "  Validation: $(format_time ${TEST_TIMINGS["validation_${test}_duration"]})"
         done
     fi
 
-    # Print failed tests with reasons
+    # Print failed tests with reasons and timing
     if [ ${#FAILED_TESTS[@]} -gt 0 ]; then
         echo -e "\n${RED}Failed Tests:${NC}"
         for test in "${FAILED_TESTS[@]}"; do
-            echo -e "${RED}✗ $test${NC}"
+            echo -e "${RED}✗ $test${NC} (Total time: $(format_time ${TEST_TOTAL_TIMES[$test]}))"
             echo -e "  Reason: ${TEST_FAILURE_REASONS[$test]}"
         done
     fi
