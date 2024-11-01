@@ -2,6 +2,61 @@ import numpy as np
 from math import sin, cos, sqrt, pi, atan, exp, radians, degrees
 import re
 
+
+def calc_mass_weighted_integral(var3d, pdel, area, gravit=9.81):
+    """
+    Calculate mass-weighted global integral of a 3D field
+    Parameters:
+    -----------
+    var3d : numpy.ndarray
+        3D array of variable (time, lev, ncol) or (lev, ncol)
+    pdel : numpy.ndarray
+        Pressure thickness (delta-p) array matching var3d dimensions
+    area : numpy.ndarray
+        Grid cell areas (ncol)
+    gravit : float, optional
+        Gravitational constant, default 9.81 m/s^2
+    Returns:
+    --------
+    float
+        Mass-weighted global integral
+    """
+    # Calculate mass-weighted column integral
+    column_integral = np.sum(var3d * pdel, axis=0) / gravit
+    # Calculate global sum (not mean)
+    global_integral = np.sum(column_integral * area)
+    return global_integral
+
+def calc_inverse_mass_weighted_field(target_integral, pdel, area, gravit=9.81):
+    """
+    Calculate a uniform 3D field that would produce the target mass-weighted global integral
+    Parameters:
+    -----------
+    target_integral : float
+        Target value for the mass-weighted global integral
+    pdel : numpy.ndarray
+        Pressure thickness (delta-p) array (time, lev, ncol) or (lev, ncol)
+    area : numpy.ndarray
+        Grid cell areas (ncol)
+    gravit : float, optional
+        Gravitational constant, default 9.81 m/s^2
+    Returns:
+    --------
+    numpy.ndarray
+        3D field that when integrated gives target_integral
+    """
+    # Get total mass weighting (without area normalization)
+    mass_weight = np.sum((pdel/gravit) * area[None,:])
+    # Calculate uniform value needed
+    uniform_value = target_integral / mass_weight
+    # Create ND field with this uniform value
+    if len(pdel.shape) == 3:
+        result = np.full_like(pdel[0], uniform_value)
+    else:
+        result = np.full_like(pdel, uniform_value)
+    return result
+
+
 def convert_lon(tmplon, jcode):
     """
     Convert longitude based on jcode.
@@ -181,8 +236,9 @@ def convert_lon(lon, iu):
 
 
 
-def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoords, psin, uin, vin, Tin, qin, invert_vortex, modify_q, modify_q_mult):
-    print(f"cen_lon: {cen_lon}, cen_lat: {cen_lat}, dp: {dp}, rp: {rp}, zp: {zp}, exppr: {exppr}, gamma_: {gamma_}, lon: {lon}, lat: {lat}, p: {p}, z: {z}, zcoords: {zcoords}, psin: {psin}, uin: {uin}, vin: {vin}, Tin: {Tin}, qin: {qin}, invert_vortex: {invert_vortex}, modify_q: {modify_q}, modify_q_mult: {modify_q_mult}")
+def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoords, psin, uin, vin, Tin, qin, invert_vortex, modify_q, modify_q_mult, debug=False):
+    if debug:
+        print(f"cen_lon: {cen_lon}, cen_lat: {cen_lat}, dp: {dp}, rp: {rp}, zp: {zp}, exppr: {exppr}, gamma_: {gamma_}, lon: {lon}, lat: {lat}, p: {p}, z: {z}, zcoords: {zcoords}, psin: {psin}, uin: {uin}, vin: {vin}, Tin: {Tin}, qin: {qin}, invert_vortex: {invert_vortex}, modify_q: {modify_q}, modify_q_mult: {modify_q_mult}")
 
     if rp <= 0.0:
         rp = 273000.  # Default value
@@ -224,7 +280,8 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
     Ttrop = T0 - gamma_ * ztrop  # Tropopause temp
     ptrop = p00 * (Ttrop / T0) ** (1. / exponent)  # Tropopause pressure
 
-    print(f"cen_lon: {cen_lon}, cen_lat: {cen_lat}, dp: {dp}, rp: {rp}, zp: {zp}, exppr: {exppr}, gamma_: {gamma_}, lon: {lon}, lat: {lat}, p: {p}, z: {z}, zcoords: {zcoords}, psin: {psin}, uin: {uin}, vin: {vin}, Tin: {Tin}, qin: {qin}, invert_vortex: {invert_vortex}, modify_q: {modify_q}, modify_q_mult: {modify_q_mult}")
+    if debug:
+        print(f"cen_lon: {cen_lon}, cen_lat: {cen_lat}, dp: {dp}, rp: {rp}, zp: {zp}, exppr: {exppr}, gamma_: {gamma_}, lon: {lon}, lat: {lat}, p: {p}, z: {z}, zcoords: {zcoords}, psin: {psin}, uin: {uin}, vin: {vin}, Tin: {Tin}, qin: {qin}, invert_vortex: {invert_vortex}, modify_q: {modify_q}, modify_q_mult: {modify_q_mult}")
 
     # Coriolis parameter
     f = 2. * omega * sin(radians(cen_lat))
@@ -232,13 +289,14 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
     # Great circle distance calculation (assuming `gc_latlon` is provided)
     gr, _ = gc_latlon(cen_lat, cen_lon, lat, lon, 2, 3)
 
-    print(f"gr: {gr}")
-    print(f"dp: {dp}")
-    print(f"rp: {rp}")
-    print(f"exppr: {exppr}")
-    print(f"p00: {p00}")
-    print(f"T0: {T0}")
-    print(f"exponent: {exponent}")
+    if debug:
+        print(f"gr: {gr}")
+        print(f"dp: {dp}")
+        print(f"rp: {rp}")
+        print(f"exppr: {exppr}")
+        print(f"p00: {p00}")
+        print(f"T0: {T0}")
+        print(f"exponent: {exponent}")
 
     if zcoords == 1:
         height = z
@@ -263,7 +321,8 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
         u = uin
         v = vin
     else:
-        print(f"height: {height}, zp: {zp}, exppz: {exppz}, dp: {dp}, rp: {rp}, gr: {gr}")
+        if debug:
+            print(f"height: {height}, zp: {zp}, exppz: {exppz}, dp: {dp}, rp: {rp}, gr: {gr}")
         vt = (-f * gr / 2 + sqrt((f * gr / 2) ** 2 - (exppr * (gr / rp) ** exppr) *
                                  (Rd * (T0 - gamma_ * height)) / (exppz * height * Rd * (T0 - gamma_ * height) / (g * zp ** exppz) + 1. - p00 / dp * exp((gr / rp) ** exppr) * exp((height / zp) ** exppz))))
         v = vin + vfac * vt
@@ -310,7 +369,7 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
     return output
 
 
-def get_rp_from_dp_rmw(cen_lat, dp, target_rmw):
+def get_rp_from_dp_rmw(cen_lat, dp, target_rmw, debug=False):
     # Constants
     a = 6371220.  # Earth's Radius (m)
     Rd = 287.0  # Ideal gas const dry air (J kg^-1 K^1)
@@ -348,7 +407,8 @@ def get_rp_from_dp_rmw(cen_lat, dp, target_rmw):
         rmw = rr[np.argmax(vt)]
 
         err_here = rmw - target_rmw
-        print(f"iter: {jj}  rpi: {rpi}  rmw: {rmw}  target: {target_rmw}  err: {abs(err_here)}")
+        if debug:
+            print(f"iter: {jj}  rpi: {rpi}  rmw: {rmw}  target: {target_rmw}  err: {abs(err_here)}")
 
         if abs(err_here) < err_stop:
             break
