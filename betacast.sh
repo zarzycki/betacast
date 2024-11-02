@@ -97,6 +97,7 @@ if [ -z "${anl2mdlWeights+x}" ]; then anl2mdlWeights=""; fi
 if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=1; fi
 if [ -z "${add_noise+x}" ]; then add_noise=false; fi
 if [ -z "${runmodel+x}" ]; then runmodel=true; fi
+if [ -z "${DO_PYTHON+x}" ]; then DO_PYTHON=true; fi
 ### Some defaults infrequently set
 if [ -z "${debug+x}" ]; then debug=false; fi
 if [ -z "${islive+x}" ]; then islive=false; fi
@@ -113,6 +114,7 @@ if [ -z "${FILTERWALLCLOCK+x}" ]; then FILTERWALLCLOCK="00:29:00"; fi
 if [ -z "${FILTERQUEUE+x}" ]; then FILTERQUEUE="batch"; fi
 if [ -z "${RUNWALLCLOCK+x}" ]; then RUNWALLCLOCK="12:00:00"; fi
 if [ -z "${RUNQUEUE+x}" ]; then RUNQUEUE="regular"; fi
+if [ -z "${RUNPRIORITY+x}" ]; then RUNPRIORITY=""; fi
 if [ -z "${use_nsplit+x}" ]; then use_nsplit="true"; fi
 if [ -z "${cime_coupler+x}" ]; then cime_coupler="mct"; fi
 if [ -z "${nclPlotWeights+x}" ]; then nclPlotWeights="NULL"; fi
@@ -122,7 +124,6 @@ if [ -z "${dotracking+x}" ]; then dotracking=false; fi
 if [ -z "${m2m_gridfile+x}" ]; then m2m_gridfile=""; fi
 if [ -z "${m2m_remap_file+x}" ]; then m2m_remap_file=""; fi
 
-DO_PYTHON=false # or false
 echo "DO_PYTHON set to $DO_PYTHON"
 if [ "$DO_PYTHON" = true ]; then
   atm_to_cam_path=${SCRIPTPATH}/py_atm_to_cam
@@ -506,9 +507,9 @@ if [ $debug = false ] ; then
 
     cd $sst_to_cam_path ; echo "cd'ing to interpolation directory: $sst_to_cam_path"
 
-    sst_domain_file=${sst_to_cam_path}/domains/domain.ocn.${docnres}.nc
-    sst_scrip_file=${sst_to_cam_path}/domains/scrip.ocn.${docnres}.nc
-    sst_ESMF_file=${sst_to_cam_path}/domains/ESMF.ocn.${docnres}.nc
+    sst_domain_file=${SCRIPTPATH}/grids/domains/domain.ocn.${docnres}.nc
+    sst_scrip_file=${SCRIPTPATH}/grids/domains/scrip.ocn.${docnres}.nc
+    sst_ESMF_file=${SCRIPTPATH}/grids/domains/ESMF.ocn.${docnres}.nc
 
     # check if domain or SCRIP exist, if one is missing create both domain and scrip
     if [ ! -f "$sst_domain_file" ] || [ ! -f "$sst_scrip_file" ]; then
@@ -1281,6 +1282,9 @@ xmlchange_verbose "ATM_NCPL" "$ATM_NCPL"
 # Set queue settings
 xmlchange_verbose "JOB_WALLCLOCK_TIME" "$RUNWALLCLOCK"
 xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
+if [ -n "${RUNPRIORITY+x}" ] && [ -n "$RUNPRIORITY" ]; then
+    xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
+fi
 
 # Delete existing ncdata and inject new one into user_nl_atm file
 sed -i '/.*ncdata/d' user_nl_${atmName}
