@@ -542,7 +542,8 @@ if [ $debug = false ] ; then
           --SST_write_file "${sstFileIC}" \
           --smooth_ice \
           --smooth_iter 3 \
-          --verbose )
+          --verbose
+      )
     else
       set +e
       (set -x; ncl sst_interp.ncl \
@@ -553,7 +554,7 @@ if [ $debug = false ] ; then
           'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
           'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
           'SST_write_file = "'${sstFileIC}'"' \
-          ) ; exit_status=$?
+      ) ; exit_status=$?
       check_ncl_exit "sst_interp.ncl" $exit_status
       set -e # Turn error checking back on
     fi
@@ -593,7 +594,8 @@ if [ $debug = false ] ; then
           --DSTGRIDNAME "${modelgridshortname}" \
           --DSTGRIDFILE "${modelgridfile}" \
           --ANLGRIDPATH "../grids/anl_scrip/" \
-          --WGTFILEDIR "${mapping_files_path}" )
+          --WGTFILEDIR "${mapping_files_path}"
+        )
       else
         set +e
         (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
@@ -602,7 +604,7 @@ if [ $debug = false ] ; then
           'DSTGRIDNAME="'${modelgridshortname}'"' \
           'DSTGRIDFILE="'${modelgridfile}'"' \
           'WGTFILEDIR="'${mapping_files_path}'"' \
-           ) ; exit_status=$?
+        ) ; exit_status=$?
         check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
         set -e
       fi
@@ -637,7 +639,7 @@ if [ $debug = false ] ; then
           'DSTGRIDFILE="'${m2m_gridfile}'"' \
           'WGTFILEDIR="'${mapping_files_path}'"' \
           FLIP_MODEL_AND_ANALYSIS=True \
-           ) ; exit_status=$?
+        ) ; exit_status=$?
         check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
         set -e
       else
@@ -656,14 +658,15 @@ if [ $debug = false ] ; then
         (set -x; python find-time-file.py \
           --DIR "${m2m_parent_source}" \
           --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
-          --UQSTR "${uniqtime}" )
+          --UQSTR "${uniqtime}"
+        )
       else
         set +e
         (set -x; ncl find-time-file.ncl \
           'DIR="'${m2m_parent_source}'"' \
           YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
           'UQSTR="'${uniqtime}'"' \
-           ) ; exit_status=$?
+        ) ; exit_status=$?
         check_ncl_exit "find-time-file.ncl" $exit_status
         set -e
       fi
@@ -714,7 +717,7 @@ if [ $debug = false ] ; then
         'mod_in_topo="'${m2m_topo_in-}'"' \
         'adjust_config="'${adjust_flags-}'"' \
         'se_inic = "'${sePreFilterIC}'"'
-        ) ; exit_status=$?
+    ) ; exit_status=$?
     check_ncl_exit "atm_to_cam.ncl" $exit_status
     set -e
   fi
@@ -735,14 +738,16 @@ if [ $debug = false ] ; then
       (set -x; python ../py_remapping/gen_reglatlon_SCRIP.py \
         --dstGridName "hwrf_storm_scrip.nc" \
         --dstDir "./" \
-        --srcfilename "${regional_src}" )
+        --srcfilename "${regional_src}"
+      )
     else
       set +e # Turn error checking off for NCL
       echo "Generating a temporary SCRIP file for HWRF"
       (set -x; ncl ../remapping/gen_reglatlon_SCRIP.ncl \
         'DSTGRIDNAME="hwrf_storm_scrip.nc"' \
         'DSTDIR="./"' \
-        'SRCFILENAME="'${regional_src}'"' ) ; exit_status=$?
+        'SRCFILENAME="'${regional_src}'"'
+      ) ; exit_status=$?
       check_ncl_exit "gen_reglatlon_SCRIP.ncl" $exit_status
     fi
 
@@ -752,7 +757,8 @@ if [ $debug = false ] ; then
         --DSTGRIDNAME "modelgrid" \
         --DSTGRIDFILE "${model_scrip}" \
         --ANLGRIDPATH "./" \
-        --WGTFILEDIR "./" )
+        --WGTFILEDIR "./"
+      )
     else
       echo "Generating a temporary map file for HWRF"
       (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
@@ -760,7 +766,8 @@ if [ $debug = false ] ; then
         'DSTGRIDNAME="modelgrid"' \
         'ANLGRIDPATH="./"' \
         'WGTFILEDIR="./"' \
-        'DSTGRIDFILE="'${model_scrip}'"' ) ; exit_status=$?
+        'DSTGRIDFILE="'${model_scrip}'"'
+      ) ; exit_status=$?
       check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
     fi
 
@@ -774,7 +781,8 @@ if [ $debug = false ] ; then
         --dycore "${DYCORE}" \
         --add_cloud_vars \
         --adjust_config "" \
-        --se_inic "${sePreFilterIC}_reg.nc" )
+        --se_inic "${sePreFilterIC}_reg.nc"
+      )
     else
       echo "Generating regional Frankengrid for HWRF"
       (set -x; ncl -n atm_to_cam.ncl 'datasource="HWRF"' \
@@ -784,7 +792,8 @@ if [ $debug = false ] ; then
         'data_filename = "'${regional_src}'"' \
         'wgt_filename="'${TMPWGTFILE}'"' \
         'adjust_config=""' \
-        'se_inic = "'${sePreFilterIC}_reg.nc'"' ) ; exit_status=$?
+        'se_inic = "'${sePreFilterIC}_reg.nc'"'
+      ) ; exit_status=$?
       check_ncl_exit "atm_to_cam.ncl" $exit_status
       set -e # Turn error checking back on
     fi
@@ -792,7 +801,6 @@ if [ $debug = false ] ; then
     echo "Overlay regional file on top of basefile"
     cp -v ${sePreFilterIC} ${sePreFilterIC}_base.nc
     (set -x; python overlay.py "${sePreFilterIC}" "${sePreFilterIC}_reg.nc" --maxLev 80. )
-
 
     echo "Cleaning up temporary ESMF files"
     rm -v $TMPWGTFILE
@@ -811,11 +819,27 @@ if ${add_vortex} ; then
   set +e
   echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
 
-  (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
-  check_ncl_exit "find-tc-fill-params.ncl" $exit_status
+  echo "... finding fill parameters"
+  if [ "$DO_PYTHON" = true ]; then
+    (set -x; python find-tc-fill-params.py \
+        --inic_file "${sePreFilterIC}" \
+        --vortex_namelist ${vortex_namelist}
+    )
+  else
+    (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
+    check_ncl_exit "find-tc-fill-params.ncl" $exit_status
+  fi
 
-  (set -x; ncl -n seed-tc-in-ncdata.ncl   'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
-  check_ncl_exit "seed-tc-in-ncdata.ncl" $exit_status
+  echo "... seeding or unseeding TC"
+  if [ "$DO_PYTHON" = true ]; then
+    (set -x; python py-seed-tc-in-ncdata.py \
+        --inic_file "${sePreFilterIC}" \
+        --vortex_namelist ${vortex_namelist}
+    )
+  else
+    (set -x; ncl -n seed-tc-in-ncdata.ncl 'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
+    check_ncl_exit "seed-tc-in-ncdata.ncl" $exit_status
+  fi
 
   set -e
 fi
@@ -846,7 +870,8 @@ if ${add_perturbs} ; then
   sstFileIC_WPERT=${sstFileIC}_PERT.nc
   (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
      'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' \
-     'pthi="'${perturb_namelist}'"' ) ; exit_status=$?
+     'pthi="'${perturb_namelist}'"'
+  ) ; exit_status=$?
   check_ncl_exit "add_perturbations_to_sst.ncl" $exit_status
   echo "SST perturbations added successfully"
 
@@ -856,7 +881,8 @@ if ${add_perturbs} ; then
      'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
      'gridfile = "'${modelgridfile}'"' \
      'MAPFILEPATH = "'${mapping_files_path}'"' \
-     'pthi="'${perturb_namelist}'"' ) ; exit_status=$?
+     'pthi="'${perturb_namelist}'"'
+  ) ; exit_status=$?
   check_ncl_exit "add_perturbations_to_cam.ncl" $exit_status
   echo "ATM NCL completed successfully"
 
