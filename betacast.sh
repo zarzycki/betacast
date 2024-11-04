@@ -172,13 +172,13 @@ echo "Actual sstFileIC: ${sstFileIC}"
 ### ERROR CHECKING BLOCK! #########################################################
 
 # Exit if add_perturbs is turned on but no namelist is passed in with perturbation config settings
-if ${add_perturbs} && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
+if [ "$add_perturbs" = true ] && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
   echo "add_perturbs is true but can't find namelist: "$perturb_namelist
   exit 1
 fi
 
 # Exit if add_perturbs is turned on but no namelist is passed in with perturbation config settings
-if ${add_vortex} && { [ -z "$vortex_namelist" ] || [ ! -f "$vortex_namelist" ]; } ; then
+if [ "$add_vortex" = true ] && { [ -z "$vortex_namelist" ] || [ ! -f "$vortex_namelist" ]; } ; then
   echo "add_vortex is true but can't find namelist: "$vortex_namelist
   exit 1
 fi
@@ -236,7 +236,7 @@ fi
 python -c 'import sys; exit(sys.version_info.major != 3)' && echo "CHECK_PYTHON: Python 3 found" || { echo "CHECK_PYTHON: Please install Python 3+"; exit 25; }
 
 # Check Python package dependencies
-if ${do_frankengrid} ; then
+if [ "$do_frankengrid" = true ] ; then
   check_python_dependency numpy
   check_python_dependency netCDF4
   check_python_dependency sklearn
@@ -403,13 +403,13 @@ yestyearstr=$(date --date="yesterday" -u +%Y)
 
 echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds) for ATM init. data"
 echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST init. data"
-if $doFilter ; then
+if [ "$doFilter" = true ] ; then
   echo "Filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $se_cyclestr Z ($se_cyclestrsec seconds)"
 else
   echo "No filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $cyclestr Z ($cyclestrsec seconds)"
 fi
 
-if $runmodel ; then
+if [ "$runmodel" = true ] ; then
 
 ############################### GET DYCORE INFO ###############################
 
@@ -722,7 +722,7 @@ if [ $debug = false ] ; then
     set -e
   fi
 
-  if ${do_frankengrid} ; then
+  if [ "$do_frankengrid" = true ] ; then
 
     # Fill in "templated" information from regional_src
     regional_src=${regional_src/YYYY/$yearstr}
@@ -814,7 +814,7 @@ fi #End debug if statement
 ############################### #### ###############################
 ##### ADD OR REMOVE VORTEX
 
-if ${add_vortex} ; then
+if [ "$add_vortex" = true ] ; then
   cd $atm_to_cam_path/tcseed
   set +e
   echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
@@ -847,7 +847,7 @@ fi
 ############################### #### ###############################
 ##### ADD WHITE NOISE PERTURBATIONS
 
-if ${add_noise} ; then
+if [ "$add_noise" = true ] ; then
   set +e
   echo "Adding white noise to initial condition"
   cd $atm_to_cam_path
@@ -859,7 +859,7 @@ fi
 ############################### #### ###############################
 ##### ADD PERTURBATIONS
 
-if ${add_perturbs} ; then
+if [ "$add_perturbs" = true ] ; then
   echo "Adding perturbations"
 
   cd $atm_to_cam_path/perturb
@@ -1139,7 +1139,7 @@ SEINIC=${sePreFilterIC}
 
 ############################### (IF) FILTER SETUP ###############################
 
-if $doFilter ; then
+if [ "$doFilter" = true ] ; then
   # If filtering, need to change these options
 
   xmlchange_verbose "STOP_OPTION" "$nhours"
@@ -1225,7 +1225,7 @@ if $doFilter ; then
   rm -v $path_to_nc_files/filtered/*.${atmName}.h0.*.nc
 
   ### Output filter files only, can be used for ensemble or other initialization after the fact
-  if ${filterOnly} ; then
+  if [ "$filterOnly" = true ] ; then
     FILTONLYDIR=${path_to_nc_files}/FILT_INIC/${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}
     mkdir -p ${FILTONLYDIR}
     cp ${sePostFilterIC} ${FILTONLYDIR}/${casename}_FILTERED_${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
@@ -1260,7 +1260,7 @@ sed -i '/.*collect_column_output/d' user_nl_${atmName}
 sed -i '/.*avgflag_pertape/d' user_nl_${atmName}  # Note, we delete this and user either specifies as :A, :I for each var or as a sep var
 echo "empty_htapes=.TRUE." >> user_nl_${atmName}
 sed -i '/.*inithist/d' user_nl_${atmName}
-if ${save_nudging_files} ; then
+if [ "$save_nudging_files" = true ] ; then
   echo "inithist='6-HOURLY'" >> user_nl_${atmName}
 else
   echo "inithist='NONE'" >> user_nl_${atmName}
@@ -1408,7 +1408,7 @@ else
 fi
 mv -v $tmparchivecdir ${ARCHIVEDIR}/${ARCHIVESUBDIR}
 
-if $dotracking ; then
+if [ "$dotracking" = true ] ; then
   echo "BETACAST_USER: requesting cyclones to be tracked."
 
   # Go to cyclone tracking folder...
@@ -1452,7 +1452,7 @@ if $dotracking ; then
   popd > /dev/null
 fi
 
-if $sendplots; then
+if [ "$sendplots" = true ]; then
   echo "BETACAST_USER: Sending plots to remote server!"
   upload_ncl_script="${SCRIPTPATH}/upload_ncl.sh"
   temp_upload_script="${upload_ncl_script}.${uniqtime}.ncl"
@@ -1474,13 +1474,13 @@ fi
 
 # Compress model output streams
 # Let's do this last so all the above scripts can operate on uncompressed files
-if [ $compress_history_nc = true ]; then
+if [ "$compress_history_nc" = true ]; then
   echo "BETACAST_USER: Requesting history be compressed"
   compress_history "${ARCHIVEDIR}/${ARCHIVESUBDIR}"
 fi
 
 # Tar archive files so they are contained in a single directory
-if $tararchivedir ; then
+if [ "$tararchivedir" = true ] ; then
   echo "BETACAST_USER: Requesting archive dir be tarred"
   tar -cvf ${ARCHIVEDIR}/${ARCHIVESUBDIR}.tar -C ${ARCHIVEDIR} ${ARCHIVESUBDIR}
   rm -rfv ${ARCHIVEDIR}/${ARCHIVESUBDIR} || true
@@ -1491,7 +1491,7 @@ script_end=$(date +%s)
 print_elapsed_time "$script_start" "$script_end"
 
 ### If not live and the run has made it here successively, delete top line of datesfile
-if [ $islive = false ] ; then
+if [ "$islive" = false ] ; then
   cd ${SCRIPTPATH}
   #Remove top line from dates file
   remove_top_line_from_dates ${datesfile}
