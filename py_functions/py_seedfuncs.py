@@ -1,7 +1,7 @@
 import numpy as np
 from math import sin, cos, sqrt, pi, atan, exp, radians, degrees
 import re
-
+import os
 
 def calc_mass_weighted_integral(var3d, pdel, area, gravit=9.81):
     """
@@ -496,7 +496,7 @@ def keyword_values(namelist_file, key, return_type):
                     elif return_type == "bool":
                         return v.lower() in ['true', 't', '1']
                     elif return_type == "str":
-                        return v
+                        return os.path.expandvars(v)
 
     # If key is not found
     raise KeyError(f"Key '{key}' not found in the namelist file.")
