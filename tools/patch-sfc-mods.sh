@@ -45,25 +45,30 @@ fi
 
 # Get this model's component type. This is "lnd", "rof", etc.
 component_type=${component_types[$clean_component_name]}
+echo "component_type: $component_type"
 
 # Get the pattern from above
 this_pattern=${component_patterns[$clean_component_name]}
+echo "this_pattern: $this_pattern"
 
 # Find the relevant file in the source tree using the pattern
+echo "find ${PATHTOCESM} -type f -path "*/components/$this_pattern""
 comp_restart_file=$(find ${PATHTOCESM} -type f -path "*/components/$this_pattern")
+echo "comp_restart_file: $comp_restart_file"
 
 # Check if the find command returned multiple results
 count=$(echo "$comp_restart_file" | wc -l)
+echo "count: $count"
 
 # Error check if multiple files returned (need stricter pattern) or no files returned...
 if [ "$count" -gt 1 ]; then
-    echo "Multiple matches found. Exiting."
-    echo "..." ; echo $comp_restart_file ; echo "..."
-    echo "Need a stricter pattern..."
-    exit 1
+  echo "Multiple matches found. Exiting."
+  echo "..." ; echo "comp_restart_file: $comp_restart_file" ; echo "..."
+  echo "Need a stricter pattern..."
+  exit 1
 elif [ -z "$comp_restart_file" ]; then
-    echo "No matches found. Exiting."
-    exit 1
+  echo "No matches found. Exiting."
+  exit 1
 fi
 
 echo "Found file: $comp_restart_file"
