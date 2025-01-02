@@ -546,6 +546,8 @@ def radialAvg2D_unstruc(data, lat, lon, deltaMax, psminlat, psminlon, outerRad, 
             rad_thevar_cum[bin_idx] += data[i]
 
     print(f"Minimum number of hits per gridbox: {np.min(rad_thevar_hit)}")
+    if np.min(rad_thevar_hit) == 0:
+        print("WARNING: Some radial bins have zero hits - radial average will be unreliable")
     print(f"Maximum number of hits per gridbox: {np.max(rad_thevar_hit)}")
 
     # Calculate the radial average
