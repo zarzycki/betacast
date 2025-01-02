@@ -77,7 +77,7 @@ def replace_or_add_variable(file_path, variable, value):
         lines = file.readlines()
 
     # Eliminate any leading or trailing spaces in the delete command
-    re_pattern = re.compile(rf"^\s*{variable}\s*=")
+    re_pattern = re.compile(rf"^\s*{variable}\s*=\s*")
     lines = [line for line in lines if not re_pattern.match(line)]
 
     # Add the new variable at the end of the file
