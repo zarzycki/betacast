@@ -165,6 +165,9 @@ function exit_files_no_exist() {
   done
   # If we've got here, none of the files exist
   echo "CHECK_EXIST: None of the specified files exist, exiting..."
+  for checkthisfile in "$@"; do
+    echo "  - $checkthisfile"
+  done
   exit 1
 }
 
