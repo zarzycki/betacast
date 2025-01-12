@@ -2,6 +2,7 @@
 import os
 import sys
 import logging
+from datetime import datetime
 
 # Third party modules
 import numpy as np
@@ -305,14 +306,77 @@ def main():
 
             # If not MPAS as CAM, we can just end here.
             logging.info(f"Writing MPAS file: {se_inic}...")
-            mpas_file['u'].values[0, :, :] = data_horiz['uNorm'].T
-            mpas_file['qv'].values[0, :, :] = data_horiz['q'].T
-            mpas_file['rho'].values[0, :, :] = data_horiz['rho'].T
-            mpas_file['theta'].values[0, :, :] = data_horiz['theta'].T
-            mpas_file['w'].values[0, :, :] = 0.06 * data_horiz['w'].T
-            mpas_file.to_netcdf(se_inic, format='NETCDF4')
-            mpas_file.close()
-            logging.info(f"Done generating MPAS initial condition file: {se_inic}, exiting...")
+            write_mpas_xarray=False
+            if write_mpas_xarray:  # Use the open xarray dataset to overwrite
+                mpas_file['u'].values[0, :, :] = data_horiz['uNorm'].T
+                mpas_file['qv'].values[0, :, :] = data_horiz['q'].T
+                mpas_file['rho'].values[0, :, :] = data_horiz['rho'].T
+                mpas_file['theta'].values[0, :, :] = data_horiz['theta'].T
+                mpas_file['w'].values[0, :, :] = 0.06 * data_horiz['w'].T
+                logging.info(f"Beginning actual file write")
+                mpas_file.to_netcdf(se_inic, format='NETCDF4')
+                mpas_file.close()
+            else:   # Create a new NetCDF file with the same structure
+                # Get dimensions from the xarray dataset
+                dims = mpas_file.sizes
+
+                # Create new NetCDF file
+                with nc.Dataset(se_inic, mode='w', format='NETCDF4') as new_file:
+
+                    # Create dimensions
+                    for dim_name, dim_size in dims.items():
+                        logging.debug(f"... creating dim {dim_name}")
+                        new_file.createDimension(dim_name, dim_size)
+
+                    # Create variables with same names, dimensions, and attributes
+                    total_mpas_vars = len(mpas_file.variables)
+                    logging.debug(f"{total_mpas_vars} variables to be copied:")
+                    for var_name, var in mpas_file.variables.items():
+                        logging.debug(f"  {var_name}: shape={var.shape}, dtype={var.dtype}")
+                    for idx, (var_name, var) in enumerate(mpas_file.variables.items(), 1):
+                        logging.info(f"... creating var {var_name} ({idx}/{total_mpas_vars})")
+
+                        # Check dtype before creating variable
+                        if str(var.dtype).startswith('datetime64'):
+                            logging.debug(f"... changing {var_name} type to f8")
+                            var_type = 'f8'  # double precision float for datetime
+                        else:
+                            var_type = var.dtype
+
+                        # Create new_var on nc file
+                        new_var = new_file.createVariable(var_name, var_type, var.dims)
+
+                        # Copy attributes for var
+                        for attr_name in var.attrs:
+                            logging.debug(f"... creating attr {attr_name}")
+                            setattr(new_var, attr_name, var.attrs[attr_name])
+
+                        # Copy data except for new vars
+                        if var_name not in ['u', 'qv', 'rho', 'theta', 'w']:
+                            logging.debug(f"... copying {var_name} data")
+                            if str(var.dtype).startswith('datetime64'):
+                                # Convert datetime64 to a numeric type
+                                logging.debug(f"... converting {var_name} data to f8")
+                                new_var[:] = var.values.astype('float64')
+                            else:
+                                new_var[:] = var.values
+                            logging.debug(f"Finished copying {var_name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        else:
+                            logging.debug(f"Skipping {var_name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+                    # Write our specific variables
+                    logging.info(f"Writing new MPAS fields to target netcdf file")
+                    new_file.variables['u'][0, :, :] = data_horiz['uNorm'].T
+                    new_file.variables['qv'][0, :, :] = data_horiz['q'].T
+                    new_file.variables['rho'][0, :, :] = data_horiz['rho'].T
+                    new_file.variables['theta'][0, :, :] = data_horiz['theta'].T
+                    new_file.variables['w'][0, :, :] = 0.06 * data_horiz['w'].T
+
+                logging.info(f"Closing the file")
+                mpas_file.close()
+
+                logging.info(f"Done generating MPAS initial condition file: {se_inic}, exiting...")
+
             sys.exit(0)
 
     grid_dims = data_horiz['ps'].shape

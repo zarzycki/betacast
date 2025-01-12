@@ -682,9 +682,13 @@ def print_and_return_varsize(ps_fv, u_fv, v_fv, t_fv, q_fv):
     return max_size
 
 
+# Min/max with numpy is super slow for very big meshes
+# (2 min per var for MPAS 3km x 93lev ~6,000,000,000 elements)
+# For now, subsample if > 1 billion, otherwise just do a full min/max for that var as before
 def print_min_max_dict(data_vars):
     """
     Prints the minimum and maximum values for each key in the data_vars dictionary.
+    Uses very fast sampling of first/last chunks for large arrays.
 
     Parameters:
     -----------
@@ -694,5 +698,16 @@ def print_min_max_dict(data_vars):
     logging.info("=" * 65)
     for key, data in data_vars.items():
         if isinstance(data, (np.ndarray, xr.DataArray)):
-            logging.info(f"{key.upper()} shape: {data.shape} | Max: {data.max()} | Min: {data.min()}")
+            if data.size > 1_000_000_000:  # For very large arrays
+                if isinstance(data, xr.DataArray):
+                    data = data.values
+                # Look at first and last 1000 values only
+                head = data.ravel()[:1000]
+                tail = data.ravel()[-1000:]
+                sample = np.concatenate([head, tail])
+                approx_min = sample.min()
+                approx_max = sample.max()
+                logging.info(f"{key.upper()} shape: {data.shape} | Approx Max: {approx_max:.3f} | Approx Min: {approx_min:.3f} (sampled)")
+            else:
+                logging.info(f"{key.upper()} shape: {data.shape} | Max: {data.max()} | Min: {data.min()}")
     logging.info("=" * 65)
