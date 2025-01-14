@@ -35,6 +35,7 @@ atm_to_cam/perturb/grids/
 output_streams/*
 
 ## Logs
+betacast.o*
 slurm*.out
 log.*
 nohup*
