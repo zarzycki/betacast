@@ -317,13 +317,18 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
     ufac = d1 / d
     vfac = d2 / d
 
+    # Flip ufac and vfac in SH
+    if cen_lat < 0:
+        ufac = -ufac
+        vfac = -vfac
+
     if height > ztrop:
         u = uin
         v = vin
     else:
         if debug:
             print(f"height: {height}, zp: {zp}, exppz: {exppz}, dp: {dp}, rp: {rp}, gr: {gr}")
-        vt = (-f * gr / 2 + sqrt((f * gr / 2) ** 2 - (exppr * (gr / rp) ** exppr) *
+        vt = (-abs(f) * gr / 2 + sqrt((f * gr / 2) ** 2 - (exppr * (gr / rp) ** exppr) *
                                  (Rd * (T0 - gamma_ * height)) / (exppz * height * Rd * (T0 - gamma_ * height) / (g * zp ** exppz) + 1. - p00 / dp * exp((gr / rp) ** exppr) * exp((height / zp) ** exppz))))
         v = vin + vfac * vt
         u = uin + ufac * vt
@@ -397,7 +402,7 @@ def get_rp_from_dp_rmw(cen_lat, dp, target_rmw, debug=False):
         vt = np.zeros_like(rr)
 
         for ii, r in enumerate(rr):
-            T1 = -(f * r) / 2.
+            T1 = -(abs(f) * r) / 2.
             T2 = (f ** 2 * r ** 2) / 4.
             NUM = (3. / 2.) * ((r / rp) ** (3. / 2.)) * T0 * Rd
             DEN = 1. - (p00 / dp) * exp((r / rp) ** (3. / 2.))
