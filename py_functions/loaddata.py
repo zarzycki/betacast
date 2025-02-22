@@ -84,6 +84,8 @@ def load_ERA5RDA_variable(varname, the_dir, var_code, yearstr, monthstr, daystr,
     rda_thistime = pyfuncs.find_closest_time(rda_time, yearstr, monthstr, daystr, cyclestr)
     rda_data = rda_file[varname].sel(time=rda_thistime, method='nearest').values
 
+    logging.debug(f"load_ERA5RDA_variable: Getting {varname} from {rda_find[0]}")
+
     if return_hycoef:
         # ERA5 "interface" is "half-level"
         # Formula: "p = a + b*ps" ;
@@ -315,31 +317,18 @@ def flip_level_dimension(data_vars, state_dimensions=3):
     return data_vars
 
 
-def load_ERA5mlRDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore):
+def load_ERA5mlRDA_data(RDADIR, data_filename, VERT_COORD_PATH, yearstr, monthstr, daystr, cyclestr, dycore):
     # Define directories
     ml_dir = f"{RDADIR}/e5.oper.an.ml/{yearstr}{monthstr}"
 
     # Dictionary to store the variables
     data_vars = {}
 
+    # Get levs data from a CSV file
     # https://confluence.ecmwf.int/display/UDOC/L137+model+level+definitions
-    data_vars['lev'] = np.array([
-        1.0, 2.0, 4.0, 5.0, 7.5, 10.0, 15.0, 20.0, 25.5, 30.0, 34.0, 38.8, 40.0, 57.5, 75.0, 82.9,
-        100.0, 116.8, 161.1, 218, 289.9, 379.3, 489.2, 622.4, 782.1, 971.6,
-        1194.2, 1453.5, 1753.1, 2096.5, 2487.5, 2929.8, 3427, 3982.9, 4601, 5285.1, 6038.8, 6865.4,
-        7768.6, 8751.6, 9817.7, 10970.3, 12212.3, 13546.9, 14977, 16505.4, 18134.8, 19868.1, 21707.6,
-        23656, 25715.6, 27888.7, 30177.6, 32584.3, 35111.1, 37759.8, 40532.1, 43428.7, 46449.8,
-        49595.2, 52864.4, 56256.7, 59772.1, 63415.1, 67194.1, 71118.7, 75199.9, 79449.6, 83881.6,
-        88511.2, 93352.7, 98416.4, 103710, 109241.7, 115019.8, 121052.6, 127348.7, 133917, 140766.3,
-        147905.8, 155344.8, 163092.7, 171159.1, 179553.7, 188286.7, 197367.9, 206807.8, 216616.6,
-        226805, 237383.7, 248363.4, 259755.3, 271570.4, 283820, 296515.5, 309668.4, 323290.4,
-        337393.2, 351988.7, 367088.9, 382705.8, 398851.6, 415538.7, 432779.2, 450585.8, 468970.8,
-        487947, 507502.1, 527569.6, 548031.2, 568767.8, 589679.7, 610664.6, 631619.4, 652442.4,
-        673035.2, 693304.3, 713163.1, 732532.5, 751342.6, 769532.9, 787052.8, 803862.2, 819930.2,
-        835235.8, 849766.8, 863519, 876495.7, 888706.6, 900166.9, 910896.5, 920919.3, 930261.8,
-        938953.2, 947024, 954505.9, 961431.1, 967831.5, 973739.2, 979185.2, 984200.2, 988813.3,
-        993052.7, 996945.2, 1000516.5, 1003790.6, 1006790, 1009536.3, 1012049.4, 101300.0
-    ], dtype=np.float32)
+    data_vars['lev'] = np.array(pyfuncs.load_csv_column(f"{VERT_COORD_PATH}/era5_levs.csv", "pf [hPa]"), dtype=np.float32)
+    data_vars['lev'] = data_vars['lev'] * 100.    # mb to Pa
+    logging.debug(f"ERA5 model level nominal plevs: {data_vars['lev'][:3]} ... {data_vars['lev'][-3:]}")
 
     _, data_vars['lat'], data_vars['lon'], _, hyam, hybm, hyai, hybi = load_ERA5RDA_variable('T', ml_dir, "e5.oper.an.ml.0_5_0_0_0_t.regn320sc", yearstr, monthstr, daystr, cyclestr, return_hycoef=True)
 
@@ -370,7 +359,8 @@ def load_ERA5mlRDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cycles
     # Convert dry to wet?
     # data_vars['psdry'], data_vars['pw'] = meteo.ps_wet_to_dry_conversion(data_vars['ps'], data_vars['q'], hyai, hybi, p0, verbose=True)
 
-    # Vertically interpolate the CAM hybrid levels to constant pressure surfaces
+    # Vertically interpolate the hybrid levels to constant pressure surfaces
+    # We are essentially going to set the p levs to the nominal p levs from ECMWF
     data_vars = vertremap.interp_hybrid_to_pressure_wrapper(
         data_vars=data_vars,
         ps=data_vars['ps'],
@@ -379,6 +369,7 @@ def load_ERA5mlRDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cycles
         new_levels=data_vars['lev']
         )
 
+    # No cloud ice/liq, so set these to zero same shape as interpolated t
     data_vars['cldice'] = np.zeros_like(data_vars['t'])
     data_vars['cldliq'] = np.zeros_like(data_vars['t'])
 

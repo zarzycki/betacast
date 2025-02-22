@@ -38,6 +38,7 @@ def main():
     # Is the Betacast path available to us?
     BETACAST, PATHTOHERE = pyfuncs.get_betacast_path()
     TEMPLATESPATH = os.path.join(BETACAST, 'grids/templates/')
+    VERTCOORDSPATH = os.path.join(BETACAST, 'grids/vert-coords/')
 
     args_dict = {
         "Datasource": args.datasource,
@@ -142,7 +143,7 @@ def main():
     elif datasource == 'ERA5RDA':
         data_vars = loaddata.load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
     elif datasource == 'ERA5mlRDA':
-        data_vars = loaddata.load_ERA5mlRDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
+        data_vars = loaddata.load_ERA5mlRDA_data(RDADIR, data_filename, VERTCOORDSPATH, yearstr, monthstr, daystr, cyclestr, dycore)
         pyfuncs.log_resource_usage()
     elif datasource == 'CAM':
         data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=write_debug_files,write_debug_dir=DEBUGDIR)

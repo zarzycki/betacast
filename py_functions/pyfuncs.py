@@ -6,6 +6,7 @@ import psutil
 import glob
 import os
 import sys
+import csv
 import cftime
 from scipy.ndimage import gaussian_filter
 from numba import jit
@@ -680,6 +681,39 @@ def print_and_return_varsize(ps_fv, u_fv, v_fv, t_fv, q_fv):
     logging.info(f"Var max size: {max_size}")
 
     return max_size
+
+
+def load_csv_column(csv_filename, column_name):
+    """
+    Reads a CSV file and extracts the specified column as a list.
+    Ignores any values that are "-".
+
+    Parameters:
+        csv_filename (str): Path to the CSV file.
+        column_name (str): The column to extract.
+
+    Returns:
+        list: A list of values from the specified column (converted to float).
+    """
+    column_values = []
+
+    with open(csv_filename, "r") as file:
+        reader = csv.reader(file)
+        headers = next(reader)  # Read the header row
+
+        # Find the index of the specified column
+        try:
+            col_index = headers.index(column_name)
+        except ValueError:
+            raise ValueError(f"Column '{column_name}' not found in the CSV file.")
+
+        # Read each row and extract the specified column's values
+        for row in reader:
+            value = row[col_index].strip()  # Remove surrounding whitespace
+            if value != "-":  # Ignore "-" values
+                column_values.append(float(value))  # Convert to float and store
+
+    return column_values
 
 
 # Min/max with numpy is super slow for very big meshes
