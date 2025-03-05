@@ -324,6 +324,11 @@ def main():
                 # Create new NetCDF file
                 with nc.Dataset(se_inic, mode='w', format='NETCDF4') as new_file:
 
+                    # Copy global file attributes
+                    for attr_name in mpas_file.attrs:
+                        logging.debug(f"... copying global attr {attr_name}")
+                        new_file.setncattr(attr_name, mpas_file.attrs[attr_name])
+
                     # Create dimensions
                     for dim_name, dim_size in dims.items():
                         logging.debug(f"... creating dim {dim_name}")
