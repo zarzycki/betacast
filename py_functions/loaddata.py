@@ -103,6 +103,46 @@ def load_ERA5RDA_variable(varname, the_dir, var_code, yearstr, monthstr, daystr,
     else:
         return rda_data
 
+
+def load_SAMPLE_data(data_filename, dycore=None):
+
+    # Dictionary to store the variables
+    data_vars = {}
+
+    # Load the GRIB file
+    grb_file = load_ERA5_file(data_filename)
+
+    data_vars['ps'] = grb_file.sp[0,:,:].values
+    data_vars['t'] = grb_file.t[0,:,:,:].values
+    data_vars['u'] = grb_file.u[0,:,:,:].values
+    data_vars['v'] = grb_file.v[0,:,:,:].values
+    data_vars['q'] = grb_file.q[0,:,:,:].values
+    data_vars['cldice'] = grb_file.ciwc[0,:,:,:].values
+    data_vars['cldliq'] = grb_file.clwc[0,:,:,:].values
+
+    data_vars['lat'] = grb_file.latitude.values.astype(float)
+    data_vars['lon'] = grb_file.longitude.values.astype(float)
+    data_vars['lev'] = grb_file.pressure_level.values.astype(float) * 100.
+
+    data_vars['ts'] = grb_file.t2m[0,:,:].values
+    data_vars['phis'] = grb_file.phis[0,:,:].values
+
+    # Load additional variables for MPAS dycore
+    if dycore == 'mpas':
+        data_vars['w'] = grb_file.w[0,:,:,:].values
+        data_vars['w_is_omega'] = True
+        data_vars['z'] = grb_file.z[0,:,:,:].values
+        data_vars['z_is_phi'] = True
+
+    # Flip ordering of levels to go from bottom to top
+    data_vars = flip_level_dimension(data_vars)
+
+    # Close the file
+    grb_file.close()
+
+    return data_vars
+
+
 def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore):
     # Define directories
     pl_dir = f"{RDADIR}/e5.oper.an.pl/{yearstr}{monthstr}"

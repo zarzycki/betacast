@@ -140,6 +140,8 @@ def main():
     # I attempt to account for this elsewhere in the code with flips, but make no promises
     if datasource == 'GFS' or datasource == 'HWRF':
         data_vars = loaddata.load_CFSR_data(data_filename, dycore)
+    elif datasource == 'SAMPLE':
+        data_vars = loaddata.load_SAMPLE_data(data_filename, dycore)
     elif datasource == 'ERA5RDA':
         data_vars = loaddata.load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
     elif datasource == 'ERA5mlRDA':
