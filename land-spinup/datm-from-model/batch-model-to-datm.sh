@@ -10,8 +10,8 @@
 ################################################################
 
 dryrun=false
-MODEL_DATASTREAM_DIR=/pscratch/sd/c/czarzyck/hyperion/CHEY.VR28.NATL.EXT.CAM5.4CLM5.0.dtime900.002/h5/
-MAPFILE=~/m2637/betacast/regrid_maps/map_ne0np4natlanticext.ne30x4_TO_era5_0.25x0.25_patc.nc
+MODEL_DATASTREAM_DIR=/pscratch/sd/c/czarzyck/hyperion/CORI.VR28.NATL.WAT.CAM5.4CLM5.0.dtime900.003/h5/
+MAPFILE=~/m2637/betacast/regrid_maps/map_ne0np4natlanticwat.ne30x4_TO_era5_0.25x0.25_patc.nc
 OUTDIRBASE="/global/homes/c/czarzyck/m2637/DATM_FORCING/"
 
 SCRIPTDIR=$PWD
