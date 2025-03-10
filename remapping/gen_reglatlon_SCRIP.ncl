@@ -3,7 +3,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 begin
 
 srcfilename="/glade/work/zarzycki/2023_mawar/mawar02w.2023052300.hwrfprs.storm.0p015.f000.grb2"
-dstDir = "./anl_scrip/"
+dstDir = "./"
 dstGridName = "hwrf_storm_scrip.nc"
 metatitle = "HWRF"
 appendLL = False      ; append corner lat lon to SCRIP filename? (useful for regional nests that may move)

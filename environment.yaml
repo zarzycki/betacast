@@ -1,0 +1,19 @@
+name: betacast
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - cftime
+  - matplotlib
+  - netCDF4
+  - cfgrib
+  - numba
+  - numpy
+  - scipy
+  - scikit-learn
+  - xarray
+  - psutil
+  - ncl
+  - esmf=8.4.2=mpi_mpich_*
+  - nco

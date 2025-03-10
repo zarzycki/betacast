@@ -1,3 +1,32 @@
+if ismissing(getenv("BETACAST")) then
+  print("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
+  ; if we don't have BETACAST, check to see where are located...
+  ; we cannot do relative paths
+  this_script_name=get_script_name()
+  slash_index=str_index_of_substr(this_script_name, "/", -1)
+  if (.not. ismissing(slash_index)) then
+    print("The script is called from another directory")
+    print("I found: "+this_script_name+" which contains a /")
+    print("This isn't supported! Either set BETACAST as env param or run from local dir!")
+    exit
+  else
+    print("The script is called from the local directory")
+    PATHTOHERE=systemfunc("pwd")
+  end if
+  ; get BETACAST based on current dir assuming one up
+  BETACAST = systemfunc("echo $(dirname $(pwd))")
+else
+  print("Not local only!")
+  PATHTOHERE=getenv("BETACAST")+"/sst_to_cam/"
+  BETACAST=getenv("BETACAST")
+end if
+
+DOMAINSDIR=BETACAST+"/grids/domains/"
+DOCNDIR=BETACAST+"/grids/sst_docn/"
+
+print(""+BETACAST)
+print(""+PATHTOHERE)
+
 begin
 
 ; This file takes either GDAS SST or NOAAOI SST and interpolates to 1x1 SST datafile for
@@ -39,10 +68,10 @@ print("inputres set to: "+inputres)
 copy_orig = False
 if (copy_orig) then
   print("copying SST file from repo to "+SST_write_file)
-  system("cp ./sst_1x1.nc "+SST_write_file)
+  system("cp "+DOCNDIR+"/sst_1x1.nc "+SST_write_file)
   readinFile=SST_write_file
 else
-  readinFile="./domains/domain.ocn."+inputres+".nc"
+  readinFile=DOMAINSDIR+"/domain.ocn."+inputres+".nc"
 end if
 
 if (.not. isvar("predict_docn")) then

@@ -97,6 +97,7 @@ if [ -z "${anl2mdlWeights+x}" ]; then anl2mdlWeights=""; fi
 if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=1; fi
 if [ -z "${add_noise+x}" ]; then add_noise=false; fi
 if [ -z "${runmodel+x}" ]; then runmodel=true; fi
+if [ -z "${DO_PYTHON+x}" ]; then DO_PYTHON=true; fi
 ### Some defaults infrequently set
 if [ -z "${debug+x}" ]; then debug=false; fi
 if [ -z "${islive+x}" ]; then islive=false; fi
@@ -113,6 +114,7 @@ if [ -z "${FILTERWALLCLOCK+x}" ]; then FILTERWALLCLOCK="00:29:00"; fi
 if [ -z "${FILTERQUEUE+x}" ]; then FILTERQUEUE="batch"; fi
 if [ -z "${RUNWALLCLOCK+x}" ]; then RUNWALLCLOCK="12:00:00"; fi
 if [ -z "${RUNQUEUE+x}" ]; then RUNQUEUE="regular"; fi
+if [ -z "${RUNPRIORITY+x}" ]; then RUNPRIORITY=""; fi
 if [ -z "${use_nsplit+x}" ]; then use_nsplit="true"; fi
 if [ -z "${cime_coupler+x}" ]; then cime_coupler="mct"; fi
 if [ -z "${nclPlotWeights+x}" ]; then nclPlotWeights="NULL"; fi
@@ -121,6 +123,12 @@ if [ -z "${sendplots+x}" ]; then sendplots=false; fi
 if [ -z "${dotracking+x}" ]; then dotracking=false; fi
 if [ -z "${m2m_gridfile+x}" ]; then m2m_gridfile=""; fi
 if [ -z "${m2m_remap_file+x}" ]; then m2m_remap_file=""; fi
+
+echo "DO_PYTHON set to $DO_PYTHON"
+if [ "$DO_PYTHON" = true ]; then
+  atm_to_cam_path=${SCRIPTPATH}/py_atm_to_cam
+  sst_to_cam_path=${SCRIPTPATH}/py_sst_to_cam
+fi
 
 ### Set correct E3SM/CESM split
 if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi
@@ -164,13 +172,13 @@ echo "Actual sstFileIC: ${sstFileIC}"
 ### ERROR CHECKING BLOCK! #########################################################
 
 # Exit if add_perturbs is turned on but no namelist is passed in with perturbation config settings
-if ${add_perturbs} && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
+if [ "$add_perturbs" = true ] && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
   echo "add_perturbs is true but can't find namelist: "$perturb_namelist
   exit 1
 fi
 
 # Exit if add_perturbs is turned on but no namelist is passed in with perturbation config settings
-if ${add_vortex} && { [ -z "$vortex_namelist" ] || [ ! -f "$vortex_namelist" ]; } ; then
+if [ "$add_vortex" = true ] && { [ -z "$vortex_namelist" ] || [ ! -f "$vortex_namelist" ]; } ; then
   echo "add_vortex is true but can't find namelist: "$vortex_namelist
   exit 1
 fi
@@ -228,7 +236,7 @@ fi
 python -c 'import sys; exit(sys.version_info.major != 3)' && echo "CHECK_PYTHON: Python 3 found" || { echo "CHECK_PYTHON: Please install Python 3+"; exit 25; }
 
 # Check Python package dependencies
-if ${do_frankengrid} ; then
+if [ "$do_frankengrid" = true ] ; then
   check_python_dependency numpy
   check_python_dependency netCDF4
   check_python_dependency sklearn
@@ -395,13 +403,13 @@ yestyearstr=$(date --date="yesterday" -u +%Y)
 
 echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds) for ATM init. data"
 echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST init. data"
-if $doFilter ; then
+if [ "$doFilter" = true ] ; then
   echo "Filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $se_cyclestr Z ($se_cyclestrsec seconds)"
 else
   echo "No filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $cyclestr Z ($cyclestrsec seconds)"
 fi
 
-if $runmodel ; then
+if [ "$runmodel" = true ] ; then
 
 ############################### GET DYCORE INFO ###############################
 
@@ -497,18 +505,23 @@ if [ $debug = false ] ; then
     # Switch bash bool to int for NCL input
     if [ $predict_docn = true ]; then INT_PREDICT_DOCN=1; else INT_PREDICT_DOCN=0; fi
 
-    cd ${sst_to_cam_path}
-    sst_domain_file=${sst_to_cam_path}/domains/domain.ocn.${docnres}.nc
-    sst_scrip_file=${sst_to_cam_path}/domains/scrip.ocn.${docnres}.nc
-    sst_ESMF_file=${sst_to_cam_path}/domains/ESMF.ocn.${docnres}.nc
+    cd $sst_to_cam_path ; echo "cd'ing to interpolation directory: $sst_to_cam_path"
+
+    sst_domain_file=${SCRIPTPATH}/grids/domains/domain.ocn.${docnres}.nc
+    sst_scrip_file=${SCRIPTPATH}/grids/domains/scrip.ocn.${docnres}.nc
+    sst_ESMF_file=${SCRIPTPATH}/grids/domains/ESMF.ocn.${docnres}.nc
 
     # check if domain or SCRIP exist, if one is missing create both domain and scrip
     if [ ! -f "$sst_domain_file" ] || [ ! -f "$sst_scrip_file" ]; then
       echo "Creating SST domain file for: ${docnres}"
-      set +e
-      (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' ) ; exit_status=$?
-      check_ncl_exit "gen-sst-domain.ncl" $exit_status
-      set -e
+      if [ "$DO_PYTHON" = true ]; then
+        echo "Oops" ; exit
+      else
+        set +e
+        (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' ) ; exit_status=$?
+        check_ncl_exit "gen-sst-domain.ncl" $exit_status
+        set -e
+      fi
       compress_single_file "${sst_scrip_file}"
     fi
     # if the CIME coupler is nuopc, we need to generate a scrip file
@@ -518,23 +531,38 @@ if [ $debug = false ] ; then
     fi
 
     # Now generate the SST/ice datastream
-    set +e
-    (set -x; ncl sst_interp.ncl \
-        'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
-        predict_docn=${INT_PREDICT_DOCN} \
-        'inputres="'${docnres}'"' \
-        'datasource="'${SSTTYPE}'"' \
-        'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
-        'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
-        'SST_write_file = "'${sstFileIC}'"' \
-        ) ; exit_status=$?
-    check_ncl_exit "sst_interp.ncl" $exit_status
-    set -e # Turn error checking back on
+    if [ "$DO_PYTHON" = true ]; then
+      (set -x; python sst_to_cam.py \
+          --initdate "${yearstr}${monthstr}${daystr}${cyclestr}" \
+          --predict_docn ${INT_PREDICT_DOCN} \
+          --inputres "${docnres}" \
+          --datasource "${SSTTYPE}" \
+          --sstDataFile "${sst_files_path}/${sstFile}" \
+          --iceDataFile "${sst_files_path}/${iceFile}" \
+          --SST_write_file "${sstFileIC}" \
+          --smooth_ice \
+          --smooth_iter 3 \
+          --verbose
+      )
+    else
+      set +e
+      (set -x; ncl sst_interp.ncl \
+          'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
+          predict_docn=${INT_PREDICT_DOCN} \
+          'inputres="'${docnres}'"' \
+          'datasource="'${SSTTYPE}'"' \
+          'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
+          'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
+          'SST_write_file = "'${sstFileIC}'"' \
+      ) ; exit_status=$?
+      check_ncl_exit "sst_interp.ncl" $exit_status
+      set -e # Turn error checking back on
+    fi
   fi
 
   ############################### ATM NCL ###############################
 
-  cd $atm_to_cam_path ; echo "cd'ing to interpolation directory"
+  cd $atm_to_cam_path ; echo "cd'ing to interpolation directory: $atm_to_cam_path"
 
   # Figure out which anl2mdlWeights we want to use. If the user gave us one
   # we will just use that, otherwise we'll hope they gave us modelgridfile (SCRIP)
@@ -560,16 +588,26 @@ if [ $debug = false ] ; then
     # Check if anl2mdlWeights exist or not, if not try to generate them
     if [ ! -f ${anl2mdlWeights} ]; then
       echo "Writing anl2mdlWeights --> ${anl2mdlWeights}"
-      set +e
-      (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
-        'ANLGRID="'${RLLSOURCEGRID}'"' \
-        'ANLGRIDPATH="../remapping/anl_scrip/"' \
-        'DSTGRIDNAME="'${modelgridshortname}'"' \
-        'DSTGRIDFILE="'${modelgridfile}'"' \
-        'WGTFILEDIR="'${mapping_files_path}'"' \
-         ) ; exit_status=$?
-      check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
-      set -e
+      if [ "$DO_PYTHON" = true ]; then
+        (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
+          --ANLGRID "${RLLSOURCEGRID}" \
+          --DSTGRIDNAME "${modelgridshortname}" \
+          --DSTGRIDFILE "${modelgridfile}" \
+          --ANLGRIDPATH "../grids/anl_scrip/" \
+          --WGTFILEDIR "${mapping_files_path}"
+        )
+      else
+        set +e
+        (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
+          'ANLGRID="'${RLLSOURCEGRID}'"' \
+          'ANLGRIDPATH="../grids/anl_scrip/"' \
+          'DSTGRIDNAME="'${modelgridshortname}'"' \
+          'DSTGRIDFILE="'${modelgridfile}'"' \
+          'WGTFILEDIR="'${mapping_files_path}'"' \
+        ) ; exit_status=$?
+        check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
+        set -e
+      fi
     else
       echo "Betacast-generated anl2mdlWeights --> ${anl2mdlWeights} already exists, using those!"
     fi
@@ -596,12 +634,12 @@ if [ $debug = false ] ; then
         set +e
         (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
           'ANLGRID="era5_0.25x0.25"' \
-          'ANLGRIDPATH="../remapping/anl_scrip/"' \
+          'ANLGRIDPATH="../grids/anl_scrip/"' \
           'DSTGRIDNAME="'${m2mgridshortname}'"' \
           'DSTGRIDFILE="'${m2m_gridfile}'"' \
           'WGTFILEDIR="'${mapping_files_path}'"' \
           FLIP_MODEL_AND_ANALYSIS=True \
-           ) ; exit_status=$?
+        ) ; exit_status=$?
         check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
         set -e
       else
@@ -616,14 +654,22 @@ if [ $debug = false ] ; then
     # If do_model2model is true, then we need to find the file
     if [[ -d "$m2m_parent_source" ]]; then
       echo "m2m_parent_source ($m2m_parent_source) is provided as a dir of nc files."
-      set +e
-      (set -x; ncl find-time-file.ncl \
-        'DIR="'${m2m_parent_source}'"' \
-        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-        'UQSTR="'${uniqtime}'"' \
-         ) ; exit_status=$?
-      check_ncl_exit "find-time-file.ncl" $exit_status
-      set -e
+      if [ "$DO_PYTHON" = true ]; then
+        (set -x; python find-time-file.py \
+          --DIR "${m2m_parent_source}" \
+          --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
+          --UQSTR "${uniqtime}"
+        )
+      else
+        set +e
+        (set -x; ncl find-time-file.ncl \
+          'DIR="'${m2m_parent_source}'"' \
+          YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+          'UQSTR="'${uniqtime}'"' \
+        ) ; exit_status=$?
+        check_ncl_exit "find-time-file.ncl" $exit_status
+        set -e
+      fi
       while IFS= read -r line || [[ -n "$line" ]]; do
         atm_file_paths["9"]=$line
         break # Exit after reading the first line
@@ -639,25 +685,44 @@ if [ $debug = false ] ; then
   fi
 
   echo "Doing atm_to_cam"
-  set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
-  (set -x; ncl -n atm_to_cam.ncl \
-      'datasource="'${atm_data_sources[$atmDataType]}'"' \
-      numlevels=${numLevels} \
-      YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-      'dycore="'${DYCORE}'"' \
-      'data_filename="'${atm_file_paths[$atmDataType]}'"' \
-      'RDADIR="'${RDADIR}'"' \
-      'wgt_filename="'${anl2mdlWeights}'"' \
-      'model_topo_file="'${adjust_topo-}'"' \
-      'mod_remap_file="'${m2m_remap_file-}'"' \
-      'mod_in_topo="'${m2m_topo_in-}'"' \
-      'adjust_config="'${adjust_flags-}'"' \
-      'se_inic = "'${sePreFilterIC}'"'
-      ) ; exit_status=$?
-  check_ncl_exit "atm_to_cam.ncl" $exit_status
-  set -e
 
-  if ${do_frankengrid} ; then
+  if [ "$DO_PYTHON" = true ]; then
+    (set -x ; python atm_to_cam.py \
+      --datasource "${atm_data_sources[$atmDataType]}" \
+      --numlevels ${numLevels} \
+      --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
+      --data_filename "${atm_file_paths[$atmDataType]}" \
+      --wgt_filename "${anl2mdlWeights}" \
+      --dycore "${DYCORE}" \
+      --add_cloud_vars \
+      --RDADIR "${RDADIR}" \
+      --adjust_config "${adjust_flags-}" \
+      --model_topo_file "${adjust_topo-}" \
+      --mod_remap_file "${m2m_remap_file-}" \
+      --mod_in_topo "${m2m_topo_in-}" \
+      --model_topo_file "${adjust_topo-}" \
+      --se_inic "${sePreFilterIC}" )
+  else
+    set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
+    (set -x; ncl -n atm_to_cam.ncl \
+        'datasource="'${atm_data_sources[$atmDataType]}'"' \
+        numlevels=${numLevels} \
+        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+        'dycore="'${DYCORE}'"' \
+        'data_filename="'${atm_file_paths[$atmDataType]}'"' \
+        'RDADIR="'${RDADIR}'"' \
+        'wgt_filename="'${anl2mdlWeights}'"' \
+        'model_topo_file="'${adjust_topo-}'"' \
+        'mod_remap_file="'${m2m_remap_file-}'"' \
+        'mod_in_topo="'${m2m_topo_in-}'"' \
+        'adjust_config="'${adjust_flags-}'"' \
+        'se_inic = "'${sePreFilterIC}'"'
+    ) ; exit_status=$?
+    check_ncl_exit "atm_to_cam.ncl" $exit_status
+    set -e
+  fi
+
+  if [ "$do_frankengrid" = true ] ; then
 
     # Fill in "templated" information from regional_src
     regional_src=${regional_src/YYYY/$yearstr}
@@ -669,38 +734,73 @@ if [ $debug = false ] ; then
 
     TMPWGTFILE="./map_hwrf_storm_TO_modelgrid_patc.nc"
 
-    set +e # Turn error checking off for NCL
-    echo "Generating a temporary SCRIP file for HWRF"
-    (set -x; ncl ../remapping/gen_reglatlon_SCRIP.ncl \
-      'DSTGRIDNAME="hwrf_storm_scrip.nc"' \
-      'DSTDIR="./"' \
-      'SRCFILENAME="'${regional_src}'"' ) ; exit_status=$?
-    check_ncl_exit "gen_reglatlon_SCRIP.ncl" $exit_status
+    if [ "$DO_PYTHON" = true ]; then
+      (set -x; python ../py_remapping/gen_reglatlon_SCRIP.py \
+        --dstGridName "hwrf_storm_scrip.nc" \
+        --dstDir "./" \
+        --srcfilename "${regional_src}"
+      )
+    else
+      set +e # Turn error checking off for NCL
+      echo "Generating a temporary SCRIP file for HWRF"
+      (set -x; ncl ../remapping/gen_reglatlon_SCRIP.ncl \
+        'DSTGRIDNAME="hwrf_storm_scrip.nc"' \
+        'DSTDIR="./"' \
+        'SRCFILENAME="'${regional_src}'"'
+      ) ; exit_status=$?
+      check_ncl_exit "gen_reglatlon_SCRIP.ncl" $exit_status
+    fi
 
-    echo "Generating a temporary map file for HWRF"
-    (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
-      'ANLGRID="hwrf_storm"' \
-      'DSTGRIDNAME="modelgrid"' \
-      'ANLGRIDPATH="./"' \
-      'WGTFILEDIR="./"' \
-      'DSTGRIDFILE="'${model_scrip}'"' ) ; exit_status=$?
-    check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
+    if [ "$DO_PYTHON" = true ]; then
+      (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
+        --ANLGRID "hwrf_storm" \
+        --DSTGRIDNAME "modelgrid" \
+        --DSTGRIDFILE "${model_scrip}" \
+        --ANLGRIDPATH "./" \
+        --WGTFILEDIR "./"
+      )
+    else
+      echo "Generating a temporary map file for HWRF"
+      (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
+        'ANLGRID="hwrf_storm"' \
+        'DSTGRIDNAME="modelgrid"' \
+        'ANLGRIDPATH="./"' \
+        'WGTFILEDIR="./"' \
+        'DSTGRIDFILE="'${model_scrip}'"'
+      ) ; exit_status=$?
+      check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
+    fi
 
-    echo "Generating regional Frankengrid for HWRF"
-    (set -x; ncl -n atm_to_cam.ncl 'datasource="HWRF"' \
-      'dycore="'${DYCORE}'"' \
-      numlevels=${numLevels} \
-      YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-      'data_filename = "'${regional_src}'"' \
-      'wgt_filename="'${TMPWGTFILE}'"' \
-      'adjust_config=""' \
-      'se_inic = "'${sePreFilterIC}_reg.nc'"' ) ; exit_status=$?
-    check_ncl_exit "atm_to_cam.ncl" $exit_status
-    set -e # Turn error checking back on
+    if [ "$DO_PYTHON" = true ]; then
+      (set -x ; python atm_to_cam.py \
+        --datasource "HWRF" \
+        --numlevels ${numLevels} \
+        --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
+        --data_filename "${regional_src}" \
+        --wgt_filename "${TMPWGTFILE}" \
+        --dycore "${DYCORE}" \
+        --add_cloud_vars \
+        --adjust_config "" \
+        --se_inic "${sePreFilterIC}_reg.nc"
+      )
+    else
+      echo "Generating regional Frankengrid for HWRF"
+      (set -x; ncl -n atm_to_cam.ncl 'datasource="HWRF"' \
+        'dycore="'${DYCORE}'"' \
+        numlevels=${numLevels} \
+        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
+        'data_filename = "'${regional_src}'"' \
+        'wgt_filename="'${TMPWGTFILE}'"' \
+        'adjust_config=""' \
+        'se_inic = "'${sePreFilterIC}_reg.nc'"'
+      ) ; exit_status=$?
+      check_ncl_exit "atm_to_cam.ncl" $exit_status
+      set -e # Turn error checking back on
+    fi
 
     echo "Overlay regional file on top of basefile"
     cp -v ${sePreFilterIC} ${sePreFilterIC}_base.nc
-    python overlay.py "${sePreFilterIC}" "${sePreFilterIC}_reg.nc" --maxLev 80.
+    (set -x; python overlay.py "${sePreFilterIC}" "${sePreFilterIC}_reg.nc" --maxLev 80. )
 
     echo "Cleaning up temporary ESMF files"
     rm -v $TMPWGTFILE
@@ -714,16 +814,32 @@ fi #End debug if statement
 ############################### #### ###############################
 ##### ADD OR REMOVE VORTEX
 
-if ${add_vortex} ; then
+if [ "$add_vortex" = true ] ; then
   cd $atm_to_cam_path/tcseed
   set +e
   echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
 
-  (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
-  check_ncl_exit "find-tc-fill-params.ncl" $exit_status
+  echo "... finding fill parameters"
+  if [ "$DO_PYTHON" = true ]; then
+    (set -x; python find-tc-fill-params.py \
+        --inic_file "${sePreFilterIC}" \
+        --vortex_namelist ${vortex_namelist}
+    )
+  else
+    (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
+    check_ncl_exit "find-tc-fill-params.ncl" $exit_status
+  fi
 
-  (set -x; ncl -n seed-tc-in-ncdata.ncl   'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
-  check_ncl_exit "seed-tc-in-ncdata.ncl" $exit_status
+  echo "... seeding or unseeding TC"
+  if [ "$DO_PYTHON" = true ]; then
+    (set -x; python py-seed-tc-in-ncdata.py \
+        --inic_file "${sePreFilterIC}" \
+        --vortex_namelist ${vortex_namelist}
+    )
+  else
+    (set -x; ncl -n seed-tc-in-ncdata.ncl 'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
+    check_ncl_exit "seed-tc-in-ncdata.ncl" $exit_status
+  fi
 
   set -e
 fi
@@ -731,7 +847,7 @@ fi
 ############################### #### ###############################
 ##### ADD WHITE NOISE PERTURBATIONS
 
-if ${add_noise} ; then
+if [ "$add_noise" = true ] ; then
   set +e
   echo "Adding white noise to initial condition"
   cd $atm_to_cam_path
@@ -743,7 +859,7 @@ fi
 ############################### #### ###############################
 ##### ADD PERTURBATIONS
 
-if ${add_perturbs} ; then
+if [ "$add_perturbs" = true ] ; then
   echo "Adding perturbations"
 
   cd $atm_to_cam_path/perturb
@@ -754,7 +870,8 @@ if ${add_perturbs} ; then
   sstFileIC_WPERT=${sstFileIC}_PERT.nc
   (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
      'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' \
-     'pthi="'${perturb_namelist}'"' ) ; exit_status=$?
+     'pthi="'${perturb_namelist}'"'
+  ) ; exit_status=$?
   check_ncl_exit "add_perturbations_to_sst.ncl" $exit_status
   echo "SST perturbations added successfully"
 
@@ -764,7 +881,8 @@ if ${add_perturbs} ; then
      'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
      'gridfile = "'${modelgridfile}'"' \
      'MAPFILEPATH = "'${mapping_files_path}'"' \
-     'pthi="'${perturb_namelist}'"' ) ; exit_status=$?
+     'pthi="'${perturb_namelist}'"'
+  ) ; exit_status=$?
   check_ncl_exit "add_perturbations_to_cam.ncl" $exit_status
   echo "ATM NCL completed successfully"
 
@@ -813,17 +931,17 @@ mkdir -vp $RUNTMPDIR
 find "$RUNTMPDIR" -type f -exec rm -v {} +
 
 # We want to check ${landdir} for land restart file with exact date match. If so, use that.
-landrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
+landrestartfile=$(find "${landdir}" -maxdepth 1 \( -type f -o -type l \) -name "${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
 
 # Check to see if file exists on native SE land grid
 if [ -n "${landrestartfile}" ] && [ -f "${landrestartfile}" ]; then
-  echo "File exists at exact time"
+  echo "File ${landrestartfile} exists at exact time"
 else
   # If we don't have an exact match from above, trying 00Z first, then check landrawdir
-  echo "File does not exist at exact time"
+  echo "File ${landrestartfile} does not exist at exact time"
   landrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.*" | head -n 1)
   if [ -n "${landrestartfile}" ] && [ -f "${landrestartfile}" ]; then
-    echo "File exists at 00Z"
+    echo "File ${landrestartfile} exists at 00Z"
   else
     rawlandrestartfile=$(find "${landrawdir}" -maxdepth 1 -type f -name "*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
     echo "rawlandrestartfile: ${rawlandrestartfile}"
@@ -899,7 +1017,7 @@ if [ $do_runoff = true ]; then
   sed -i '/.*finidat_rtm/d' user_nl_${rofName}
 
   # We want to check ${landdir} for land restart files. If so, use those.
-  rofrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
+  rofrestartfile=$(find "${landdir}" -maxdepth 1 \( -type f -o -type l \) -name "${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
   echo $rofrestartfile
 
   # Check to see if file exists on native SE land grid
@@ -1021,7 +1139,7 @@ SEINIC=${sePreFilterIC}
 
 ############################### (IF) FILTER SETUP ###############################
 
-if $doFilter ; then
+if [ "$doFilter" = true ] ; then
   # If filtering, need to change these options
 
   xmlchange_verbose "STOP_OPTION" "$nhours"
@@ -1107,7 +1225,7 @@ if $doFilter ; then
   rm -v $path_to_nc_files/filtered/*.${atmName}.h0.*.nc
 
   ### Output filter files only, can be used for ensemble or other initialization after the fact
-  if ${filterOnly} ; then
+  if [ "$filterOnly" = true ] ; then
     FILTONLYDIR=${path_to_nc_files}/FILT_INIC/${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}
     mkdir -p ${FILTONLYDIR}
     cp ${sePostFilterIC} ${FILTONLYDIR}/${casename}_FILTERED_${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
@@ -1142,7 +1260,7 @@ sed -i '/.*collect_column_output/d' user_nl_${atmName}
 sed -i '/.*avgflag_pertape/d' user_nl_${atmName}  # Note, we delete this and user either specifies as :A, :I for each var or as a sep var
 echo "empty_htapes=.TRUE." >> user_nl_${atmName}
 sed -i '/.*inithist/d' user_nl_${atmName}
-if ${save_nudging_files} ; then
+if [ "$save_nudging_files" = true ] ; then
   echo "inithist='6-HOURLY'" >> user_nl_${atmName}
 else
   echo "inithist='NONE'" >> user_nl_${atmName}
@@ -1190,6 +1308,9 @@ xmlchange_verbose "ATM_NCPL" "$ATM_NCPL"
 # Set queue settings
 xmlchange_verbose "JOB_WALLCLOCK_TIME" "$RUNWALLCLOCK"
 xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
+if [ -n "${RUNPRIORITY+x}" ] && [ -n "$RUNPRIORITY" ]; then
+    xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
+fi
 
 # Delete existing ncdata and inject new one into user_nl_atm file
 sed -i '/.*ncdata/d' user_nl_${atmName}
@@ -1287,7 +1408,7 @@ else
 fi
 mv -v $tmparchivecdir ${ARCHIVEDIR}/${ARCHIVESUBDIR}
 
-if $dotracking ; then
+if [ "$dotracking" = true ] ; then
   echo "BETACAST_USER: requesting cyclones to be tracked."
 
   # Go to cyclone tracking folder...
@@ -1331,7 +1452,7 @@ if $dotracking ; then
   popd > /dev/null
 fi
 
-if $sendplots; then
+if [ "$sendplots" = true ]; then
   echo "BETACAST_USER: Sending plots to remote server!"
   upload_ncl_script="${SCRIPTPATH}/upload_ncl.sh"
   temp_upload_script="${upload_ncl_script}.${uniqtime}.ncl"
@@ -1353,13 +1474,13 @@ fi
 
 # Compress model output streams
 # Let's do this last so all the above scripts can operate on uncompressed files
-if [ $compress_history_nc = true ]; then
+if [ "$compress_history_nc" = true ]; then
   echo "BETACAST_USER: Requesting history be compressed"
   compress_history "${ARCHIVEDIR}/${ARCHIVESUBDIR}"
 fi
 
 # Tar archive files so they are contained in a single directory
-if $tararchivedir ; then
+if [ "$tararchivedir" = true ] ; then
   echo "BETACAST_USER: Requesting archive dir be tarred"
   tar -cvf ${ARCHIVEDIR}/${ARCHIVESUBDIR}.tar -C ${ARCHIVEDIR} ${ARCHIVESUBDIR}
   rm -rfv ${ARCHIVEDIR}/${ARCHIVESUBDIR} || true
@@ -1370,7 +1491,7 @@ script_end=$(date +%s)
 print_elapsed_time "$script_start" "$script_end"
 
 ### If not live and the run has made it here successively, delete top line of datesfile
-if [ $islive = false ] ; then
+if [ "$islive" = false ] ; then
   cd ${SCRIPTPATH}
   #Remove top line from dates file
   remove_top_line_from_dates ${datesfile}

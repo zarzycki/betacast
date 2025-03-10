@@ -1,0 +1,21 @@
+DRIVER_DIRECTORY = /glade/derecho/scratch/zarzycki/betacast/py_atm_to_cam/tcseed/
+path_to_case = /glade/u/home/zarzycki/aqua/2024-QPC5-ne30np4-aquap10-seed3x3/
+path_to_rundir = /glade/derecho/scratch/zarzycki/2024-QPC5-ne30np4-aquap10-seed3x3/run
+MAXTIME=19991101
+
+# Tempeststuff
+TEMPESTEXTREMESDIR = /glade/work/zarzycki/derecho/tempestextremes_noMPI/
+CONNECTDAT = "/glade/u/home/zarzycki/tempest-scripts/hyperion/ne30.connect_v2.dat"
+TEMPESTFILE = ${path_to_rundir}/cyclones_tempest
+TEMPESTTMP = ${DRIVER_DIRECTORY}/cyclones_tempest.tmp
+HTRACKSTR = "h1i"
+
+#Vortex settings
+vortex_namelist = /glade/derecho/scratch/zarzycki/betacast/py_atm_to_cam/tcseed/seed.ape.nl
+do_seed = true
+NSEEDS = 3
+
+# CIME, etc. settings
+st_archive_ontheway = true
+
+KILLSTR = "SEED_DONE"

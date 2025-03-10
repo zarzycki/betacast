@@ -1,12 +1,38 @@
-load "../../functions/fcns_seeding.ncl"
-load "../../functions/radialAvg.ncl"
-load "../../functions/namelist.ncl"
+if ismissing(getenv("BETACAST")) then
+  print("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
+  ; if we don't have BETACAST, check to see where are located...
+  ; we cannot do relative paths
+  this_script_name=get_script_name()
+  slash_index=str_index_of_substr(this_script_name, "/", -1)
+  if (.not. ismissing(slash_index)) then
+    print("The script is called from another directory")
+    print("I found: "+this_script_name+" which contains a /")
+    print("This isn't supported! Either set BETACAST as env param or run from local dir!")
+    exit
+  else
+    print("The script is called from the local directory")
+    PATHTOHERE=systemfunc("pwd")
+  end if
+  ; get BETACAST based on current dir assuming one up
+  BETACAST = systemfunc("echo $(dirname $(pwd))")
+else
+  print("Not local only!")
+  PATHTOHERE=getenv("BETACAST")+"/atm_to_cam/tcseed/"
+  BETACAST=getenv("BETACAST")
+end if
+
+print(""+BETACAST)
+print(""+PATHTOHERE)
+
+loadscript(BETACAST+"/functions/fcns_seeding.ncl")
+loadscript(BETACAST+"/functions/radialAvg.ncl")
+loadscript(BETACAST+"/functions/namelist.ncl")
 
 begin
 
 ;debug restart file vortex add
 ;system("cp -v /glade/u/home/zarzycki/scratch/APE3-test/run/ORIG.nc "+inic_file)
-debug=False
+debug=True
 
 ;pthi="../../namelists/unseed.default.nl"
 invert_vortex  = keyword_values( pthi, "invert_vortex", "logical")
@@ -114,6 +140,11 @@ delete(tmpps)
 rad_psl = radialAvg2D_unstruc(mps,lat,lon,deltaMax,psminlat,psminlon,rad_for_corr,False)
 nrad_PS = dimsizes(rad_psl)
 
+print(psminlat+" "+psminlon)
+print(rad_psl)
+print(rad_psl&radius)
+print(rad_psl@rad_thevar_hit)
+
 ; Now create a radial profile of ncdata T given psminlat
 Tavg = radialAvg3D_unstruc(T,lat,lon,lev,deltaMax,psminlat,psminlon,rad_for_corr,False)
 
@@ -135,7 +166,7 @@ delete(mps)
 ; ===================OPTIMIZATION ROUND 1==============
 
 wcOptimStrt     = systemfunc("date")
-     
+
 ; Need to convert radius associated with radial averaging to degrees along line of constant lat
 mylon = rad_psl&radius / (111.*cos(psminlat/convert))
 
@@ -151,7 +182,7 @@ anlT=new((/nlev,dimsizes(mylon)/),typeof(anlPS))
 cen_lat  = psminlat
 cen_lon  = 0.0
 zp       = 10000.   ; Initial guess for calculation of P
-  
+
 ; Here, we don't want to invert vortex, we want to force ideal case to match obs.
 invert_vortex=False
 
@@ -182,7 +213,7 @@ do cc = 0,dimsizes(exppr_arr)-1
   end do
 
   ;print("rp: "+rp+"   dp: "+dp+"    exppr: "+exppr+"        RMSD: "+dim_rmsd_n(anlPS,rad_psl,0))
-  
+
   ; Load skill array
   rmsd(0,counter) = tofloat(dim_rmsd_n(anlPS,rad_psl,0))
   rmsd(1,counter) = rp
@@ -193,6 +224,8 @@ do cc = 0,dimsizes(exppr_arr)-1
 end do
 end do
 end do
+
+print(rmsd(0,:)+" "+rmsd(1,:)+" "+rmsd(2,:)+" "+rmsd(3,:))
 
 ; Find "best" config from round 1
 best_config = minind(rmsd(0,:))
@@ -275,6 +308,8 @@ do dd = 0,dimsizes(zp_arr)-1
   counter = counter+1
 end do
 
+print(corr(0,:)+" "+corr(1,:))
+
 best_config = maxind(corr(0,:))
 print("BEST: "+corr(0,best_config)+" "+corr(1,best_config))
 zp = corr(1,best_config)
@@ -291,7 +326,8 @@ print("exppr: "+exppr)
 print("cen_lat: "+psminlat)
 print("cen_lat: "+psminlon)
 print("modify_q: "+modify_q)
-print("modify_q_mult: "+modify_q_mult)      
+print("modify_q_mult: "+modify_q_mult)
+print("--------------------------")
 
 ; write to namelist
 WHICHSED="sed"
@@ -323,9 +359,9 @@ system("echo 'exppr = "+exppr+"' >> "+pthi)
 
 print("overwrite ps cen lat and lon...")
 ; overwrite psminlat and psminlon since we needed those to begin with!
-system(WHICHSED+" -i 's?.*psminlat=.*?psminlat="+psminlat+"?' "+pthi)
-system(WHICHSED+" -i 's?.*psminlon=.*?psminlon="+psminlon+"?' "+pthi)
-  
+system(WHICHSED+" -i 's?.*psminlat[[:space:]]*=[[:space:]]*.*?psminlat = "+psminlat+"?' "+pthi)
+system(WHICHSED+" -i 's?.*psminlon[[:space:]]*=[[:space:]]*.*?psminlon = "+psminlon+"?' "+pthi)
+
 print("************* --------------------------")
 
 ; BEST CONFIG PROFILE CALCULATION
@@ -338,7 +374,6 @@ do ii=0,dimsizes(mylon)-1
   anlPS(ii) = totype(tmp(4),typeof(anlPS))
 end do
 anlT_anom = anlT(:,0) - anlT(:,dimsizes(mylon)-1)
-
 
 ; ===================PLOTTING==============
 
@@ -354,8 +389,8 @@ if (debug) then
 
   res1=res
   res2=res
-  res1@trYReverse = True 
-  res2@trYReverse = True 
+  res1@trYReverse = True
+  res2@trYReverse = True
   res1@trXMinF = -10.
   res1@trXMaxF = 10.
   res1@trYMinF = 100.
@@ -388,4 +423,4 @@ print("PSL total RSMD: "+dim_rmsd_n(anlPS,rad_psl,0))
 
 status_exit(9)
 
-end 
+end
