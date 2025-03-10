@@ -23,3 +23,9 @@ NMONTHS=60
 #./auto-script.sh 0 1 20130910 12 1 -1 nl.landspinup.mpas
 #./auto-script.sh 0 1 20120825 12 1 -1 -1 nl.landspinup.mpas
 #./auto-script.sh 0 1 20080818 12 1 -1 -1 nl.landspinup.mpas
+
+# Testing Derecho
+#./auto-script.sh 0 1 20000113 48 3 2080 1996 nl.landspinup.derecho
+#./auto-script.sh 0 1 20000113 48 3 -1 -1 nl.landspinup.derecho
+#./auto-script.sh 0 0 20050902 36 1 2080 1996 nl.landspinup.derecho
+#./auto-script.sh 0 0 20050902 36 1 -1 -1 nl.landspinup.derecho
