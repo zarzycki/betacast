@@ -46,7 +46,7 @@ wgtFileDir = args.WGTFILEDIR
 flip_model_and_analysis = args.FLIP_MODEL_AND_ANALYSIS
 
 # Validate anlgrid
-valid_anlgrids = ["era5_0.25x0.25", "era5_0.3gaus", "gfs_0.25x0.25", "gfs_0.50x0.50", "rap_13km", "hrrr_3km", "hwrf_storm"]
+valid_anlgrids = ["era5_0.25x0.25", "era5_0.3gaus", "era5_2deg", "gfs_0.25x0.25", "gfs_0.50x0.50", "rap_13km", "hrrr_3km", "hwrf_storm"]
 if anlgrid not in valid_anlgrids:
     logging.error(f"Unsupported analysis grid: {anlgrid}")
     exit()

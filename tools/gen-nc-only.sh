@@ -9,19 +9,19 @@ mapping_files_path=$PWD
 # For E3SM, np is the gridfile, pg is the topofile
 modelgridfile="/glade/u/home/zarzycki/work/CESM_files/grids/scrip/SnowEater_WUS_30x8_np4_scrip.nc"
 MODEL_TOPO_FILE="/glade/u/home/zarzycki/work/CESM_files/topo/USGS-gtopo30_SnowEater_WUS_30x8np4pg2_x6t.nc"
-SE_INIC="/glade/derecho/scratch/zarzycki/SnowEater_WUS_30x8np4_L80_inic.nc"
+SE_INIC="/glade/derecho/scratch/zarzycki/SnowEater_WUS_30x8np4_L32_inic.nc"
 
 # Model configuration
 DYCORE="se"
 ADJUST_CONFIG="a"
-NUM_LEVELS=80
-YYYYMMDDHH=2005082800
+NUM_LEVELS=32
+YYYYMMDDHH=2005082900
 
 # Source data configuration
-DATASOURCE="ERA5RDA"
-RLLSOURCEGRID="era5_0.25x0.25"
-DATA_FILENAME="${TEST_FILES_DIR}/ds633.0/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
-RDA_DIR="${TEST_FILES_DIR}/ds633.0/"
+DATASOURCE="SAMPLE"
+RLLSOURCEGRID="era5_2deg"
+DATA_FILENAME="${BETACAST}/grids/samples/ERA5_2005082900_strided.nc"
+RDA_DIR=""
 
 # Python paths and directories
 PY_REMAPPING_PATH=${BETACAST}/py_remapping
