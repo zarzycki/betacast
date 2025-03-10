@@ -17,6 +17,18 @@ Reference: C. M. Zarzycki and C. Jablonowski. Experimental tropical cyclone fore
 
 🔴 **IMPORTANT NOTE**: This README assumes some level of familiarity with CESM and/or E3SM. If a user has not used either model before, they are encouraged to view available tutorial materials before proceeding with Betacast.
 
+### Dependencies
+
+Betacast primarily depends on standard scientific and meteorology / climate science Python libraries. On machines at NCAR and NERSC, using environments like `npl` or `e3sm_unified` generally suffice. However, you may also install your own Betacast environment by following one of the below commands. `conda` is more standard, but I find `mamba` to be faster and deal with conflicts more gracefully.
+
+```
+conda env create -f environment.yaml
+```
+
+```
+mamba env create -f environment.yaml
+```
+
 ## Workflow
 
 1. Create a case directory with either a supported or new grid configuration and verify that it is stable/runs given arbitrary inputs.
@@ -283,9 +295,9 @@ cd ~/betacast/atm_to_cam/getECMWFdata
 
 ```$ ./betacast.sh machine_files/machine.cheyenne namelists/nl.ne30.chey output_streams/output.generic```
 
-The above command runs Betacast on a login or interactive node. However, a more practical approach is to run Betacast in *nohup* mode, as it is lightweight, unobtrusive, and can be easily restarted when using *resubmit* mode.  
+The above command runs Betacast on a login or interactive node. However, a more practical approach is to run Betacast in *nohup* mode, as it is lightweight, unobtrusive, and can be easily restarted when using *resubmit* mode.
 
-Alternatively, you can create a batch submission script that automates the process. This script would submit the Betacast command and include logic to resubmit itself upon the successful completion of a single forecast, ensuring continuous execution without manual intervention.  
+Alternatively, you can create a batch submission script that automates the process. This script would submit the Betacast command and include logic to resubmit itself upon the successful completion of a single forecast, ensuring continuous execution without manual intervention.
 
 This ends the Betacast workflow.
 
