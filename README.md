@@ -6,20 +6,29 @@
 
 Reference: C. M. Zarzycki and C. Jablonowski. Experimental tropical cyclone forecasts using a variable-resolution global model. *Monthly Weather Review*, 1430 (10):0 4012--4037, 2015. 10.1175/MWR-D-15-0159.1.
 
+### Conceptual Overview
+
+```
+[INPUT DATA]  →   [BETACAST]     →    [MODEL SIMULATION]
+   ERA5         ↓ Regridding           Weather Forecast
+   GFS          ↓ Balancing            Hindcast
+   CFSR         ↓ Configuration        Attribution Study
+```
+
 🔴 **IMPORTANT NOTE**: This README assumes some level of familiarity with CESM and/or E3SM. If a user has not used either model before, they are encouraged to view available tutorial materials before proceeding with Betacast.
 
-### Workflow
+## Workflow
+
 1. Create a case directory with either a supported or new grid configuration and verify that it is stable/runs given arbitrary inputs.
-2. Build an analysis/reanalysis grid to model grid weight file.
-3. Set up namelist files.
+2. Set up namelist files.
     1. Edit/create machine file for your particular system.
     2. Create namelist file for your particular use case.
     3. Edit/create output streams file.
-4. Set up Betacast data folder structure.
-5. If running historical simulations, edit dates.txt
-    1. Pre-stage atmospheric data if necessary.
-6. Decide how to handle land initialization.
-7. Run Betacast.
+3. Set up Betacast data folder structure.
+4. If running historical simulations, edit dates.txt
+    1. Pre-stage atmospheric data (if necessary).
+5. Decide how to handle land initialization.
+6. Run Betacast.
 
 The first step is to create a functional F compset. Broadly, this is **active atmosphere, active land, active runoff (optional) and data ocean/ice**. Other configurations may work (e.g., active wave, glacier models) but have not been tested. B compsets (fully coupled) should work, but betacast does not initialize the ocean model at this time, so it would rely on the namelist default provided by the modeling system.
 
@@ -59,10 +68,10 @@ ${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} nuopc clm
 
 NOTE: The above uses the "nuopc" driver. Releases <=CESM2.2 use "mct" by default.
 
-**E3SMv2 example:**
+**E3SMv2/3 example:**
 
 <!--
-MODELROOT=/global/homes/c/czarzyck/E3SM-20230714/
+MODELROOT=/global/homes/c/czarzyck/scratch/E3SM-v3.0.2/
 BETACAST=~/betacast/
 PROJECTID=m2637
 CASESDIR=/global/homes/c/czarzyck/F-runs/
@@ -85,7 +94,7 @@ Some notes:
 `$ patch lnd_comp_mct.F90 < ${BETACAST}/patches/lnd_comp_mct.patch`
 over the top of the file, which injects the correct logic. A similar procedure is used if you want runoff model restart files using `rof_comp_mct.patch`. **This needs to be done before the `./case.build` step.**
 2. For E3SM, current suggested compsets are: F2010C5-CMIP6-HR (ne120, VR) and F2010C5-CMIP6-LR (ne30). For SCREAM, these are FSCREAM-LR and FSCREAM-HR, respectively.
-3. E3SMv2 (tags from approximately October 2020 onward) are only officially supported. E3SMv1 is effectively supported by choosing modelSystem = 0, although continual updates to support the evolution of EAM and ELM seperately from CAM and CLM/CTSM may eventually break this backwards compatibility.
+3. E3SMv2/3 (tags from approximately October 2020 onward) are only officially supported. E3SMv1 is effectively supported by choosing modelSystem = 0, although continual updates to support the evolution of EAM and ELM seperately from CAM and CLM/CTSM may eventually break this backwards compatibility.
 4. For running with the runoff turned on, it may be necessary to create a new compset with MOSART (or other runoff model like RTM) instead of SROF (stub runoff). An example for E3SMv2 is:
 
 	    <compset>
@@ -95,24 +104,7 @@ over the top of the file, which injects the correct logic. A similar procedure i
 
 5. More notes to come?
 
-### 2. Generate an analysis/reanalysis to CAM weight file
-
-Betacast needs a file (ESMF format) that provides high-order weights to take the analysis data (e.g., ERA5, GFS) and horizontally remap it to the target grid (e.g., CAM, EAM).
-
-This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`. This script requires **four** inputs that are directly modified in the script body.
-
-- `dstGridName` a shortname describing the model grid (for naming purposes only).
-- `dstGridFile` a full path to a file defining the destination model grid.
-- `anlgrid` is the type of analysis and corresponding grid resolution (*three* are supported, see below).
-- `wgtFileDir` is the directory where the weight file should be saved after being generated (this will dictate the path + file used in `anl2mdlWeights` in the next section.
-
-`dstGridFile` can be one of *three* formats. It can be a **SCRIP grid file** (contains variables like grid_corner_lat), an **ESMF grid file** (contains variables like nodeCoords), or an **SE/HOMME model output file** (contains dimension ncol). The script will automatically attempt to determine the type of file and create remapping weights accordingly.
-
-Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS 2017-). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/remapping/anl_scrip/`.
-
-🔴 **IMPORTANT NOTE**: The CAM weight file needs to be the model grid read during initialization. This is particularly important to note for grids like FV (which has staggered winds) and SE/HOMME (which has dual grids for the dynamics and physics). In the case of SE/HOMME runs, the destination grid is defined by the *physics* grid.
-
-### 3. Edit namelists
+### 2. Edit namelists
 
 There is a rudimentary namelist capability betacast uses via Bash. Ideally, this would be in Python or something else but for now this is sufficent.
 
@@ -128,9 +120,9 @@ Each VALUE line is read in, splitting on ` = `.
 2. If you want to pass an empty string in, you must define the key as `"___"` (three underscores) since spaces break the splitting.
 3. Namelist files may include comments by specifying `#` as the first character of a line.
 
-### 3.1 Edit machine file for your particular system
+### 2.1 Edit machine file for your particular system
 
-In `${BETACAST}/machine_files` there are sample files that define where folders and data files will be stored for your system. There are suggested configurations for Cheyenne and Cori-NERSC, but you may edit these for your workflow or copy/paste for a different system (i.e., university cluster).
+In `${BETACAST}/machine_files` there are sample files that define where folders and data files will be stored for your system. There are suggested configurations for NCAR Derecho and NERSC Perlmutter, but you may edit these for your workflow or copy/paste for a different system (i.e., university cluster).
 
 | Namelist Variable | Description |
 | --- | --- |
@@ -138,7 +130,7 @@ In `${BETACAST}/machine_files` there are sample files that define where folders 
 | path\_to\_inputdata | Path to where re/analysis + model initial conditions/forcing data is stored |
 | path\_to\_rundir | Path (top-level) to directory where CESM actively runs |
 
-### 3.2 Edit namelist file for your particular case
+### 2.2 Edit namelist file for your particular case
 
 In `${BETACAST}/namelist_files` there are sample files that define the forecast configuration. This is the primary location where run settings are specified. Betacast uses a general philosophy that 0 = false/no and 1 = true/yes.
 
@@ -177,7 +169,8 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | save\_nudging\_files | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs |  | false |
 | landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |  | "NULL" |
 | predict\_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |  | false |
-| anl2mdlWeights | Full path name of weights file for analysis -> model regridding (see previous section) | Y | " " |
+| modelgridfile | SCRIP grid file that defines the 2-D target model grid | Y* | " " |
+| anl2mdlWeights | Full path name of weights file for analysis -> model regridding |  | " " |
 | PROJECTID | Project ID for run submissions | Y | |
 | FILTERWALLCLOCK | Wall clock time for filter run |  | "00:29:00" |
 | FILTERQUEUE | Submission queue for filter run |  | "batch" |
@@ -200,8 +193,25 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | m2m\_sstice\_year\_start | SST stream start year when reproducing DOCN run (sstDataType=9) |  | |
 | m2m\_sstice\_year\_end | SST stream end year when reproducing DOCN run (sstDataType=9) |  | |
 
+<font size="2">
+*Betacast offers two methods for handling weight files used in remapping. It is up to the user to choose.
 
-### 3.3 Edit output streams
+1. Using a pre-generated weight file (instructions below)
+	- If you provide a valid **ESMF weight** file through the `anl2mdlWeights` parameter, Betacast will use this file for remapping
+	- This option takes precedence over any value set in `modelgridfile`
+2. Internal weight file generation (recommended)
+	- If `anl2mdlWeights` is not provided, Betacast will generate a weight file internally
+	- This internal generation requires a valid `modelgridfile` in a **SCRIP format** to be specified
+	- The weight file will be created based on the grid information in `modelgridfile`
+</font>
+
+An example of a "minimalist" namelist would therefore be:
+
+```
+casename = XXXX
+```
+
+### 2.3 Edit output streams
 
 In `output_streams`, you can generate a text file that specifies output streams that are to be appended to the model namelist. Some sample options for CESM are included in the repo.
 
@@ -213,7 +223,7 @@ mfilt=1
 fincl1='PS:I',U10:I','PRECT:I'
 ```
 
-### 4. Set up data folder structure
+### 3. Set up data folder structure
 
 Betacast requires a 'permanent' directory structure for which to download analysis data and write forcing data for the model. This does not have to be backed up but may be beneficial to not be truly on scratch space if simulations are to be carried out over a longer period of time.
 
@@ -221,7 +231,7 @@ Directories required are named in the machine namelist file (see 3.1 above). The
 `$ ./tools/setup_data_dirs.sh ../machine_files/machine.MYMACHINEFILE`
 from the top-level directory of Betacast. **This only needs to be done once per user per system.**
 
-### 5. Dates file
+### 4. Dates file
 
 If not running in real-time, dates to be simulated are passed into the script via a text file in `${BETACAST}/dates/` in a file named `dates.${CASENAME}.txt`. Currently only 00Z and 12Z cycles are fully supported in order to minimize disk writes associated with restart files at intermediate cycles.
 
@@ -245,11 +255,11 @@ Workflow when `islive` is false is:
 3. If not **2**, look for `datestemplate` in namelist *AND* that `datestemplate` exists. If yes, copy to `{BETACAST}/dates/dates.${CASENAME}.txt`.
 4. If not **1**, **2**, or **3**, exit.
 
-### 5.1. Pre-stage atmospheric analysis data (optional)
+### 4.1. Pre-stage atmospheric analysis data (optional)
 
 Pre-staging the data consists of pulling the atmospheric data from an external server, renaming it, doing some basic file concatenation, variable arrangment, etc. and placing it into the relevant betacast folder. Doing so minimizes issues with attempting to download data from external servers at run-time, which can lead to crashes due to invalid credentials and other issues.
 
-An example of pre-staging data is shown using ERA5. The pre-stage code in this case requires python3 and cdsapi.
+An example of pre-staging data is shown using ERA5. The pre-stage code in this case requires python3 and cdsapi (plus a token from ECMWF in `.cdsapirc`).
 
 ```
 # Example on Cheyenne of loading python + cdsapi (part of NCAR suite)
@@ -265,15 +275,19 @@ cd ~/betacast/atm_to_cam/getECMWFdata
 ./prestage-ERA5.sh /glade/work/${LOGNAME}/sewx/ECMWF/ 2011082512
 ```
 
-### 6. Land initialization specification
+### 5. Land initialization specification
 
 [Land initialization link](#lnd_initial_conditions)
 
-### 7. Run Betacast
+### 6. Run Betacast
 
 ```$ ./betacast.sh machine_files/machine.cheyenne namelists/nl.ne30.chey output_streams/output.generic```
 
-This ends the betacast workflow.
+The above command runs Betacast on a login or interactive node. However, a more practical approach is to run Betacast in *nohup* mode, as it is lightweight, unobtrusive, and can be easily restarted when using *resubmit* mode.  
+
+Alternatively, you can create a batch submission script that automates the process. This script would submit the Betacast command and include logic to resubmit itself upon the successful completion of a single forecast, ensuring continuous execution without manual intervention.  
+
+This ends the Betacast workflow.
 
 ---
 
@@ -487,6 +501,25 @@ cp -v ${ICASENAME}.mosart.r.*.nc ${LANDFILEDIR}
 cd ${LANDFILEDIR}
 rename ${ICASENAME} ${CASENAME} *.nc
 ```
+
+## Generate an analysis/reanalysis to CAM weight file
+
+**As of 1/2025, Betacast will automatically generate an analysis -> reanalysis weight file if using a supported analysis dataset (e.g., ERA5, GFS, CFSR, etc.). To leverage this funcationality, you must pass in `modelgridfile` via the namelist which points to a SCRIP grid that defines the 2-D target mesh. If you are using an unsupported grid *or* you want to use a different interpolation procedure, you may generate a file using the below instructions and pass in the actual weight file via `anl2mdlWeights` -- Betacast will bypass the internal weight generation and just use `anl2mdlWeights` for the remapping.** The original instructions for this are reproduced below.
+
+Betacast needs a file (ESMF format) that provides high-order weights to take the analysis data (e.g., ERA5, GFS) and horizontally remap it to the target grid (e.g., CAM, EAM).
+
+This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`. This script requires **four** inputs that are directly modified in the script body.
+
+- `dstGridName` a shortname describing the model grid (for naming purposes only).
+- `dstGridFile` a full path to a file defining the destination model grid.
+- `anlgrid` is the type of analysis and corresponding grid resolution (*three* are supported, see below).
+- `wgtFileDir` is the directory where the weight file should be saved after being generated (this will dictate the path + file used in `anl2mdlWeights` in the next section.
+
+`dstGridFile` can be one of *three* formats. It can be a **SCRIP grid file** (contains variables like grid_corner_lat), an **ESMF grid file** (contains variables like nodeCoords), or an **SE/HOMME model output file** (contains dimension ncol). The script will automatically attempt to determine the type of file and create remapping weights accordingly.
+
+Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS 2017-). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/remapping/anl_scrip/`.
+
+🔴 **IMPORTANT NOTE**: The CAM weight file needs to be the model grid read during initialization. This is particularly important to note for grids like FV (which has staggered winds) and SE/HOMME (which has dual grids for the dynamics and physics). In the case of SE/HOMME runs, the destination grid is defined by the *physics* grid.
 
 
 ## Running with the climate change 'deltas' code
