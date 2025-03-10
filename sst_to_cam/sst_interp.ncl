@@ -79,9 +79,12 @@ end if
 
 if (datasource .eq. "GDAS") then
   sst_file = addfile(sstDataFile,"r")
-  sstlat = sst_file->lat_0
-  sstlon = sst_file->lon_0
-  sst_gfs = sst_file->TMP_P0_L1_GLL0(:,:)
+  sstlat = sst_file->lat
+  sstlon = sst_file->lon
+  sst_gfs = sst_file->t(0,:,:)
+  ;sstlat = sst_file->lat_0
+  ;sstlon = sst_file->lon_0
+  ;sst_gfs = sst_file->TMP_P0_L1_GLL0(:,:)
   ; handle ice
   print("For GDAS, set all native cells less than "+TTHRESH+" to ice covered")
   ice_gfs = sst_gfs
