@@ -1,16 +1,18 @@
 ### ELM on PM-CPU
-CIMEROOT=/global/homes/c/czarzyck/E3SM-20230714/
+CIMEROOT=/global/homes/c/czarzyck/E3SM-v2.1.0/
 PATHTOCASE=~/I-runs
-ICASENAME=PNW-ICLM45-RESSTRING-101
+ICASENAME=LANDFALL
 PROJECT=m2637
 MACHINE=pm-cpu
 NNODES=12
-RESOL=ne0conus30x8_ne0conus30x8_t12
+RESOL=tc001lf32x4pg2_ne128pg2
 RUNQUEUE=regular
-WALLCLOCK="11:57:00"
-USER_FSURDAT="/global/homes/c/czarzyck/m2637/betacast/cesmfiles/clm_surfdata_4_5/surfdata_conus_30_x8_simyr2015_c201027.nc"
-USER_FINIDAT=""
+WALLCLOCK="03:00:00"
+USER_FSURDAT="/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/fsurdat/surfdata_ne128pg2_simyr2010_c240216.nc"
+#USER_FINIDAT=""
 ### Only required if doERA5 = 0
 BETACAST=/global/homes/c/czarzyck/betacast/
-BETACAST_DATM_FORCING_BASE=/global/cfs/cdirs/m2637/DATM_FORCING/
-
+BETACAST_DATM_FORCING_BASE=/global/cfs/cdirs/m2637/DATM_FORCING/ERA5/
+##BETACAST_DATM_FORCING_BASE=/global/cfs/cdirs/m2637/DATM_FORCING/CHEY.VR28.NATL.REF.CAM5.4CLM5.0.dtime900/
+BETACAST_DATM_ANOMALY_BASE=/global/cfs/cdirs/m2637/DATM_FORCING/ANOM_LENS/
+BUILD_ONLY=False
