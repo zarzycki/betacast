@@ -1,0 +1,26 @@
+  casename = F-betacast-F2010-CICE
+  path_to_case = /global/homes/c/czarzyck/F-runs/!CASENAME!/
+
+  datestemplate = dates.WUS.starting.txt
+
+  modelSystem = 1
+
+  atmDataType = 4
+  sstDataType = 3
+
+  numLevels = 80
+  numdays = 5
+
+  adjust_topo = /global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc
+  adjust_flags = a
+
+  modelgridfile = /global/homes/c/czarzyck/betacast/remapping/model_scrip/ne30np4_091226_pentagons.nc
+
+  PROJECTID = m2637
+  RUNWALLCLOCK = 00:30:00
+  RUNQUEUE = debug
+
+  use_nsplit = false
+  DTIME = 1800.0
+  FINERES = 30
+  USERSTAB = 300.0
