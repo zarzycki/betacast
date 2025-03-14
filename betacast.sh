@@ -36,6 +36,8 @@ SCRIPTPATH=$(dirname "$(realpath "$0")")
 echo "Our script path is $SCRIPTPATH"
 source ${SCRIPTPATH}/utils.sh         # Source external bash functions
 source ${SCRIPTPATH}/datahelpers.sh   # Source external bash functions
+export BETACAST=${SCRIPTPATH}
+echo "BETACAST exported as $BETACAST"
 
 # Set files
 MACHINEFILE=${1}
@@ -75,7 +77,7 @@ gfs_to_cam_path=${SCRIPTPATH}/gfs_to_cam
 era_to_cam_path=${SCRIPTPATH}/interim_to_cam
 atm_to_cam_path=${SCRIPTPATH}/atm_to_cam
 sst_to_cam_path=${SCRIPTPATH}/sst_to_cam
-filter_path=${SCRIPTPATH}/filter
+filter_path=${atm_to_cam_path}/filter
 ###################################################################################
 
 ### setting variables not included in namelist for backwards compat
@@ -126,8 +128,11 @@ if [ -z "${m2m_remap_file+x}" ]; then m2m_remap_file=""; fi
 
 echo "DO_PYTHON set to $DO_PYTHON"
 if [ "$DO_PYTHON" = true ]; then
+  # Update default paths to point to python folders
   atm_to_cam_path=${SCRIPTPATH}/py_atm_to_cam
   sst_to_cam_path=${SCRIPTPATH}/py_sst_to_cam
+  # Update paths that relied on atm_to_cam_path or sst_to_cam_path
+  filter_path=${atm_to_cam_path}/filter
 fi
 
 ### Set correct E3SM/CESM split
@@ -1204,17 +1209,27 @@ if [ "$doFilter" = true ] ; then
     run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs" true
 
     ## Run NCL filter
-    cd $filter_path
-    echo "Running filter"
+    echo "Running filter, currently in $PWD"
     cp -v ${sePreFilterIC} ${sePostFilterIC}
     filtfile_name=${casename}.${atmName}.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
-    set +e
-    (set -x; ncl lowmemfilter.ncl \
-     endhour=${filterHourLength} tcut=${filtTcut} \
-    'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
-    'writefile_name = "'${sePostFilterIC}'"' ) ; exit_status=$?
-    check_ncl_exit "lowmemfilter.ncl" $exit_status
-    set -e
+
+    if [ "$DO_PYTHON" = true ]; then
+      (set -x; python $filter_path/lowmemfilter.py \
+          --endhour ${filterHourLength} \
+          --tcut ${filtTcut} \
+          --filtfile_name "${path_to_rundir}/${filtfile_name}" \
+          --writefile_name "${sePostFilterIC}"
+      )
+    else
+      set +e # Turn off error check
+      (set -x; ncl $filter_path/lowmemfilter.ncl \
+       endhour=${filterHourLength} tcut=${filtTcut} \
+      'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
+      'writefile_name = "'${sePostFilterIC}'"' ) ; exit_status=$?
+      check_ncl_exit "lowmemfilter.ncl" $exit_status
+      set -e # Turn on error check
+    fi
+
   fi  # debug
 
   echo "done with filter, removing filter files"
@@ -1224,7 +1239,7 @@ if [ "$doFilter" = true ] ; then
   find $path_to_nc_files/filtered/ -type f -not -name '*.${atmName}.h0.*.nc' | xargs rm
 
   ## For now, I'm going to go back and delete all the h0 files in filtered
-  #rm -v $path_to_nc_files/filtered/*.${atmName}.h0.*.nc
+  rm -v $path_to_nc_files/filtered/*.${atmName}.h0.*.nc
 
   ### Output filter files only, can be used for ensemble or other initialization after the fact
   if [ "$filterOnly" = true ] ; then
