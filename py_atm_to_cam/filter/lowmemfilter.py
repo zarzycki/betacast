@@ -3,11 +3,17 @@
 Filter script for Betacast init.
 """
 
+import os
 import sys
 import numpy as np
 import xarray as xr
 import argparse
 import logging
+
+module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..', 'py_functions'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
+import pyfuncs
 
 # Configure logging
 logging.basicConfig(
