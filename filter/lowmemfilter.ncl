@@ -8,7 +8,7 @@ print("Using filter file: "+filtfile_name)
 print("Will output post-filter file here: "+writefile_name)
 
 
-filtfile = addfile(filtfile_name,"r")  
+filtfile = addfile(filtfile_name,"r")
 writefile = addfile(writefile_name,"w")
 vars = (/"PS","T","U","V","Q","CLDLIQ","CLDICE"/)
 
@@ -120,20 +120,20 @@ print("Doing "+thisVar)
 x = filtfile->$thisVar$
 
 if (thisVar .eq. "PS") then
-  x_filt = new((/1,ncol/),double)
+  x_filt = new((/1,ncol/),typeof(x))
 else
-  x_filt = new((/1,nlev,ncol/),double)
+  x_filt = new((/1,nlev,ncol/),typeof(x))
 end if
 
 i = 0
 if (thisVar .eq. "PS") then
   do i = 0,ncol-1
-    x_filt(0,i) = x(:,i)#h_k(:)
+    x_filt(0,i) = x(:,i)#totype(h_k(:),typeof(x_filt))
   end do
 else
   do i = 0,ncol-1
     do j = 0,nlev-1
-      x_filt(0,j,i) = x(:,j,i)#h_k(:)
+      x_filt(0,j,i) = x(:,j,i)#totype(h_k(:),typeof(x_filt))
     end do
   end do
 end if
@@ -153,5 +153,5 @@ end do
 print("done")
 
 status_exit(9)
- 
+
 end
