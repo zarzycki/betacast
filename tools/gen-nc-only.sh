@@ -1,27 +1,29 @@
 #!/bin/bash
 
 # Environment variables
-export BETACAST=/glade/u/home/zarzycki/scratch/betacast/
-TEST_FILES_DIR=/glade/campaign/univ/upsu0032/betacast_test_files/
-DEBUG_FILE_DIR=/glade/u/home/zarzycki/scratch/tmp_betacast/
+export BETACAST=/global/homes/c/czarzyck/betacast/
 mapping_files_path=$PWD
 
 # For E3SM, np is the gridfile, pg is the topofile
-modelgridfile="/glade/u/home/zarzycki/work/CESM_files/grids/scrip/SnowEater_WUS_30x8_np4_scrip.nc"
-MODEL_TOPO_FILE="/glade/u/home/zarzycki/work/CESM_files/topo/USGS-gtopo30_SnowEater_WUS_30x8np4pg2_x6t.nc"
-SE_INIC="/glade/derecho/scratch/zarzycki/SnowEater_WUS_30x8np4_L32_inic.nc"
+modelgridfile="/global/homes/c/czarzyck/betacast/remapping/model_scrip/ne30np4_091226_pentagons.nc"
+MODEL_TOPO_FILE="/global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc"
+SE_INIC="/pscratch/sd/c/czarzyck/SAMPLE_ne30np4_L80_inic.nc"
 
 # Model configuration
 DYCORE="se"
 ADJUST_CONFIG="a"
-NUM_LEVELS=32
+NUM_LEVELS=80
 YYYYMMDDHH=2005082900
 
 # Source data configuration
-DATASOURCE="SAMPLE"
-RLLSOURCEGRID="era5_2deg"
-DATA_FILENAME="${BETACAST}/grids/samples/ERA5_2005082900_strided.nc"
-RDA_DIR=""
+# DATASOURCE="SAMPLE"
+# RLLSOURCEGRID="era5_2deg"
+# RDA_DIR=""
+# DATA_FILENAME="${BETACAST}/grids/samples/ERA5_2deg_L21_sample.nc"
+DATASOURCE="ERA5RDA"
+RLLSOURCEGRID="era5_0.25x0.25"
+RDA_DIR="/global/cfs/projectdirs/m3522/cmip6/ERA5/"
+DATA_FILENAME="${RDA_DIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
 
 # Python paths and directories
 PY_REMAPPING_PATH=${BETACAST}/py_remapping
@@ -82,9 +84,7 @@ time python ${ATM_TO_CAM_PATH}/atm_to_cam.py \
     --adjust_config "${ADJUST_CONFIG}" \
     --model_topo_file "${MODEL_TOPO_FILE}" \
     --se_inic "${SE_INIC}" \
-    --verbose \
-    --write_debug_files \
-    --write_debug_dir "${DEBUG_FILE_DIR}"
+    --verbose
 
 if [ "$write_weights" = "true" ]; then
   echo "Removing temporary weights..."
