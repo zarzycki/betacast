@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Low memory filter script for netCDF files.
-Python equivalent of the original NCL script.
+Filter script for Betacast init.
 """
 
 import sys
@@ -17,6 +16,9 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 logger = logging.getLogger(__name__)
+
+# Define fill value constant to match NCL
+NC_FLOAT_FILL = 9.96921e+36
 
 def parse_args():
     """
@@ -101,9 +103,12 @@ def apply_filter(x, h_k, thisVar, nlev, ncol):
     Returns:
         np.ndarray: Filtered data
     """
+    # Get the input data type
+    dtype = x.dtype
+
     if thisVar == "PS":
         # PS is a 2D variable (time, ncol)
-        x_filt = np.zeros((1, ncol), dtype=np.float64)
+        x_filt = np.zeros((1, ncol), dtype=dtype)
 
         # Apply filter to each column using vectorized operations
         for i in range(ncol):
@@ -111,7 +116,7 @@ def apply_filter(x, h_k, thisVar, nlev, ncol):
 
     else:
         # Other variables are 3D (time, lev, ncol)
-        x_filt = np.zeros((1, nlev, ncol), dtype=np.float64)
+        x_filt = np.zeros((1, nlev, ncol), dtype=dtype)
 
         # Apply filter to each level and column
         for i in range(ncol):
@@ -147,58 +152,6 @@ def get_dimensions(filtfile):
 
     return nlev, ncol, time, numtime
 
-def create_variable_in_dataset(writefile, thisVar, x_filt, time, nlev, ncol, filtfile):
-    """
-    Create a variable in the output dataset with appropriate dimensions and attributes.
-
-    Args:
-        writefile: Output dataset
-        thisVar: Variable name
-        x_filt: Filtered data
-        time: Time coordinate values
-        nlev: Number of vertical levels
-        ncol: Number of columns
-        filtfile: Input dataset for copying coordinates and attributes
-    """
-    if thisVar == "PS":
-        # PS is a 2D variable (time, ncol)
-        writefile[thisVar] = xr.DataArray(
-            x_filt,
-            dims=['time', 'ncol'],
-            coords={
-                'time': [time[0]],  # Use first time step
-                'ncol': np.arange(ncol) if 'ncol' not in filtfile.dims else filtfile['ncol']
-            }
-        )
-    else:
-        # Other variables are 3D (time, lev, ncol)
-        writefile[thisVar] = xr.DataArray(
-            x_filt,
-            dims=['time', 'lev', 'ncol'],
-            coords={
-                'time': [time[0]],  # Use first time step
-                'lev': np.arange(nlev) if 'lev' not in filtfile.dims else filtfile['lev'],
-                'ncol': np.arange(ncol) if 'ncol' not in filtfile.dims else filtfile['ncol']
-            }
-        )
-
-    # Copy variable attributes
-    if thisVar in filtfile.variables:
-        for attr_name in filtfile[thisVar].attrs:
-            writefile[thisVar].attrs[attr_name] = filtfile[thisVar].attrs[attr_name]
-
-
-"""
-Main function to orchestrate the filtering process.
-
-This function:
-1. Parses command line arguments
-2. Opens the input netCDF file
-3. Calculates filter coefficients
-4. Applies the filter to each variable
-5. Writes the filtered data to the output netCDF file
-"""
-
 # Parse command line arguments
 args = parse_args()
 
@@ -217,6 +170,20 @@ logger.info(f"Will output post-filter file here: {writefile_name}")
 logger.info("Opening input file...")
 filtfile = xr.open_dataset(filtfile_name)
 
+# Read the output file - this file should already exist (created by cp command)
+output_ds = xr.open_dataset(writefile_name)
+
+# Fix lat/lon arrays if they exist in the filtfile but are zeros in output_ds
+if 'lat' in filtfile and 'lat' in output_ds:
+    if np.all(output_ds.lat == 0) and not np.all(filtfile.lat == 0):
+        logger.info("Updating lat values from input file")
+        output_ds['lat'] = filtfile['lat']
+
+if 'lon' in filtfile and 'lon' in output_ds:
+    if np.all(output_ds.lon == 0) and not np.all(filtfile.lon == 0):
+        logger.info("Updating lon values from input file")
+        output_ds['lon'] = filtfile['lon']
+
 # Define variables to filter
 vars = ["PS", "T", "U", "V", "Q", "CLDLIQ", "CLDICE"]
 
@@ -227,8 +194,8 @@ logger.info(f"Input dimensions: nlev={nlev}, ncol={ncol}, numtime={numtime}")
 # Calculate filter coefficients
 h_k = calculate_filter_coefficients(numtime, endhour, tcut)
 
-# Create output dataset
-writefile = xr.Dataset()
+# Prepare encoding dictionary for each variable
+encoding = {}
 
 # Process each variable
 for z in range(len(vars)):
@@ -244,18 +211,25 @@ for z in range(len(vars)):
 
         logger.info(f"Writing {thisVar}...")
 
-        # Create variable in output dataset
-        create_variable_in_dataset(writefile, thisVar, x_filt, time, nlev, ncol, filtfile)
+        # Create the appropriate dimensions for this variable
+        if thisVar == "PS":
+            # For PS, which is 2D
+            output_ds[thisVar].values = x_filt
+        else:
+            # For 3D variables
+            output_ds[thisVar].values = x_filt
 
-    else:
-        logger.warning(f"Variable {thisVar} not found in input file")
+        # Set the encoding for this variable
+        var_dtype = output_ds[thisVar].dtype
+        encoding[thisVar] = {'_FillValue': np.array(NC_FLOAT_FILL, dtype=var_dtype)}
 
-# Copy global attributes
-for attr_name in filtfile.attrs:
-    writefile.attrs[attr_name] = filtfile.attrs[attr_name]
+# Add encoding for lat/lon if they exist
+if 'lat' in output_ds:
+    encoding['lat'] = {'_FillValue': -900.0}
+if 'lon' in output_ds:
+    encoding['lon'] = {'_FillValue': -900.0}
 
-# Write output file
+# Write the modified dataset to disk
 logger.info(f"Writing output to {writefile_name}")
-writefile.to_netcdf(writefile_name)
+output_ds.to_netcdf(path=writefile_name, mode='w', encoding=encoding)
 logger.info("done")
-sys.exit(9)
