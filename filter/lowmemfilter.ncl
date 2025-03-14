@@ -1,3 +1,29 @@
+if ismissing(getenv("BETACAST")) then
+  print("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
+  ; if we don't have BETACAST, check to see where are located...
+  ; we cannot do relative paths
+  this_script_name=get_script_name()
+  slash_index=str_index_of_substr(this_script_name, "/", -1)
+  if (.not. ismissing(slash_index)) then
+    print("The script is called from another directory")
+    print("I found: "+this_script_name+" which contains a /")
+    print("This isn't supported! Either set BETACAST as env param or run from local dir!")
+    exit
+  else
+    print("The script is called from the local directory")
+    PATHTOHERE=systemfunc("pwd")
+  end if
+  ; get BETACAST based on current dir assuming one up
+  BETACAST = systemfunc("echo $(dirname $(pwd))")
+else
+  print("Not local only!")
+  BETACAST=getenv("BETACAST")
+  PATHTOHERE=getenv("BETACAST")+"/atm_to_cam/filter/"
+end if
+
+print(""+BETACAST)
+print(""+PATHTOHERE)
+
 begin
 
 ; User-defined window cutoff value (hours)
