@@ -34,6 +34,7 @@ get_gfs_atm() {
   else
     echo "${LOCALGFSFILE} already exists, skipping download"
   fi
+  echo "... done with get_gfs_atm"
 }
 
 get_era_interim_atm() {
@@ -47,6 +48,7 @@ get_era_interim_atm() {
     echo "Support broken for auto download ERA, please prestage"
     exit 1
   fi
+  echo "... done with get_era_interim_atm"
 }
 
 get_cfsr_atm() {
@@ -84,6 +86,7 @@ get_cfsr_atm() {
     mv "pgbhnl.gdas.${yearstr}${monthstr}${daystr}${cyclestr}.grb2" "$LOCALCFSRFILE"
     rm pgbhnl.gdas.*
   fi
+  echo "... done with get_cfsr_atm"
 }
 
 get_era5_atm() {
@@ -107,7 +110,10 @@ get_era5_atm() {
       echo "Support broken for auto download ERA, please prestage!"
       exit 1
     fi
+  else
+    echo "Found a local file --> using $PWD/$LOCALGFSFILE"
   fi
+  echo "... done with get_era5_atm"
 }
 
 # Function to get GDAS SST data
@@ -145,12 +151,14 @@ get_gdas_sst() {
     echo "NCEP broke support for historical GDAS, use NOAAOI instead."
     exit 1
   fi
+  echo "... done with get_gdas_sst"
 }
 
 # Function to handle unsupported ERA SST
 get_erai_sst() {
   echo "ERA-I SST not quite supported yet..."
   exit 1
+  echo "... done with get_erai_sst"
 }
 
 # Function to get NOAAOI SST data
@@ -195,4 +203,5 @@ get_noaaoi_sst() {
       fi
     done
   fi
+  echo "... done with get_noaaoi_sst"
 }

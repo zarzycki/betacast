@@ -1142,7 +1142,7 @@ SEINIC=${sePreFilterIC}
 if [ "$doFilter" = true ] ; then
   # If filtering, need to change these options
 
-  xmlchange_verbose "STOP_OPTION" "$nhours"
+  xmlchange_verbose "STOP_OPTION" "nhours"
   xmlchange_verbose "STOP_N" "$filterHourLength"
 
   sed -i '/.*ncdata/d' user_nl_${atmName}
@@ -1153,6 +1153,7 @@ if [ "$doFilter" = true ] ; then
   echo "ATM_NCPL: $ATM_NCPL  DTIME: $DTIME"
   if [[ "$DYCORE" == "se" ]]; then
     if [ "$use_nsplit" = true ]; then # if trad. SE nsplit timestepping
+      echo "Using nsplit --> trad. SE nsplit timestepping"
       sed -i '/.*se_nsplit/d' user_nl_${atmName}
       if [ "$VALIDSTABVAL" = false ]; then
         # Use se_nsplit = -1, which is internal
@@ -1165,6 +1166,7 @@ if [ "$doFilter" = true ] ; then
         echo "se_nsplit=${SE_NSPLIT}" >> user_nl_${atmName}
       fi
     else
+      echo "Not using nsplit"
       sed -i '/.*se_tstep/d' user_nl_${atmName}
       if [ "$VALIDSTABVAL" = false ]; then
         echo "Betacast cannot handle when $VALIDSTABVAL is false and use_nsplit is false"
@@ -1204,7 +1206,7 @@ if [ "$doFilter" = true ] ; then
     ## Run NCL filter
     cd $filter_path
     echo "Running filter"
-    cp ${sePreFilterIC} ${sePostFilterIC}
+    cp -v ${sePreFilterIC} ${sePostFilterIC}
     filtfile_name=${casename}.${atmName}.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
     set +e
     (set -x; ncl lowmemfilter.ncl \
@@ -1222,18 +1224,18 @@ if [ "$doFilter" = true ] ; then
   find $path_to_nc_files/filtered/ -type f -not -name '*.${atmName}.h0.*.nc' | xargs rm
 
   ## For now, I'm going to go back and delete all the h0 files in filtered
-  rm -v $path_to_nc_files/filtered/*.${atmName}.h0.*.nc
+  #rm -v $path_to_nc_files/filtered/*.${atmName}.h0.*.nc
 
   ### Output filter files only, can be used for ensemble or other initialization after the fact
   if [ "$filterOnly" = true ] ; then
     FILTONLYDIR=${path_to_nc_files}/FILT_INIC/${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}
     mkdir -p ${FILTONLYDIR}
-    cp ${sePostFilterIC} ${FILTONLYDIR}/${casename}_FILTERED_${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
-    cp ${sstFileIC} ${FILTONLYDIR}/${casename}_SST_1x1_${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+    cp -v ${sePostFilterIC} ${FILTONLYDIR}/${casename}_FILTERED_${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
+    cp -v ${sstFileIC} ${FILTONLYDIR}/${casename}_SST_1x1_${se_yearstr}-${se_monthstr}-${se_daystr}-${se_cyclestrsec}.nc
     mkdir ${FILTONLYDIR}/config_files
-    mv ${path_to_nc_files}/*.gz ${FILTONLYDIR}/config_files
-    mv ${path_to_nc_files}/*.nml ${FILTONLYDIR}/config_files
-    mv ${path_to_nc_files}/*_in ${FILTONLYDIR}/config_files
+    mv -v ${path_to_nc_files}/*.gz ${FILTONLYDIR}/config_files
+    mv -v ${path_to_nc_files}/*.nml ${FILTONLYDIR}/config_files
+    mv -v ${path_to_nc_files}/*_in ${FILTONLYDIR}/config_files
     exit
   fi
 
