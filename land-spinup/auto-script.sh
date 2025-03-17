@@ -108,8 +108,8 @@ echo "First year of DATM data (with $NCYCLES cycles) is: "${DATM_STARTYEAR}
 
 if [ $dataForcing -eq 0 ]; then
   echo "Using ERA5 DATM"
-  DATMMINYR=1988
-  DATMMAXYR=2023
+  DATMMINYR=1980
+  DATMMAXYR=2024
 elif [ $dataForcing -eq 2 ]; then
   echo "Using Hyperion DATM"
   DATMMINYR=1984
