@@ -49,8 +49,20 @@ def get_betacast_path():
 
     if BETACAST is None:
         logging.info("BETACAST unset. Running local only. Export BETACAST env to run elsewhere")
-        # Go up one directory to get the BETACAST directory
-        BETACAST = os.path.dirname(main_script_dir)
+        # Find the betacast directory by traversing up the directory tree
+        current_dir = main_script_dir
+        found_betacast = False
+
+        while current_dir != os.path.dirname(current_dir):  # Stop at root
+            if os.path.basename(current_dir) == "betacast":
+                BETACAST = current_dir
+                found_betacast = True
+                break
+            current_dir = os.path.dirname(current_dir)
+
+        if not found_betacast:
+            logging.warning("Could not find 'betacast' directory in path. Using parent directory.")
+            BETACAST = os.path.dirname(main_script_dir)
 
     # The subfolder is the directory containing the main script
     subfolder = os.path.basename(main_script_dir)
