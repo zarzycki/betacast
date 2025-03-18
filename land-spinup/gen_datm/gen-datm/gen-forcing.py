@@ -7,22 +7,38 @@ import argparse
 import logging
 import cftime
 from datetime import datetime
+import subprocess
+import shutil
+
+import dask
+dask.config.set(scheduler='threads', num_workers=4)  # Adjust number of workers as needed
 
 # Import provided modules
+module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..', 'py_functions'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
 import meteo
 import horizremap
+import pyfuncs
 from constants import grav, Rd, gamma_s, p0
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
 logger = logging.getLogger(__name__)
+
+# Get BETACAST path
+BETACAST, PATHTOHERE = pyfuncs.get_betacast_path()
+DOMAINSPATH = os.path.join(BETACAST, 'land-spinup/gen_datm/gen-datm/')
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="Process ERA5 data for DATM forcing")
 parser.add_argument("--era5_file", required=True, help="Path to ERA5 input file")
 parser.add_argument("--year", required=True, help="Year (YYYY)")
 parser.add_argument("--month", required=True, help="Month (MM)")
-parser.add_argument("--domain_file", required=True, help="Path to domain file")
 parser.add_argument("--newgrid", action="store_true", help="Regrid to new grid")
 parser.add_argument("--wgt_filename", default="", help="Path to ESMF weight file")
 parser.add_argument("--do_q", action="store_true", help="Calculate specific humidity")
@@ -30,6 +46,7 @@ parser.add_argument("--do_flds", action="store_true", help="Include longwave dow
 parser.add_argument("--outdirbase", required=True, help="Base output directory")
 parser.add_argument("--datafilename", default="CMZERA5.v0.c2021.0.5d", help="Base name for output files")
 parser.add_argument("--greg_to_noleap", action="store_true", help="Convert from Gregorian to no-leap calendar")
+parser.add_argument("--convert_nc3", action="store_true", help="Use ncks to convert to nc3 classic")
 
 args = parser.parse_args()
 
@@ -43,11 +60,13 @@ do_flds = args.do_flds
 outdirbase = args.outdirbase
 datafilename = args.datafilename
 greg_to_noleap = args.greg_to_noleap
+convert_nc3 = args.convert_nc3
 
 # Open the domain file
+domain_file_name = f"{DOMAINSPATH}/era5-domain.nc"
 try:
-    logger.info(f"Opening domain file: {args.domain_file}")
-    d = xr.open_dataset(args.domain_file)
+    logger.info(f"Opening domain file: {domain_file_name}")
+    d = xr.open_dataset(domain_file_name)
 except Exception as e:
     logger.error(f"Error opening domain file: {e}")
     sys.exit(1)
@@ -58,12 +77,21 @@ if ((int(YYYY) % 4 == 0 and int(YYYY) % 100 != 0) or int(YYYY) % 400 == 0) and i
     logger.info(f"We have a February leap year for {YYYY} {MM}")
     is_leap_month = True
 
+# Load the base ERA5 data using dask/chunking
 try:
     logger.info(f"Adding {RAWERA5FILE} ...")
-    f = xr.open_dataset(RAWERA5FILE)
+    f = xr.open_dataset(RAWERA5FILE, chunks={'time': 'auto', 'latitude': 'auto', 'longitude': 'auto'})
 except Exception as e:
     logger.error(f"Error opening ERA5 file: {e}")
     sys.exit(1)
+
+# Rename some things if "newer" version of ERA5 data pulled from API (11/24 onwards)
+if "valid_time" in f.dims:
+    print("renaming dimension and its coordinate variable!")
+    f = f.rename({"valid_time": "time"})
+if "avg_tprate" in f.variables:
+    print("renaming!")
+    f = f.rename({"avg_tprate": "mtpr"})  # Rename variable
 
 # Get coordinates from domain file
 logger.info("Getting coordinates from domain file...")
@@ -71,8 +99,8 @@ lon_datm_2D = d.xc
 lat_datm_2D = d.yc
 
 # Assuming domain is regular lat-lon grid, pull first lat/lon to get 1D lat/lon arrays
-lon_datm = lon_datm_2D.isel(lat=0).values
-lat_datm = lat_datm_2D.isel(lon=0).values
+lon_datm = lon_datm_2D.isel(nj=0).values
+lat_datm = lat_datm_2D.isel(ni=0).values
 
 # Get coordinates from ERA5 file
 logger.info("Reading relevant coordinates from reanalysis...")
@@ -105,19 +133,39 @@ if is_leap_month and greg_to_noleap:
 time_era5 = f.time[STIX:ENIX+1:timestride]
 logger.info(f"Time range: {time_era5.values}")
 
-# Extract variables from ERA5 file
+# Extract variables from ERA5 file more efficiently
 logger.info("Pull required variables off files...")
-u10_era5 = f.u10[STIX:ENIX+1:timestride, ::-1, :].values.astype(np.float32)
-v10_era5 = f.v10[STIX:ENIX+1:timestride, ::-1, :].values.astype(np.float32)
-tbot_era5 = f.t2m[STIX:ENIX+1:timestride, ::-1, :].values.astype(np.float32)
-tdew_era5 = f.d2m[STIX:ENIX+1:timestride, ::-1, :].values.astype(np.float32)
-psrf_era5 = f.sp[STIX:ENIX+1:timestride, ::-1, :].values.astype(np.float32)
-prec_era5 = f.mtpr[STIX:ENIX+1:timestride, ::-1, :].values.astype(np.float32)
-fsds_era5 = f.ssrd[STIX:ENIX+1:timestride, ::-1, :].values.astype(np.float32)
-if do_flds:
-    flds_era5 = f.strd[STIX:ENIX+1:timestride, ::-1, :].values.astype(np.float32)
 
-# Print stats
+# Get all data at once with a single slice operation
+sliced_f = f.isel(time=slice(STIX, ENIX+1, timestride))
+
+# Reverse latitude dimension once for all variables
+sliced_f = sliced_f.isel(latitude=slice(None, None, -1))
+
+# Extract data with optimized computation
+logger.info("Extracting all variables...")
+logger.info("u10")
+u10_era5 = sliced_f.u10.values.astype(np.float32)
+logger.info("v10")
+v10_era5 = sliced_f.v10.values.astype(np.float32)
+logger.info("tbot")
+tbot_era5 = sliced_f.t2m.values.astype(np.float32)
+logger.info("tdew")
+tdew_era5 = sliced_f.d2m.values.astype(np.float32)
+logger.info("psrf")
+psrf_era5 = sliced_f.sp.values.astype(np.float32)
+logger.info("prec")
+prec_era5 = sliced_f.mtpr.values.astype(np.float32)
+logger.info("fsds")
+fsds_era5 = sliced_f.ssrd.values.astype(np.float32)
+if do_flds:
+    logger.info("flds")
+    flds_era5 = sliced_f.strd.values.astype(np.float32)
+
+# Close dataset to free memory
+logger.info("closing")
+f.close()
+
 logger.info("READ FROM ERA5 STATS:")
 logger.info(f"u10_era5 max: {np.max(u10_era5)}   min: {np.min(u10_era5)}")
 logger.info(f"v10_era5 max: {np.max(v10_era5)}   min: {np.min(v10_era5)}")
@@ -129,21 +177,17 @@ logger.info(f"fsds_era5 max: {np.max(fsds_era5)}   min: {np.min(fsds_era5)}")
 if do_flds:
     logger.info(f"flds_era5 max: {np.max(flds_era5)}   min: {np.min(flds_era5)}")
 
-# Process wind
 logger.info("Processing wind...")
 wind_era5 = np.sqrt(u10_era5**2 + v10_era5**2)
 
-# Process specific humidity if requested
 if do_q:
     logger.info("Processing Q...")
-    qbot_era5 = meteo.mixhum_ptd(psrf_era5, tdew_era5, 2)
+    qbot_era5 = meteo.mixhum_ptd(psrf_era5, tdew_era5, iswit=2)
 
-# Interpolate to new grid if requested
+# Handle grid (either interpolate or just copy)
 if newgrid:
     if wgt_filename:
         logger.info("Using ESMF mapping")
-
-        # Use the provided remap_with_weights_wrapper function for regridding
         tbot_datm, lat_datm, lon_datm = horizremap.remap_with_weights_wrapper(tbot_era5, wgt_filename)
         if do_q:
             qbot_datm, _, _ = horizremap.remap_with_weights_wrapper(qbot_era5, wgt_filename)
@@ -157,8 +201,6 @@ if newgrid:
             flds_datm, _, _ = horizremap.remap_with_weights_wrapper(flds_era5, wgt_filename)
     else:
         logger.info("Bilinear interpolation")
-
-        # Use bilinear interpolation
         tbot_datm = horizremap.linint2(lon_era5, lat_era5, tbot_era5, True, lon_datm, lat_datm)
         if do_q:
             qbot_datm = horizremap.linint2(lon_era5, lat_era5, qbot_era5, True, lon_datm, lat_datm)
@@ -305,7 +347,6 @@ else:
             logger.error("Failed to decode time, using original values")
             time_datm = time_era5.values.astype(np.float64)
 
-# Set metadata for coordinates
 lat_datm_float = lat_datm.astype(np.float32)
 lon_datm_float = lon_datm.astype(np.float32)
 
@@ -320,7 +361,6 @@ lon_datm_float_attrs = {
     "mode": "time-invariant"
 }
 
-# 2D lats and lons
 lat_datm_2D_float = lat_datm_2D.values.astype(np.float32)
 lon_datm_2D_float = lon_datm_2D.values.astype(np.float32)
 
@@ -335,7 +375,6 @@ lon_datm_2D_float_attrs = {
     "mode": "time-invariant"
 }
 
-# Set up edge variables and their attributes
 EDGEW = np.array([0.])
 EDGEE = np.array([360.])
 EDGES = np.array([-90.])
@@ -358,7 +397,6 @@ EDGEN_attrs = {
     "mode": "time-invariant"
 }
 
-# Set metadata for other variables
 tbot_datm_attrs = {
     "mode": "time-dependent",
     "units": "K",
@@ -416,7 +454,7 @@ for ii in range(len(filenames)):
     # Create output directory if it doesn't exist
     os.makedirs(os.path.join(outdirbase, outfolders[ii]), exist_ok=True)
 
-    # Remove any pre-existing file
+    # Remove any pre-existing file to be safe
     if os.path.exists(fullfilename):
         os.remove(fullfilename)
 
@@ -436,21 +474,18 @@ for ii in range(len(filenames)):
         lon_dim = lon_shape
         scalar_dim = 1
 
-    # Create a new dataset
+    # Create a new dataset and define "universal" vars
     ds = xr.Dataset()
 
-    # Add time dimension and coordinate
     ds['time'] = xr.DataArray(time_datm, dims=['time'])
     ds['time'].attrs = time_datm_attrs
 
-    # Add lat/lon coordinates
     ds['LONGXY'] = xr.DataArray(lon_datm_2D_float, dims=['lat', 'lon'])
     ds['LONGXY'].attrs = lon_datm_2D_float_attrs
 
     ds['LATIXY'] = xr.DataArray(lat_datm_2D_float, dims=['lat', 'lon'])
     ds['LATIXY'].attrs = lat_datm_2D_float_attrs
 
-    # Add edge variables
     ds['EDGEW'] = xr.DataArray(EDGEW, dims=['scalar'])
     ds['EDGEW'].attrs = EDGEW_attrs
 
@@ -502,19 +537,46 @@ for ii in range(len(filenames)):
         'notes': "Generated with Betacast toolkit"
     }
 
-    # Set up encoding for compression if desired
+    # Set up var-level encoding and write to netCDF file
     encoding = {}
     for var in ds.variables:
-        encoding[var] = {'zlib': True, 'complevel': 1}
+        if ds[var].dtype == np.float32:  # float
+            fill_value = 9.96921e+36
+        elif ds[var].dtype == np.float64:  # double
+            fill_value = 9.96921e+36
+        else:   # other types (mainly ints I guess)
+            fill_value = -9999
 
-    # Write to netCDF file
+        # Compress to ncks -4 -L 1
+        encoding[var] = {
+            'zlib': True,
+            'complevel': 1,
+            '_FillValue': fill_value
+        }
+
     ds.to_netcdf(
         fullfilename,
         encoding=encoding,
-        format='NETCDF4'
+        format='NETCDF4',
+        unlimited_dims=['time']
     )
 
     logger.info(f"Successfully wrote {fullfilename}")
 
+    # Back convert to nc3 using ncks? This exists because older(?) versions of CESM
+    # don't support NetCDF4, only classic/64-bit, so this matches known good DATM files
+    if convert_nc3:
+        if shutil.which("ncks"):
+            logger.info(f"Converting nctype for {fullfilename}")
+            command = ['ncks', '-O', '-3', fullfilename, fullfilename]
+            result = subprocess.run(command, capture_output=True, text=True)
+
+            if result.returncode == 0:
+                logger.info("Command executed successfully.")
+            else:
+                logger.info(f"Command failed with return code {result.returncode}.")
+                logger.info(f"Error message: {result.stderr}")
+        else:
+            logger.info("ncks is not available on this system. Skipping conversion.")
+
 logger.info("Processing completed successfully!")
-return 0

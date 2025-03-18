@@ -113,6 +113,79 @@ def prcwater_dp(Q, DP, QMSG=np.nan, DPMSG=np.nan):
     return prcwat
 
 
+def deswskewt(t):
+    """
+    Python implementation of DESWSKEWT function from NCL.
+    Calculates saturation vapor pressure over water.
+
+    Parameters:
+    -----------
+    t : float or numpy.ndarray
+        Temperature in Celsius
+
+    Returns:
+    --------
+    es : float or numpy.ndarray
+        Saturation vapor pressure in mb (hPa)
+    """
+
+    # Standard formula for saturation vapor pressure (mb)
+    return 6.112 * np.exp(17.67 * t / (t + 243.5))
+
+
+def mixhum_ptd(p, tdk, iswit=1):
+    """
+    Calculates the mixing ratio or specific humidity given pressure and dew point temperature.
+    Attempt to match NCL's mixhum_ptd function.
+
+    Parameters:
+    -----------
+    p : float or numpy.ndarray
+        Atmospheric pressure (Pa).
+    tdk : float or numpy.ndarray
+        Dew point temperature (K).
+    iswit : int
+        - If iswit=1, the output will be the mixing ratio (kg/kg).
+        - If iswit=2, the output will be the specific humidity (kg/kg).
+        - If iswit is negative, the units will be g/kg.
+
+    Returns:
+    --------
+    wmr : float or numpy.ndarray
+        Mixing ratio or specific humidity in the units specified by iswit.
+    """
+    # Constants (stolen from NCL)
+    T0 = 273.15  # K to C conversion
+    PA2MB = 0.01  # Pa to mb conversion
+    EPS = 0.62197  # Ratio of molecular weights (water/dry air)
+
+    # Unit conversion
+    p_mb = p * PA2MB  # Convert Pa to mb (hPa)
+    td_c = tdk - T0   # Convert K to C
+
+    # Implement NCL's DWMRSKEWT calculation
+    x = 0.02 * (td_c - 12.5 + 7500.0 / p_mb)
+    wfw = 1.0 + 4.5e-6 * p_mb + 1.4e-3 * x * x
+    fwesw = wfw * deswskewt(td_c)
+    r = EPS * fwesw / (p_mb - fwesw)
+
+    # Convert r to g/kg
+    wmr = 1000.0 * r
+
+    # Convert to kg/kg for standard output
+    wmr = wmr * 0.001
+
+    # Convert to specific humidity if iswit=2
+    if abs(iswit) == 2:
+        wmr = wmr / (wmr + 1.0)
+
+    # Convert to g/kg if iswit<0
+    if iswit < 0:
+        wmr = wmr * 1000.0
+
+    return wmr
+
+
 @nb.jit(nopython=True)
 def ps_wet_to_dry_conversion_core(ps_fv, q_fv, hyai, hybi, p0):
     """Numba-optimized core of the conversion function"""
