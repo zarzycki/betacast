@@ -14,10 +14,35 @@ def calculate_correlation(var1, var2):
 
     # Only calculate correlation where both var1 and var2 are not NaN
     valid_mask = ~np.isnan(var1) & ~np.isnan(var2)
-    if valid_mask.sum() == 0:
-        print("   Warning: No valid data points for correlation calculation.")
+    if valid_mask.sum() <= 1:
+        print("   Warning: Insufficient valid data points for correlation calculation.")
         return np.nan
-    return np.corrcoef(var1[valid_mask].ravel(), var2[valid_mask].ravel())[0, 1]
+
+    # Check if any variable has constant values (zero variance)
+    var1_valid = var1[valid_mask]
+    var2_valid = var2[valid_mask]
+
+    var1_std = np.nanstd(var1_valid)
+    var2_std = np.nanstd(var2_valid)
+
+    if var1_std < 1e-10 or var2_std < 1e-10:
+        print(f"   Note: At least one variable has constant values (std dev1: {var1_std:.1e}, std dev2: {var2_std:.1e}).")
+        # Check if they're identical to each other
+        if np.allclose(var1_valid, var2_valid, rtol=1e-10, atol=1e-10):
+            print("   Note: Both variables have effectively identical values.")
+            return 1.0  # Perfect correlation for identical values
+        else:
+            print("   Note: Variables have different values.")
+            return np.nan  # Correlation is undefined for constant variables
+
+    # Safe correlation calculation
+    try:
+        with np.errstate(invalid='ignore', divide='ignore'):
+            corr = np.corrcoef(var1_valid.ravel(), var2_valid.ravel())[0, 1]
+        return corr
+    except Exception as e:
+        print(f"   Warning: Correlation calculation failed: {str(e)}")
+        return np.nan
 
 def calculate_normalized_mean_bias(var1, var2):
     mean_var1 = np.nanmean(var1)
@@ -39,6 +64,42 @@ def check_same(file1, file2, variables_to_check=None):
     ds1 = xr.open_dataset(file1)
     ds2 = xr.open_dataset(file2)
 
+    # Print file format information
+    print(f"\nFile 1: {file1}")
+    print(f"File 2: {file2}")
+
+    # Get NetCDF format information (similar to ncdump -k)
+    try:
+        import netCDF4
+        with netCDF4.Dataset(file1) as nc:
+            nc_format1 = nc.file_format
+        print(f"File 1 NetCDF format: {nc_format1}")
+    except Exception as e:
+        print(f"File 1 NetCDF format: Unable to determine - {str(e)}")
+
+    try:
+        import netCDF4
+        with netCDF4.Dataset(file2) as nc:
+            nc_format2 = nc.file_format
+        print(f"File 2 NetCDF format: {nc_format2}")
+    except Exception as e:
+        print(f"File 2 NetCDF format: Unable to determine - {str(e)}")
+
+    # Print dataset encoding information
+    print("\nFile 1 encoding information:")
+    if hasattr(ds1, 'encoding') and ds1.encoding:
+        for key, value in ds1.encoding.items():
+            print(f"   {key}: {value}")
+    else:
+        print("   No encoding information available")
+
+    print("\nFile 2 encoding information:")
+    if hasattr(ds2, 'encoding') and ds2.encoding:
+        for key, value in ds2.encoding.items():
+            print(f"   {key}: {value}")
+    else:
+        print("   No encoding information available")
+
     common_vars = set(ds1.variables).intersection(ds2.variables)
     if variables_to_check:
         print(f"\nChecking only these specific variables: {', '.join(sorted(variables_to_check))}")
@@ -51,9 +112,48 @@ def check_same(file1, file2, variables_to_check=None):
     all_vars_ok = True
 
     for var_name in common_vars:
+
         print("-----------------------------------------------------------------------")
+        print(f"----------- {var_name}")
+
+        # Check data types
+        dtype1 = ds1[var_name].dtype
+        dtype2 = ds2[var_name].dtype
+
+        if dtype1 != dtype2:
+            print(f"WARNING: Variable {var_name} has different data types: {dtype1} vs {dtype2}")
+            if (np.issubdtype(dtype1, np.integer) and np.issubdtype(dtype2, np.floating)) or \
+               (np.issubdtype(dtype1, np.floating) and np.issubdtype(dtype2, np.integer)):
+                print(f"   NOTE: Mixed integer and floating-point types!")
+
         data1 = ds1[var_name].values
         data2 = ds2[var_name].values
+
+        # Check if data consists entirely of "special" values (zeros or nans)
+        all_zeros1 = np.all(data1 == 0)
+        all_zeros2 = np.all(data2 == 0)
+        all_nans1 = np.all(np.isnan(data1)) if np.issubdtype(data1.dtype, np.floating) else False
+        all_nans2 = np.all(np.isnan(data2)) if np.issubdtype(data2.dtype, np.floating) else False
+
+        if all_zeros1 and all_zeros2:
+            print("   Note: Both arrays consist entirely of zeros")
+            # Skip numerical comparison for all-zero arrays
+            print("   Correlation: 1.0 (identical zeros)")
+            print("   Mean Absolute Error: 0.0")
+            print("   Mean Value: 0.0")
+            print("   Normalized Mean Bias (NMB): 0.0")
+            print("   Normalized RMSE (NRMSE): 0.0")
+            continue
+
+        if all_nans1 and all_nans2:
+            print("   Note: Both arrays consist entirely of NaN values")
+            # Skip numerical comparison for all-NaN arrays
+            print("   Correlation: 1.0 (identical NaNs)")
+            print("   Mean Absolute Error: NaN")
+            print("   Mean Value: NaN")
+            print("   Normalized Mean Bias (NMB): NaN")
+            print("   Normalized RMSE (NRMSE): NaN")
+            continue
 
         # Convert to float64 if one is float32 and the other is float64
         if (data1.dtype == np.float32 and data2.dtype == np.float64) or (data1.dtype == np.float64 and data2.dtype == np.float32):
