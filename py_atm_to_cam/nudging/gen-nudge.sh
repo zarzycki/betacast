@@ -47,21 +47,24 @@ set -e
 SERVER_NAME=$(hostname -A)
 echo $SERVER_NAME
 
-if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
-  echo "Using pm-cpu"
-  export NCARG_ROOT=/global/homes/c/czarzyck/.conda/pkgs/ncl-6.6.2-h3fdc804_41/
-  PATHTONCL=/global/homes/c/czarzyck/.conda/envs/e3sm_unified_1.8.1_nompi/bin/
-  module load parallel
-  NUMCORES=12
-elif [[ $SERVER_NAME == *"casper"* ]] || [[ $SERVER_NAME == *"crhtc"* ]]; then
-  echo "Using Casper"
-  #module load parallel
-  #module load peak_memusage
-  NUMCORES=36
-else
-  echo "Unrecognized server. exiting"
-  exit
-fi
+case "$SERVER_NAME" in
+  *"perlmutter"* | *"nid0"* | *"nid2"*)
+    echo "Using pm-cpu"
+    SERVER_CASE="pm-cpu"
+    export BETACAST=/global/homes/c/czarzyck/betacast
+    module load conda && conda activate betacast
+    NUMCORES=12
+    ;;
+  *"casper"* | *"crhtc"*)
+    echo "Using Casper"
+    SERVER_CASE="casper"
+    NUMCORES=36
+    ;;
+  *)
+    echo "Unrecognized server. Exiting."
+    exit 1
+    ;;
+esac
 
 THISDIR=$PWD
 source ${THISDIR}/../../utils.sh   # Source external bash functions
@@ -165,52 +168,90 @@ do
       for INFILE in $BINLIST; do
         echo $INFILE
 
-        NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ;
-            ncl -n atm_to_cam.ncl
-            'datasource=\"CAM\"'
-            write_floats=True
-            add_cloud_vars=False
-            compress_file=False
-            mpas_as_cam=True
-            numlevels=${NUMLEVS}
-            YYYYMMDDHH=${YYYYMMDDHH}
-            'dycore = \"'${DYCORE}'\"'
-            'data_filename = \"'${INFILE}'\"'
-            'wgt_filename=\"'${WGTNAME}'\"'
-            'model_topo_file=\"'${BNDTOPO}'\"'
-            'mod_remap_file=\"'${MODREMAPFILE}'\"'
-            'mod_in_topo=\"'${MODINTOPO}'\"'
-            'adjust_config=\"\"'
-            'se_inic = \"'${OUTFILETMP}'\"' ;
+        TXTCOMMAND="python ${BETACAST}/py_atm_to_cam/atm_to_cam.py
+            --datasource CAM \
+            --numlevels ${NUMLEVS} \
+            --YYYYMMDDHH ${YYYYMMDDHH} \
+            --data_filename ${INFILE} \
+            --wgt_filename ${WGTNAME} \
+            --dycore ${DYCORE} \
+            --mpas_as_cam \
+            --write_floats \
+            --adjust_config \"\" \
+            --model_topo_file ${BNDTOPO} \
+            --mod_remap_file ${MODREMAPFILE} \
+            --mod_in_topo ${MODINTOPO} \
+            --se_inic ${OUTFILETMP} \
+            --verbose ;
             mv -v ${OUTFILETMP} ${OUTFILE} "
+
+# # Old NCL
+#         TXTCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ;
+#             ncl -n atm_to_cam.ncl
+#             'datasource=\"CAM\"'
+#             write_floats=True
+#             add_cloud_vars=False
+#             compress_file=False
+#             mpas_as_cam=True
+#             numlevels=${NUMLEVS}
+#             YYYYMMDDHH=${YYYYMMDDHH}
+#             'dycore = \"'${DYCORE}'\"'
+#             'data_filename = \"'${INFILE}'\"'
+#             'wgt_filename=\"'${WGTNAME}'\"'
+#             'model_topo_file=\"'${BNDTOPO}'\"'
+#             'mod_remap_file=\"'${MODREMAPFILE}'\"'
+#             'mod_in_topo=\"'${MODINTOPO}'\"'
+#             'adjust_config=\"\"'
+#             'se_inic = \"'${OUTFILETMP}'\"' ;
+#             mv -v ${OUTFILETMP} ${OUTFILE} "
+
         # If file doesn't exist, we want to create, but if it does let's skip
         if [ ! -f ${OUTFILE} ]; then
-          echo ${NCLCOMMAND} >> ${COMMANDFILE}
+          echo ${TXTCOMMAND} >> ${COMMANDFILE}
         fi
       done
     else
       echo "Running ERA5 -> CAM options"
       INFILE=${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc
-      NCLCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ;
-          ncl -n atm_to_cam.ncl
-          'datasource=\"ERA5RDA\"'
-          'RDADIR=\"'${RDADIR}'\"'
-          write_floats=True
-          add_cloud_vars=False
-          compress_file=False
-          mpas_as_cam=True
-          numlevels=${NUMLEVS}
-          YYYYMMDDHH=${YYYYMMDDHH}
-          'dycore = \"'${DYCORE}'\"'
-          'data_filename = \"'${INFILE}'\"'
-          'wgt_filename=\"'${WGTNAME}'\"'
-          'model_topo_file=\"'${BNDTOPO}'\"'
-          'adjust_config=\"-\"'
-          'se_inic = \"'${OUTFILETMP}'\"' ;
+
+      TXTCOMMAND="python ${BETACAST}/py_atm_to_cam/atm_to_cam.py
+          --datasource ERA5RDA \
+          --numlevels ${NUMLEVS} \
+          --YYYYMMDDHH ${YYYYMMDDHH} \
+          --data_filename ${INFILE} \
+          --wgt_filename ${WGTNAME} \
+          --dycore ${DYCORE} \
+          --RDADIR ${RDADIR} \
+          --mpas_as_cam \
+          --write_floats \
+          --adjust_config \"\" \
+          --model_topo_file ${BNDTOPO} \
+          --se_inic ${OUTFILETMP} \
+          --verbose ;
           mv -v ${OUTFILETMP} ${OUTFILE} "
+
+# # Old NCL
+#       TXTCOMMAND="cd ${BETACASTDIR}/atm_to_cam/ ;
+#           ncl -n atm_to_cam.ncl
+#           'datasource=\"ERA5RDA\"'
+#           'RDADIR=\"'${RDADIR}'\"'
+#           write_floats=True
+#           add_cloud_vars=False
+#           compress_file=False
+#           mpas_as_cam=True
+#           numlevels=${NUMLEVS}
+#           YYYYMMDDHH=${YYYYMMDDHH}
+#           'dycore = \"'${DYCORE}'\"'
+#           'data_filename = \"'${INFILE}'\"'
+#           'wgt_filename=\"'${WGTNAME}'\"'
+#           'model_topo_file=\"'${BNDTOPO}'\"'
+#           'adjust_config=\"-\"'
+#           'se_inic = \"'${OUTFILETMP}'\"' ;
+#           mv -v ${OUTFILETMP} ${OUTFILE} "
+
       # If file doesn't exist, we want to create, but if it does let's skip
       if [ ! -f ${OUTFILE} ]; then
-        echo ${NCLCOMMAND} >> ${COMMANDFILE}
+        echo ${TXTCOMMAND} >> ${COMMANDFILE}
       fi
     fi
   done
@@ -220,15 +261,22 @@ done
 if [ $dryrun = false ] ; then
   echo "Launching GNU parallel"
   # Launch GNU parallel
-  if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
-    parallel --jobs ${NUMCORES} < ${COMMANDFILE}
-  elif [[ $SERVER_NAME == *"casper"* ]] || [[ $SERVER_NAME == *"crhtc"* ]]; then
-    parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
-  else
-    echo "unknown" ; exit
-    #parallel --jobs ${NUMCORES} -u --sshloginfile $PBS_NODEFILE --workdir $PWD < ${COMMANDFILE}
-  fi
-
+  echo "Running GNU parallel on $SERVER_CASE"
+  case "$SERVER_CASE" in
+    "pm-cpu")
+      # Set up for NERSC pm-cpu
+      parallel --jobs ${NUMCORES} < ${COMMANDFILE}
+      ;;
+    "casper")
+      # Set up for NSF/NCAR Casper
+      parallel --jobs ${NUMCORES} --workdir "$PWD" < ${COMMANDFILE}
+      ;;
+    *)
+      echo "Unknown server. Exiting."
+      #parallel --jobs ${NUMCORES} -u --sshloginfile $PBS_NODEFILE --workdir $PWD < ${COMMANDFILE}
+      exit 1
+      ;;
+  esac
   # Cleanup
   rm ${COMMANDFILE}
 fi
