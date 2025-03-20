@@ -1,6 +1,6 @@
 # Running a nudged simulation
 
-A "nudged" CAM simulation is just a free-running CAM simulation with additional namelist options. These options tell CAM to find analysis files that describe the target field (e.g., ERA5 reanalysis) and will "push" the model towards that state at each physics timestep.
+A "nudged" CAM (EAM) simulation is just a free-running CAM (EAM) simulation with additional namelist options. These options tell CAM (EAM) to find analysis files that describe the target field (e.g., ERA5 reanalysis) and will "push" the model towards that state at each physics timestep.
 
 Here, I assume nudging files are already generated. See below if you need to generate others.
 
@@ -198,7 +198,7 @@ ncl Lookat_NudgeWindow.ncl NLEV=58
 
 ## Generating nudging target files
 
-The first step is to create nudging files from reanalysis. On Cheyenne this is easy using Betacast and the existing ERA5 stored in the RDA, although you could also generate nudging with GFS/CFSR using this workflow as well.
+The first step is to create nudging files from reanalysis. This is easy using Betacast and the existing ERA5 stored in the RDA, although you could also generate nudging with GFS/CFSR using this workflow as well.
 
 ```
 cd $BETACAST/atm_to_cam/nudging
