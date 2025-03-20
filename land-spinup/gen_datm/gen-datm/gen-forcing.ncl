@@ -1,6 +1,33 @@
+if ismissing(getenv("BETACAST")) then
+  print("We are running local-only atm_to_cam. Set export BETACAST env to run elsewhere")
+  ; if we don't have BETACAST, check to see where are located...
+  ; we cannot do relative paths
+  this_script_name=get_script_name()
+  slash_index=str_index_of_substr(this_script_name, "/", -1)
+  if (.not. ismissing(slash_index)) then
+    print("The script is called from another directory")
+    print("I found: "+this_script_name+" which contains a /")
+    print("This isn't supported! Either set BETACAST as env param or run from local dir!")
+    exit
+  else
+    print("The script is called from the local directory")
+    PATHTOHERE=systemfunc("pwd")
+  end if
+  ; get BETACAST based on current dir assuming one up
+  BETACAST = systemfunc("echo $(dirname $(pwd))")
+else
+  print("Not local only!")
+  PATHTOHERE=getenv("BETACAST")+"/land-spinup/gen_datm/gen-datm/"
+  BETACAST=getenv("BETACAST")
+end if
+
+begin
+
 ;d=addfile("/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.cruncep_qianFill.0.5d.v7.c160715/domain.lnd.360x720_cruncep.130305.nc","r")
 ;d=addfile("/glade/p/cgd/tss/CTSM_datm_forcing_data/atm_forcing.datm7.GSWP3.0.5d.v1.c170516/domain.lnd.360x720_gswp3.0v1.c170606.nc","r")
-d=addfile("era5-domain.nc","r")
+dfilename=PATHTOHERE+"/era5-domain.nc"
+print("Loading domain file: "+dfilename)
+d=addfile(dfilename,"r")
 timestride=1
 STIX=0
 do_q=True
@@ -537,3 +564,5 @@ do ii = 0,dimsizes(filenames)-1
 end do
 
 status_exit(9)
+
+end
