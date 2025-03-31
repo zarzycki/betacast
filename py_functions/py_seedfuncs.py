@@ -436,15 +436,20 @@ def get_rp_from_dp_rmw(cen_lat, dp, target_rmw, debug=False):
     return rpi
 
 
-def keyword_values(namelist_file, key, return_type):
+def keyword_values(namelist_file, key, return_type, default=None):
     """
     Reads a namelist file and extracts the value for the specified key.
+
     Parameters:
+    -----------
     namelist_file (str): Path to the namelist file.
     key (str): The key whose value is to be extracted.
     return_type (str): The type to which the value should be converted. Options: "int", "float", "bool", "str".
+    default: Optional default value to return if the key is not found (default is None).
+
     Returns:
-    The value associated with the key in the specified return type.
+    --------
+    The value associated with the key in the specified return type, or the default value if the key is not found.
     """
     types = ["int", "float", "bool", "str"]
     # Validate return_type
@@ -476,35 +481,40 @@ def keyword_values(namelist_file, key, return_type):
 
         return ''.join(result).strip()
 
-    # Read the namelist file
-    with open(namelist_file, 'r') as f:
-        lines = f.readlines()
+    try:
+        # Read the namelist file
+        with open(namelist_file, 'r') as f:
+            lines = f.readlines()
 
-    # Remove whitespace and split key-value pairs
-    for line in lines:
-        # Ignore empty lines and comments
-        line = line.strip()
-        if line and not line.startswith('#'):
-            # Split key and value
-            if '=' in line:
-                k, v = [x.strip() for x in line.split('=', 1)]  # Strip whitespace around key and value
-                # If we found the key
-                if k == key:
-                    # Strip quotes before type conversion
-                    v = strip_unescaped_quotes(v)
+        # Remove whitespace and split key-value pairs
+        for line in lines:
+            # Ignore empty lines and comments
+            line = line.strip()
+            if line and not line.startswith('#'):
+                # Split key and value
+                if '=' in line:
+                    k, v = [x.strip() for x in line.split('=', 1)]  # Strip whitespace around key and value
+                    # If we found the key
+                    if k == key:
+                        # Strip quotes before type conversion
+                        v = strip_unescaped_quotes(v)
 
-                    # Handle conversion to requested type
-                    if return_type == "int":
-                        return int(v)
-                    elif return_type == "float":
-                        return float(v)
-                    elif return_type == "bool":
-                        return v.lower() in ['true', 't', '1']
-                    elif return_type == "str":
-                        return os.path.expandvars(v)
+                        # Handle conversion to requested type
+                        if return_type == "int":
+                            return int(v)
+                        elif return_type == "float":
+                            return float(v)
+                        elif return_type == "bool":
+                            return v.lower() in ['true', 't', '1']
+                        elif return_type == "str":
+                            return os.path.expandvars(v)
 
-    # If key is not found
-    raise KeyError(f"Key '{key}' not found in the namelist file.")
+        # If key is not found, return the default
+        return default
+
+    except Exception as e:
+        # If any exception occurs (e.g., file not found), return the default
+        return default
 
 
 def radialAvg2D_unstruc(data, lat, lon, deltaMax, psminlat, psminlon, outerRad, mergeInnerBins):
