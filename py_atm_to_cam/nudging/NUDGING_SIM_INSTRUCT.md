@@ -178,13 +178,111 @@ Some notes:
 
 - A full description of the nudging namelist options is [HERE](https://ncar.github.io/CAM/doc/build/html/users_guide/physics-modifications-via-the-namelist.html)
 - `Nudge_Vwin_Hindex` tells you the level index at which the nudging "stops" when counting from the top. However, `Nudge_Vwin_Hdelta` greater than 0.001 tapers the nudging a bit. Set to 1.0 for example, tapers the nudging across approximately 5 levels (centered on `Nudge_Vwin_Hindex`). Experiment with the NCL script described below.
-- `Model_Times_Per_Day` should be set to `ATM_NCPL` from `env_run.xml`
+- `Model_Times_Per_Day` can just be set to some absurdly large number (86400), which will tell the nudging code to use one second model timesteps. Internally the code will fall back to dtime, which is desirable. Alternatively, this should be set to `ATM_NCPL` from `env_run.xml`.
 - `Nudge_Times_Per_Day` should be set to 24 (hourly), 8 (3-hourly), 4 (6-hourly), 2 (12-hourly) or 1 (daily). Chris Kruse found that nudging throughout the atmosphere all the way to the surface with 24-hourly caused problems near orography. Nudging to a certain level seems less problematic, although if 3-hourly data works, that would seem to be preferred.
 - `Nudge_?prof` should always be set to `2` unless you want nudging off (`0`) or just want nudging everywhere (`1`).
 - Reducing `Nudge_?coef` weakens the nudging strength and increasing it "bolts" the solution to the nudging target more strongly.
 - The `Nudge_Beg_Year` and `Nudge_End_Year`, etc. options should cover the range of nudging files you have generated. You can also modify them to have the nudging only be performed during parts of a simulation (i.e., specify a range smaller than the available nudging data range). However, if you specify a range that is larger than the available nudging range *and* attempt to get the model to integrate in that "bad" part of the range, it will fail.
 - Settle on a descriptive naming convention for each case (if running multiple) that includes information about any changes to the nudging setup. The one I have provided here is just an example, but specifies the compset (FHIST), atmosopheric grid (ne30pg3), that it's a nudging run (ndg), the target data (ERA5), the number of nudging steps per day (Q08 = 3-hourly nudging), the nudging level transition (N39 = level 39 ~ 690 hPa), and the experiment ID (x001).
 - Ensure the SST/ice streams, ncdata, and finidat are set consistently across the model components. Ideally one would initialize akin to an NWP model (i.e., a general free-running Betacast simulation) where the land and atm are consistent with the observations at RUN_STARTDATE. However, one can start with generic land and atm initial conditions and allow for spinup. Subjectively, the atmosphere takes about 14-21 days to fully lose initial condition signal (and be driven by nudging). The land should ideally be spun up for at least a season, but ideally a year since it's spinup will be akin to running a DATM model.
+
+## E3SM nuances
+
+E3SM has some updates to the nudging code published in a few papers.
+
+```
+! Revised by Jian Sun, Kai Zhang, Shixuan Zhang, PNNL, 05/11/2020
+!
+! Revisions:
+!   - Include the linear interpolation of nudge data to the model time step. 
+!   - Add the "Nudge_Method" option in the namelist for different methods.
+!   - Bug fix for intermittent nudged simulation:
+!         * Reset the nudging tendency to zero if Update_Model is false.
+!         * Nudge the model data to the same time slice of nudging data. 
+!   - Update the nudging code for FV dycore.
+!   - Add the "Nudge_Tau" option to control the relaxation 
+!     timescale independently
+!   - Add the "Nudge_Loc_PhysOut" option to calculate of nudging tendency
+!     at the same location where the model state variables are written out.
+!   - Add "Nudge_CurrentStep" option to linearly interpolate the nudging data 
+!     to current or future time step. It only works appropriately when 
+!     the nudging data starts with 00Z.
+!   - Add "Nudge_File_Ntime" option to specify how many time slices per file
+!   - To restore the functionality of the original nudging code, set the
+!     new options with the values below:
+!         Nudge_Tau         = -999
+!         Nudge_Loc_PhysOut = .False.
+!         Nudge_CurrentStep = .False.
+!         Nudge_File_Ntime  = 1
+!         Nudge_Method      = ‘Step’
+```
+
+#### Nudge_Tau
+
+This is useful to control the strength of the nudging more simply.
+
+```
+Nudge_Tau = 6
+```
+
+is functionally equivalent to:
+
+```
+Nudge_Tau = -999
+Nudge_Times_Per_Day = 4
+Nudge_Ucoef = 1.0
+```
+
+NOTE: `Nudge_Times_Per_Day` still needs to be set, I think, to correctly request that the code search for a nudging file.
+
+#### Nudge_Loc_PhysOut
+
+Based on the results in [Zhang et al., 2022](https://gmd.copernicus.org/articles/15/6787/2022/), it seems prudent to toggle this to .true. in E3SM.
+
+```
+Nudge_Loc_PhysOut = .True.
+```
+
+#### Nudge_Method
+
+It appears `Nudge_Method` replaces `Nudge_Force_Opt`. These are equivalent:
+
+```
+! CAM
+Nudge_Force_Opt = 1
+```
+
+```
+! EAM
+Nudge_Method = 'Linear'
+```
+
+#### Nudge_CurrentStep
+
+This appears to control whether the current timestep or the future timestep is the target. For now, I think this is likely a small difference with short dtime and will leave with the "default" method which is `Nudge_CurrentStep=.FALSE.`.
+
+Relevant code:
+
+```
+  if ( Nudge_CurrentStep ) then
+     factor = (Sec - (Sec/Nudge_Step)*Nudge_Step) * &
+              1._r8 / (Nudge_Step * 1._r8) 
+  else
+     factor = (Sec - (Sec/Nudge_Step)*Nudge_Step + Model_Step) * &
+              1._r8 / (Nudge_Step * 1._r8)
+  end if
+```
+
+### Colin suggestions for E3SM v3
+
+```
+! Nudge_Force_Opt = 1             ! CAM option commented out in EAM
+Nudge_Method        = 'Linear'    ! Nudge_Force_Opt = 1 from CAM
+Nudge_CurrentStep   = .FALSE.     ! Using 1 nudging per file
+Nudge_Loc_PhysOut   = .TRUE.      ! Improvement from Zhang et al., 2022
+Model_Times_Per_Day = 86400       ! Set to large number to force dtime model steps (desirable)
+```
+
 
 ## Generating and evaluating the nudging profile
 
