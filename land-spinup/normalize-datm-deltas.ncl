@@ -34,7 +34,13 @@ do ii = 0,dimsizes(ens_vars)-1
     f=addfile(basedir+"/ens_"+ens_vars(ii)+"_anom.nc","r")
 
     ; load the reference year
-    ref_year  = f->$internal_vars(ii)$(current_year*12-start_year*12+start_month-1-shouldermon:current_year*12-start_year*12+end_month-1,:,:)
+    refyr_stix=current_year*12-start_year*12+start_month-1-shouldermon
+    refyr_enix=current_year*12-start_year*12+end_month-1
+    print("ANOM_DIAG: refyr_stix: "+refyr_stix)
+    print("ANOM_DIAG: refyr_enix: "+refyr_enix)
+    ref_year  = f->$internal_vars(ii)$(refyr_stix:refyr_enix,:,:)
+
+    printVarSummary(ref_year)
 
     ; average across time for the reference year
     ref_year_avg = dim_avg_n_Wrap(ref_year,0)

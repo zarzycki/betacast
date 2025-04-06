@@ -10,11 +10,11 @@ source ../utils.sh
 # Usage:
 #./auto-script.sh MODELSYSTEM DATAFORCING DATE_YYYYMMDD NMONTHS NCYCLES ANOMYEAR NORMYEAR NAMELIST
 # CESM
-#./auto-script.sh 0 0 20200103 36 1 -1 -1 NAMELIST.MACHINE
+#./auto-script.sh 0 0 20200103 36 1 -1 -1 nl.landspinup.derecho
 # E3SM
-#./auto-script.sh 1 0 19960113 12 1 2018 1920 NAMELIST.MACHINE
+#./auto-script.sh 1 0 19960113 12 1 2018 1920 nl.landspinup.pm-cpu
 # Model
-#./auto-script.sh 1 2 19840101 0 1 -1 -1 nl.landspinup.pm-cpu
+#./auto-script.sh 1 2 19840101 0 1 -1 -1 NAMELIST.MACHINE
 
 if [[ $# -ne 8 ]] ; then echo "Need 8 inputs, got $#, exiting..." ; exit ; fi
 if [ ! -s $8 ]; then echo "Namelist is empty, exiting..." ; exit ; fi
@@ -226,12 +226,10 @@ set +e ; ./xmlchange NTASKS_IAC=1 ; set -e
 ./xmlchange STOP_N=20
 ./xmlchange STOP_OPTION='nyears'
 # For now, let's try both with CLMNCEP and not in there...
-set +e ; ./xmlchange DATM_CLMNCEP_YR_ALIGN=${DATM_STARTYEAR} ; set -e
-set +e ; ./xmlchange DATM_CLMNCEP_YR_START=${DATM_STARTYEAR} ; set -e
-set +e ; ./xmlchange DATM_CLMNCEP_YR_END=${FORECASTYEAR} ; set -e
-set +e ; ./xmlchange DATM_YR_ALIGN=${DATM_STARTYEAR} ; set -e
-set +e ; ./xmlchange DATM_YR_START=${DATM_STARTYEAR} ; set -e
-set +e ; ./xmlchange DATM_YR_END=${FORECASTYEAR} ; set -e
+# If CLMNCEP isn't there, try just DATM_ prefixes
+./xmlchange DATM_CLMNCEP_YR_ALIGN=${DATM_STARTYEAR} || ./xmlchange DATM_YR_ALIGN=${DATM_STARTYEAR}
+./xmlchange DATM_CLMNCEP_YR_START=${DATM_STARTYEAR} || ./xmlchange DATM_YR_START=${DATM_STARTYEAR}
+./xmlchange DATM_CLMNCEP_YR_END=${FORECASTYEAR} || ./xmlchange DATM_YR_END=${FORECASTYEAR}
 ./xmlchange RUN_STARTDATE=${MODEL_STARTDATE}
 ./xmlchange REST_OPTION='end'
 ./xmlchange DOUT_S=FALSE
@@ -320,7 +318,7 @@ if [ $addDeltas -eq 0 ]; then
   if [ $BETACAST_REFYEAR -gt 0 ]; then
     # Run NCL to normalize things
     echo "Running with normalized deltas"
-    ncl ${BETACAST}/land-spinup/normalize-datm-deltas.ncl 'current_year='${BETACAST_REFYEAR}'' 'basedir="'${BETACAST_DATM_ANOMALY_BASE}'"'
+    set -x ; ncl ${BETACAST}/land-spinup/normalize-datm-deltas.ncl 'current_year='${BETACAST_REFYEAR}'' 'basedir="'${BETACAST_DATM_ANOMALY_BASE}'"' ; set +x
     # Replace default anomalies in the namelists with normalized ones
     sed -i "s?ens_QBOT_anom.nc?ens_QBOT_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Humidity
     sed -i "s?ens_TBOT_anom.nc?ens_TBOT_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Temperature
