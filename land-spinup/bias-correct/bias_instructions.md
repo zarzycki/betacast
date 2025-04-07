@@ -17,8 +17,8 @@ One can attempt to further improve the land surface initialization through "bias
 
 These are NetCDF files that can be read by DATM that contain the anomalies. The can be spatially and temporally varying and contain corrections that are applied to the main DATM stream (e.g., ERA5). I have placed two example files for T and PRECT in `$BETACAST/land-spinup/bias-correct/`. T contains a temporally varying temperature adjustment over CONUS (0 elsewhere). PRECT contains a temporally and latitudinally varying precipitation adjustment in the eastern hemisphere that is postive in the tropics and negative in the polar regions. Both are just toy examples.
 
-- For temperature this should be a linear correction. For example, if you want the May temperatures to be +1K warmer than ERA5, the anomaly file should be = 1K during the relevant May timestep(s).
-- For precipitation this should be a "ratio" correction. For example, if you want the August precipitation to be 10% higher than ERA5, the anomaly file should be = 1.1 during the relevant August timestep(s).
+- For temperature (and moisture, U/V winds, pressure) this should be a linear correction. For example, if you want the May temperatures to be +1K warmer than ERA5, the anomaly file should be = 1K during the relevant May timestep(s).
+- For precipitation (and SW/LW fluxes) this should be a "ratio" correction. For example, if you want the August precipitation to be 10% higher than ERA5, the anomaly file should be = 1.1 during the relevant August timestep(s).
 
 The examples I have provided are just an annual cycle correction centered at month midpoints (the time unit is just Jan 16th, Feb 15th, etc. of the year 1). You may apply daily (or even hourly) adjustments if you'd like by modulating the time dimension, same with multi-year adjustments. I have also provided an example on a nominally 1x1 degree RLL grid (CESM LENS), but you could apply on a finer/coarser grid as long as you have follow the same file format and also have a relevant domain file that can be pointed to in `user_datm.streams.txt.Anomaly.*`. Refer to CTSM/ELM documentation for more details on DATM streams.
 
@@ -40,7 +40,9 @@ is added to the machine namelist (e.g., `nl.landspinup.pm-cpu`). This will do ev
 
 ### Add user_datm.streams.txt.Anomaly.* files
 
-You will need to add XML streams to your case directory that contain user information to point to the anomaly files. I have included examples for T and PRECT in `$BETACAST/land-spinup/bias-correct/` you can copy and edit accordingly.
+You will need to add XML streams to your case directory that contain user information to point to the anomaly files.
+
+I have included examples for T and PRECT in `$BETACAST/land-spinup/bias-correct/` you can copy them and edit the file and (if needed) domains accordingly.
 
 ### Edit user\_nl\_datm
 
@@ -76,7 +78,7 @@ becomes
 +     "datm.streams.txt.Anomaly.Forcing.Temperature 1 1 1"
 ```
 
-Here, the 1 1 1 corresponds to:
+Here, the `1 1 1` after the anomaly data stream pointers corresponds to:
 
 - `DATM_YR_ALIGN`: Simulation year corresponding to `DATM_YR_START`. A common usage is to set this to `RUN_STARTDATE`. With this setting, the forcing in the first year of the run will be the forcing of year `DATM_YR_START`. Another use case is to align the calendar of transient forcing with the model calendar. For example, setting `DATM_YR_ALIGN=DATM_YR_START` will lead to the forcing calendar being the same as the model calendar. The forcing for a given model year would be the forcing of the same year. This would be appropriate in transient runs where the model calendar is setup to span the same year range as the forcing data.
 - `DATM_YR_START`: Starting year to loop data over
