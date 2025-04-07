@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<file id="stream" version="1.0">
+<dataSource>
+   GENERIC
+</dataSource>
+<domainInfo>
+  <variableNames>
+     time    time
+        xc      lon
+        yc      lat
+        area    area
+        mask    mask
+  </variableNames>
+  <filePath>
+	  /global/homes/c/czarzyck/betacast/land-spinup/gen_datm/gen-datm/
+  </filePath>
+  <fileNames>
+     lens-domain.nc
+  </fileNames>
+</domainInfo>
+<fieldInfo>
+   <variableNames>
+     PRECT  prec_af
+   </variableNames>
+   <filePath>
+     /global/homes/c/czarzyck/betacast/land-spinup/bias-correct/
+   </filePath>
+   <fileNames>
+    biascorrect_sample_PRECT.nc
+   </fileNames>
+   <offset>
+      0
+   </offset>
+</fieldInfo>
+</file>
