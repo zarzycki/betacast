@@ -436,7 +436,7 @@ def get_rp_from_dp_rmw(cen_lat, dp, target_rmw, debug=False):
     return rpi
 
 
-def keyword_values(namelist_file, key, return_type, default=None):
+def keyword_values(namelist_file, key, return_type, default=None, verbose=False):
     """
     Reads a namelist file and extracts the value for the specified key.
 
@@ -501,15 +501,20 @@ def keyword_values(namelist_file, key, return_type, default=None):
 
                         # Handle conversion to requested type
                         if return_type == "int":
-                            return int(v)
+                            value = int(v)
                         elif return_type == "float":
-                            return float(v)
+                            value = float(v)
                         elif return_type == "bool":
-                            return v.lower() in ['true', 't', '1']
+                            value = v.lower() in ['true', 't', '1']
                         elif return_type == "str":
-                            return os.path.expandvars(v)
+                            value = os.path.expandvars(v)
+                        if verbose:
+                            print(f"[keyword_values] Key '{key}' found with value '{value}' (type: {return_type})")
+                        return value
 
         # If key is not found, return the default
+        if verbose:
+            print(f"[keyword_values] Key '{key}' not found. Returning default: {default}")
         return default
 
     except Exception as e:
