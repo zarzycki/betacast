@@ -397,12 +397,13 @@ run_CIME2 () {
   do
     if [ -f "${1}/NUKE" ] ; then echo "RUN_CIME2: Nuke sequence initiated, exiting betacast" ; exit ; fi
 
-    # Get the last valid line from the CaseStatus file...
-    CASESTR=$(grep "^20" CaseStatus | tail -1)
+    # Get the last valid two lines from the CaseStatus file...
+    CASESTR=$(grep "^20" CaseStatus | tail -2)
 
-    if [[ "$CASESTR" == *"case.run success"* ]]; then
+    # See if success or error
+    if echo "$CASESTR" | grep -q "case.run success"; then
       CIMESTATUS=0
-    elif [[ "$CASESTR" == *"case.run error"* ]]; then
+    elif echo "$CASESTR" | grep -q "case.run error"; then
       CIMESTATUS=99
     else
       CIMESTATUS=1
