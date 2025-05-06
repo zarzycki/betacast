@@ -1,18 +1,19 @@
 #!/bin/bash
 
 # Environment variables
-export BETACAST=/global/homes/c/czarzyck/betacast/
+export BETACAST=/glade/u/home/zarzycki/betacast/
 mapping_files_path=$PWD
 
+# For CESM, np is the gridfile and topofile
 # For E3SM, np is the gridfile, pg is the topofile
-modelgridfile="/global/homes/c/czarzyck/betacast/remapping/model_scrip/ne30np4_091226_pentagons.nc"
-MODEL_TOPO_FILE="/global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc"
-SE_INIC="/pscratch/sd/c/czarzyck/SAMPLE_ne30np4_L80_inic.nc"
+modelgridfile="/glade/u/home/zarzycki/work/grids/scrip/ne0np4nhemitc.ne30x4.g_scrip.nc"
+MODEL_TOPO_FILE="ne0np4nhemitc.ne30x4_np4_gmted2010_modis_bedmachine_nc3000_Laplace0100_noleak_20250429.nc"
+SE_INIC="/glade/derecho//scratch/zarzycki/SAMPLE_ne0np4nhemitc.ne30x4_np4_L58_inic.nc"
 
 # Model configuration
 DYCORE="se"
 ADJUST_CONFIG="a"
-NUM_LEVELS=80
+NUM_LEVELS=58
 YYYYMMDDHH=2005082900
 
 # Source data configuration
@@ -22,7 +23,8 @@ YYYYMMDDHH=2005082900
 # DATA_FILENAME="${BETACAST}/grids/samples/ERA5_2deg_L21_sample.nc"
 DATASOURCE="ERA5RDA"
 RLLSOURCEGRID="era5_0.25x0.25"
-RDA_DIR="/global/cfs/projectdirs/m3522/cmip6/ERA5/"
+RDA_DIR="/glade/u/home/zarzycki/rda/ds633.0/"
+#RDA_DIR="/global/cfs/projectdirs/m3522/cmip6/ERA5/"
 DATA_FILENAME="${RDA_DIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
 
 # Python paths and directories
