@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
 
 # Function to calculate the Haversine distance between two lat/lon pairs
 def haversine(lon1, lat1, lon2, lat2):
@@ -13,6 +14,19 @@ def haversine(lon1, lat1, lon2, lat2):
     c = 2 * np.arcsin(np.sqrt(a))
     r = 6371.
     return c * r
+
+# Function to subtract 24 hours from a date string in format 'YYYYMMDDHH'
+def subtract_24h(date_str):
+    year = int(date_str[:4])
+    month = int(date_str[4:6])
+    day = int(date_str[6:8])
+    hour = int(date_str[8:10])
+    dt = datetime(year, month, day, hour)
+    dt_prev = dt - timedelta(hours=24)
+    return dt_prev.strftime('%Y%m%d%H')
+
+# Define the boolean toggle for adding T-24 times
+add_t24 = True  # Set to True to include T-24 hour times
 
 # Define column names and load landfall file using pandas
 # Ttime is the "time of initialization" which is N days before actual LFtime (defined by LF code)
@@ -81,12 +95,27 @@ for label in filtered_df['closest_label'].unique():
     # Generate filename for this mesh center label's date output file
     filename = f"dates.index.{label}.txt"
 
-    # Write the filtered dates to a separate file for each mesh center
-    # These individual files can be used for region-specific inits
-    filtered_data.to_csv(filename, index=False, header=False)
+    # Get the list of dates for this mesh center
+    current_dates = filtered_data['Ttime'].tolist()
 
-    # Collect all dates
-    all_dates.extend(filtered_data['Ttime'].tolist())
+    if add_t24:
+        # Create a list that includes both original dates and T-24 dates
+        expanded_dates = []
+        for date in current_dates:
+            expanded_dates.append(subtract_24h(date))  # T-24 date
+            expanded_dates.append(date)  # Original date
+
+        # Write expanded dates to file
+        with open(filename, 'w') as f:
+            for date in expanded_dates:
+                f.write(f"{date}\n")
+
+        # Add all dates to the collective list
+        all_dates.extend(expanded_dates)
+    else:
+        # Original behavior
+        filtered_data.to_csv(filename, index=False, header=False)
+        all_dates.extend(current_dates)
 
 # Create a single consolidated file containing all unique landfall dates
 # First, remove duplicates (when landfalls occurred on same date in different regions)
