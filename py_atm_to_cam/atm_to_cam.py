@@ -318,70 +318,117 @@ def main():
                 mpas_file['w'].values[0, :, :] = 0.06 * data_horiz['w'].T
                 logging.info(f"Beginning actual file write")
                 mpas_file.to_netcdf(se_inic, format='NETCDF4')
+                logging.info(f"Closing the xr file")
                 mpas_file.close()
             else:   # Create a new NetCDF file with the same structure
+
                 # Get dimensions from the xarray dataset
                 dims = mpas_file.sizes
 
-                # Create new NetCDF file
-                with nc.Dataset(se_inic, mode='w', format='NETCDF4') as new_file:
+                # Close the xr file now that we have everything we need
+                logging.info(f"Closing the xr file")
+                mpas_file.close()
 
-                    # Copy global file attributes
-                    for attr_name in mpas_file.attrs:
+                # Open src + target MPAS files simultaneously using NetCDF4
+                with nc.Dataset(mpasfile, mode='r') as src_file, nc.Dataset(se_inic, mode='w', format='NETCDF4') as new_file:
+
+                    # Copy global file attributes from src -> target
+                    for attr_name in src_file.ncattrs():
                         logging.debug(f"... copying global attr {attr_name}")
-                        new_file.setncattr(attr_name, mpas_file.attrs[attr_name])
+                        new_file.setncattr(attr_name, src_file.getncattr(attr_name))
 
-                    # Create dimensions
-                    for dim_name, dim_size in dims.items():
+                    # Create dimensions - all with fixed size (no unlimited for init conditions)
+                    for dim_name, dim in src_file.dimensions.items():
+                        dim_size = len(dim)
                         logging.debug(f"... creating dim {dim_name}")
                         new_file.createDimension(dim_name, dim_size)
 
-                    # Create variables with same names, dimensions, and attributes
-                    total_mpas_vars = len(mpas_file.variables)
-                    logging.debug(f"{total_mpas_vars} variables to be copied:")
-                    for var_name, var in mpas_file.variables.items():
-                        logging.debug(f"  {var_name}: shape={var.shape}, dtype={var.dtype}")
-                    for idx, (var_name, var) in enumerate(mpas_file.variables.items(), 1):
-                        logging.info(f"... creating var {var_name} ({idx}/{total_mpas_vars})")
+                    # Create and copy variables
+                    total_mpas_vars = len(src_file.variables)
+                    logging.info(f"Total variables to process: {total_mpas_vars}")
 
-                        # Check dtype before creating variable
-                        if str(var.dtype).startswith('datetime64'):
-                            logging.debug(f"... changing {var_name} type to f8")
-                            var_type = 'f8'  # double precision float for datetime
+                    # First create all the variables (metadata only)
+                    for var_name, var in src_file.variables.items():
+                        logging.info(f"Creating variable {var_name}")
+
+                        # Special handling for Time variable
+                        if var_name == 'Time':
+                            var_type = 'f8'  # Use double for Time
+                        # Handle string variables correctly
+                        elif hasattr(var, 'dtype') and (var.dtype.kind == 'S' or var.dtype.kind == 'U'):
+                            if var.dimensions and 'StrLen' in var.dimensions:
+                                var_type = 'S1'  # Char type
+                            else:
+                                var_type = str  # String type
                         else:
                             var_type = var.dtype
 
-                        # Create new_var on nc file
-                        new_var = new_file.createVariable(var_name, var_type, var.dims)
+                        # Create the variable with contiguous storage (no chunking, which slows down PIO)
+                        new_var = new_file.createVariable(
+                            var_name,
+                            var_type,
+                            var.dimensions,
+                            fill_value=getattr(var, '_FillValue', None),
+                            contiguous=True
+                        )
 
-                        # Copy attributes for var
-                        for attr_name in var.attrs:
-                            logging.debug(f"... creating attr {attr_name}")
-                            setattr(new_var, attr_name, var.attrs[attr_name])
+                        # Copy variable attributes except storage-related ones
+                        for attr_name in var.ncattrs():
+                            if attr_name not in ['_FillValue', '_Storage', '_ChunkSizes']:
+                                try:
+                                    setattr(new_var, attr_name, var.getncattr(attr_name))
+                                except Exception as e:
+                                    logging.warning(f"Error setting attribute {attr_name} for {var_name}: {e}")
 
-                        # Copy data except for new vars
-                        if var_name not in ['u', 'qv', 'rho', 'theta', 'w']:
-                            logging.debug(f"... copying {var_name} data")
-                            if str(var.dtype).startswith('datetime64'):
-                                # Convert datetime64 to a numeric type
-                                logging.debug(f"... converting {var_name} data to f8")
-                                new_var[:] = var.values.astype('float64')
+                    # Define a list of variables to modify later
+                    skip_vars = ['u', 'qv', 'rho', 'theta', 'w']
+
+                    # Now copy data, one variable at a time
+                    for idx, var_name in enumerate(src_file.variables, 1):
+                        if var_name in skip_vars:
+                            logging.info(f"Skipping data copy for {var_name} ({idx}/{total_mpas_vars}) - will set manually later")
+                            continue
+
+                        src_var = src_file.variables[var_name]
+                        dst_var = new_file.variables[var_name]
+
+                        logging.info(f"Copying data for {var_name} ({idx}/{total_mpas_vars})")
+
+                        # Handle string variables specially
+                        if hasattr(src_var, 'dtype') and (src_var.dtype.kind == 'S' or src_var.dtype.kind == 'U'):
+                            if len(src_var.dimensions) == 1 and isinstance(dst_var.dtype, str):
+                                # This is a single string
+                                dst_var[0] = str(src_var[0])
+                            elif 'StrLen' in src_var.dimensions:
+                                # This is a char array
+                                dst_var[:] = src_var[:]
                             else:
-                                new_var[:] = var.values
-                            logging.debug(f"Finished copying {var_name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                                # Handle 1D array of strings
+                                for i in range(len(src_var)):
+                                    dst_var[i] = str(src_var[i])
                         else:
-                            logging.debug(f"Skipping {var_name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                            # Handle large variables in chunks to reduce memory usage
+                            if src_var.size > 10_000_000 and len(src_var.shape) > 1:
+                                shape = src_var.shape
+                                chunk_size = max(1, min(100, shape[0] // 10))
 
-                    # Write our specific variables
+                                for i in range(0, shape[0], chunk_size):
+                                    end = min(i + chunk_size, shape[0])
+                                    logging.debug(f"... chunk {i}:{end}")
+                                    dst_var[i:end] = src_var[i:end]
+                            else:
+                                # Small enough variable to copy directly
+                                dst_var[:] = src_var[:]
+
+                        logging.info(f"Finished copying {var_name}")
+
+                    # Write out Betacast modified vars last
                     logging.info(f"Writing new MPAS fields to target netcdf file")
                     new_file.variables['u'][0, :, :] = data_horiz['uNorm'].T
                     new_file.variables['qv'][0, :, :] = data_horiz['q'].T
                     new_file.variables['rho'][0, :, :] = data_horiz['rho'].T
                     new_file.variables['theta'][0, :, :] = data_horiz['theta'].T
                     new_file.variables['w'][0, :, :] = 0.06 * data_horiz['w'].T
-
-                logging.info(f"Closing the file")
-                mpas_file.close()
 
                 logging.info(f"Done generating MPAS initial condition file: {se_inic}, exiting...")
 
