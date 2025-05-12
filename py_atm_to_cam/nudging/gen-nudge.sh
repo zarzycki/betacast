@@ -14,8 +14,8 @@
 #### Casper
 ################################################################
 #PBS -N gen_nudge_betacast
-#PBS -A P93300642
-#PBS -l select=1:ncpus=12:mem=80GB
+#PBS -A P93300042
+#PBS -l select=1:ncpus=12:mem=240GB
 #PBS -l walltime=23:00:00
 #PBS -q casper@casper-pbs
 #PBS -j oe
@@ -58,6 +58,8 @@ case "$SERVER_NAME" in
   *"casper"* | *"crhtc"*)
     echo "Using Casper"
     SERVER_CASE="casper"
+    export BETACAST=/glade/u/home/zarzycki/betacast
+    module load conda && conda activate npl
     NUMCORES=36
     ;;
   *)
