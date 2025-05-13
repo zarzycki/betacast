@@ -13,15 +13,20 @@ The tool handles multiple target grid types (SE/HOMME, MPAS, FV), performs neces
 
 ## Usage
 
+The two command line arguments are:
+
+1. Nudging file generation namelist.
+2. Dates file. If dates file is not to be used, it is safest to pass NULL in.
+
 ### Basic Command Line Usage
 
 For interactive or direct execution:
 
 ```bash
-./gen-nudge.sh ndg.era5.nl
+./gen-nudge.sh ndg.era5.nl NULL
 ```
 
-### Queue Submission
+### Batch Queue Submission
 
 #### PBS (CASPER)
 
@@ -51,6 +56,7 @@ The configuration is controlled through a bash namelist file that specifies vari
 | `ENMON` | End month (e.g., "jan", "feb") |
 | `ENDAY` | End day of month (e.g., 1, 31) |
 | `HR_RES` | Time resolution in hours (1 = hourly, 6 = 4xdaily, 24 = daily) |
+| `NDAYS_PER_DATE` | If specified dates mode (see below), how long is each forecast |
 
 ### Path Configuration
 
@@ -67,17 +73,72 @@ The configuration is controlled through a bash namelist file that specifies vari
 | `DYCORE` | Target dynamical core (e.g., "se", "fv", "mpas") |
 | `GRIDSTR` | Target grid identifier (e.g., "ne30pg3", "f09") |
 | `NUMLEVS` | Number of vertical levels in target model |
-| `BNDTOPO` | Path to target model topography file |
+| `BNDTOPO` | Path to target model topography file (or ncdata file for MPAS) |
 | `WGTNAME` | Path to ESMF weight file for regridding (src->target) |
 | `DESCSTR` | Description string for source data |
 
-### Mode Selection
+### Date Modes
 
-The script operates in one of two modes:
+The code works in two modes.
+
+#### Specified dates mode
+
+If the user passes in a valid, non-empty dates file as the second command line argument to the bash script, the code will first pull all dates from the dates file. It will then use `HR_RES` and `NDAYS_PER_DATE` to create an array of nudgings needed for that forecast. All other date namelist options are ignored.
+
+For example, if the dates file reads:
+
+```bash
+2005082800
+2005082900
+```
+
+and `HR_RES` is 6 and `NDAYS_PER_DATE` is 2, the resulting array of nudging to generate is:
+
+```bash
+2005082800
+2005082806
+2005082812
+2005082818
+2005082900
+2005082906
+2005082912
+2005082918
+2005083000
+2005083006
+2005083012
+2005083018
+2005083100
+```
+
+This works by going down forecast-by-forecast (each line) and creating an array of required dates to nudge that forecast. The code will internally sort and remove duplicates.
+
+#### Auto-generated dates mode
+
+If dates file (second command line arg) is non-existant (or some garbage string like NULL), the code will use the `STYR`, `STMON`, `STDAY`, `ENYR`, `ENMON`, `ENDAY`, and `HR_RES` variables to generate an array of files to be generated.
+
+For example:
+
+```bash
+STYR=2021
+ENYR=2021
+STMON="jun"
+STDAY=20
+ENMON="jun"
+ENDAY=28
+HR_RES=6
+```
+
+This would process data from June 20-28, 2021 at 6-hour intervals (00Z, 06Z, 12Z, 18Z).
+
+`NDAYS_PER_DATE` is ignored in this case.
+
+### Model Source Selection
+
+The script operates in one of two "source" modes:
 
 | Option | Description |
 |--------|-------------|
-| `CAM_TO_CAM` | If `true`, source from existing model sim; if `false`, source from reanalysis |
+| `CAM_TO_CAM` | If `true`, source from existing model sim; if `false`, source from reanalysis such as ERA5 |
 
 ### CAM-to-CAM Specific Options
 
@@ -103,22 +164,6 @@ MODREMAPFILE=/path/to/map_ne0np4natlantic\$GRIDLOWER.ne30x4_TO_era5_0.25x0.25_pa
 The script will substitute `$GRIDLOWER` with the lowercase version of the grid identifier.
 
 IMPORTANT: The placeholder must be defined earlier in the namelist file since Betacast reads from top to bottom!
-
-### Time Range Processing
-
-The script intelligently processes date ranges and handles various calendar formats:
-
-```bash
-STYR=2021
-ENYR=2021
-STMON="jun"
-STDAY=20
-ENMON="jun"
-ENDAY=28
-HR_RES=6
-```
-
-This would process data from June 20-28, 2021 at 6-hour intervals (00Z, 06Z, 12Z, 18Z).
 
 ## Output
 
