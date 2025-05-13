@@ -1,23 +1,25 @@
 CAM_TO_CAM=false
 dryrun=false
 
-STYR=2021
-ENYR=2021
+STYR=1983
+ENYR=1983
 HR_RES=6
-STMON="jun"
-STDAY=20
-ENMON="jun"
-ENDAY=28
+NDAYS_PER_DATE=5
+STMON="aug"
+STDAY=16
+ENMON="aug"
+ENDAY=21
 
 ####### PATHS ETC PER MACHINE
 
-# BETACASTDIR=/glade/u/home/zarzycki/betacast/
-# OUTDIR=/glade/p/univ/upsu0032/MPAS/ndg/
-# RDADIR=/glade/campaign/collections/rda/data/ds633.0/
+BETACASTDIR=/glade/u/home/zarzycki/betacast/
+#OUTDIR=/glade/p/univ/upsu0032/MPAS/ndg/
+OUTDIR=/glade/derecho/scratch/zarzycki/ndg/
+RDADIR=/glade/campaign/collections/rda/data/ds633.0/
 
-BETACASTDIR=/global/homes/c/czarzyck/betacast/
-OUTDIR=/pscratch/sd/c/czarzyck/ndg/
-RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
+#BETACASTDIR=/global/homes/c/czarzyck/betacast/
+#OUTDIR=/pscratch/sd/c/czarzyck/ndg/
+#RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
 
 ####### MODEL CONFIGS
 
@@ -45,11 +47,12 @@ RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
 # WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_mpasa120_patc.nc
 # NUMLEVS=32
 
-# DYCORE="mpas"
-# GRIDSTR=mpasa3-60-florida
-# BNDTOPO=/glade/p/univ/upsu0032/MPAS/3km_florida/x20.835586.florida.init.nc
-# WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_mpasa3-60-florida_patc.nc
-# NUMLEVS=32
+DYCORE="mpas"
+GRIDSTR=tclf008-mp3a
+#BNDTOPO=/glade/work/zarzycki/sewx/INIC/ERA5-tclf008-mp3a_INIC.nc
+BNDTOPO=/glade/u/home/zarzycki/work/CESM_files/ncdata/mpasa3-60-tclf008_init.nc
+WGTNAME=/glade/work/zarzycki/sewx/mapping/map_era5_0.25x0.25_TO_mpasa3-60-tclf008_scrip_patc.nc
+NUMLEVS=58
 
 # DYCORE="se"
 # GRIDSTR=ne0np4natlanticref.ne30x4
@@ -63,8 +66,8 @@ RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
 # WGTNAME=/global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era0.25_TO_conus_30_x8_patc.nc
 # NUMLEVS=72
 
-DYCORE="se"
-GRIDSTR=ne30np4
-BNDTOPO=/global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc
-WGTNAME=/global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era0.25_TO_ne30np4_patc.nc
-NUMLEVS=72
+# DYCORE="se"
+# GRIDSTR=ne30np4
+# BNDTOPO=/global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc
+# WGTNAME=/global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era0.25_TO_ne30np4_patc.nc
+# NUMLEVS=72

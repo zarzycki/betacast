@@ -26,13 +26,13 @@ For interactive or direct execution:
 #### PBS (CASPER)
 
 ```bash
-qsubcasper -v NLFILE="ndg.era5.nl" gen-nudge.sh
+qsub -v NLFILE="ndg.era5.nl",input_dates_file="NULL" gen-nudge.sh
 ```
 
 #### SLURM (NERSC)
 
 ```bash
-sbatch gen-nudge.sh ndg.era5.nl
+sbatch gen-nudge.sh ndg.era5.nl NULL
 ```
 
 ## Configuration
@@ -111,7 +111,7 @@ The script intelligently processes date ranges and handles various calendar form
 ```bash
 STYR=2021
 ENYR=2021
-STMON="jun" 
+STMON="jun"
 STDAY=20
 ENMON="jun"
 ENDAY=28
