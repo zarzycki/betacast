@@ -37,10 +37,120 @@ echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
 cd $CASEDIR
 ./xmlchange JOB_WALLCLOCK_TIME=${WALLCLOCK}
 ./xmlchange --force JOB_QUEUE=${RUNQUEUE}
+./xmlchange --force JOB_PRIORITY=${RUNPRIORITY}
 ./xmlchange REST_OPTION="end"
-./xmlchange STOP_N="86400"
-./xmlchange STOP_OPTION="date"
-./xmlchange STOP_DATE="$yearstr$monthstr$daystr"
+#./xmlchange STOP_N="86400"
+#./xmlchange STOP_OPTION="date"
+#./xmlchange STOP_DATE="$yearstr$monthstr$daystr"
+
+
+
+
+
+
+
+
+
+
+
+
+
+echo "Target date: ${yearstr}-${monthstr}-${daystr} ${cyclestr}:00"
+
+# Step 1: Get DRV_RESTART_POINTER and trim
+output=$(./xmlquery DRV_RESTART_POINTER | xargs)
+echo "Raw xmlquery output: $output"
+
+restart_pointer="${output##*.}"
+echo "Initial restart_pointer (from output): $restart_pointer"
+
+# Step 2: Check if restart_pointer matches YYYY-MM-DD-SSSSS
+if [[ ! "$restart_pointer" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{5}$ ]]; then
+    echo "Restart pointer format invalid. Falling back to RUN_STARTDATE + START_TOD..."
+
+    run_startdate=$(./xmlquery RUN_STARTDATE | awk -F': ' '{print $2}' | xargs)
+    echo "RUN_STARTDATE: $run_startdate"
+
+    start_tod=$(./xmlquery START_TOD | awk -F': ' '{print $2}' | xargs)
+    echo "START_TOD: $start_tod"
+
+    start_tod_padded=$(printf "%05d" "$start_tod")
+    echo "START_TOD padded: $start_tod_padded"
+
+    restart_pointer="${run_startdate}-${start_tod_padded}"
+fi
+
+echo "Final restart pointer: $restart_pointer"
+
+# Function: convert YYYY-MM-DD to days since 0000-01-01 (no leap years)
+days_since_epoch() {
+    local y=$1 m=$2 d=$3
+    local -a month_days=(0 31 59 90 120 151 181 212 243 273 304 334)
+    local total_days=$(( y * 365 + month_days[m - 1] + (d - 1) ))
+    echo "$total_days"
+}
+
+# Parse restart_pointer
+restart_date=${restart_pointer%-*}
+restart_secs=${restart_pointer##*-}
+restart_year=${restart_date:0:4}
+restart_month=${restart_date:5:2}
+restart_day=${restart_date:8:2}
+
+echo "Parsed restart date: $restart_year-$restart_month-$restart_day"
+echo "Restart seconds since midnight: $restart_secs"
+
+# Strip leading zeros
+restart_month=$((10#$restart_month))
+restart_day=$((10#$restart_day))
+monthstr=$((10#$monthstr))
+daystr=$((10#$daystr))
+
+echo "Parsed restart date (int): $restart_year-$restart_month-$restart_day"
+echo "Parsed future date (int): $yearstr-$monthstr-$daystr"
+
+# Compute total hours since epoch
+restart_days=$(days_since_epoch "$restart_year" "$restart_month" "$restart_day")
+echo "Restart days since epoch: $restart_days"
+
+restart_hours=$(( restart_days * 24 + restart_secs / 3600 ))
+echo "Restart total hours: $restart_hours"
+
+future_days=$(days_since_epoch "$yearstr" "$monthstr" "$daystr")
+echo "Future days since epoch: $future_days"
+
+future_hours=$(( future_days * 24 + cyclestr ))
+echo "Future total hours: $future_hours"
+
+# Final difference
+diff_hours=$(( future_hours - restart_hours ))
+echo "Hour difference: $diff_hours"
+
+./xmlchange STOP_N=${diff_hours}
+./xmlchange STOP_OPTION="nhours"
+./xmlchange STOP_DATE="-99999"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 run_CIME2 "$PATH_TO_RUNDIR" "$CIMEsubstring" "$CIMEbatchargs" true
 
 # Copy restart files to some directory for stashing purposes
