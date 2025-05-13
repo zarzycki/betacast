@@ -14,3 +14,16 @@ for i in $(seq 5 14); do
       --WGTFILEDIR "/glade/work/zarzycki/sewx/mapping/"
 done
 ```
+
+### Generate ESMF "grid" from SCRIP
+
+```
+module load conda ; conda activate betacast
+
+INPUTFILE="/glade/work/zarzycki/grids/scrip/conus-tight_256x8_pg2_scrip.nc"
+OUTPUTFILE="ESMF.nc"
+DUALFLAG=0
+OUTFORMAT="ESMF"
+
+ESMF_Scrip2Unstruct $INPUTFILE $OUTPUTFILE $DUALFLAG $OUTFORMAT
+```
