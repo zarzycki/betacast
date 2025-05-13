@@ -27,17 +27,16 @@ def subtract_hours(date_str, hours):
 # Define a list of offsets we want, this means "include" times NN offset hours
 # before the landfall time in the CSV file
 # if empty, just reproduce the landfall time variable
-offsets = [12, 24]
-
-# Define the year range for filtering landfall events
-min_year = 1988
-max_year = 2023
+offsets = [12,24]
+min_year = 2002
+max_year = 2024
+pres_threshold = 2000.0
 
 # Define column names and load landfall file using pandas
 # Ttime is the "time of initialization" which is N days before actual LFtime (defined by LF code)
 # That is the time the model should be initialized in hindcast mode
 column_names = ['stormID', 'LFtime', 'LFlon','LFlat','LFpres','LFwind','Tlon','Tlat','Ttime','LFbasin']
-df = pd.read_csv('LF.ibtracs-1980-2019-GLOB.v4.txt', names=column_names)
+df = pd.read_csv('LF.ibtracs-1980-2024-GLOB.v4r1.txt', names=column_names)
 
 # Only keep regions of landfall corresponding to USA
 filtered_df = df[df['LFbasin'] > 0].copy()
@@ -83,21 +82,29 @@ all_dates = []
 # Process each unique mesh center label (previously assigned in the distance calculation)
 for label in filtered_df['closest_label'].unique():
 
-    # Filter data to only rows associated with the current mesh center label
-    # ex: get all rows with "001"
-    filtered_data = filtered_df[filtered_df['closest_label'] == label][output_columns]
-
-    # Convert Ttime to string format
-    # Filter events by year, assuming Ttime format starts with YYYY
-    # This keeps only events that occurred within the specified year range
-    filtered_data['Ttime'] = filtered_data['Ttime'].astype(str)
-    filtered_data = filtered_data[filtered_data['Ttime'].apply(lambda x: min_year <= int(x[:4]) <= max_year)]
-
     # Generate filename for this mesh center label's date output file
     filename = f"dates.index.{label}.txt"
 
+    # Filter data to only rows associated with the current mesh center label
+    # ex: get all rows with "001"
+    mask = filtered_df['closest_label'] == label
+    label_df = filtered_df.loc[mask].copy()
+
+    # filter by pressure
+    label_df = label_df[label_df['LFpres'] < pres_threshold]
+
+    # convert Ttime to string
+    label_df = label_df.assign(Ttime=label_df['Ttime'].astype(str))
+
+    # filter by year (send first 4 digits of Ttime back to int)
+    yrs = label_df['Ttime'].str[:4].astype(int)
+    label_df = label_df[yrs.between(min_year, max_year)]
+
+    print(f"****************** {label} **********")
+    print(label_df)
+
     # Get the list of dates for this mesh center
-    current_dates = filtered_data['Ttime'].tolist()
+    current_dates = label_df['Ttime'].tolist()
 
     # Build a list of dates associated with this landfall and write to file
     if offsets:
@@ -116,8 +123,8 @@ for label in filtered_df['closest_label'].unique():
 
         all_dates.extend(expanded_dates)
     else:
-        # if offsets is empty, do nothing special
-        filtered_data.to_csv(filename, index=False, header=False)
+        # if offsets is empty, do nothing special, only output Ttime (landfall time from landfall file)
+        label_df['Ttime'].to_csv(filename, index=False, header=False)
         all_dates.extend(current_dates)
 
 # We also need to create a single consolidated file containing all unique landfall dates
