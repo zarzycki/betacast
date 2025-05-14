@@ -26,6 +26,8 @@ if [ -z "${CIMEbatchargs+x}" ]; then CIMEbatchargs=""; fi
 ## Get to this directory
 cd $SCRIPTDIR
 
+## ---------------------------------------------------------------------------------------
+
 # Parse dates file
 echo "Using dates in: "${datesfile}
 longdate=$(get_top_line_from_dates "${datesfile}")
@@ -33,61 +35,44 @@ echo "Getting parsed time from $longdate"
 parse_YYYYMMDDHH $longdate
 echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
 
-### Go to the case dir and do things
-cd $CASEDIR
-./xmlchange JOB_WALLCLOCK_TIME=${WALLCLOCK}
-./xmlchange --force JOB_QUEUE=${RUNQUEUE}
-./xmlchange --force JOB_PRIORITY=${RUNPRIORITY}
-./xmlchange REST_OPTION="end"
-#./xmlchange STOP_N="86400"
-#./xmlchange STOP_OPTION="date"
-#./xmlchange STOP_DATE="$yearstr$monthstr$daystr"
-
-
-
-
-
-
-
-
-
-
-
-
+### New logic for figure out how many **hours** we have to march forward before restart
 
 echo "Target date: ${yearstr}-${monthstr}-${daystr} ${cyclestr}:00"
 
-# Step 1: Get DRV_RESTART_POINTER and trim
+# Need to go to casedir to see what's up
+cd $CASEDIR
+
+# Get DRV_RESTART_POINTER and trim
 output=$(./xmlquery DRV_RESTART_POINTER | xargs)
 echo "Raw xmlquery output: $output"
 
 restart_pointer="${output##*.}"
 echo "Initial restart_pointer (from output): $restart_pointer"
 
-# Step 2: Check if restart_pointer matches YYYY-MM-DD-SSSSS
+# Check if restart_pointer is YYYY-MM-DD-SSSSS, if not use STARTDATE
 if [[ ! "$restart_pointer" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{5}$ ]]; then
-    echo "Restart pointer format invalid. Falling back to RUN_STARTDATE + START_TOD..."
+  echo "Restart pointer format invalid. Falling back to RUN_STARTDATE + START_TOD..."
 
-    run_startdate=$(./xmlquery RUN_STARTDATE | awk -F': ' '{print $2}' | xargs)
-    echo "RUN_STARTDATE: $run_startdate"
+  run_startdate=$(./xmlquery RUN_STARTDATE | awk -F': ' '{print $2}' | xargs)
+  echo "RUN_STARTDATE: $run_startdate"
 
-    start_tod=$(./xmlquery START_TOD | awk -F': ' '{print $2}' | xargs)
-    echo "START_TOD: $start_tod"
+  start_tod=$(./xmlquery START_TOD | awk -F': ' '{print $2}' | xargs)
+  echo "START_TOD: $start_tod"
 
-    start_tod_padded=$(printf "%05d" "$start_tod")
-    echo "START_TOD padded: $start_tod_padded"
+  start_tod_padded=$(printf "%05d" "$start_tod")
+  echo "START_TOD padded: $start_tod_padded"
 
-    restart_pointer="${run_startdate}-${start_tod_padded}"
+  restart_pointer="${run_startdate}-${start_tod_padded}"
 fi
 
 echo "Final restart pointer: $restart_pointer"
 
 # Function: convert YYYY-MM-DD to days since 0000-01-01 (no leap years)
 days_since_epoch() {
-    local y=$1 m=$2 d=$3
-    local -a month_days=(0 31 59 90 120 151 181 212 243 273 304 334)
-    local total_days=$(( y * 365 + month_days[m - 1] + (d - 1) ))
-    echo "$total_days"
+  local y=$1 m=$2 d=$3
+  local -a month_days=(0 31 59 90 120 151 181 212 243 273 304 334)
+  local total_days=$(( y * 365 + month_days[m - 1] + (d - 1) ))
+  echo "$total_days"
 }
 
 # Parse restart_pointer
@@ -122,36 +107,32 @@ echo "Future days since epoch: $future_days"
 future_hours=$(( future_days * 24 + cyclestr ))
 echo "Future total hours: $future_hours"
 
-# Final difference
+# Final difference how many hours to go from restart -> target
 diff_hours=$(( future_hours - restart_hours ))
 echo "Hour difference: $diff_hours"
 
-./xmlchange STOP_N=${diff_hours}
-./xmlchange STOP_OPTION="nhours"
-./xmlchange STOP_DATE="-99999"
+## ---------------------------------------------------------------------------------------
 
+### Go to the case dir and do things
+cd $CASEDIR
+xmlchange_verbose "JOB_WALLCLOCK_TIME" "$WALLCLOCK"
+xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
+xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
+xmlchange_verbose "REST_OPTION" "end"
+#./xmlchange STOP_N="86400"
+#./xmlchange STOP_OPTION="date"
+#./xmlchange STOP_DATE="$yearstr$monthstr$daystr"
 
+xmlchange_verbose "STOP_N" "$diff_hours"
+xmlchange_verbose "STOP_OPTION" "nhours"
+xmlchange_verbose "STOP_DATE" "-99999"
 
+## ---------------------------------------------------------------------------------------
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Run the model
 run_CIME2 "$PATH_TO_RUNDIR" "$CIMEsubstring" "$CIMEbatchargs" true
+
+## ---------------------------------------------------------------------------------------
 
 # Copy restart files to some directory for stashing purposes
 cd $PATH_TO_RUNDIR
@@ -174,14 +155,25 @@ for file in $DIRSTASH/*.nc; do
   [ -e "$file" ] || continue # Skip if no files match
   compress_file "$file" zstd
 done
-mv -fv *.log.*.gz $DIRSTASH/logs/
+
+## Move log files to DIRSTASH/logs
+shopt -s nullglob
+logfiles=(*.log.*.gz)
+if [ ${#logfiles[@]} -gt 0 ]; then
+  mv -fv "${logfiles[@]}" "$DIRSTASH/logs/"
+else
+  echo "WARNING: No log files matching *.log.*.gz found to move." >&2
+fi
+
+## Cleanup
 rm -fv *.bin
+rm -fv mpibind.*.log
 
 cd $CASEDIR
 # Assuming run_CIME2 was successful, let's set CONTINUE_RUN to TRUE
 # this is because for a cold start we want FALSE, but every other run is TRUE
 # So there is no harm in doing this as long as the first run succeeds.
-./xmlchange CONTINUE_RUN=TRUE
+xmlchange_verbose "CONTINUE_RUN" "TRUE"
 
 # Return to the script dir to do things and resubmit
 cd $SCRIPTDIR
