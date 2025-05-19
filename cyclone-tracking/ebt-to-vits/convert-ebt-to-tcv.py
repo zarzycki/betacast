@@ -2,11 +2,12 @@
 
 import math
 import gzip
+import os
 
 kts_to_ms = 0.514444
 nm_to_km = 1.852
 
-def parse_EBT(line):
+def parse_EBT(line, verbose=False):
     """
     Parse a single Extended Best Track format line and return structured data
     Uses column-based parsing for fixed-width fields, then space-based for remainder
@@ -14,9 +15,10 @@ def parse_EBT(line):
     if not line.strip():
         return None
 
-    # Print raw line for debugging
-    print(f"Raw EBT line: {repr(line)}")
-    print(f"Line length: {len(line)} characters")
+    if verbose:
+        # Print raw line for debugging
+        print(f"Raw EBT line: {repr(line)}")
+        print(f"Line length: {len(line)} characters")
 
     # Remove newline but preserve the full line
     line = line.rstrip('\n')
@@ -40,23 +42,24 @@ def parse_EBT(line):
     r64          = line[97:110].strip()   # 12 chat 64kt quadrants (nm) [NE, SE, SW, NW]
     storm_type   = line[111:112].strip()  # e.g., 'L'
 
-    print("Column-parsed fields:")
-    print(f"  Storm ID:      '{storm_id}'")
-    print(f"  Storm Name:    '{storm_name}'")
-    print(f"  Date/Time:     '{date_time}'")
-    print(f"  Year:          '{year}'")
-    print(f"  Latitude:      '{lat}'")
-    print(f"  Longitude:     '{lon}'")
-    print(f"  Max Wind:      '{vmax}' kt")
-    print(f"  MSLP:          '{mslp}' hPa")
-    print(f"  RMW:           '{rmw}' nm")
-    print(f"  Eye rad:       '{eye}' nm")
-    print(f"  Outer P:       '{outer_p}' hPa")
-    print(f"  R8:            '{r8}' nm")
-    print(f"  r34:           '{r34}'")
-    print(f"  r50:           '{r50}'")
-    print(f"  r64:           '{r64}'")
-    print(f"  Storm Type:    '{storm_type}'")
+    if verbose:
+        print("Column-parsed fields:")
+        print(f"  Storm ID:      '{storm_id}'")
+        print(f"  Storm Name:    '{storm_name}'")
+        print(f"  Date/Time:     '{date_time}'")
+        print(f"  Year:          '{year}'")
+        print(f"  Latitude:      '{lat}'")
+        print(f"  Longitude:     '{lon}'")
+        print(f"  Max Wind:      '{vmax}' kt")
+        print(f"  MSLP:          '{mslp}' hPa")
+        print(f"  RMW:           '{rmw}' nm")
+        print(f"  Eye rad:       '{eye}' nm")
+        print(f"  Outer P:       '{outer_p}' hPa")
+        print(f"  R8:            '{r8}' nm")
+        print(f"  r34:           '{r34}'")
+        print(f"  r50:           '{r50}'")
+        print(f"  r64:           '{r64}'")
+        print(f"  Storm Type:    '{storm_type}'")
 
     # Function for turning 12 char quadrant strings into a list x 4
     def parse_quadrants(s):
@@ -109,17 +112,19 @@ def parse_EBT(line):
         'storm_num': storm_num
     }
 
-    print(f"Parsed EBT data: {parsed_data}")
-    print("-" * 80)
+    if verbose:
+        print(f"Parsed EBT data: {parsed_data}")
+        print("-" * 80)
 
     return parsed_data
 
 
-def convert_to_tcvitals(ebt_data, prev_lat=None, prev_lon=None):
+def convert_to_tcvitals(ebt_data, prev_lat=None, prev_lon=None, verbose=False):
     """
     Convert parsed EBT data to TCVitals format
     """
-    print(f"\nConverting to TCVitals: {ebt_data['storm_name']} {ebt_data['year']}{ebt_data['month']}{ebt_data['day']} {ebt_data['hour']}00")
+    if verbose:
+        print(f"\nConverting to TCVitals: {ebt_data['storm_name']} {ebt_data['year']}{ebt_data['month']}{ebt_data['day']} {ebt_data['hour']}00")
 
     # Calculate motion (for now, just set to missing values)
     motion_dir, motion_speed = -99, -99
@@ -156,10 +161,11 @@ def convert_to_tcvitals(ebt_data, prev_lat=None, prev_lon=None):
     wind_50_km = convert_radii(ebt_data['wind_50'])
     wind_64_km = convert_radii(ebt_data['wind_64'])
 
-    print(f"Wind radii converted to km:")
-    print(f"  34kt: {wind_34_km}")
-    print(f"  50kt: {wind_50_km}")
-    print(f"  64kt: {wind_64_km}")
+    if verbose:
+        print(f"Wind radii converted to km:")
+        print(f"  34kt: {wind_34_km}")
+        print(f"  50kt: {wind_50_km}")
+        print(f"  64kt: {wind_64_km}")
 
     # Convert other measurements
     if ebt_data['outer_radius_nm'] == '-99' or float(ebt_data['outer_radius_nm']) < 0:
@@ -200,13 +206,14 @@ def convert_to_tcvitals(ebt_data, prev_lat=None, prev_lon=None):
         f"{wind_64_km[0]} {wind_64_km[1]} {wind_64_km[2]} {wind_64_km[3]} "
     )
 
-    print(f"Generated TCVitals line:")
-    print(f"  {tcvital_line}")
-    print(f"  Length: {len(tcvital_line)} characters")
+    if verbose:
+        print(f"Generated TCVitals line:")
+        print(f"  {tcvital_line}")
+        print(f"  Length: {len(tcvital_line)} characters")
 
     return tcvital_line
 
-def convert_ebtrk_to_tcvitals(input_file, filter_year=None):
+def convert_ebtrk_to_tcvitals(input_file, filter_year=None, verbose=False):
     """
     Convert Extended Best Track format to TCVitals format
 
@@ -214,10 +221,11 @@ def convert_ebtrk_to_tcvitals(input_file, filter_year=None):
         input_file: Path to the EBT input file
         filter_year: Optional year to filter for (e.g., 2002). If None, processes all years.
     """
-    print(f"Converting {input_file} to TCVitals format")
-    if filter_year:
-        print(f"Filtering for year: {filter_year}")
-    print("=" * 80)
+    if verbose:
+        print(f"Converting {input_file} to TCVitals format")
+        if filter_year:
+            print(f"Filtering for year: {filter_year}")
+        print("=" * 80)
 
     # Read the input file
     try:
@@ -242,7 +250,7 @@ def convert_ebtrk_to_tcvitals(input_file, filter_year=None):
 
     for i, line in enumerate(lines):
         # Parse the EBT line first
-        ebt_data = parse_EBT(line)
+        ebt_data = parse_EBT(line, verbose)
         if ebt_data is None:
             print(f"Skipping invalid line {i+1}")
             continue
@@ -253,18 +261,20 @@ def convert_ebtrk_to_tcvitals(input_file, filter_year=None):
                 filtered_count += 1
                 continue
 
-        print(f"\n--- Processing line {i+1} (Year: {ebt_data['year']}) ---")
+        if verbose:
+            print(f"\n--- Processing line {i+1} (Year: {ebt_data['year']}) ---")
 
         # Convert to TCVitals
-        tcvital_line = convert_to_tcvitals(ebt_data, prev_lat, prev_lon)
+        tcvital_line = convert_to_tcvitals(ebt_data, prev_lat, prev_lon, verbose)
         tcvitals_lines.append(tcvital_line)
 
         # Update previous position for motion calculation
         prev_lat, prev_lon = ebt_data['lat'], ebt_data['lon']
         total_processed += 1
 
-    if filter_year:
-        print(f"\nFiltering results: {filtered_count} records filtered out, {total_processed} records kept for year {filter_year}")
+    if verbose:
+        if filter_year:
+            print(f"\nFiltering results: {filtered_count} records filtered out, {total_processed} records kept for year {filter_year}")
 
     return tcvitals_lines
 
@@ -272,35 +282,80 @@ def convert_ebtrk_to_tcvitals(input_file, filter_year=None):
 if __name__ == "__main__":
 
     # Filter for year (set to None for full dataset)
-    target_year = None
+    target_year = 2002
 
-    # EBT file
-    input_filename = 'EBTRK_AL_final_1851-2021_new_format_02-Sep-2022-1.txt.gz'
+    # List of EBT files to process
+    input_filenames = [
+        'EBTRK_AL_final_1851-2021_new_format_02-Sep-2022-1.txt.gz',
+        'EBTRK_CP_final_1950-2021_new_format_02-Sep-2022-1.txt.gz',
+        'EBTRK_EP_final_1949-2021_new_format_02-Sep-2022.txt.gz'
+    ]
 
+    sort_tcvitals = True
+
+    do_verbose = True
+
+    TCVITFOLDER = "../fin-tcvitals/"
+
+    # -----------------------------------------------------------------------
+
+    # Get the VIT folder setup
     if target_year:
-        output_filename = f'vitals_{target_year}.txt'
+        output_filename = os.path.join(TCVITFOLDER, 'combined', f'combined_tcvitals.{target_year}.dat')
     else:
-        output_filename = 'vitals_ALL.txt'
+        output_filename = os.path.join(TCVITFOLDER, 'combined', 'combined_tcvitals.ALL.dat')
+
+    # Create the combined directory if it doesn't exist
+    os.makedirs(os.path.join(TCVITFOLDER, 'combined'), exist_ok=True)
 
     print("Hurricane Track Converter - Extended Best Track to TCVitals")
     print("=" * 60)
 
-    tcvitals_data = convert_ebtrk_to_tcvitals(input_filename, filter_year=target_year)
+    # Process all files and combine results
+    all_tcvitals_data = []
+    for input_filename in input_filenames:
+        print(f"\nProcessing file: {input_filename}")
+        print("-" * 40)
+        tcvitals_data = convert_ebtrk_to_tcvitals(input_filename, filter_year=target_year, verbose=do_verbose)
+        all_tcvitals_data.extend(tcvitals_data)
 
-    if tcvitals_data:
+    if all_tcvitals_data:
+        if sort_tcvitals:
+            print("Sorting TCvitals")
+
+            # Sort by datetime (YYYYMMDD HHMM)
+            def extract_datetime(tcvital_line):
+                # Split the line and extract date/time
+                # Format: NHC  14L TD14      20021016 1200 ...
+                parts = tcvital_line.split()
+                if len(parts) >= 4:
+                    date_str = parts[3]  # YYYYMMDD
+                    time_str = parts[4]  # HHMM
+                    # Combine into sortable format: YYYYMMDDHHMM
+                    return date_str + time_str
+                return "00000000000"  # Default for malformed lines
+
+            print(f"\nSorting {len(all_tcvitals_data)} records chronologically...")
+            all_tcvitals_data.sort(key=extract_datetime)
+
         print(f"\n\nFINAL RESULTS:")
         print("=" * 60)
         print("TCVitals format output:")
         print("-" * 155)
-        for line in tcvitals_data:
+        for line in all_tcvitals_data:
             print(line)
 
         # Save to file
         with open(output_filename, 'w') as f:
-            for line in tcvitals_data:
+            for line in all_tcvitals_data:
                 f.write(line + '\n')
 
-        print(f"\nConverted {len(tcvitals_data)} records for year {target_year}")
+        print(f"\nConverted {len(all_tcvitals_data)} total records across all basins")
+        if target_year:
+            print(f"for year {target_year}")
         print(f"Output saved to '{output_filename}'")
     else:
-        print(f"No valid records were converted for year {target_year}")
+        if target_year:
+            print(f"No valid records were converted for year {target_year}")
+        else:
+            print("No valid records were converted")
