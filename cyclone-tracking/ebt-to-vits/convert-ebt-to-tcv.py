@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import math
 import gzip
 import os
+import sys
 
 kts_to_ms = 0.514444
 nm_to_km = 1.852
@@ -282,7 +282,8 @@ def convert_ebtrk_to_tcvitals(input_file, filter_year=None, verbose=False):
 if __name__ == "__main__":
 
     # Filter for year (set to None for full dataset)
-    target_year = 2002
+    # Default target year if no command line argument provided
+    default_target_year = 2003
 
     # List of EBT files to process
     input_filenames = [
@@ -298,6 +299,18 @@ if __name__ == "__main__":
     TCVITFOLDER = "../fin-tcvitals/"
 
     # -----------------------------------------------------------------------
+
+    # Check for command line argument
+    if len(sys.argv) > 1:
+        try:
+            target_year = int(sys.argv[1])
+            print(f"Using command line year: {target_year}")
+        except ValueError:
+            print(f"Invalid year argument '{sys.argv[1]}'. Using default: {default_target_year}")
+            target_year = default_target_year
+    else:
+        target_year = default_target_year
+        print(f"No year argument provided. Using default: {target_year}")
 
     # Get the VIT folder setup
     if target_year:
