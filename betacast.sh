@@ -144,6 +144,10 @@ if [ $modelSystem -eq 0 ]; then
   lndSpecialName="clm2"
   rofName="mosart"
   rofSpecialName="mosart"
+  # As of late 2023, _rtm was dropped in MOSART inic string
+  # See: https://github.com/ESCOMP/MOSART/commit/cdd878de4cff9dc562093978e44aeb7122237983
+  # <CESM3 dev tags need to set this to finidat_rtm
+  rof_finidat="finidat"
 elif [ $modelSystem -eq 1 ]; then
   echo "Using E3SM"
   atmName="eam"
@@ -151,6 +155,7 @@ elif [ $modelSystem -eq 1 ]; then
   lndSpecialName="elm"
   rofName="mosart"
   rofSpecialName="mosart"
+  rof_finidat="finidat_rtm"
 else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
@@ -1019,7 +1024,7 @@ if [ $do_runoff = true ]; then
   echo "USER_NL: Setting input ${rofName} dataset"
 
   # Delete any existing input data
-  sed -i '/.*finidat_rtm/d' user_nl_${rofName}
+  sed -i '/.*finidat/d' user_nl_${rofName}
 
   # We want to check ${landdir} for land restart files. If so, use those.
   rofrestartfile=$(find "${landdir}" -maxdepth 1 \( -type f -o -type l \) -name "${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
@@ -1057,7 +1062,7 @@ if [ $do_runoff = true ]; then
   ## Now modify user_nl_${rofName}
   if [ ${rofrestartfile} ] ; then
     echo "USER_NL: Adding ${rofrestartfile} to user_nl_${rofName}"
-    echo "finidat_rtm='${rofrestartfile}'" >> user_nl_${rofName}
+    echo "${rof_finidat}='${rofrestartfile}'" >> user_nl_${rofName}
   else
     # Check to see if there is a raw ROF file in the landrawdir given by the user
     rawrofrestartfile=$(ls ${landrawdir}/*.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc || true)   # check for file, suppress failed ls error if true
@@ -1065,7 +1070,7 @@ if [ $do_runoff = true ]; then
     if [ ! -z ${rawrofrestartfile} ]; then   # if rawrofrestartfile string is NOT empty, add it.
       echo "WARNING USER_NL: Adding rawrofrestartfile for runoff, although no check to see if grid is consistent!"
       echo "USER_NL: Adding ${rawrofrestartfile} to user_nl_${rofName}"
-      echo "finidat_rtm='${rawrofrestartfile}'" >> user_nl_${rofName}
+      echo "${rof_finidat}='${rawrofrestartfile}'" >> user_nl_${rofName}
     else
       echo "USER_NL: No ${rofName} restart file added, cold start"
     fi
@@ -1326,7 +1331,7 @@ xmlchange_verbose "ATM_NCPL" "$ATM_NCPL"
 xmlchange_verbose "JOB_WALLCLOCK_TIME" "$RUNWALLCLOCK"
 xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
 if [ -n "${RUNPRIORITY+x}" ] && [ -n "$RUNPRIORITY" ]; then
-    xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
+  xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
 fi
 
 # Delete existing ncdata and inject new one into user_nl_atm file
