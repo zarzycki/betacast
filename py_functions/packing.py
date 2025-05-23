@@ -1,7 +1,49 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 
+def flatten_1D_lat_lon(lat, lon):
+    """
+    Convert 1D rectilinear lat/lon arrays to flattened 1D "ncol" lat/lon suitable for unstructured grids.
+
+    Parameters
+    ----------
+    lat : 1D array
+        Latitude values from rectilinear grid.
+    lon : 1D array
+        Longitude values from rectilinear grid.
+
+    Returns
+    -------
+    lat_flat : 1D array
+        Flattened latitude array (i.e., ncol-ized).
+    lon_flat : 1D array
+        Flattened longitude array
+    """
+    lon_2d, lat_2d = np.meshgrid(lon, lat)
+    lat_flat = lat_2d.flatten(order='F')
+    lon_flat = lon_2d.flatten(order='F')
+    return lat_flat, lon_flat
+
+
 def latlon_to_ncol(var_in):
+    """
+    Reshape 2D or 3D lat/lon gridded data to "ncol" unstructured format (column-major order).
+
+    Parameters
+    ----------
+    var_in : ndarray
+        Input rectilinear array of shape (lat, lon) or (lev, lat, lon).
+
+    Returns
+    -------
+    var_out : ndarray
+        Flattened array with shape (ncol,) for 2D or (lev, ncol) for 3D input.
+
+    Raises
+    ------
+    ValueError
+        If input dimensions are not 2 or 3.
+    """
     vardims = var_in.shape
     dims = len(vardims)
 
@@ -22,8 +64,29 @@ def latlon_to_ncol(var_in):
     return var_out
 
 
-
 def ncol_to_latlon(var_out, nlat, nlon):
+    """
+    Reshape unstructured "ncol" data to structured (lat, lon) or (lev, lat, lon) grid.
+
+    Parameters
+    ----------
+    var_out : ndarray
+        Input array of shape (ncol,) or (lev, ncol).
+    nlat : int
+        Number of latitude points (rectilinear)
+    nlon : int
+        Number of longitude points (rectilinear)
+
+    Returns
+    -------
+    var_in : ndarray
+        Reshaped array with shape (nlat, nlon) or (lev, nlat, nlon).
+
+    Raises
+    ------
+    ValueError
+        If input dimensions are not 1 or 2.
+    """
     vardims = var_out.shape
 
     if len(vardims) == 1:
@@ -57,8 +120,6 @@ def repack_fv(data_horiz, fv_dims):
     return data_horiz
 
 
-
-
 def unpack_fv(data_horiz):
 
     print("Unpacking FV variables...")
@@ -70,8 +131,6 @@ def unpack_fv(data_horiz):
             data_horiz[key] = latlon_to_ncol(data_horiz[key])
 
     return data_horiz
-
-
 
 
 def initialize_fv_grid(nfvlat, nfvlon):
