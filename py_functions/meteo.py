@@ -14,6 +14,82 @@ from constants import (
 )
 
 
+#@nb.jit(nopython=True)
+def hydro_bottom_to_top(ps, pint, T, q, zsfc=0.0):
+    """
+    Compute midlayer geopotential height via hydrostatic integration from surface pressure upward.
+
+    Parameters
+    ----------
+    ps : float
+        Surface pressure [Pa].
+    pint : ndarray
+        Interface pressures [Pa], length nlev, ordered top-to-bottom or bottom-to-top.
+    T : ndarray
+        Temperature [K] at each layer midpoint, shape (nlev,). Ordered same as pint.
+    q : ndarray
+        Water vapor mixing ratio [kg/kg] at each layer midpoint, shape (nlev,). Ordered same as pint.
+    zsfc : float, optional
+        Surface geopotential height [m], default is 0.
+
+    Returns
+    -------
+    zmid : ndarray
+        Geopotential height [m] at layer midpoints, shape (nlev,). Preserves input vertical ordering.
+
+    Notes
+    -----
+    Interface pressures are clamped such that no level extends below the surface pressure.
+    """
+
+    nlev = pint.size
+
+    # Flip inputs if they run top-to-bottom
+    flip_vert = False
+    if pint[0] < pint[nlev-1]:
+        flip_vert = True
+        pint2 = np.empty(nlev, dtype=pint.dtype)
+        T2    = np.empty(nlev, dtype=T.dtype)
+        q2    = np.empty(nlev, dtype=q.dtype)
+        for i in range(nlev):
+            pint2[i] = pint[nlev-1-i]
+            T2[i]    = T[nlev-1-i]
+            q2[i]    = q[nlev-1-i]
+        pint = pint2
+        T    = T2
+        q    = q2
+
+    # Build full interface pressures, clamp at ps
+    p_int = np.empty(nlev+1, dtype=pint.dtype)
+    p_int[0] = ps
+    for i in range(nlev):
+        p_int[i+1] = pint[i] if pint[i] <= ps else ps
+
+    # Hydrostatic integration bottom-to-top
+    zh_int = np.empty(nlev+1, dtype=pint.dtype)
+    zh_int[0] = zsfc
+
+    # constants (Rd/g)
+    RDAG  = Rd / grav
+
+    for k in range(nlev):
+        # virtual temp in layer k
+        tkv = T[k] * (1.0 + 0.61 * q[k])
+        # ΔΦ = RDAG * tkv * ln(p_lower / p_upper)
+        zh_int[k+1] = zh_int[k] + RDAG * tkv * np.log(p_int[k] / p_int[k+1])
+
+    zmid = (zh_int[:-1] + zh_int[1:]) / 2
+
+    # Flip result back if needed
+    if flip_vert:
+        z2mid = zmid[::-1]
+        return z2mid
+
+    return zmid
+
+
+
+
 def compute_pmid(t, rho):
     """
     Compute the mid-level pressure (pmid) from temperature (T) and density (rho).
