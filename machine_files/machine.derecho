@@ -1,7 +1,7 @@
 path_to_case = /glade/u/home/${LOGNAME}/!CASENAME!/
 path_to_inputdata = /glade/work/${LOGNAME}/sewx/
 path_to_rundir = /glade/derecho/scratch/${LOGNAME}/!CASENAME!/run/
-TE_SERIAL_DIR = /glade/work/zarzycki/derecho/tempestextremes_noMPI/
+TE_SERIAL_DIR = /glade/work/zarzycki/tempestextremes_noMPI/
 
 ### These do not need to be changed except in special circumstances
 # CAM initial conditions (ncdata) path and file(s)
