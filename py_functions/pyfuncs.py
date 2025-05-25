@@ -103,8 +103,8 @@ def parse_args():
                         help='If set, will attempt NetCDF "chunking" compression (default: False)')
     parser.add_argument('--write_floats', action='store_true',
                         help='If set, write outputs as single precision (default: False)')
-    parser.add_argument('--add_cloud_vars', action='store_true', default=True,
-                        help='If set, add CLDICE and CLDLIQ to output file (default: True)')
+    parser.add_argument('--add_cloud_vars', action='store_true', default=False,
+                        help='If set, add CLDICE and CLDLIQ to output file (default: False)')
     parser.add_argument('--adjust_config', type=str, default=' ',
                         help='String defining how to perform hydro adjustment (default: "")')
     parser.add_argument('--model_topo_file', type=str, default='',
@@ -119,6 +119,8 @@ def parse_args():
                         help='XXXXXX (default: "./")')
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity for debugging')
     parser.add_argument('-f', '--write_debug_files', action='store_true', help='Write debug files')
+    parser.add_argument('-atc', '--augment_tcs', action='store_true', help='Augment TCs')
+    parser.add_argument('--vortex_namelist', type=str, default="", help='Vortex namelist')
 
     return parser.parse_args()
 

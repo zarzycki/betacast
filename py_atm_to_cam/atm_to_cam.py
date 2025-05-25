@@ -2,7 +2,6 @@
 import os
 import sys
 import logging
-from datetime import datetime
 
 # Third party modules
 import numpy as np
@@ -20,6 +19,7 @@ import topoadjust
 import packing
 import loaddata
 import meteo
+import py_seedfuncs
 from constants import (
     p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH,
     ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav
@@ -84,6 +84,8 @@ def main():
     mpas_as_cam = args.mpas_as_cam
     write_debug_files = args.write_debug_files
     DEBUGDIR = args.write_debug_dir
+    augment_tcs = args.augment_tcs
+    vortex_namelist = args.vortex_namelist
 
     if write_debug_files:
         pyfuncs.create_folder(DEBUGDIR)
@@ -157,35 +159,155 @@ def main():
     logging.info(f"Input Coords: nlat: {len(data_vars['lat'])}, nlon: {len(data_vars['lon'])}")
 
     if dycore == "mpas":
-        # Initialize variables
-        data_vars['theta'] = data_vars['t'].copy()
-        data_vars['rho'] = data_vars['t'].copy()
-
         # Create a 3-D pressure field from constant pressure surfaces
         data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
-
-        # If w is omega (Pa/s), convert to vertical velocity in m/s
-        if data_vars['w_is_omega']:
-            data_vars['w'] = meteo.omega_to_w(data_vars['w'], data_vars['pres'], data_vars['t'])
-
-        # Smooth w if needed
-        if w_smooth_iter > 0:
-            #data_vars['w'] = pyfuncs.smooth_with_gaussian(data_vars['w'], w_smooth_iter)
-            data_vars['w'] = pyfuncs.smooth_with_smth9(data_vars['w'], w_smooth_iter)
 
         # If z is reported in geopotential, convert to geometric height
         if data_vars['z_is_phi']:
             data_vars['z'] = data_vars['z'] / grav
 
-        # Calculate potential temperature using full pressure and actual T
-        data_vars['theta'] = meteo.pot_temp(data_vars['pres'], data_vars['t'])
-
-        # Calculate dry air density from pressure, moisture, and temperature
-        data_vars['rho'] = meteo.calculate_rho_dry(data_vars['pres'], data_vars['q'], data_vars['t'])
+        # Calculate pressure interfaces as midpoints between levels
+        # NOTE: pint does NOT include any surface pressure, so it's the interface between bottom, 2nd-from-bottom plev
+        interfaces = (data_vars['lev'][:-1] + data_vars['lev'][1:]) / 2
+        interfaces = np.insert(interfaces, 0, data_vars['lev'][0] / 2)  # Add top interface (half of first level)
+        data_vars['pint'] = np.broadcast_to(interfaces[:, np.newaxis, np.newaxis],data_vars['pres'].shape)
 
     # Print diagnostics
     pyfuncs.log_resource_usage()
     pyfuncs.print_min_max_dict(data_vars)
+
+    # TC augmentation code
+    # How logic works...
+    # If augment_tcs is true, use internal TCvitals file to take existing vortex and deepen (or weaken)
+    # if vortex_namelist is provided and is valid, read a vortex_namelist file and do seeding/unseeding from scratch
+    # augment_tcs takes priority
+    if augment_tcs or (vortex_namelist and os.path.isfile(vortex_namelist)):
+        logging.info(f"Starting TC operation...")
+
+        if augment_tcs and (vortex_namelist and os.path.isfile(vortex_namelist)):
+            logging.info(f"WARNING: Both TC augmentation and vortex_namelist are TRUE")
+            logging.info(f"WARNING: TC augmentation prioritized, remove augment_tcs if this isn't what you want")
+
+        if augment_tcs:
+            # From the TC vitals file, figure out what we need
+            tcs_at_this_time = py_seedfuncs.parse_tcvitals(
+                os.path.join(BETACAST, 'cyclone-tracking/fin-tcvitals/combined/ALL_combined_tcvitals.dat.gz'),
+                YYYYMMDDHH
+                )
+            num_tcs = len(tcs_at_this_time['lats'])
+            logging.info(f"augment_tcs: {augment_tcs}; dealing with {num_tcs} TCs.")
+        elif vortex_namelist and os.path.isfile(vortex_namelist):
+            num_tcs = 1
+            logging.info(f"We have a valid vortex_namelist: {vortex_namelist}; dealing with {num_tcs} TCs.")
+        else:
+            logging.info("Cannot seed/unseed without {augment_tcs} or {vortex_namelist}")
+            num_tcs = 0
+
+        # Check if we found any valid storms
+        if num_tcs > 0:
+            # Loop over each storm
+            for storm_idx in range(num_tcs):
+                if augment_tcs:
+                    storm_name = tcs_at_this_time['storm_names'][storm_idx]
+                    storm_lat = tcs_at_this_time['lats'][storm_idx]
+                    storm_lon = tcs_at_this_time['lons'][storm_idx]
+                    storm_pressure = tcs_at_this_time['pressures'][storm_idx]
+                    storm_rmw = tcs_at_this_time['rmw'][storm_idx]
+
+                    logging.info(f"Processing storm {storm_idx + 1}/{len(tcs_at_this_time['lats'])}: {storm_name}")
+                    logging.info(f"  Location: {storm_lat}, {storm_lon}")
+                    logging.info(f"  Pressure: {storm_pressure} mb, RMW: {storm_rmw} km")
+
+                    # Skip storms with missing critical data
+                    if storm_pressure == -999 or storm_rmw == -999:
+                        logging.warning(f"Skipping {storm_name} due to missing pressure or RMW data")
+                        continue
+
+                    # Update input_dict with storm-specific values
+                    input_dict = {
+                        'deltaMax': 0.25,
+                        'target_rmw': float(storm_rmw)*1000.,        # Use RMW from TCVitals
+                        'minp': float(storm_pressure),         # Use pressure from TCVitals
+                        'psminlat': float(storm_lat),          # Use latitude from TCVitals
+                        'psminlon': float(storm_lon)           # Use longitude from TCVitals
+                    }
+                else:
+                    # We are going to just straight up read the namelist
+                    storm_name = "Synth"
+                    input_dict = vortex_namelist
+
+                # Get TC seeding parameters for this storm
+                tc_seed_params = py_seedfuncs.read_tcseed_settings(input_dict)
+                logging.info(f"Initial parameters for {storm_name}: {tc_seed_params}")
+
+                if tc_seed_params['invert_vortex'] or augment_tcs:
+                    # Find/optimize parameters if needed
+                    logging.info(f"Optimizing missing TC parameters for {storm_name}...")
+                    tc_seed_params = py_seedfuncs.find_fill_parameters(
+                        data_vars['ps'],
+                        data_vars['t'],
+                        data_vars['lat'],
+                        data_vars['lon'],
+                        data_vars['lev'],
+                        tc_seed_params
+                    )
+                    logging.info(f"Updated parameters for {storm_name}: {tc_seed_params}")
+
+                # Apply TC seeding/unseeding for this storm
+                logging.info(f"Applying TC seeding/unseeding for {storm_name}...")
+                if dycore == "mpas":
+                    data_vars = py_seedfuncs.apply_tc_seeding(
+                        data_vars,
+                        tc_seed_params,
+                        update_z=True,
+                        add_deltas_to_data=write_debug_files
+                    )
+                else:
+                    data_vars = py_seedfuncs.apply_tc_seeding(
+                        data_vars,
+                        tc_seed_params,
+                        update_z=False,
+                        add_deltas_to_data=write_debug_files
+                    )
+
+                logging.info(f"Completed processing for {storm_name}")
+
+            logging.info(f"Finished processing all {num_tcs} storms")
+
+            if write_debug_files:
+                pyfuncs.print_debug_file(
+                    DEBUGDIR + "/py_era5_tcseed.nc",
+                    ps_cam=(["lat", "lon"], data_vars['ps']),
+                    ps_vx_cam=(["lat", "lon"], data_vars['ps_vx']),
+                    t_cam=(["lev_p", "lat", "lon"], data_vars['t']),
+                    t_vx_cam=(["lev_p", "lat", "lon"], data_vars['t_vx']),
+                    u_cam=(["lev_p", "lat", "lon"], data_vars['u']),
+                    u_vx_cam=(["lev_p", "lat", "lon"], data_vars['u_vx']),
+                    v_cam=(["lev_p", "lat", "lon"], data_vars['v']),
+                    v_vx_cam=(["lev_p", "lat", "lon"], data_vars['v_vx']),
+                    q_cam=(["lev_p", "lat", "lon"], data_vars['q']),
+                    q_vx_cam=(["lev_p", "lat", "lon"], data_vars['q_vx']),
+                    lat=(["lat"], data_vars['lat']),
+                    lon=(["lon"], data_vars['lon']),
+                    **({
+                        'z_cam': (["lev_p", "lat", "lon"], data_vars['z']),
+                        'z_vx_cam': (["lev_p", "lat", "lon"], data_vars['z_vx'])
+                    } if dycore == 'mpas' else {})
+                )
+                del data_vars['ps_vx']
+                del data_vars['t_vx']
+                del data_vars['u_vx']
+                del data_vars['v_vx']
+                del data_vars['q_vx']
+                if dycore == 'mpas':
+                    del data_vars['z_vx']
+
+        else:
+            logging.info("No valid storms found in TCVitals data - skipping TC augmentation")
+            logging.info("Proceeding without TC modifications")
+
+    else:
+        logging.info("No TC modification requested")
 
     if dycore == 'fv' or dycore == 'se':
 
@@ -193,6 +315,7 @@ def main():
             pyfuncs.print_debug_file(
                 DEBUGDIR+"/"+"py_era5_before_interp.nc",
                 ps_cam=(["lat", "lon"], data_vars['ps']),
+                ps_vortex_cam=(["lat", "lon"], data_vars['ps_vortex']),
                 t_cam=(["lev_p", "lat", "lon"], data_vars['t']),
                 u_cam=(["lev_p", "lat", "lon"], data_vars['u']),
                 v_cam=(["lev_p", "lat", "lon"], data_vars['v']),
@@ -232,6 +355,26 @@ def main():
 
         logging.info(f"MPAS GRID: nlev: {mpas_data['nlev']}    nlevi: {mpas_data['nlevi']}     ncell: {mpas_data['ncell']}")
         pyfuncs.print_min_max_dict(mpas_data)
+
+        # These things we want to do as close to interpolation as possible
+        # Initialize variables
+        data_vars['theta'] = data_vars['t'].copy()
+        data_vars['rho'] = data_vars['t'].copy()
+
+        # Calculate potential temperature using full pressure and actual T
+        data_vars['theta'] = meteo.pot_temp(data_vars['pres'], data_vars['t'])
+
+        # Calculate dry air density from pressure, moisture, and temperature
+        data_vars['rho'] = meteo.calculate_rho_dry(data_vars['pres'], data_vars['q'], data_vars['t'])
+
+        # If w is omega (Pa/s), convert to vertical velocity in m/s
+        if data_vars['w_is_omega']:
+            data_vars['w'] = meteo.omega_to_w(data_vars['w'], data_vars['pres'], data_vars['t'])
+
+        # Smooth w if needed
+        if w_smooth_iter > 0:
+            #data_vars['w'] = pyfuncs.smooth_with_gaussian(data_vars['w'], w_smooth_iter)
+            data_vars['w'] = pyfuncs.smooth_with_smth9(data_vars['w'], w_smooth_iter)
 
         # Set up some dummy arrays since we aren't going to vert interp first
         data_vint = data_vars.copy()
@@ -527,8 +670,9 @@ def main():
             out_data['v'] = pyfuncs.numpy_to_dataarray(data_horiz['v'], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
             out_data['t'] = pyfuncs.numpy_to_dataarray(data_horiz['t'], dims=['lev', 'ncol'], attrs={'units': 'K', "_FillValue": NC_FLOAT_FILL})
             out_data['q'] = pyfuncs.numpy_to_dataarray(data_horiz['q'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
+            if add_cloud_vars:
+                out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
+                out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
             out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
             out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
             out_data['correct_or_not'] = pyfuncs.numpy_to_dataarray(data_horiz['correct_or_not'], dims=['ncol'], attrs={"_FillValue": -1.0}, name='correct_or_not')
@@ -538,8 +682,9 @@ def main():
             out_data['v'] = pyfuncs.add_time_define_precision(out_data['v'], write_type, True)
             out_data['t'] = pyfuncs.add_time_define_precision(out_data['t'], write_type, True)
             out_data['q'] = pyfuncs.add_time_define_precision(out_data['q'], write_type, True)
-            out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, True)
-            out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, True)
+            if add_cloud_vars:
+                out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, True)
+                out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, True)
 
         elif dycore == "fv":
             out_data['ps'] = pyfuncs.numpy_to_dataarray(data_horiz['ps'], dims=['lat', 'lon'], attrs={'units': 'Pa', "_FillValue": NC_FLOAT_FILL})
@@ -549,8 +694,9 @@ def main():
             out_data['vs'] = pyfuncs.numpy_to_dataarray(data_horiz['vs'], dims=['lev', 'lat', 'slon'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
             out_data['t'] = pyfuncs.numpy_to_dataarray(data_horiz['t'], dims=['lev', 'lat', 'lon'], attrs={'units': 'K', "_FillValue": NC_FLOAT_FILL})
             out_data['q'] = pyfuncs.numpy_to_dataarray(data_horiz['q'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "å": NC_FLOAT_FILL})
-            out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
+            if add_cloud_vars:
+                out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
+                out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
             out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['lat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
             out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['lon'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
             out_data['slat'] = pyfuncs.numpy_to_dataarray(data_horiz['fvslat'], dims=['slat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
@@ -564,8 +710,9 @@ def main():
             out_data['vs'] = pyfuncs.add_time_define_precision(out_data['vs'], write_type, False, lon_dim="slon")
             out_data['t'] = pyfuncs.add_time_define_precision(out_data['t'], write_type, False)
             out_data['q'] = pyfuncs.add_time_define_precision(out_data['q'], write_type, False)
-            out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, False)
-            out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, False)
+            if add_cloud_vars:
+                out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, False)
+                out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, False)
 
         elif dycore == "mpas":
             # Need to flip the 3-D arrays!
@@ -603,8 +750,9 @@ def main():
         if dycore == "se" or dycore == "fv":
             # Reload from the template xarray for metadata purposes
             hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels, load_xarray = True)
-            ds["CLDLIQ"] = out_data['cldliq']
-            ds["CLDICE"] = out_data['cldice']
+            if add_cloud_vars:
+                ds["CLDLIQ"] = out_data['cldliq']
+                ds["CLDICE"] = out_data['cldice']
             ds["hyam"] = hya
             ds["hybm"] = hyb
             ds["hyai"] = hyai
@@ -704,7 +852,7 @@ def main():
         v_nc.units = 'm/s'
         t_nc.units = 'K'
         q_nc.units = 'kg/kg'
-        if dycore != "mpas":
+        if dycore != "mpas" and add_cloud_vars:
             cldliq_nc = nc_file.createVariable('CLDLIQ', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
             cldice_nc = nc_file.createVariable('CLDICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
             cldliq_nc.units = "kg/kg"
@@ -720,8 +868,9 @@ def main():
             v_nc[0, :, :, :] = data_horiz['v']
             t_nc[0, :, :, :] = data_horiz['t']
             q_nc[0, :, :, :] = data_horiz['q']
-            cldliq_nc[0, :, :, :] = data_horiz['cldliq']
-            cldice_nc[0, :, :, :] = data_horiz['cldice']
+            if add_cloud_vars:
+                cldliq_nc[0, :, :, :] = data_horiz['cldliq']
+                cldice_nc[0, :, :, :] = data_horiz['cldice']
             if 'correct_or_not' in locals():
                 correct_or_not_nc[0, :, :] = data_horiz['correct_or_not']
         elif dycore == "se":
@@ -730,8 +879,9 @@ def main():
             v_nc[0, :, :] = data_horiz['v']
             t_nc[0, :, :] = data_horiz['t']
             q_nc[0, :, :] = data_horiz['q']
-            cldliq_nc[0, :, :] = data_horiz['cldliq']
-            cldice_nc[0, :, :] = data_horiz['cldice']
+            if add_cloud_vars:
+                cldliq_nc[0, :, :] = data_horiz['cldliq']
+                cldice_nc[0, :, :] = data_horiz['cldice']
             if 'correct_or_not' in locals():
                 correct_or_not_nc[0, :] = data_horiz['correct_or_not']
         elif dycore == "mpas":

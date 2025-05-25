@@ -1,4 +1,3 @@
-import numpy as np
 from math import sin, cos, sqrt, pi, atan, exp, radians, degrees
 import re
 import os
@@ -7,11 +6,20 @@ import logging
 import shutil
 import sys
 
+# Third party
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Betacast
 import meteo
+import packing
+from constants import (
+    grav
+)
 
 logger = logging.getLogger(__name__)
 
-def calc_mass_weighted_integral(var3d, pdel, area, gravit=9.81):
+def calc_mass_weighted_integral(var3d, pdel, area, gravit=grav):
     """
     Calculate mass-weighted global integral of a 3D field
     Parameters:
@@ -35,7 +43,8 @@ def calc_mass_weighted_integral(var3d, pdel, area, gravit=9.81):
     global_integral = np.sum(column_integral * area)
     return global_integral
 
-def calc_inverse_mass_weighted_field(target_integral, pdel, area, gravit=9.81):
+
+def calc_inverse_mass_weighted_field(target_integral, pdel, area, gravit=grav):
     """
     Calculate a uniform 3D field that would produce the target mass-weighted global integral
     Parameters:
@@ -215,9 +224,6 @@ def gc_latlon(lat1, lon1, lat2, lon2, npts, iu):
     }
 
 
-
-
-
 def convert_lon(lon, iu):
     """
     Convert longitudes to either 0-360 or -180 to 180 based on the iu flag.
@@ -237,27 +243,6 @@ def convert_lon(lon, iu):
     else:
         lon = np.where(lon > 180, lon - 360, lon)
     return lon
-
-def convert_lon(lon, iu):
-    """
-    Convert longitudes to either 0-360 or -180 to 180 based on the iu flag.
-
-    Parameters:
-    lon : array-like
-        Longitude values to be converted.
-    iu : int
-        Positive: convert to 0-360 range, Negative: convert to -180 to 180 range.
-
-    Returns:
-    Converted longitude values.
-    """
-    lon = np.asarray(lon)
-    if iu > 0:
-        lon = np.where(lon < 0, lon + 360, lon)
-    else:
-        lon = np.where(lon > 180, lon - 360, lon)
-    return lon
-
 
 
 def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoords, psin, uin, vin, Tin, qin, invert_vortex, modify_q, modify_q_mult, return_anoms=False, debug=False):
@@ -325,12 +310,12 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
     if zcoords == 1:
         height = z
         if height > ztrop:
-            p = ptrop * exp(-g * (height - ztrop) / (Rd * Ttrop))
+            p = ptrop * safe_exp(-g * (height - ztrop) / (Rd * Ttrop))
         else:
-            p = (p00 - dp * exp(-(gr / rp) ** exppr) * exp(-(height / zp) ** exppz)) * \
+            p = (p00 - dp * safe_exp(-(gr / rp) ** exppr) * safe_exp(-(height / zp) ** exppz)) * \
                 ((T0 - gamma_ * height) / T0) ** (1 / exponent)
     else:
-        ps = -dp * exp(-(gr / rp) ** exppr) + p00
+        ps = -dp * safe_exp(-(gr / rp) ** exppr) + p00
         height = (T0 / gamma_) * (1. - (p / ps) ** exponent)
 
     # Initialize U and V (wind components)
@@ -353,20 +338,20 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
         if debug:
             print(f"height: {height}, zp: {zp}, exppz: {exppz}, dp: {dp}, rp: {rp}, gr: {gr}")
         vt = (-abs(f) * gr / 2 + sqrt((f * gr / 2) ** 2 - (exppr * (gr / rp) ** exppr) *
-                                 (Rd * (T0 - gamma_ * height)) / (exppz * height * Rd * (T0 - gamma_ * height) / (g * zp ** exppz) + 1. - p00 / dp * exp((gr / rp) ** exppr) * exp((height / zp) ** exppz))))
+                                 (Rd * (T0 - gamma_ * height)) / (exppz * height * Rd * (T0 - gamma_ * height) / (g * zp ** exppz) + 1. - p00 / dp * safe_exp((gr / rp) ** exppr) * safe_exp((height / zp) ** exppz))))
         v = vin + vfac * vt
         u = uin + ufac * vt
 
     # Calculate temperature and specific humidity
     Tvin = Tin * (1 + constTv * qin)
-    t = (Tvin) / (1 + constTv * qin) / (1 + exppz * Rd * Tvin * height / (g * zp ** exppz * (1 - p00 / dp * exp((gr / rp) ** exppr) * exp((height / zp) ** exppz))))
+    t = (Tvin) / (1 + constTv * qin) / (1 + exppz * Rd * Tvin * height / (g * zp ** exppz * (1 - p00 / dp * safe_exp((gr / rp) ** exppr) * safe_exp((height / zp) ** exppz))))
 
     if modify_q:
-        rh = 0.263 * p * qin / exp((17.67 * (Tin - 273.15)) / (Tin - 29.65))
+        rh = 0.263 * p * qin / safe_exp((17.67 * (Tin - 273.15)) / (Tin - 29.65))
         if height > ztrop:
             q = qin
         else:
-            q = rh / (0.263 * p) * exp((17.67 * (t - 273.15)) / (t - 29.65))
+            q = rh / (0.263 * p) * safe_exp((17.67 * (t - 273.15)) / (t - 29.65))
     else:
         q = qin
 
@@ -438,8 +423,15 @@ def get_rp_from_dp_rmw(cen_lat, dp, target_rmw, debug=False):
             T1 = -(abs(f) * r) / 2.
             T2 = (f ** 2 * r ** 2) / 4.
             NUM = (3. / 2.) * ((r / rp) ** (3. / 2.)) * T0 * Rd
-            DEN = 1. - (p00 / dp) * exp((r / rp) ** (3. / 2.))
-            vt[ii] = T1 + sqrt(T2 - (NUM / DEN))
+            DEN = 1. - (p00 / dp) * safe_exp((r / rp) ** (3. / 2.))
+            diff = T2 - (NUM / DEN)
+            if diff < 0:
+                if debug:
+                    print(f"Skipping r={r:.1f}: sqrt arg < 0 (T2={T2:.2e}, NUM/DEN={NUM / DEN:.2e}, diff={diff:.2e})")
+                vt[ii] = 0.0  # Or np.nan if you prefer to catch it later
+            else:
+                vt[ii] = T1 + sqrt(diff)
+
 
         vmax = np.max(vt)
         rmw = rr[np.argmax(vt)]
@@ -463,7 +455,8 @@ def get_rp_from_dp_rmw(cen_lat, dp, target_rmw, debug=False):
 
         if jj == maxiter - 1:
             print("Did not converge!")
-            exit()
+            print(f"Setting rpi to target_rmw ({target_rmw})!")
+            rpi = target_rmw
 
     print(f"dp={dp}, rp={rpi}")
     return rpi
@@ -542,12 +535,12 @@ def keyword_values(namelist_file, key, return_type, default=None, verbose=False)
                         elif return_type == "str":
                             value = os.path.expandvars(v)
                         if verbose:
-                            print(f"[keyword_values] Key '{key}' found with value '{value}' (type: {return_type})")
+                            logging.info(f"[keyword_values] Key '{key}' found with value '{value}' (type: {return_type})")
                         return value
 
         # If key is not found, return the default
         if verbose:
-            print(f"[keyword_values] Key '{key}' not found. Returning default: {default}")
+            logging.info(f"[keyword_values] Key '{key}' not found. Returning default: {default}")
         return default
 
     except Exception as e:
@@ -559,7 +552,7 @@ def radialAvg2D_unstruc(data, lat, lon, deltaMax, psminlat, psminlon, outerRad, 
     # km per degree at the equator
     kmInDeg = 111.32
     kmGrid = kmInDeg * deltaMax
-    print(f"The max lat/lon km grid spacing at equator is {kmGrid} km")
+    logging.info(f"The max lat/lon km grid spacing at equator is {kmGrid} km")
 
     ncol = len(lat)
     pi = np.pi
@@ -568,18 +561,18 @@ def radialAvg2D_unstruc(data, lat, lon, deltaMax, psminlat, psminlon, outerRad, 
     # Prepare radial bins
     timesGrid = 1.1  # We want each radius bin to be timesGrid * kmGrid
     nx = int(outerRad / (timesGrid * kmGrid))
-    print(f"Number of bins is equal to {nx}")
+    logging.info(f"Number of bins is equal to {nx}")
 
     if mergeInnerBins:
         numMerge = 2  # Number of innermost radial bins to merge
-        print(f"Merging innermost {numMerge} bins because radial average is so small.")
+        logging.info(f"Merging innermost {numMerge} bins because radial average is so small.")
         numMergeMinusOne = numMerge - 1
         origRadiusArr = np.linspace(0, outerRad, nx + numMergeMinusOne)
         radiusArr = np.zeros(len(origRadiusArr) - numMergeMinusOne)
         radiusArr[0] = origRadiusArr[0]
         radiusArr[1:] = origRadiusArr[numMerge:]
     else:
-        print("Not merging any innermost bins -- be careful that your inner bins have > 1 pt.")
+        logging.info("Not merging any innermost bins -- be careful that your inner bins have > 1 pt.")
         radiusArr = np.linspace(0, outerRad, nx)
 
     numRadBins = len(radiusArr)
@@ -588,7 +581,7 @@ def radialAvg2D_unstruc(data, lat, lon, deltaMax, psminlat, psminlon, outerRad, 
     rad_thevar_cum = np.zeros(numRadBins, dtype=float)
 
     # Iterate over each point in the dataset
-    print("Starting loop")
+    logging.info("Starting loop")
     for i in range(ncol):
         # Use the gc_latlon function to calculate the great circle distance
         gcdist, _ = gc_latlon(psminlat, psminlon, lat[i], lon[i], 2, 4)
@@ -598,10 +591,10 @@ def radialAvg2D_unstruc(data, lat, lon, deltaMax, psminlat, psminlon, outerRad, 
             rad_thevar_hit[bin_idx] += 1
             rad_thevar_cum[bin_idx] += data[i]
 
-    print(f"Minimum number of hits per gridbox: {np.min(rad_thevar_hit)}")
+    logging.info(f"Minimum number of hits per gridbox: {np.min(rad_thevar_hit)}")
     if np.min(rad_thevar_hit) == 0:
-        print("WARNING: Some radial bins have zero hits - radial average will be unreliable")
-    print(f"Maximum number of hits per gridbox: {np.max(rad_thevar_hit)}")
+        logging.info("WARNING: Some radial bins have zero hits - radial average will be unreliable")
+    logging.info(f"Maximum number of hits per gridbox: {np.max(rad_thevar_hit)}")
 
     # Calculate the radial average
     rad_thevar = np.divide(rad_thevar_cum, rad_thevar_hit, out=np.zeros_like(rad_thevar_cum), where=rad_thevar_hit != 0)
@@ -618,7 +611,7 @@ def radialAvg3D_unstruc(data, lat, lon, lev, deltaMax, psminlat, psminlon, outer
     # km per degree at the equator
     kmInDeg = 111.32
     kmGrid = kmInDeg * deltaMax
-    print(f"The max lat/lon km grid spacing at equator is {kmGrid} km")
+    logging.info(f"The max lat/lon km grid spacing at equator is {kmGrid} km")
 
     ncol = len(lat)
     nlev = len(lev)
@@ -628,18 +621,18 @@ def radialAvg3D_unstruc(data, lat, lon, lev, deltaMax, psminlat, psminlon, outer
     # Prepare radial bins
     timesGrid = 1.1  # We want each radius bin to be timesGrid * kmGrid
     nx = int(outerRad / (timesGrid * kmGrid))
-    print(f"Number of bins is equal to {nx}")
+    logging.info(f"Number of bins is equal to {nx}")
 
     if mergeInnerBins:
         numMerge = 2  # Number of innermost radial bins to merge
-        print(f"Merging innermost {numMerge} bins because radial average is so small.")
+        logging.info(f"Merging innermost {numMerge} bins because radial average is so small.")
         numMergeMinusOne = numMerge - 1
         origRadiusArr = np.linspace(0, outerRad, nx + numMergeMinusOne)
         radiusArr = np.zeros(len(origRadiusArr) - numMergeMinusOne)
         radiusArr[0] = origRadiusArr[0]
         radiusArr[1:] = origRadiusArr[numMerge:]
     else:
-        print("Not merging any innermost bins -- be careful that your inner bins have > 1 pt.")
+        logging.info("Not merging any innermost bins -- be careful that your inner bins have > 1 pt.")
         radiusArr = np.linspace(0, outerRad, nx)
 
     numRadBins = len(radiusArr)
@@ -648,7 +641,7 @@ def radialAvg3D_unstruc(data, lat, lon, lev, deltaMax, psminlat, psminlon, outer
     rad_thevar_cum = np.zeros((nlev, numRadBins), dtype=float)
 
     # Iterate over each column in the dataset
-    print("Starting loop")
+    logging.info("Starting loop")
     for i in range(ncol):
         # Use the gc_latlon function to calculate the great circle distance
         gcdist, _ = gc_latlon(psminlat, psminlon, lat[i], lon[i], 2, 4)
@@ -661,8 +654,8 @@ def radialAvg3D_unstruc(data, lat, lon, lev, deltaMax, psminlat, psminlon, outer
     # Handle grid boxes with no hits
     rad_thevar_hit = np.where(rad_thevar_hit == 0, np.nan, rad_thevar_hit)
 
-    print(f"Minimum number of hits per gridbox: {np.nanmin(rad_thevar_hit)}")
-    print(f"Maximum number of hits per gridbox: {np.nanmax(rad_thevar_hit)}")
+    logging.info(f"Minimum number of hits per gridbox: {np.nanmin(rad_thevar_hit)}")
+    logging.info(f"Maximum number of hits per gridbox: {np.nanmax(rad_thevar_hit)}")
 
     # Calculate the radial average
     rad_thevar = np.divide(rad_thevar_cum, rad_thevar_hit, out=np.zeros_like(rad_thevar_cum), where=rad_thevar_hit != 0)
@@ -674,15 +667,6 @@ def radialAvg3D_unstruc(data, lat, lon, lev, deltaMax, psminlat, psminlon, outer
         'hit_count': rad_thevar_hit
     }
 
-
-
-
-
-###### ---> NEW
-
-
-
-import packing
 
 def q_for_optim(p, alpha=0.02):
     """
@@ -716,10 +700,10 @@ def q_for_optim(p, alpha=0.02):
     B = np.log(q1/q2) / (p1**alpha - p2**alpha)
 
     # Calculate parameter A
-    A = q1 / np.exp(B * p1**alpha)
+    A = q1 / safe_exp(B * p1**alpha)
 
     # Calculate specific humidity
-    return A * np.exp(B * p**alpha)
+    return A * safe_exp(B * p**alpha)
 
 
 def read_tcseed_settings(vortex_input):
@@ -736,7 +720,6 @@ def read_tcseed_settings(vortex_input):
     tc_settings : dict
         Dictionary containing all TC settings and optimization parameters
     """
-    import logging
 
     # Define all default values
     defaults = {
@@ -902,7 +885,7 @@ def find_actual_center(guess_lat, guess_lon, lat, lon, pressure, search_radius=1
     return actual_lat, actual_lon
 
 
-def find_fill_parameters(mps, T, lat, lon, lev, tc_settings, plot_bestfits=True):
+def find_fill_parameters(mps, T, lat, lon, lev, tc_settings, plot_bestfits=True, debug=False):
     """
     Find and fill missing TC parameters (rp, dp, zp, exppr, cen_lat, cen_lon)
     by optimizing against observed atmospheric data.
@@ -1115,9 +1098,10 @@ def find_fill_parameters(mps, T, lat, lon, lev, tc_settings, plot_bestfits=True)
         corr[1, dd] = zp
 
     # Find best configuration for T anomaly
-    nlev = corr.shape[1]  # Get the number of levels
-    for i in range(nlev):
-        print(f"{corr[0, i]:.6f} {corr[1, i]:.2f}")
+    if debug:
+        nlev = corr.shape[1]  # Get the number of levels
+        for i in range(nlev):
+            print(f"{corr[0, i]:.6f} {corr[1, i]:.2f}")
 
     # Find best zp (highest correlation)
     best_idx = np.argmax(corr[0, :])
@@ -1176,7 +1160,6 @@ def find_fill_parameters(mps, T, lat, lon, lev, tc_settings, plot_bestfits=True)
 
 
 def plot_best_fit_profiles(radius, rad_psl_avg, anlPS, Tanom, anlT_anom, lev, output_path='best_fit_profiles.png', show=False):
-    import matplotlib.pyplot as plt
 
     fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(8, 12))
 
@@ -1264,7 +1247,7 @@ def apply_tc_seeding(data_vars, tc_params, update_z=False, add_deltas_to_data=Fa
             target_rmw = 200000.0
         # If target_rmw is less than 0, set to 200km
         if target_rmw < min_rmw:
-            logging.info(f"target RMW requested {target_rmw} is less than min_rmw, capping at {min_rmw}")
+            logging.info(f"Target RMW requested {target_rmw} is less than min_rmw, capping at {min_rmw}")
             target_rmw = min_rmw
     else:
         rp = tc_params.get('rp')
@@ -1318,13 +1301,17 @@ def apply_tc_seeding(data_vars, tc_params, update_z=False, add_deltas_to_data=Fa
     # Find relevant parameters for TC seed
     if not invert_vortex:
         if minp > 0.0:
-            # dp is positive marker of deficit
-            # so if the user gave us minp, we subtract from ambient
             minix = np.argmin(gcdist)
             logging.info(f'minix: {minix} --> {lat_work[minix]}, {lon_work[minix]}')
+            # if the user gave us minp, we subtract from ambient at vortex center
             ambps = ps[minix]
             logging.info(f"ambient ps at minix: {ambps}")
             dp = ambps - (minp * 100.0)
+            # if dp here is negative, it means the requested vortex is shallower than existing
+            if dp <= 0.0:
+                logging.info(f"Negative dp, no adjustment, returning")
+                logging.info(f"If you want to fill a vortex, toggle invert_vortex")
+                return data_vars
         else:
             # If the user gave us a negative minp to begin with, it's actually dp
             dp = -minp
@@ -1568,7 +1555,7 @@ def parse_tcvitals(filename, datetime_input):
 
 def print_tcvitals_summary(filename, datetime_input):
     """
-    Print a summary of cyclones found for the given date/time.
+    Print a summary of cyclones found for the given date/time in a TCVitals file
     """
     cyclone_data = parse_tcvitals(filename, datetime_input)
 
@@ -1593,3 +1580,13 @@ def print_tcvitals_summary(filename, datetime_input):
         print(f"  RMW: {cyclone_data['rmw'][i]} km")
         print()
 
+
+def safe_exp(arg, max_arg=300):
+    """Safely evaluate exp(arg), clamping to avoid overflow."""
+    if not np.isfinite(arg):
+        #logging.info(f"safe_exp received non-finite input: {arg}")
+        return np.exp(max_arg)
+    if arg > max_arg:
+        #logging.info(f"Clamping exp({arg:.2f}) to exp({max_arg}) to avoid overflow")
+        return np.exp(max_arg)
+    return np.exp(arg)
