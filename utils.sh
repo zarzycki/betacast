@@ -135,11 +135,17 @@ function read_bash_nl() {
   #echo $inputstream
   set -- $inputstream
   while [ $1 ]
-   do
-     if [ "${2}" != "=" ] ; then echo "Uh oh, $1, $2, $3!" ; exit ; fi
-     echo "NAMELIST: setting ${1} to ${3//___/ }"
-     #eval $1=$3
-     eval $1="${3//___/ }"
+    do
+      if [ "${2}" != "=" ] ; then echo "Uh oh, $1, $2, $3!" ; exit ; fi
+      echo "NAMELIST: setting ${1} to ${3//___/ }"
+      # Make sure that the input variable is alphanumeric
+      if [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+        eval $1="${3//___/ }"
+      else
+        echo "ERROR: Invalid variable name: $1"
+        exit 1
+      fi
+
      shift 3
    done
 }

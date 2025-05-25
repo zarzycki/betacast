@@ -49,6 +49,7 @@ OUTPUTSTREAMS=${3}
 if [[ "$MACHINEFILE" != /* ]] && [[ "$MACHINEFILE" != ~* ]]; then MACHINEFILE=${PWD}/${MACHINEFILE}; fi
 if [[ "$NAMELISTFILE" != /* ]] && [[ "$NAMELISTFILE" != ~* ]]; then NAMELISTFILE=${PWD}/${NAMELISTFILE}; fi
 if [[ "$OUTPUTSTREAMS" != /* ]] && [[ "$OUTPUTSTREAMS" != ~* ]]; then OUTPUTSTREAMS=${PWD}/${OUTPUTSTREAMS}; fi
+# If files don't exist, exit now
 exit_file_no_exist $MACHINEFILE
 exit_file_no_exist $NAMELISTFILE
 exit_file_no_exist $OUTPUTSTREAMS
@@ -113,7 +114,6 @@ if [ -z "${numHoursSEStart+x}" ]; then numHoursSEStart=3; fi
 if [ -z "${filterHourLength+x}" ]; then filterHourLength=6; fi
 if [ -z "${filtTcut+x}" ]; then filtTcut=6; fi
 if [ -z "${add_perturbs+x}" ]; then add_perturbs=false; fi
-if [ -z "${perturb_namelist+x}" ]; then perturb_namelist=""; fi
 if [ -z "${land_spinup+x}" ]; then land_spinup=false; fi
 if [ -z "${FILTERWALLCLOCK+x}" ]; then FILTERWALLCLOCK="00:29:00"; fi
 if [ -z "${FILTERQUEUE+x}" ]; then FILTERQUEUE="batch"; fi
@@ -138,7 +138,7 @@ if [ "$DO_PYTHON" = true ]; then
   filter_path=${atm_to_cam_path}/filter
 fi
 
-### Set correct E3SM/CESM split
+### Set correct model split
 if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi
 if [ $modelSystem -eq 0 ]; then
   echo "Using CESM"
@@ -169,8 +169,8 @@ do_frankengrid=false
 if [ -n "${regional_src+x}" ]; then do_frankengrid=true ; fi
 echo "do_frankengrid set to: $do_frankengrid"
 
-# Figure out where to archive
-if [ -z ${ARCHIVEDIR+x} ] || [[ -z "${ARCHIVEDIR// }" ]] ; then
+# Check if ARCHIVEDIR is unset or empty or only whitespace
+if [ -z "${ARCHIVEDIR+x}" ] || [ -z "${ARCHIVEDIR//[[:space:]]/}" ]; then
   ARCHIVEDIR=${outputdir}/
 else
   ARCHIVEDIR=${ARCHIVEDIR}/${casename}/
@@ -183,6 +183,14 @@ sstFileIC=${sstFileIC/DOCNRES/$docnres}
 echo "Actual sstFileIC: ${sstFileIC}"
 
 ### ERROR CHECKING BLOCK! #########################################################
+
+# Adjust bools (for backwards compatibility, 0 = false and 1 = true)
+bools_to_check=("islive" "debug" "doFilter" "filterOnly" "do_runoff" "keep_land_restarts"
+       "predict_docn" "archive_inic" "compress_history_nc" "override_rest_check"
+       "tararchivedir" "save_nudging_files" "standalone_vortex" "augment_tcs")
+for bool_to_check in ${bools_to_check[@]}; do
+  check_bool $bool_to_check ${!bool_to_check}
+done
 
 # Exit if add_perturbs is turned on but no namelist is passed in with perturbation config settings
 if [ "$add_perturbs" = true ] && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
@@ -197,7 +205,7 @@ if [ -n "$vortex_namelist" ] && [ "$vortex_namelist" != "NULL" ] && [ ! -f "$vor
 fi
 
 # Check for deprecated namelist options
-if [ -z ${anl2mdlWeights+x} ] && [ ${gfs2seWeights+x} ] ; then
+if [ -z "${anl2mdlWeights+x}" ] && [ -n "${gfs2seWeights+x}" ] ; then
   echo "WARNING: Setting anl2mdlWeights to ${gfs2seWeights}"
   echo "WARNING: This is deprecated and will be removed in the future! To fix, change 'gfs2seWeights' to 'anl2mdlWeights' in ${NAMELISTFILE}"
   anl2mdlWeights=$gfs2seWeights
@@ -216,7 +224,7 @@ if ! type ncks &> /dev/null ; then
   #exit 1
   echo "WARNING: ncks does not exist, cannot compress. Setting compress_history_nc to 0 (false)"
   echo "WARNING: if you'd like remedy, make sure ncks is in your path when betacast.sh is invoked"
-  compress_history_nc=0
+  compress_history_nc=false
   ncks_exists=false
 fi
 
@@ -255,14 +263,6 @@ if [ "$do_frankengrid" = true ] ; then
   check_python_dependency sklearn
 fi
 
-# Adjust bools (for backwards compatibility, 0 = false and 1 = true)
-bools_to_check=("islive" "debug" "doFilter" "filterOnly" "do_runoff" "keep_land_restarts"
-       "predict_docn" "archive_inic" "compress_history_nc" "override_rest_check"
-       "tararchivedir" "save_nudging_files" "standalone_vortex" "augment_tcs")
-for bool_to_check in ${bools_to_check[@]}; do
-  check_bool $bool_to_check ${!bool_to_check}
-done
-
 if [ $override_rest_check = false ]; then
   echo "Checking for SourceMods permiting additional restart writes for land model"
   echo "This check can be ignored with override_rest_check = true in the namelist."
@@ -277,19 +277,21 @@ betacast_required_vars=("casename" "atmDataType" "sstDataType" "numLevels" "numd
         "anl2mdlWeights" "PROJECTID" "DTIME" "FINERES" "USERSTAB")
 check_required_vars "${betacast_required_vars[@]}"
 
-###################################################################################
-
+# Boolean flags for Python that need to be appended to any command line calls
+# TC augmentation in atm_to_cam
 if [ "$augment_tcs" = true ]; then
   AUGMENT_STR="--augment_tcs"
 else
   AUGMENT_STR=""
 fi
-
+# Vortex modification in atm_to_cam (if standalone_seed = true, use old code)
 if [ -f "$vortex_namelist" ] && [ "$standalone_seed" = false ]; then
   VORTEX_STR="--vortex_namelist $vortex_namelist"
 else
   VORTEX_STR=""
 fi
+
+###################################################################################
 
 # do some stability calcs
 # if USERSTAB is 0, use internal calcs.
@@ -298,6 +300,10 @@ fi
 USERSTABTF=$(python -c "print('TRUE' if ${USERSTAB} > 0 else 'FALSE')")
 if [ ${USERSTABTF} == 'FALSE' ] ; then
   if [ $(python -c "print('TRUE' if ${USERSTAB} < -0.001 else 'FALSE')") == 'FALSE' ]; then
+    if [ -z "$FINERES" ] || [ "$FINERES" -eq 0 ] 2>/dev/null; then
+      echo "ERROR: FINERES is zero, empty, or non-numeric: '$FINERES'"
+      exit 1
+    fi
     STABILITY=$(python -c "print(30./${FINERES}*450.)")
     VALIDSTABVAL=true
     echo "Dynamic stability for ne${FINERES} to be ${STABILITY} seconds"
@@ -725,7 +731,6 @@ if [ $debug = false ] ; then
       --model_topo_file "${adjust_topo-}" \
       --mod_remap_file "${m2m_remap_file-}" \
       --mod_in_topo "${m2m_topo_in-}" \
-      --model_topo_file "${adjust_topo-}" \
       --se_inic "${sePreFilterIC}" \
       $AUGMENT_STR $VORTEX_STR
       )
@@ -1077,14 +1082,14 @@ if [ $do_runoff = true ]; then
   fi
 
   ## Now modify user_nl_${rofName}
-  if [ ${rofrestartfile} ] ; then
+  if [ -n "${rofrestartfile-}" ]; then
     echo "USER_NL: Adding ${rofrestartfile} to user_nl_${rofName}"
     echo "${rof_finidat}='${rofrestartfile}'" >> user_nl_${rofName}
   else
     # Check to see if there is a raw ROF file in the landrawdir given by the user
     rawrofrestartfile=$(ls ${landrawdir}/*.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.nc || true)   # check for file, suppress failed ls error if true
     echo "rawrofrestartfile: ${rawrofrestartfile}"
-    if [ ! -z ${rawrofrestartfile} ]; then   # if rawrofrestartfile string is NOT empty, add it.
+    if [ ! -z "${rawrofrestartfile}" ]; then   # if rawrofrestartfile string is NOT empty, add it.
       echo "WARNING USER_NL: Adding rawrofrestartfile for runoff, although no check to see if grid is consistent!"
       echo "USER_NL: Adding ${rawrofrestartfile} to user_nl_${rofName}"
       echo "${rof_finidat}='${rawrofrestartfile}'" >> user_nl_${rofName}
