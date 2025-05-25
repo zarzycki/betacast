@@ -28,6 +28,8 @@
 # doi:10.1175/MWR-D-15-0159.1.
 ###################################################################################
 
+echo "Command used: $0 $@"
+
 script_start=$(date +%s)
 set -e
 #set -v
@@ -88,8 +90,9 @@ if [ -z "${perturb_namelist+x}" ]; then perturb_namelist=""; fi
 if [ -z "${predict_docn+x}" ]; then predict_docn=false; fi
 if [ -z "${archive_inic+x}" ]; then archive_inic=false; fi
 if [ -z "${compress_history_nc+x}" ]; then compress_history_nc=true; fi
-if [ -z "${add_vortex+x}" ]; then add_vortex=false; fi
+if [ -z "${standalone_vortex+x}" ]; then standalone_vortex=false; fi
 if [ -z "${vortex_namelist+x}" ]; then vortex_namelist=""; fi
+if [ -z "${augment_tcs+x}" ]; then augment_tcs=false; fi
 if [ -z "${save_nudging_files+x}" ]; then save_nudging_files=false; fi
 if [ -z "${override_rest_check+x}" ]; then override_rest_check=false; fi
 if [ -z "${tararchivedir+x}" ]; then tararchivedir=true; fi
@@ -187,9 +190,9 @@ if [ "$add_perturbs" = true ] && { [ -z "$perturb_namelist" ] || [ ! -f "$pertur
   exit 1
 fi
 
-# Exit if add_perturbs is turned on but no namelist is passed in with perturbation config settings
-if [ "$add_vortex" = true ] && { [ -z "$vortex_namelist" ] || [ ! -f "$vortex_namelist" ]; } ; then
-  echo "add_vortex is true but can't find namelist: "$vortex_namelist
+# Exit vortex_namelist is defined, is not NULL, and doesn't exist
+if [ -n "$vortex_namelist" ] && [ "$vortex_namelist" != "NULL" ] && [ ! -f "$vortex_namelist" ] ; then
+  echo "Erroneous vortex namelist: $vortex_namelist"
   exit 1
 fi
 
@@ -255,7 +258,7 @@ fi
 # Adjust bools (for backwards compatibility, 0 = false and 1 = true)
 bools_to_check=("islive" "debug" "doFilter" "filterOnly" "do_runoff" "keep_land_restarts"
        "predict_docn" "archive_inic" "compress_history_nc" "override_rest_check"
-       "tararchivedir" "save_nudging_files" "add_vortex")
+       "tararchivedir" "save_nudging_files" "standalone_vortex" "augment_tcs")
 for bool_to_check in ${bools_to_check[@]}; do
   check_bool $bool_to_check ${!bool_to_check}
 done
@@ -275,6 +278,18 @@ betacast_required_vars=("casename" "atmDataType" "sstDataType" "numLevels" "numd
 check_required_vars "${betacast_required_vars[@]}"
 
 ###################################################################################
+
+if [ "$augment_tcs" = true ]; then
+  AUGMENT_STR="--augment_tcs"
+else
+  AUGMENT_STR=""
+fi
+
+if [ -f "$vortex_namelist" ] && [ "$standalone_seed" = false ]; then
+  VORTEX_STR="--vortex_namelist $vortex_namelist"
+else
+  VORTEX_STR=""
+fi
 
 # do some stability calcs
 # if USERSTAB is 0, use internal calcs.
@@ -711,7 +726,9 @@ if [ $debug = false ] ; then
       --mod_remap_file "${m2m_remap_file-}" \
       --mod_in_topo "${m2m_topo_in-}" \
       --model_topo_file "${adjust_topo-}" \
-      --se_inic "${sePreFilterIC}" )
+      --se_inic "${sePreFilterIC}" \
+      $AUGMENT_STR $VORTEX_STR
+      )
   else
     set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
     (set -x; ncl -n atm_to_cam.ncl \
@@ -824,7 +841,7 @@ fi #End debug if statement
 ############################### #### ###############################
 ##### ADD OR REMOVE VORTEX
 
-if [ "$add_vortex" = true ] ; then
+if [ "$standalone_vortex" = true ] ; then
   cd $atm_to_cam_path/tcseed
   set +e
   echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
@@ -1464,7 +1481,7 @@ if [ "$dotracking" = true ] ; then
         "${track_stride}" \
         "${track_ATCFTECH}" \
         "${TE_SERIAL_DIR}"
-    ) || { echo "Tracking code failed"; popd > /dev/null; exit 1; }
+    ) || { echo "Tracking code failed"; popd > /dev/null; }
     cp -v "trajs.trajectories.txt.${casename}.png" "./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png"
   else
     echo "No TCvitals file exists and/or no storms on said TCvitals file, no reason to run the tracking code"
