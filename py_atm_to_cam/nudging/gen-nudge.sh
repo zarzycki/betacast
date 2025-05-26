@@ -82,6 +82,11 @@ if [[ $# -gt 1 ]]; then
   input_dates_file=${2}
 fi
 
+### Check if a third argument (INDEX) was provided
+if [[ $# -gt 2 ]]; then
+  INDEX=${3}
+fi
+
 echo "Read in: "
 echo "NLFILE: $NLFILE"
 echo "input_dates_file: $input_dates_file"

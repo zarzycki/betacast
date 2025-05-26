@@ -13,7 +13,6 @@ ENDAY=21
 ####### PATHS ETC PER MACHINE
 
 BETACASTDIR=/glade/u/home/zarzycki/betacast/
-#OUTDIR=/glade/p/univ/upsu0032/MPAS/ndg/
 OUTDIR=/glade/derecho/scratch/zarzycki/ndg/
 RDADIR=/glade/campaign/collections/rda/data/ds633.0/
 
@@ -48,15 +47,15 @@ RDADIR=/glade/campaign/collections/rda/data/ds633.0/
 # NUMLEVS=32
 
 DYCORE="mpas"
-GRIDSTR=tclf008-mp3a
-#BNDTOPO=/glade/work/zarzycki/sewx/INIC/ERA5-tclf008-mp3a_INIC.nc
-BNDTOPO=/glade/u/home/zarzycki/work/CESM_files/ncdata/mpasa3-60-tclf008_init.nc
-WGTNAME=/glade/work/zarzycki/sewx/mapping/map_era5_0.25x0.25_TO_mpasa3-60-tclf008_scrip_patc.nc
-NUMLEVS=58
+GRIDSTR=tclf${INDEX}-mp3a
+BNDTOPO=/glade/u/home/zarzycki/work/CESM_files/ncdata/mpasa3-60-tclf${INDEX}_init_L32.nc
+WGTNAME=/glade/work/zarzycki/sewx/mapping/map_era5_0.25x0.25_TO_mpasa3-60-tclf${INDEX}_scrip_patc.nc
+NUMLEVS=32
 
 # DYCORE="se"
 # GRIDSTR=ne0np4natlanticref.ne30x4
-# BNDTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc
+# #BNDTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc
+# BNDTOPO=/glade/work/zarzycki/CESM_files/topo/ne0np4natlanticref.ne30x4_np4_gmted2010_modis_bedmachine_nc3000_Laplace0100_noleak_20250515.nc
 # WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5-0.25_TO_ne0np4natlanticref.ne30x4_patc.nc
 # NUMLEVS=32
 
