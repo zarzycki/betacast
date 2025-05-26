@@ -6,14 +6,14 @@ mapping_files_path=$PWD
 
 # For CESM, np is the gridfile and topofile
 # For E3SM, np is the gridfile, pg is the topofile
-modelgridfile="/glade/u/home/zarzycki/work/grids/scrip/ne0np4nhemitc.ne30x4.g_scrip.nc"
-MODEL_TOPO_FILE="ne0np4nhemitc.ne30x4_np4_gmted2010_modis_bedmachine_nc3000_Laplace0100_noleak_20250429.nc"
-SE_INIC="/glade/derecho//scratch/zarzycki/SAMPLE_ne0np4nhemitc.ne30x4_np4_L58_inic.nc"
+modelgridfile="/glade/u/home/zarzycki/work/grids/scrip/ne0np4natlanticref.ne30x4.g_scrip.nc"
+MODEL_TOPO_FILE="/glade/work/zarzycki/CESM_files/topo/ne0np4natlanticref.ne30x4_np4_gmted2010_modis_bedmachine_nc3000_Laplace0100_noleak_20250515.nc"
+SE_INIC="/glade/derecho//scratch/zarzycki/SAMPLE_ne0np4natlanticref.ne30x4_np4_L32_inic.nc"
+NUM_LEVELS=32
 
 # Model configuration
 DYCORE="se"
 ADJUST_CONFIG="a"
-NUM_LEVELS=58
 YYYYMMDDHH=2005082900
 
 # Source data configuration
