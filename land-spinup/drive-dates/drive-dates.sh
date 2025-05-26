@@ -22,6 +22,7 @@ echo $SCRIPTDIR
 ## Set these in your namelistfile if need to
 if [ -z "${CIMEsubstring+x}" ]; then CIMEsubstring=""; fi
 if [ -z "${CIMEbatchargs+x}" ]; then CIMEbatchargs=""; fi
+if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=3; fi
 
 ## Get to this directory
 cd $SCRIPTDIR
@@ -128,9 +129,23 @@ xmlchange_verbose "STOP_OPTION" "nhours"
 xmlchange_verbose "STOP_DATE" "-99999"
 
 ## ---------------------------------------------------------------------------------------
-
 # Run the model
-run_CIME2 "$PATH_TO_RUNDIR" "$CIMEsubstring" "$CIMEbatchargs" true
+
+# New formulation
+CIMESTATUS=1; CIMEITER=0
+while [ $CIMESTATUS != 0 ] ; do
+  if [ "$CIMEITER" -ge "$CIMEMAXTRIES" ]; then
+    echo "Exceeded the max tries: $CIMEMAXTRIES ... exiting"
+    exit 1
+  fi
+  CIMEITER=$((CIMEITER+1))
+  echo "CIME try $CIMEITER of $CIMEMAXTRIES"
+  run_CIME2 "$PATH_TO_RUNDIR" "$CIMEsubstring" "$CIMEbatchargs" false
+done
+echo "Returned status $CIMESTATUS"
+
+# Old formulation
+#run_CIME2 "$PATH_TO_RUNDIR" "$CIMEsubstring" "$CIMEbatchargs" true
 
 ## ---------------------------------------------------------------------------------------
 
