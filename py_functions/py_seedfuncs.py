@@ -1541,6 +1541,42 @@ def parse_tcvitals(filename, datetime_input):
                 print(f"Warning: Error parsing line {line_num}: {e}")
                 continue
 
+    # Handle duplicate storm names - keep only the one with minimum pressure
+    if len(storm_names) > 1:
+        # Create a dictionary to track storm names and their indices
+        storm_indices = {}
+        for i, name in enumerate(storm_names):
+            if name not in storm_indices:
+                storm_indices[name] = []
+            storm_indices[name].append(i)
+
+        # Find indices to keep (one per unique storm name with minimum pressure)
+        indices_to_keep = []
+        for name, indices in storm_indices.items():
+            if len(indices) == 1:
+                # No duplicates for this storm
+                indices_to_keep.append(indices[0])
+            else:
+                # Find the index with minimum pressure
+                min_pressure = float('inf')
+                best_index = indices[0]
+                for idx in indices:
+                    if pressures[idx] < min_pressure:
+                        min_pressure = pressures[idx]
+                        best_index = idx
+                indices_to_keep.append(best_index)
+                print(f"Info: Found {len(indices)} duplicates for storm '{name}', keeping the one with pressure {min_pressure} mb")
+
+        # Sort indices to maintain order
+        indices_to_keep.sort()
+
+        # Create new lists with only the kept storms
+        lats = [lats[i] for i in indices_to_keep]
+        lons = [lons[i] for i in indices_to_keep]
+        pressures = [pressures[i] for i in indices_to_keep]
+        rmw_values = [rmw_values[i] for i in indices_to_keep]
+        storm_names = [storm_names[i] for i in indices_to_keep]
+
     # Return as dictionary of lists
     cyclone_data = {
         'lats': lats,
