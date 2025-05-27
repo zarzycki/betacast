@@ -146,64 +146,135 @@ In `${BETACAST}/machine_files` there are sample files that define where folders 
 
 In `${BETACAST}/namelist_files` there are sample files that define the forecast configuration. This is the primary location where run settings are specified. Betacast uses a general philosophy that 0 = false/no and 1 = true/yes.
 
-| Namelist Variable | Description | Required | Default |
-| --- | --- | --- | --- |
-| casename | Name of the CESM/E3SM case. Must match what was generated in step 1. | Y | |
-| path\_to\_case | (optional) Allow user to override default from the machine file as to where the case directories live. Must include Betacast special key `!CASENAME!` as a placeholder |  | value in `$MACHINEFILE` |
-| ARCHIVEDIR | Top-level directory for archiving runs (ARCHIVEDIR/CASE/YYYYMMDDHH). Do not set for default archive in rundir. | | Case run directory |
-| debug | Setting to true (1) adds debugging options. Otherwise leave at false (0) |  | false |
-| islive | if true (1) then pull GDAS/GFS from server in real-time, false (0) is "hindcast" mode |  | false |
-| datestemplate | If islive = false, dates.XXX.txt file to copy if Betacast cannot find an existing dates file | | " " |
-| runmodel | Unused, set to "true" |  | true |
-| archive_inic | Add (NCO-compressed) initial conditions for component models to archive directory (0 = no (default), 1 = yes) |  | false |
-| compress_history_nc | Use NCO lossless compression to compress history files (0 = no (default), 1 = yes) |  | true |
-| tararchivedir | Should the archive folder be tarred? (0 = no, 1 = yes (default)) |  | true |
-| modelSystem | 0 = CESM + E3SMv1, 1 = E3SMv2+/SCREAM (defaults to 0 if empty or not included) |  | 0 |
-| cime_coupler | Which driver to use? Can be "mct" or "nuopc". Default is "mct" if not specified. |  | "mct" |
-| do_runoff | Include runoff model files (false/true) (defaults to false if empty or not included) |  | false |
-| atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5, 9 = CESM/E3SM | Y | |
-| sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI, 9 = CESM/E3SM | Y | |
-| numLevels | 128 -> SCREAM, 72 -> E3SM, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 | Y | |
-| numdays | How long for forecast to run (in days) | Y | |
-| adjust_topo | Full path to a *model* (i.e., bnd_topo) topography file. If a valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. | | " " |
-| adjust_flags | Hydrostatic adjustment options. Currently "a" (include TBOT adjustment) and "-" (PS adjustment only) are supported. Only applied with valid adjust_topo file. |  | "-" |
-| doFilter | Should we apply offline forward DFI? Generally "false" for diffusive dycores and/or SE/HOMME with hydrostatic adjustment. Set to "true" if using SE with no adjustment (or unbalanced IC from another source) to minimize GW noise during first ~72 hours. | | false |
-| filterOnly | Exit code after the filter run if doFilter=true (useful for producing ncdata for ensembles) | | false |
-| numHoursSEStart | Centerpoint of filter duration (leave at 3), only used if doFilter |  | 3 |
-| filterHourLength | Filter duration (leave at 6), only used if doFilter |  | 6 |
-| filtTcut | Cut setting for filter (leave at 6), only used if doFilter |  | 6 |
-| add\_perturbs | Add PGW perturbations for counterfactual runs? Leave at false generally. |  | false |
-| perturb\_namelist | Path to "perturbation" namelist for counterfactual climate simulations | | " " |
-| add\_noise | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false) | | false |
-| land\_spinup | Cycle land spinup only (unsupported currently, leave false) | | false |
-| keep\_land\_restarts | 0 = delete land/rof restart files, 1 = archive land/rof restart files (possibly overwriting those in \${CASE}/run/landstart) | | true |
-| override\_rest\_check | If true, overrides internal check for SourceMods for lnd/rof restarts (default: false) |  | false |
-| save\_nudging\_files | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs |  | false |
-| landrawdir | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist |  | "NULL" |
-| predict\_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |  | false |
-| modelgridfile | SCRIP grid file that defines the 2-D target model grid | Y* | " " |
-| anl2mdlWeights | Full path name of weights file for analysis -> model regridding |  | " " |
-| PROJECTID | Project ID for run submissions | Y | |
-| FILTERWALLCLOCK | Wall clock time for filter run |  | "00:29:00" |
-| FILTERQUEUE | Submission queue for filter run |  | "batch" |
-| RUNWALLCLOCK | Wall clock time for forecast run |  | "12:00:00" |
-| RUNQUEUE | Submission queue for forecast run |  | "regular" |
-| usingCIME | Are we using CIME (set to "true" unless using a very old CESM tag or unsupported GCM) |  | true |
-| DTIME | Physics timestep (in seconds) | Y | |
-| FINERES | Finest resolution of SE grid | Y | |
-| USERSTAB | Required dynamics timestep (in s). Strongly encouraged to provide. If "0", Betacast will try and figure this out (but poorly). If any negative value, nsplit will be set to -1 (model internal defaults) | Y | 0 |
-| use\_nsplit | If true, use the CESM/E3SMv1 SE/HOMME nsplit timestep logic, if false apply new E3SMv2 se_tstep parameter (equal to USERSTAB) | | true |
-| sendplots | Are we going to send live output to some external server? (generally false unless you are CMZ) | | false |
-| nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) | | "NULL" |
-| dotracking | Do online TC tracking and process to ATCF format? | | false|
-| m2m\_parent\_source | Either a folder of files or file containing the YYYYMMDDHH when atmDataType=9 |  | |
-| m2m\_remap\_file | ESMF remap file that goes from parent grid to intermediate grid (typically ERA5 0.25x0.25) |  | |
-| m2m\_topo\_in | Topography file from parent simulation |  | |
-| m2m\_sst\_grid\_filename | SST stream grid when reproducing DOCN run (sstDataType=9) |  | |
-| m2m\_sstice\_data\_filename | SST stream data file when reproducing DOCN run (sstDataType=9) |  | |
-| m2m\_sstice\_year\_align | SST stream align year when reproducing DOCN run (sstDataType=9) |  | |
-| m2m\_sstice\_year\_start | SST stream start year when reproducing DOCN run (sstDataType=9) |  | |
-| m2m\_sstice\_year\_end | SST stream end year when reproducing DOCN run (sstDataType=9) |  | |
+#### Basic Configuration
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| casename                 | Name of the CESM/E3SM case. Must match what was generated in step 1.                                                                                                   | Y        |                           |
+| path\_to\_case          | (optional) Allow user to override default from the machine file as to where the case directories live. Must include Betacast special key `!CASENAME!` as a placeholder |          | value in `$MACHINEFILE`   |
+| debug                    | Setting to true (1) adds debugging options. Otherwise leave at false (0)                                                                                                |          | false                     |
+| islive                   | if true (1) then pull GDAS/GFS from server in real-time, false (0) is "hindcast" mode                                                                                  |          | false                     |
+| datestemplate            | If islive = false, dates.XXX.txt file to copy if Betacast cannot find an existing dates file                                                                           |          | " "                       |
+| runmodel                 | Unused, set to "true"                                                                                                                                                    |          | true                      |
+| modelSystem              | 0 = CESM + E3SMv1, 1 = E3SMv2+/SCREAM (defaults to 0 if empty or not included)                                                                                         |          | 0                         |
+| cime_coupler             | Which driver to use? Can be "mct" or "nuopc". Default is "mct" if not specified.                                                                                       |          | "mct"                     |
+| usingCIME                | Are we using CIME (set to "true" unless using a very old CESM tag or unsupported GCM)                                                                                  |          | true                      |
+
+#### Data Sources & Processing
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| atmDataType              | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5, 9 = CESM/E3SM                                                                              | Y        |                           |
+| sstDataType              | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI, 9 = CESM/E3SM                                                                                            | Y        |                           |
+| numLevels                | 128 -> SCREAM, 72 -> E3SM, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4                                                                                             | Y        |                           |
+| numdays                  | How long for forecast to run (in days)                                                                                                                                  | Y        |                           |
+| modelgridfile            | SCRIP grid file that defines the 2-D target model grid                                                                                                                  | Y*       | " "                       |
+| anl2mdlWeights           | Full path name of weights file for analysis -> model regridding                                                                                                         |          | " "                       |
+| docnres                  | Ocean resolution for SST/ice data streams                                                                                                                               |          | "180x360"                 |
+| predict\_docn           | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology                                       |          | false                     |
+
+#### Model Execution & Timestep Control
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| DTIME                    | Physics timestep (in seconds)                                                                                                                                           | Y        |                           |
+| FINERES                  | Finest resolution of SE grid                                                                                                                                            | Y        |                           |
+| USERSTAB                 | Required dynamics timestep (in s). Strongly encouraged to provide. If "0", Betacast will try and figure this out (but poorly). If any negative value, nsplit will be set to -1 (model internal defaults) | Y        | 0                         |
+| use\_nsplit             | If true, use the CESM/E3SMv1 SE/HOMME nsplit timestep logic, if false apply new E3SMv2 se_tstep parameter (equal to USERSTAB)                                       |          | true                      |
+
+#### Job Control & Resources
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| PROJECTID                | Project ID for run submissions                                                                                                                                           | Y        |                           |
+| FILTERWALLCLOCK          | Wall clock time for filter run                                                                                                                                          |          | "00:29:00"                |
+| FILTERQUEUE              | Submission queue for filter run                                                                                                                                         |          | "batch"                   |
+| RUNWALLCLOCK             | Wall clock time for forecast run                                                                                                                                        |          | "12:00:00"                |
+| RUNQUEUE                 | Submission queue for forecast run                                                                                                                                       |          | "regular"                 |
+| RUNPRIORITY              | Job priority setting for forecast runs                                                                                                                                  |          | ""                        |
+| CIMEMAXTRIES             | Maximum number of retry attempts for CIME runs                                                                                                                          |          | 1                         |
+
+#### Digital Filter Initialization (DFI)
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| doFilter                 | Should we apply offline forward DFI? Generally "false" for diffusive dycores and/or SE/HOMME with hydrostatic adjustment. Set to "true" if using SE with no adjustment (or unbalanced IC from another source) to minimize GW noise during first ~72 hours. |          | false                     |
+| filterOnly               | Exit code after the filter run if doFilter=true (useful for producing ncdata for ensembles)                                                                            |          | false                     |
+| numHoursSEStart          | Centerpoint of filter duration (leave at 3), only used if doFilter                                                                                                     |          | 3                         |
+| filterHourLength         | Filter duration (leave at 6), only used if doFilter                                                                                                                    |          | 6                         |
+| filtTcut                 | Cut setting for filter (leave at 6), only used if doFilter                                                                                                             |          | 6                         |
+
+#### Topographic & Hydrostatic Adjustment
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| adjust_topo              | Full path to a *model* (i.e., bnd_topo) topography file. If a valid file/path, code will apply hydrostatic adjustment during atm initial condition step. Turn off by not including variable or setting to empty string. |          | " "                       |
+| adjust_flags             | Hydrostatic adjustment options. Currently "a" (include TBOT adjustment) and "-" (PS adjustment only) are supported. Only applied with valid adjust_topo file.        |          | "-"                       |
+
+#### Perturbations & Vortex Modification
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| standalone_vortex        | Use standalone vortex modification (older method)                                                                                                                       |          | false                     |
+| vortex_namelist          | Path to vortex configuration namelist for TC modification                                                                                                               |          | ""                        |
+| augment_tcs              | Apply TC augmentation during atmospheric processing                                                                                                                     |          | false                     |
+| add\_perturbs           | Add PGW perturbations for counterfactual runs? Leave at false generally.                                                                                               |          | false                     |
+| perturb\_namelist      | Path to "perturbation" namelist for counterfactual climate simulations                                                                                                 |          | " "                       |
+| add\_noise              | Add white noise to ncdata for ensemble (currently white noise is small, generally leave as false)                                                                      |          | false                     |
+
+#### Land & Runoff Configuration
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| do_runoff                | Include runoff model files (false/true) (defaults to false if empty or not included)                                                                                   |          | false                     |
+| land\_spinup            | Cycle land spinup only (unsupported currently, leave false)                                                                                                            |          | false                     |
+| keep\_land\_restarts   | 0 = delete land/rof restart files, 1 = archive land/rof restart files (possibly overwriting those in \${CASE}/run/landstart)                                        |          | true                      |
+| override\_rest\_check  | If true, overrides internal check for SourceMods for lnd/rof restarts (default: false)                                                                                |          | false                     |
+| landrawdir               | For CLM5, path to CLM restart files to check/interpolate from if native grid finidat does not exist                                                                   |          | "NULL"                    |
+
+#### Model-to-Model (M2M) Workflow
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| m2m\_parent\_source     | Either a folder of files or file containing the YYYYMMDDHH when atmDataType=9                                                                                          |          |                           |
+| m2m\_gridfile           | SCRIP grid file for parent model grid                                                                                                                                  |          | ""                        |
+| m2m\_remap\_file        | ESMF remap file that goes from parent grid to intermediate grid (typically ERA5 0.25x0.25)                                                                            |          |                           |
+| m2m\_topo\_in           | Topography file from parent simulation                                                                                                                                  |          |                           |
+| m2m\_sst\_grid\_filename | SST stream grid when reproducing DOCN run (sstDataType=9)                                                                                                             |          |                           |
+| m2m\_sstice\_data\_filename | SST stream data file when reproducing DOCN run (sstDataType=9)                                                                                                    |          |                           |
+| m2m\_sstice\_year\_align | SST stream align year when reproducing DOCN run (sstDataType=9)                                                                                                       |          |                           |
+| m2m\_sstice\_year\_start | SST stream start year when reproducing DOCN run (sstDataType=9)                                                                                                       |          |                           |
+| m2m\_sstice\_year\_end  | SST stream end year when reproducing DOCN run (sstDataType=9)                                                                                                         |          |                           |
+
+#### Tropical Cyclone Tracking
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| dotracking               | Do online TC tracking and process to ATCF format?                                                                                                                      |          | false                     |
+| track_connectfile        | Connection file for tracking configuration                                                                                                                              |          |                           |
+| track_sendhtml           | Whether to send HTML output for tracking                                                                                                                                |          |                           |
+| track_hstream            | History stream for tracking                                                                                                                                             |          |                           |
+| track_stride             | Stride setting for tracking                                                                                                                                             |          |                           |
+| track_ATCFTECH           | ATCF technique identifier for tracking                                                                                                                                  |          |                           |
+| TE_SERIAL_DIR            | TempestExtremes serial directory path                                                                                                                                   |          |                           |
+
+#### Archiving & Output
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| ARCHIVEDIR               | Top-level directory for archiving runs (ARCHIVEDIR/CASE/YYYYMMDDHH). Do not set for default archive in rundir.                                                        |          | Case run directory        |
+| archive_inic             | Add (NCO-compressed) initial conditions for component models to archive directory (0 = no (default), 1 = yes)                                                         |          | false                     |
+| compress_history_nc      | Use NCO lossless compression to compress history files (0 = no (default), 1 = yes)                                                                                     |          | true                      |
+| tararchivedir            | Should the archive folder be tarred? (0 = no, 1 = yes (default))                                                                                                       |          | true                      |
+| save\_nudging\_files   | false (default) doesn't output initial condition files, true outputs and archives inithist files for use in future nudging runs                                       |          | false                     |
+
+#### Advanced/Specialized Features
+
+| Namelist Variable        | Description                                                                                                                                                              | Required | Default                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| sendplots                | Are we going to send live output to some external server? (generally false unless you are CMZ)                                                                         |          | false                     |
+| nclPlotWeights           | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ)                                                                      |          | "NULL"                    |
+| regional_src             | Path template to regional data source for Frankengrid (supports YYYY/MM/DD/HH placeholders)                                                                            |          |                           |
 
 <font size="2">
 *Betacast offers two methods for handling weight files used in remapping. It is up to the user to choose.
