@@ -13,7 +13,7 @@ Two main steps:
 First, we need to figure out exactly where the operational centers deemed observed TCs to be at the same time as the Betacast initialization. These can be gleaned from a couple different sources, with the below bash script attempting to figure out the correct source.
 
 ```
-/bin/bash ./get-vitals.sh ${YYYYMMDDHH} ${TCVITFOLDER}
+bash ./get-vitals.sh ${YYYYMMDDHH} ${TCVITFOLDER}
 ```
 
 where: `${YYYYMMDDHH}` is the forecast cycle and `${TCVITFOLDER}` is the folder where the vitals file will be saved.
@@ -21,19 +21,30 @@ where: `${YYYYMMDDHH}` is the forecast cycle and `${TCVITFOLDER}` is the folder 
 Example:
 
 ```
-/bin/bash ./get-vitals.sh 2018082100 ./fin-tcvitals/
+bash ./get-vitals.sh 2018082100 ./fin-tcvitals/
 ```
 
 Will procure the TC Vitals file for Aug, 21. 2018 at 00Z and store it within a sub-folder named `fin-tcvitals`. Each init time will get a single file where there will be N rows consisting of the N observed cyclones globally at that time.
+
+#### TC Vitals for older storms
+
+In `cyclone-tracking/ebt-to-vits`, there is a script `convert-ebt-to-tcv.py` that will convert [Extended Best Track Data](https://rammb2.cira.colostate.edu/research/tropical-cyclones/tc_extended_best_track_dataset/) to TC Vitals. Importantly, this is not the historical Vitals archive, but really a surrogate used for tracking and verification, but actual Vitals files may have somewhat different values, particularly for storm center and wind radii.
+
+To invoke, just pass the desired year to the script:
+
+```
+python convert-ebt-to-tcv.py 2003
+```
 
 ### Track all cyclones and match to TC Vitals
 
 Requirements: CAM or EAM data with PSL, UBOT, and VBOT on the files at <= 6-hourly time frequency. Code only tracks at 6-hourly frequency (to match WMO operations) so if higher time frequency is passed in (e.g., 3-hourly) the `TIMESTRIDE` argument below must be updated.
 
-Then `./cyclone-tracking-driver.sh` can be invoked with the following format (11 command line arguments!).
+Then `./cyclone-tracking-driver.sh` can be invoked with the following format (11 (optional 12) command line arguments!).
 
 ```
-/bin/bash ./cyclone-tracking-driver.sh ${YYYYMMDDHH} \
+bash cyclone-tracking-driver.sh \
+	${YYYYMMDDHH} \
 	${CASENAME} \
 	${TCVITFILE} \
 	${ATCFFILE} \
@@ -59,8 +70,43 @@ Then `./cyclone-tracking-driver.sh` can be invoked with the following format (11
 | TIMESTRIDE | Do I stride TE files? Should be 6 for hourly, 2 for 3-hourly, 1 for 6-hourly |
 | ATCFTECH | Shortcode to use in ATCF files (ex: op centers using GFSO, HWRF, etc.) |
 | TE_NOMPI_DIR | Top-level path to a serial version of TempestExtremes |
+| ARCHIVEDIR | (optional) If set, archive candidates, tracks, and ATCF with nc files |
 
 After this script is successful, an [ATCF](https://en.wikipedia.org/wiki/Automated_Tropical_Cyclone_Forecasting_System) file for this particular forecast cycle will be generated in `./fin-atcf`. If there is no ATCF for this particular cycle, a new one will be generated. If one already exists, any lines in the ATCF that match `ATCFTECH` will be purged, with new lines appended. This allows for serial appending of various ensemble members (e.g., CAM001, CAM002, CAM003, etc.).
+
+#### Only track cyclones
+
+The code is modularized so that one could run the tracking code only without the ATCF matching. This may be desirable if you want an operational track without a vitals file. To do so "offline" follow this.
+
+```
+bash run-te-tracking.sh \
+  ${TE_CONNECTFILE} \
+  ${OUTPUTBASE} \
+  ${YYYYMMDDHH} \
+  ${CASENAME} \
+  ${HSTREAM} \
+  ${TE_NOMPI_DIR} \
+  ${TIMESTRIDE} \
+  ${TRAJFILE_TO_OUT}
+```
+
+NOTE: `${CASENAME}` is really just a unique string here. `${TRAJFILE_TO_OUT}` is the resulting TE trajectory file.
+
+An example in action is:
+
+```
+bash run-te-tracking.sh \
+  "/glade/u/home/zarzycki/work/grids/connect/mpasa3-60-tclf009_connect.dat" \
+  "/glade/derecho/scratch/zarzycki/SYNTH-tclf009-mp3a-L32/run/" \
+  2003083100 \
+  "MPAS" \
+  "h3i" \
+  "/glade/work/zarzycki/tempestextremes_noMPI/" \
+  2 \
+  traj.txt.MPAS
+```
+
+However, note that the code tracks *all* cyclonic storms (no warm core threshold, very lax PSL threshold, etc.) and is not well suited to tracking only TCs.
 
 #### Generating a connectivity file (TE_CONNECTFILE) for TempestExtremes
 
@@ -77,6 +123,8 @@ or
 cd ${TE_NOMPI_DIR}/bin/
 ./GenerateConnectivityFile --in_mesh $GRID.scrip.nc --out_type FV --out_connect $GRID_connect_v2.dat
 ```
+
+If you have a SCRIP file even for SE/HOMME grids, the latter is preferred for consistency.
 
 ### Calculate statistics with MET
 
