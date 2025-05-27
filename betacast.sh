@@ -28,7 +28,12 @@
 # doi:10.1175/MWR-D-15-0159.1.
 ###################################################################################
 
-echo "Command used: $0 $@"
+echo "Command used: $0 \"$@\""
+echo "PID       : $$"
+echo "Host      : $(hostname)"
+echo "User      : $(whoami)"
+echo "Start time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+echo "Shell     : $SHELL"
 
 script_start=$(date +%s)
 set -e
@@ -50,10 +55,10 @@ if [[ "$MACHINEFILE" != /* ]] && [[ "$MACHINEFILE" != ~* ]]; then MACHINEFILE=${
 if [[ "$NAMELISTFILE" != /* ]] && [[ "$NAMELISTFILE" != ~* ]]; then NAMELISTFILE=${PWD}/${NAMELISTFILE}; fi
 if [[ "$OUTPUTSTREAMS" != /* ]] && [[ "$OUTPUTSTREAMS" != ~* ]]; then OUTPUTSTREAMS=${PWD}/${OUTPUTSTREAMS}; fi
 # If files don't exist, exit now
-exit_file_no_exist $MACHINEFILE
-exit_file_no_exist $NAMELISTFILE
-exit_file_no_exist $OUTPUTSTREAMS
-echo $MACHINEFILE; echo $NAMELISTFILE; echo $OUTPUTSTREAMS
+exit_file_no_exist "$MACHINEFILE"
+exit_file_no_exist "$NAMELISTFILE"
+exit_file_no_exist "$OUTPUTSTREAMS"
+echo "$MACHINEFILE"; echo "$NAMELISTFILE"; echo "$OUTPUTSTREAMS"
 
 # Read namelists
 read_bash_nl "${MACHINEFILE}"
@@ -140,7 +145,7 @@ fi
 
 ### Set correct model split
 if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi
-if [ $modelSystem -eq 0 ]; then
+if [ "$modelSystem" -eq 0 ]; then
   echo "Using CESM"
   atmName="cam"
   lndName="clm"
@@ -151,7 +156,7 @@ if [ $modelSystem -eq 0 ]; then
   # See: https://github.com/ESCOMP/MOSART/commit/cdd878de4cff9dc562093978e44aeb7122237983
   # <CESM3 dev tags need to set this to finidat_rtm
   rof_finidat="finidat"
-elif [ $modelSystem -eq 1 ]; then
+elif [ "$modelSystem" -eq 1 ]; then
   echo "Using E3SM"
   atmName="eam"
   lndName="elm"
@@ -189,12 +194,12 @@ bools_to_check=("islive" "debug" "doFilter" "filterOnly" "do_runoff" "keep_land_
        "predict_docn" "archive_inic" "compress_history_nc" "override_rest_check"
        "tararchivedir" "save_nudging_files" "standalone_vortex" "augment_tcs")
 for bool_to_check in ${bools_to_check[@]}; do
-  check_bool $bool_to_check ${!bool_to_check}
+  check_bool "$bool_to_check" ${!bool_to_check}
 done
 
 # Exit if add_perturbs is turned on but no namelist is passed in with perturbation config settings
 if [ "$add_perturbs" = true ] && { [ -z "$perturb_namelist" ] || [ ! -f "$perturb_namelist" ]; } ; then
-  echo "add_perturbs is true but can't find namelist: "$perturb_namelist
+  echo "add_perturbs is true but can't find namelist: $perturb_namelist"
   exit 1
 fi
 
@@ -208,7 +213,7 @@ fi
 if [ -z "${anl2mdlWeights+x}" ] && [ -n "${gfs2seWeights+x}" ] ; then
   echo "WARNING: Setting anl2mdlWeights to ${gfs2seWeights}"
   echo "WARNING: This is deprecated and will be removed in the future! To fix, change 'gfs2seWeights' to 'anl2mdlWeights' in ${NAMELISTFILE}"
-  anl2mdlWeights=$gfs2seWeights
+  anl2mdlWeights="$gfs2seWeights"
 fi
 
 # Check if ncl exists
@@ -263,12 +268,12 @@ if [ "$do_frankengrid" = true ] ; then
   check_python_dependency sklearn
 fi
 
-if [ $override_rest_check = false ]; then
+if [ "$override_rest_check" = false ]; then
   echo "Checking for SourceMods permiting additional restart writes for land model"
   echo "This check can be ignored with override_rest_check = true in the namelist."
-  exit_files_no_exist $path_to_case/SourceMods/src.${lndName}/lnd_comp_mct.F90 $path_to_case/SourceMods/src.${lndName}/lnd_comp_nuopc.F90
-  if [ $do_runoff = true ]; then
-    exit_files_no_exist $path_to_case/SourceMods/src.${rofName}/rof_comp_mct.F90 $path_to_case/SourceMods/src.${rofName}/rof_comp_nuopc.F90
+  exit_files_no_exist "$path_to_case/SourceMods/src.${lndName}/lnd_comp_mct.F90" "$path_to_case/SourceMods/src.${lndName}/lnd_comp_nuopc.F90"
+  if [ "$do_runoff" = true ]; then
+    exit_files_no_exist "$path_to_case/SourceMods/src.${rofName}/rof_comp_mct.F90" "$path_to_case/SourceMods/src.${rofName}/rof_comp_nuopc.F90"
   fi
 fi
 
@@ -335,7 +340,7 @@ echo "We are using ${casename} for the case"
 # Get the current time
 currtime=$(date -u +%H%M)
 
-if [ $islive = true ] ; then    # Find most recent GFS forecast
+if [ "$islive" = true ] ; then    # Find most recent GFS forecast
   ## Here we get two digit strings for UTC time for month, day, year
   ## We also get current time in hoursminutes (because the GFS output lags by 3.5 hours)
   monthstr=$(date -u +%m)
@@ -343,22 +348,22 @@ if [ $islive = true ] ; then    # Find most recent GFS forecast
   yearstr=$(date -u +%Y)
 
   ## Use currtime to figure out what is the latest cycle we have access to
-  if [ $currtime -lt 0328 ] ; then
+  if [ "$currtime" -lt 0328 ] ; then
     echo "12Z cycle"
     monthstr=$(date --date="yesterday" -u +%m)
     daystr=$(date --date="yesterday" -u +%d)
     yearstr=$(date --date="yesterday" -u +%Y)
     cyclestr=12
-  elif [ $currtime -lt 0928 ] ; then
+  elif [ "$currtime" -lt 0928 ] ; then
     echo "00Z cycle"
     cyclestr=00
-  elif [ $currtime -lt 1528 ] ; then
+  elif [ "$currtime" -lt 1528 ] ; then
     echo "00Z cycle"
     cyclestr=00
-  elif [ $currtime -lt 2128 ] ; then
+  elif [ "$currtime" -lt 2128 ] ; then
     echo "12Z cycle"
     cyclestr=12
-  elif [ $currtime -ge 2128 ] ; then
+  elif [ "$currtime" -ge 2128 ] ; then
     echo "12Z cycle"
     cyclestr=12
   else
@@ -396,8 +401,8 @@ else     # if not live, draw from head of dates.txt file
   echo "Using dates in: "${datesfile}
   longdate=$(get_top_line_from_dates "${datesfile}")
   echo "Getting parsed time from $longdate"
-  parse_YYYYMMDDHH $longdate
-  echo "From datesfile, read in: "$yearstr' '$monthstr' '$daystr' '$cyclestr'Z'
+  parse_YYYYMMDDHH "$longdate"
+  echo "From datesfile, read in: $yearstr $monthstr $daystr ${cyclestr}Z"
 fi
 
 ## Figure out the seconds which correspond to the cycle and zero pad if neces
@@ -405,19 +410,17 @@ get_cyclestrsec "$cyclestr"
 
 ## Figure out what the SE start time will be after filter
 ## These values are *only* used if do_filter is true
-if [ $numHoursSEStart -lt 6 ] ; then
-  let se_cyclestr=$cyclestr+03
-  while [ ${#se_cyclestr} -lt 2 ];
-  do
-    se_cyclestr="0"$se_cyclestr
+if [ "$numHoursSEStart" -lt 6 ] ; then
+  let se_cyclestr="$cyclestr"+03
+  while [ ${#se_cyclestr} -lt 2 ]; do
+    se_cyclestr="0$se_cyclestr"
   done
-  se_monthstr=$monthstr
-  se_daystr=$daystr
-  se_yearstr=$yearstr
+  se_monthstr="$monthstr"
+  se_daystr="$daystr"
+  se_yearstr="$yearstr"
   let se_cyclestrsec=$((10#$se_cyclestr))*3600
-  while [ ${#se_cyclestrsec} -lt 5 ];
-  do
-    se_cyclestrsec="0"$se_cyclestrsec
+  while [ ${#se_cyclestrsec} -lt 5 ]; do
+    se_cyclestrsec="0$se_cyclestrsec"
   done
 else
   echo "SE forecast lead time too long, 18Z cycle causes trouble"
@@ -425,8 +428,9 @@ else
   exit 1
 fi
 
+
 # Get time for pulling SST
-getSSTtime $islive $currtime $monthstr $daystr $yearstr $cyclestr
+getSSTtime "$islive" "$currtime" "$monthstr" "$daystr" "$yearstr" "$cyclestr"
 
 yestmonthstr=$(date --date="yesterday" -u +%m)
 yestdaystr=$(date --date="yesterday" -u +%d)
@@ -444,15 +448,15 @@ if [ "$runmodel" = true ] ; then
 
 ############################### GET DYCORE INFO ###############################
 
-cd $path_to_case
+cdv "$path_to_case"
 DYCORE=$(./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs)
 if [ -z "$DYCORE" ]; then
   echo "Couldn't automagically figure out dycore, assuming SE/HOMME"
   DYCORE="se"
 fi
-echo "DYCORE: "$DYCORE
+echo "DYCORE: $DYCORE"
 
-if [ $debug = false ] ; then
+if [ "$debug" = false ] ; then
 ############################### GET ATM DATA ###############################
 
   # The keys are $atmDataType
@@ -482,7 +486,7 @@ if [ $debug = false ] ; then
   RDADIR="" # Init to empty, but fill in if RDA available later
   ERA5RDA=0 # Set whether or not ERA5 is local (0 = local, 1 = RDA)
 
-  case $atmDataType in
+  case "$atmDataType" in
     1)
       get_gfs_atm
       ;;
@@ -505,14 +509,14 @@ if [ $debug = false ] ; then
   esac
 
   # If ERA5RDA flag toggled, set value w/ key to RDA data
-  if [ $ERA5RDA -eq 1 ] ; then
+  if [ "$ERA5RDA" -eq 1 ] ; then
     atm_data_sources["4"]="ERA5RDA"
     atm_file_paths["4"]="${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
   fi
 
 ############################### GET SST / NCL ###############################
 
-  case $sstDataType in
+  case "$sstDataType" in
     1)
       get_gdas_sst
       ;;
@@ -532,11 +536,12 @@ if [ $debug = false ] ; then
   esac
 
   # If not using data streams, we have to generate the SST forcing
-  if [ ${sstDataType} -ne 9 ] ; then
+  if [ "$sstDataType" -ne 9 ] ; then
     # Switch bash bool to int for NCL input
-    if [ $predict_docn = true ]; then INT_PREDICT_DOCN=1; else INT_PREDICT_DOCN=0; fi
+    if [ "$predict_docn" = true ]; then INT_PREDICT_DOCN=1; else INT_PREDICT_DOCN=0; fi
 
-    cd $sst_to_cam_path ; echo "cd'ing to interpolation directory: $sst_to_cam_path"
+    echo "cd'ing to interpolation directory: $sst_to_cam_path"
+    cdv "$sst_to_cam_path"
 
     sst_domain_file=${SCRIPTPATH}/grids/domains/domain.ocn.${docnres}.nc
     sst_scrip_file=${SCRIPTPATH}/grids/domains/scrip.ocn.${docnres}.nc
@@ -593,7 +598,8 @@ if [ $debug = false ] ; then
 
   ############################### ATM NCL ###############################
 
-  cd $atm_to_cam_path ; echo "cd'ing to interpolation directory: $atm_to_cam_path"
+  echo "cd'ing to interpolation directory: $atm_to_cam_path"
+  cdv "$atm_to_cam_path"
 
   # Figure out which anl2mdlWeights we want to use. If the user gave us one
   # we will just use that, otherwise we'll hope they gave us modelgridfile (SCRIP)
@@ -612,7 +618,7 @@ if [ $debug = false ] ; then
     if [[ "$atmDataType" -eq 9 ]]; then
       RLLSOURCEGRID="era5_0.25x0.25"
     else
-      RLLSOURCEGRID=${atm_data_glob_anl[$atmDataType]}
+      RLLSOURCEGRID="${atm_data_glob_anl[$atmDataType]}"
     fi
     # Define new anl2mdlWeights
     anl2mdlWeights=${mapping_files_path}/map_${RLLSOURCEGRID}_TO_${modelgridshortname}_patc.nc
@@ -702,13 +708,13 @@ if [ $debug = false ] ; then
         set -e
       fi
       while IFS= read -r line || [[ -n "$line" ]]; do
-        atm_file_paths["9"]=$line
+        atm_file_paths["9"]="$line"
         break # Exit after reading the first line
-      done < m2mfile.$uniqtime
+      done < "m2mfile.$uniqtime"
       [[ ! -f "${atm_file_paths["9"]}" ]] && { echo "File does not exist."; exit 1; }
     elif [[ -f "$m2m_parent_source" ]]; then
       echo "m2m_parent_source ($m2m_parent_source) is provided as a file."
-      atm_file_paths["9"]=$m2m_parent_source
+      atm_file_paths["9"]="$m2m_parent_source"
     else
       echo "m2m_parent_source ($m2m_parent_source) is not a file or directory. Exiting."
       exit 1
@@ -732,8 +738,9 @@ if [ $debug = false ] ; then
       --mod_remap_file "${m2m_remap_file-}" \
       --mod_in_topo "${m2m_topo_in-}" \
       --se_inic "${sePreFilterIC}" \
-      $AUGMENT_STR $VORTEX_STR
+      ${AUGMENT_STR:+$AUGMENT_STR} ${VORTEX_STR:+$VORTEX_STR}
       )
+      # ${AUGMENT_STR:+$AUGMENT_STR} either gives AUGMENT_STR if not empty or nothing
   else
     set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
     (set -x; ncl -n atm_to_cam.ncl \
@@ -835,7 +842,7 @@ if [ $debug = false ] ; then
     (set -x; python overlay.py "${sePreFilterIC}" "${sePreFilterIC}_reg.nc" --maxLev 80. )
 
     echo "Cleaning up temporary ESMF files"
-    rm -v $TMPWGTFILE
+    rm -v "$TMPWGTFILE"
     rm -v hwrf_storm_scrip.nc
     rm -v ${sePreFilterIC}_reg.nc
 
@@ -847,7 +854,7 @@ fi #End debug if statement
 ##### ADD OR REMOVE VORTEX
 
 if [ "$standalone_vortex" = true ] ; then
-  cd $atm_to_cam_path/tcseed
+  cdv "$atm_to_cam_path/tcseed"
   set +e
   echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
 
@@ -882,7 +889,7 @@ fi
 if [ "$add_noise" = true ] ; then
   set +e
   echo "Adding white noise to initial condition"
-  cd $atm_to_cam_path
+  cdv "$atm_to_cam_path"
   (set -x; ncl -n perturb_white_noise.ncl 'basFileName = "'${sePreFilterIC}'"' ) ; exit_status=$?
   check_ncl_exit "perturb_white_noise.ncl" $exit_status
   set -e
@@ -894,7 +901,7 @@ fi
 if [ "$add_perturbs" = true ] ; then
   echo "Adding perturbations"
 
-  cd $atm_to_cam_path/perturb
+  cdv "$atm_to_cam_path/perturb"
 
   set +e
 
@@ -925,7 +932,7 @@ if [ "$add_perturbs" = true ] ; then
   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
 fi
 
-cd $path_to_case
+cdv "$path_to_case"
 
 ############################### CISM SETUP ###############################
 
@@ -940,11 +947,11 @@ echo "................. configuring land and/or runoff"
 
 ## TEMPORARY CLM -> LAND FIX
 ## Check if clmstart exists but landstart doesn't, move if that is the case
-if [[ ! -d ${landdir} ]] && [[ -d ${path_to_rundir}/clmstart/ ]] ; then
-  echo "Moving ${path_to_rundir}/clmstart/ to ${landdir}"
-  mv -v ${path_to_rundir}/clmstart/ ${landdir}
+if [[ ! -d "$landdir" && -d "${path_to_rundir}/clmstart" ]]; then
+  echo "Moving ${path_to_rundir}/clmstart to ${landdir}"
+  mv -v "${path_to_rundir}/clmstart" "$landdir"
 else
-  echo "No need to modify land directory, either appropriately exists or will be created later"
+  echo "No need to modify land directory; either it exists already or will be created later."
 fi
 ## END TEMP FIX
 
@@ -954,10 +961,10 @@ sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_${lndName}
 sed -i '/use_init_interp/d' user_nl_${lndName}
 
 # Create a temp directory for now
-RUNTMPDIR=$path_to_nc_files/tmp/
+RUNTMPDIR="${path_to_nc_files}/tmp"
 [ -z "$RUNTMPDIR" ] && { echo "RUNTMPDIR is not set. Exiting."; exit 1; }
 # Create directory and make sure it was actually generated (to prevent user from not having write perms)
-mkdir -vp $RUNTMPDIR
+mkdir -vp "$RUNTMPDIR"
 [ -d "$RUNTMPDIR" ] || { echo "Failed to create $RUNTMPDIR. Exiting."; exit 1; }
 # Delete files in RUNTMPDIR
 find "$RUNTMPDIR" -type f -exec rm -v {} +
@@ -989,8 +996,8 @@ echo "landrestartfile: ${landrestartfile}"
 
 if [ -f "${landrestartfile}" ] && [[ "${landrestartfile}" != *.nc ]]; then
   echo "${landrestartfile} was found, but does not have an *.nc extension. Assuming compressed. Copying..."
-  cp -v ${landrestartfile} $RUNTMPDIR
-  try_uncompress $RUNTMPDIR/$(basename "${landrestartfile}")
+  cp -v ${landrestartfile} "$RUNTMPDIR"
+  try_uncompress "$RUNTMPDIR/$(basename "${landrestartfile}")"
   landrestartfile=$(find "${RUNTMPDIR}" -maxdepth 1 -type f -name "*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-*.nc" | head -n 1)
   echo "Updated landrestartfile: ${landrestartfile}"
 fi
@@ -1019,12 +1026,12 @@ else
 fi
 
 ## Append a check error to ignore inconsistencies in the dataset
-if [ $modelSystem -eq 0 ]; then   # CLM/CTSM
+if [ "$modelSystem" -eq 0 ]; then   # CLM/CTSM
   sed -i '/check_finidat_pct_consistency/d' user_nl_${lndName}
   sed -i '/check_finidat_year_consistency/d' user_nl_${lndName}
   echo "check_finidat_pct_consistency = .false." >> user_nl_${lndName}
   echo "check_finidat_year_consistency = .false." >> user_nl_${lndName}
-elif [ $modelSystem -eq 1 ]; then   # ELM
+elif [ "$modelSystem" -eq 1 ]; then   # ELM
   sed -i '/check_finidat_fsurdat_consistency/d' user_nl_${lndName}
   echo "check_finidat_fsurdat_consistency = .false." >> user_nl_${lndName}
   # 2/25/24 CMZ added since ELM doesn't have use_init_interp support for rawlandrestartfile
@@ -1041,7 +1048,7 @@ fi
 
 ############################### ROF SETUP ###############################
 
-if [ $do_runoff = true ]; then
+if [ "$do_runoff" = true ]; then
 
   echo "USER_NL: Setting input ${rofName} dataset"
 
@@ -1050,7 +1057,7 @@ if [ $do_runoff = true ]; then
 
   # We want to check ${landdir} for land restart files. If so, use those.
   rofrestartfile=$(find "${landdir}" -maxdepth 1 \( -type f -o -type l \) -name "${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
-  echo $rofrestartfile
+  echo "$rofrestartfile"
 
   # Check to see if file exists on native SE land grid
   if [ -n "${rofrestartfile}" ] && [ -f "${rofrestartfile}" ]; then
@@ -1075,8 +1082,8 @@ if [ $do_runoff = true ]; then
 
   if [ -f "${rofrestartfile}" ] && [[ "${rofrestartfile}" != *.nc ]]; then
     echo "${rofrestartfile} was found, but does not have an *.nc extension. Assuming compressed. Copying..."
-    cp -v ${rofrestartfile} $RUNTMPDIR
-    try_uncompress $RUNTMPDIR/$(basename "${rofrestartfile}")
+    cp -v ${rofrestartfile} "$RUNTMPDIR"
+    try_uncompress "$RUNTMPDIR/$(basename "$rofrestartfile")"
     rofrestartfile=$(find "${RUNTMPDIR}" -maxdepth 1 -type f -name "*.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-*.nc" | head -n 1)
     echo "Updated rofrestartfile: ${rofrestartfile}"
   fi
@@ -1230,7 +1237,7 @@ if [ "$doFilter" = true ] ; then
   xmlchange_verbose "JOB_WALLCLOCK_TIME" "$FILTERWALLCLOCK"
   xmlchange_verbose "JOB_QUEUE" "$FILTERQUEUE" "--force"
 
-  if [ $debug = false ] ; then
+  if [ "$debug" = false ] ; then
 
     echo "Begin call to filter-run"
     run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs" true
@@ -1283,7 +1290,7 @@ if [ "$doFilter" = true ] ; then
 
   # Special things we have to do to "reset" model after filtering
   echo "Pushing model start back from $cyclestrsec to $se_cyclestrsec seconds..."
-  cd $path_to_case
+  cdv "$path_to_case"
   xmlchange_verbose "RUN_STARTDATE" "$se_yearstr-$se_monthstr-$se_daystr"
   xmlchange_verbose "START_TOD" "$se_cyclestrsec"
   xmlchange_verbose "STOP_OPTION" "ndays"
@@ -1360,11 +1367,11 @@ fi
 sed -i '/.*ncdata/d' user_nl_${atmName}
 echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
 
-if [ $debug = false ] ; then
+if [ "$debug" = false ] ; then
   echo "Begin call to forecast run"
   #run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs" true
   CIMESTATUS=1; CIMEITER=0
-  while [ $CIMESTATUS != 0 ] ; do
+  while [ "$CIMESTATUS" != 0 ] ; do
     if [ "$CIMEITER" -ge "$CIMEMAXTRIES" ]; then
       echo "Exceeded the max tries: $CIMEMAXTRIES ... exiting"
       exit 1
@@ -1378,31 +1385,33 @@ fi
 
 fi # end run model
 
-cd $outputdir
+cdv "$outputdir"
 
 # Generate folder structure and move NetCDF files
 main_archive "$tmparchivecdir" "$atmName" "$lndName" "$rofName"
 
 # Copy betacast configs to archive directory for posterity
-cp -v $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS $perturb_namelist $tmparchivecdir/betacast
+safe_cp_files "$MACHINEFILE" "$NAMELISTFILE" "$OUTPUTSTREAMS" "$perturb_namelist" "$tmparchivecdir/betacast"
+# Archive shell configuration for debugging
+declare -p | sort > "$tmparchivecdir/betacast/shellvars_$(date +%Y%m%d_%H%M%S).txt"
 
 # Copy user_nl* files to archive dir as well...
-cp -v $path_to_case/user* $tmparchivecdir/nl_files
+safe_cp2 "${path_to_case}/user_nl_*" "${tmparchivecdir}/nl_files/"
 
 # Archive initial conditions?
-if [ $archive_inic = true ]; then
+if [ "$archive_inic" = true ]; then
   echo "BETACAST_USER: requesting initial condition files be archived"
   archive_inic "$tmparchivecdir" "$path_to_case" "$compress_history_nc" "$atmName" "$lndName" "$rofName" "$sstFileIC"
 fi
 
 # Archive nudging files generated by hindcasts
-if [ $save_nudging_files = true ] ; then
+if [ "$save_nudging_files" = true ] ; then
   echo "BETACAST_USER: requesting nudging files be archived"
   archive_nudging "$tmparchivecdir" "$path_to_nc_files" "$compress_history_nc"
 fi
 
 ## Move land files to new restart location
-cd "$path_to_nc_files" || { echo "Failed to change directory to $path_to_nc_files"; exit 1; }
+cdv "$path_to_nc_files" || { echo "Failed to change directory to $path_to_nc_files"; exit 1; }
 if [ "$keep_land_restarts" = true ]; then
   echo "BETACAST_USER: Archiving land restart files"
   mkdir -p "$landdir" #make landdir if doesn't exist
@@ -1439,18 +1448,17 @@ fi
 delete_leftovers "$path_to_nc_files" "$atmName" "$lndName" "$rofName"
 
 ## Delete run temp directory
-rm -rfv $RUNTMPDIR
+rm -rfv "$RUNTMPDIR"
 
-cd $path_to_nc_files
-echo "Moving tmp archive directory to ARCHIVEDIR/YYYYMMDDHH"
-if [ -d "${ARCHIVEDIR}/${yearstr}${monthstr}${daystr}${cyclestr}" ]
-then
-  echo "${ARCHIVEDIR}/${yearstr}${monthstr}${daystr}${cyclestr} already exists! Appending date string!"
-  ARCHIVESUBDIR=${yearstr}${monthstr}${daystr}${cyclestr}_$(date +\%Y\%m\%d\%H\%M)
-else
-  ARCHIVESUBDIR=${yearstr}${monthstr}${daystr}${cyclestr}
+## Move directory to YYYYMMDDHH, handing duplicates
+cdv "$path_to_nc_files"
+ARCHIVESUBDIR="${yearstr}${monthstr}${daystr}${cyclestr}"
+echo "Moving tmp archive directory to ARCHIVEDIR/YYYYMMDDHH --> ${ARCHIVESUBDIR}"
+if [ -d "${ARCHIVEDIR}/${ARCHIVESUBDIR}" ]; then
+  echo "${ARCHIVEDIR}/${ARCHIVESUBDIR} already exists! Appending date string and moving!"
+  mv -v "${ARCHIVEDIR}/${ARCHIVESUBDIR}" "${ARCHIVEDIR}/${ARCHIVESUBDIR}_$(date +%Y%m%d%H%M)"
 fi
-mv -v $tmparchivecdir ${ARCHIVEDIR}/${ARCHIVESUBDIR}
+mv -v "$tmparchivecdir" "${ARCHIVEDIR}/${ARCHIVESUBDIR}"
 
 if [ "$dotracking" = true ] ; then
   echo "BETACAST_USER: requesting cyclones to be tracked."
@@ -1475,7 +1483,7 @@ if [ "$dotracking" = true ] ; then
     echo "${TCVITFILE}" ; head -100 "${TCVITFILE}"
     (
       set -x
-      /bin/bash ./cyclone-tracking-driver.sh "${yearstr}${monthstr}${daystr}${cyclestr}" \
+      bash ./cyclone-tracking-driver.sh "${yearstr}${monthstr}${daystr}${cyclestr}" \
         "${casename}" \
         "${TCVITFILE}" \
         "${ATCFFILE}" \
@@ -1485,9 +1493,10 @@ if [ "$dotracking" = true ] ; then
         "${track_hstream}" \
         "${track_stride}" \
         "${track_ATCFTECH}" \
-        "${TE_SERIAL_DIR}"
+        "${TE_SERIAL_DIR}" \
+        "${ARCHIVEDIR}/${ARCHIVESUBDIR}"
     ) || { echo "Tracking code failed"; popd > /dev/null; }
-    cp -v "trajs.trajectories.txt.${casename}.png" "./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png"
+    safe_cp_files "trajs.trajectories.txt.${casename}.png" "./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png"
   else
     echo "No TCvitals file exists and/or no storms on said TCvitals file, no reason to run the tracking code"
   fi
@@ -1536,12 +1545,12 @@ print_elapsed_time "$script_start" "$script_end"
 
 ### If not live and the run has made it here successively, delete top line of datesfile
 if [ "$islive" = false ] ; then
-  cd ${SCRIPTPATH}
+  cdv ${SCRIPTPATH}
   #Remove top line from dates file
   remove_top_line_from_dates ${datesfile}
 
   AUTORESUB="yes"
-  if [ $AUTORESUB == "yes" ]; then
+  if [ "$AUTORESUB" == "yes" ]; then
     echo "*-*-*-* Automatically resubbing next date!"
     exec ./betacast.sh ${MACHINEFILE} ${NAMELISTFILE} ${OUTPUTSTREAMS}
   fi

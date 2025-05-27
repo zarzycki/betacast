@@ -42,7 +42,7 @@ replace_betacast_string() {
   # Swap placeholder with replacement in original_var
   NEWVAR=${original_var/${placeholder}/${replacement}}
 
-  echo "UPDATED $original_var --> $NEWVAR" >&2
+  echo "NAMELIST UPDATED: $original_var --> $NEWVAR" >&2
 
   # Return the new var, which is captured by the code
   echo "$NEWVAR"
@@ -125,29 +125,39 @@ function read_bash_nl() {
 
   local FILETOREAD=$1
   # Sanitize namelist files (add carriage return to end)
-  sanitize_file ${FILETOREAD}
+  sanitize_file "${FILETOREAD}"
 
   # Note, ___ will be converted to a space. Namelists cannot have whitespace due to
   # parsing on whitespaces...
   echo "Reading namelist ${FILETOREAD}..."
-  local inputstream=$(cat ${FILETOREAD} | grep -v "^#")
+  local inputstream
+  inputstream=$(grep -v "^#" "${FILETOREAD}")
   inputstream="${inputstream//=/ = }"
   #echo $inputstream
   set -- $inputstream
-  while [ $1 ]
-    do
-      if [ "${2}" != "=" ] ; then echo "Uh oh, $1, $2, $3!" ; exit ; fi
-      echo "NAMELIST: setting ${1} to ${3//___/ }"
-      # Make sure that the input variable is alphanumeric
-      if [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
-        eval $1="${3//___/ }"
-      else
-        echo "ERROR: Invalid variable name: $1"
-        exit 1
-      fi
+  while [ $# -ge 3 ]; do
+    local var="$1"
+    local eq="$2"
+    local val="${3//___/ }"
 
-     shift 3
-   done
+    if [ "$eq" != "=" ]; then
+      echo "NAMELIST ERR: Uh oh, in $FILETOREAD bad format: $1 $2 $3"
+      exit 1
+    fi
+
+    if [[ "$var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+      # Expand references (e.g., $INDEX) in value
+      # Note, $INDEX must be defined higher in the namelist
+      val=$(eval echo "\"$val\"")
+      echo "NAMELIST: setting ${var} to ${val}"
+      declare -g "$var=$val"
+    else
+      echo "NAMELIST ERR: In $FILETOREAD, invalid variable name: $var"
+      exit 1
+    fi
+
+    shift 3
+  done
 }
 
 ### -----------------------------------------------------------------------------------
@@ -192,7 +202,6 @@ function check_ncl_exit() {
 
 ### -----------------------------------------------------------------------------------
 
-
 function get_YYYYMMDD_from_hfile() {
   local FILE=$1
   local DELIM=$2
@@ -203,10 +212,24 @@ function get_YYYYMMDD_from_hfile() {
 
 ### -----------------------------------------------------------------------------------
 
-
 sanitize_file () {
   echo "Sanitizing $1"
   sed -i -e '$a\' $1
+}
+
+### -----------------------------------------------------------------------------------
+
+# cdv: Verbose cd with error checking.
+# Usage: cdv /path/to/dir
+# Description:
+#   Changes directory to the specified path, printing the destination before switching.
+#   Exits the script if the directory change fails.
+#
+# Example:
+#   cdv "$outputdir"
+cdv() {
+  echo "cd to: $1"
+  cd "$1" || { echo "Failed to cd to $1"; exit 1; }
 }
 
 ### -----------------------------------------------------------------------------------
@@ -758,28 +781,45 @@ function delete_except_last() {
   done
 }
 
-
-# Copy files given a set of patterns
-# Usage: safe_cp2 "*.clm2.r.*,*.elm.r.*" $DIRSTASH
-function safe_cp2() {
-
+# Copy files given a set of patterns (comma-separated)
+# Usage: safe_cp2 "*.clm2.r.*,*.elm.r.*" /path/to/destination
+safe_cp2() {
   local dest="$2"
-  # split on multiple input patterns if necessary
+
+  # Split on commas
   IFS=',' read -r -a patterns <<< "$1"
 
-  # Loop over all matching patterns
   for pattern in "${patterns[@]}"; do
-
-    # Trim leading and trailing spaces from the pattern
+    # Trim whitespace
     pattern=$(echo "$pattern" | xargs)
 
-    # Collect all files matching the pattern, sorted
-    files=($(ls $pattern 2>/dev/null | sort))
+    # Enable nullglob to safely handle unmatched globs
+    shopt -s nullglob
+    files=( $pattern )
+    shopt -u nullglob
 
     if [ ${#files[@]} -eq 0 ]; then
-      echo "Error: ZERO files found matching pattern $pattern."
+      echo "Warning: No files found matching pattern: $pattern"
     else
-      cp -v -- "${files[@]}" "$dest"
+      # Sort the files
+      IFS=$'\n' sorted_files=($(printf "%s\n" "${files[@]}" | sort))
+      cp -v -- "${sorted_files[@]}" "$dest"
+    fi
+  done
+}
+
+# Copy files only if non-empty and exist
+# Usage: safe_cp_files file1 file2 ... destdir
+safe_cp_files() {
+  local dest="${@: -1}"   # Last argument is destination
+  local files=("${@:1:$#-1}")  # All but last
+
+  for f in "${files[@]}"; do
+    if [ -n "$f" ] && [ -f "$f" ]; then
+      echo "Copying: $f → $dest"
+      cp -v -- "$f" "$dest"
+    else
+      echo "Skipping: '$f' (empty or not a file)"
     fi
   done
 }
