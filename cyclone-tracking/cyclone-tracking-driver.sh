@@ -19,9 +19,11 @@
 # $9 -- timestride, should be 2 for 3-hourly data, 1 for 6-hourly data
 # $10 -- ATCFTECH
 # $11 -- where is the TE noMPI binary on this system?
+# $12 -- OPTIONAL: ARCHIVEDIR
 ############ USER OPTIONS #####################
 
-if [ $# -eq 11 ] ; then
+if [ $# -eq 11 ] || [ $# -eq 12 ]; then
+  archive_files=false
   YYYYMMDDHH=${1}
   UQSTR=${2}
   TCVITFILE=${3}
@@ -33,52 +35,42 @@ if [ $# -eq 11 ] ; then
   TIMESTRIDE=${9}
   ATCFTECH=${10}
   TEMPESTEXTREMESDIR=${11}
+  if [ $# -eq 12 ]; then
+    ARCHIVEDIR=${12}
+    archive_files=true
+    echo "cyclone-tracking-drive: archive requested"
+  fi
 else
-  echo "cyclone-tracking-driver: Oops... this script requires 11 arguments, not "$#
-  exit
+  echo "cyclone-tracking-driver: Oops... this script requires 11 or 12 arguments, not $#"
+  exit 1
 fi
-
-# The TE trajectory file for this particular betacast case
-TRAJFILE=trajectories.txt.${UQSTR}
 
 # Currently, code purges this ATCFTECH's record in YYYYMMDDHH ATCF file.
 # It keeps other models/ensembles, to allow for serial catting.
 # Setting this to true nukes whole thing each time tracker is invoked
 OVERWRITE_ATCF=false
 
-### Flag needed if using unstructured data (if not using unstruc data, empty string)
-CONNECTFLAG="--in_connect ${CONNECTFILE}"
+# The TE trajectory file for this particular betacast case
+TRAJFILE=trajectories.txt.${UQSTR}
 
-### Path + filelist of data to process
-PATHTOFILES=${OUTPUTBASE}/${YYYYMMDDHH}/
-FILES=`ls ${PATHTOFILES}/*.?am.${HSTREAMTRACK}.*.nc`
+# Call TE tracking
+bash run-te-tracking.sh \
+    "${CONNECTFILE}" \
+    "${OUTPUTBASE}" \
+    "${YYYYMMDDHH}" \
+    "${UQSTR}" \
+    "${HSTREAMTRACK}" \
+    "${TEMPESTEXTREMESDIR}" \
+    "${TIMESTRIDE}" \
+    "${TRAJFILE}"
 
-############ TRACKER MECHANICS #####################
-
-DN_MERGEDIST=5.0
-SN_RANGE=5.0
-SN_MINLENGTH=5
-SN_MAXGAP=0
-SN_LATMAX=55.0
-SN_LATMAX_N=4
-
-# Loop over files to find candidate cyclones
-# Find ALL local min in PSL, merge within 3deg
-rm -v cyc.${UQSTR} trajectories.txt.${UQSTR}
-touch cyc.${UQSTR}
-for f in ${FILES[@]}; do
-  echo "cyclone-tracking-driver: Processing $f..."
-  ${TEMPESTEXTREMESDIR}/bin/DetectNodes --verbosity 0 --timestride ${TIMESTRIDE} --in_data "${f}" ${CONNECTFLAG} --out cyc_tempest.${UQSTR} --mergedist ${DN_MERGEDIST} --searchbymin PSL --outputcmd "PSL,min,0;_VECMAG(UBOT,VBOT),max,2"
-  cat cyc_tempest.${UQSTR} >> cyc.${UQSTR}
-  rm -v cyc_tempest.${UQSTR}
-done
-
-# Stitch candidate cyclones together
-# Using range = 3.0 for 3hr, use 5.0 for 6hr.
-# Using minlength = 5 = 12 hrs for 3hrly; minlength = 3 = 12 hrs for 6hrly
-${TEMPESTEXTREMESDIR}/bin/StitchNodes --format "ncol,lon,lat,slp,wind" --range ${SN_RANGE} --minlength ${SN_MINLENGTH} --maxgap ${SN_MAXGAP} --in cyc.${UQSTR} --out ${TRAJFILE} --threshold "lat,<=,${SN_LATMAX},${SN_LATMAX_N};lat,>=,-${SN_LATMAX},${SN_LATMAX_N}"
-
-sleep 5 #brief delay to nip any small I/O issues in the bud
+# Archive files if requested
+if [ "$archive_files" = true ]; then
+  echo "cyclone-tracking-driver: archiving files"
+  mkdir -p "$ARCHIVEDIR/cyclone-tracking"
+  cp -v "${TRAJFILE}" "$ARCHIVEDIR/cyclone-tracking"
+  cp -v "cyc.${UQSTR}" "$ARCHIVEDIR/cyclone-tracking"
+fi
 
 # If a vitals file exists, we want to "match" up the corresponding trajectory from
 # tempest with the +0hr vitals location and write an ATCF record
@@ -107,6 +99,10 @@ if [ -f ${TCVITFILE} ]; then
     echo "cyclone-tracking-driver: SSHings..."
     ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${YYYYMMDDHH} "
     scp enstraj.${YYYYMMDDHH}.png colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/${YYYYMMDDHH}/ens_traj.png
+  fi
+  if [ "$archive_files" = true ]; then
+    mkdir -p "$ARCHIVEDIR/cyclone-tracking"
+    cp -v "${ATCFFILE}" "$ARCHIVEDIR/cyclone-tracking"
   fi
   rm -v ${ATCFFILE}
 fi
