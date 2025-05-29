@@ -289,8 +289,8 @@ if [ "$augment_tcs" = true ]; then
 else
   AUGMENT_STR=""
 fi
-# Vortex modification in atm_to_cam (if standalone_seed = true, use old code)
-if [ -f "$vortex_namelist" ] && [ "$standalone_seed" = false ]; then
+# Vortex modification in atm_to_cam (if standalone_vortex = true, use old code)
+if [ -f "$vortex_namelist" ] && [ "$standalone_vortex" = false ]; then
   VORTEX_STR="--vortex_namelist $vortex_namelist"
 else
   VORTEX_STR=""
