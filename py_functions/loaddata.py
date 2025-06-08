@@ -2,6 +2,7 @@ import numpy as np
 import xarray as xr
 import glob
 import sys
+import cfgrib
 
 import pyfuncs
 import vertremap
@@ -204,6 +205,26 @@ def load_CAM_file(data_filename):
         data_filename
     )
 
+
+def inspect_GRIB_file(data_filename):
+    """Safely inspect GRIB file contents by opening all datasets separately"""
+    datasets = cfgrib.open_datasets(data_filename)
+
+    print(f"Found {len(datasets)} separate datasets in the file:")
+    for i, ds in enumerate(datasets):
+        print(f"\nDataset {i}:")
+        print(f"  Variables: {list(ds.data_vars.keys())}")
+        print(f"  Coordinates: {list(ds.coords.keys())}")
+        if 'typeOfLevel' in ds.attrs:
+            print(f"  typeOfLevel: {ds.attrs['typeOfLevel']}")
+        if hasattr(ds, 'level') and 'level' in ds.coords:
+            print(f"  Levels: {ds.coords['level'].values}")
+
+    # Close all datasets
+    for ds in datasets:
+        ds.close()
+
+
 def load_CFSR_variable(grb_file, varname):
     """Helper function to load a variable from a CFSR NetCDF file."""
     if varname in grb_file.variables:
@@ -249,6 +270,9 @@ def load_and_extract_CFSR_variable(grb_file_name, level_type, variable):
     return data
 
 def load_CFSR_data(grb_file_name, dycore):
+
+    # Inspect the file
+    #inspect_GRIB_file(grb_file_name)
 
     # Dictionary to store the variables
     data_vars = {}
@@ -329,6 +353,181 @@ def load_CFSR_data(grb_file_name, dycore):
     data_vars = flip_level_dimension(data_vars)
 
     return data_vars
+
+def load_HRRRml_data(grb_file_name, dycore):
+    """
+    Load HRRR data and interpolate to constant pressure levels.
+
+    HRRR has variables on hybrid levels that need to be interpolated to
+    constant pressure surfaces using the 3D pressure field.
+    """
+
+    # Inspect the file
+    #inspect_GRIB_file(grb_file_name)
+
+    # Dictionary to store the variables
+    data_vars = {}
+
+    # Use surface variables to get ref coordinates
+    data_vars['lat'] = get_CFSR_coords_for_var(grb_file_name, 'sp', 'latitude', 'surface')
+    data_vars['lon'] = get_CFSR_coords_for_var(grb_file_name, 'sp', 'longitude', 'surface')
+
+    # This really should be edited to get the nominal levels but I can't find the
+    # hybrid sigma coords for HRRR
+    #data_vars['lev'] = vertremap.hrrr_eta_to_plev()     # HRRRv1 and v2
+    data_vars['lev'] = vertremap.__pres_lev_hrrr__       # HRRRv3 and v4
+
+    # Load surface pressure
+    data_vars['ps'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 'sp')
+
+    # Load surface geopotential
+    data_vars['phis'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 'orog')
+    data_vars['phis'] = data_vars['phis'] * grav
+
+    # Load 3D pressure field on hybrid levels
+    pres_3d_hybrid = load_and_extract_CFSR_variable(grb_file_name, 'hybrid', 'pres')
+
+    # Load atmospheric variables on hybrid levels
+    t_hybrid = load_and_extract_CFSR_variable(grb_file_name, 'hybrid', 't')
+    u_hybrid = load_and_extract_CFSR_variable(grb_file_name, 'hybrid', 'u')
+    v_hybrid = load_and_extract_CFSR_variable(grb_file_name, 'hybrid', 'v')
+    q_hybrid = load_and_extract_CFSR_variable(grb_file_name, 'hybrid', 'q')
+
+    # Optional variables for MPAS dycore
+    if dycore == "mpas":
+        w_hybrid = load_and_extract_CFSR_variable(grb_file_name, 'hybrid', 'w')
+        # For geopotential height, try hybrid first, then isobaric
+        try:
+            z_hybrid = load_and_extract_CFSR_variable(grb_file_name, 'hybrid', 'gh')
+            z_is_on_hybrid = True
+        except:
+            print("Geopotential height not found on hybrid levels, trying isobaric...")
+            z_isobaric = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'gh')
+            z_isobaric_levels = get_CFSR_levels_for_var(grb_file_name, 'gh')
+            z_is_on_hybrid = False
+
+    # Cloud variables on hybrid levels
+    try:
+        cldmix_hybrid = load_and_extract_CFSR_variable(grb_file_name, 'hybrid', 'clwmr')
+    except:
+        print("Cloud variables not found on hybrid levels, setting to None")
+        cldmix_hybrid = None
+
+    # Now interpolate all hybrid-level variables to constant pressure levels
+    print("Interpolating variables from hybrid to pressure levels...")
+    print(f"Temperature shape: {t_hybrid.shape}")
+    print(f"Pressure shape: {pres_3d_hybrid.shape}")
+
+    # Determine level dimension (0 or 1)
+    level_dim = 1
+    if len(t_hybrid.shape) == 4:  # (time, lev, lat, lon)
+        level_dim = 1
+    elif len(t_hybrid.shape) == 3:  # (lev, lat, lon)
+        level_dim = 0
+
+    print(f"Using level dimension: {level_dim}")
+
+    # Interpolate main atmospheric variables
+    data_vars['t'] = vertremap.int2p_n_extrap(
+        pin=pres_3d_hybrid, xin=t_hybrid, pout=data_vars['lev'],
+        linlog=1, dim=level_dim, flip_p=True,
+        extrapolate=True, variable='other', ps=data_vars['ps'], phi_sfc=data_vars['phis']
+    )
+
+    data_vars['u'] = vertremap.int2p_n_extrap(
+        pin=pres_3d_hybrid, xin=u_hybrid, pout=data_vars['lev'],
+        linlog=1, dim=level_dim, flip_p=True,
+        extrapolate=True, variable='other', ps=data_vars['ps'], phi_sfc=data_vars['phis']
+    )
+
+    data_vars['v'] = vertremap.int2p_n_extrap(
+        pin=pres_3d_hybrid, xin=v_hybrid, pout=data_vars['lev'],
+        linlog=1, dim=level_dim, flip_p=True,
+        extrapolate=True, variable='other', ps=data_vars['ps'], phi_sfc=data_vars['phis']
+    )
+
+    data_vars['q'] = vertremap.int2p_n_extrap(
+        pin=pres_3d_hybrid, xin=q_hybrid, pout=data_vars['lev'],
+        linlog=1, dim=level_dim, flip_p=True,
+        extrapolate=True, variable='other', ps=data_vars['ps'], phi_sfc=data_vars['phis']
+    )
+
+    # MPAS-specific variables
+    if dycore == "mpas":
+        data_vars['w'] = vertremap.int2p_n_extrap(
+            pin=pres_3d_hybrid, xin=w_hybrid, pout=data_vars['lev'],
+            linlog=1, dim=level_dim, flip_p=True,
+            extrapolate=True, variable='other', ps=data_vars['ps'], phi_sfc=data_vars['phis']
+        )
+        data_vars['w_is_omega'] = True
+
+        if z_is_on_hybrid:
+            data_vars['z'] = vertremap.int2p_n_extrap(
+                pin=pres_3d_hybrid, xin=z_hybrid, pout=data_vars['lev'],
+                linlog=1, dim=level_dim, flip_p=True,
+                extrapolate=True, variable='other', ps=data_vars['ps'], phi_sfc=data_vars['phis']
+            )
+        else:
+            # Interpolate from isobaric to our target pressure levels
+            data_vars['z'] = vertremap.int2p_n_extrap(
+                pin=z_isobaric_levels[:, np.newaxis, np.newaxis],
+                xin=z_isobaric, pout=data_vars['lev'],
+                linlog=1, dim=level_dim, flip_p=True,
+                extrapolate=True, variable='other', ps=data_vars['ps'], phi_sfc=data_vars['phis']
+            )
+        data_vars['z_is_phi'] = False
+
+    if cldmix_hybrid is not None:
+        data_vars['cldmix'] = vertremap.int2p_n_extrap(
+            pin=pres_3d_hybrid, xin=cldmix_hybrid, pout=data_vars['lev'],
+            linlog=1, dim=level_dim, flip_p=True,
+            extrapolate=True, variable='other', ps=data_vars['ps'], phi_sfc=data_vars['phis']
+        )
+    else:
+        # Create dummy cloud mixing ratio if not available
+        print("Cloud mixing ratio not available, creating dummy field")
+        data_vars['cldmix'] = np.zeros_like(data_vars['t'])
+
+    # Clean up cloud data
+    data_vars['cldmix'] = np.where(np.isnan(data_vars['cldmix']), 0, data_vars['cldmix'])
+    data_vars['cldmix'] = pyfuncs.clip_and_count(data_vars['cldmix'], max_thresh=0.01, var_name="cldmix")
+
+    # Separate cloud ice and water
+    data_vars['cldice'] = np.where(data_vars['t'] > t_freeze_K, 0, data_vars['cldmix'])
+    data_vars['cldliq'] = np.where(data_vars['t'] > t_freeze_K, data_vars['cldmix'], 0)
+
+    # Surface temperature - try surface first
+    try:
+        data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 't')
+    except Exception as e_surface:
+        print(f"Failed to load surface temperature: {e_surface}")
+        try:
+            # Try 2m temperature as backup
+            data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'heightAboveGround', 't2m')
+            print("Using 2m temperature as surface temperature")
+        except Exception as e_2m:
+            print(f"Failed to load 2m temperature: {e_2m}")
+            print("Setting surface temperature from lowest atmospheric level")
+            data_vars['ts'] = data_vars['t'][-1, :, :]  # Use lowest pressure level
+
+    # Print diagnostics
+    pyfuncs.print_min_max_dict(data_vars)
+
+    # Clean up temporary variables
+    if 'cldmix' in data_vars:
+        del data_vars['cldmix']
+
+    # Because GFS is bottom -> top, we have to flip to be top-to-bottom
+    print(data_vars['lev'])
+    data_vars = flip_level_dimension(data_vars)
+    print(data_vars['lev'])
+
+    print(f"Successfully loaded HRRR data interpolated to {len(data_vars['lev'])} pressure levels")
+
+    return data_vars
+
+
+
 
 
 def flip_level_dimension(data_vars, state_dimensions=3):

@@ -13,75 +13,26 @@ __pres_lev_mandatory__ = np.array([
     7, 5, 3, 2, 1
 ]).astype(np.float64) * 100.0  # Convert mb to Pa
 
+# 7/2025, CMZ: These are nominal levels taken from a HRRRv3 wrfnat HRRR file
+__pres_lev_hrrr__ = np.array([
+    101500.0, 100800.0, 99900.0, 98500.0, 96710.0, 94540.0, 92170.0, 89610.0, 86750.0,
+    83590.0, 80140.0, 76380.0, 72330.0, 67980.0, 63340.0, 58450.0, 53710.0,
+    49450.0, 45640.0, 42210.0, 39110.0, 36320.0, 33820.0, 31560.0, 29530.0,
+    27700.0, 26000.0, 24472.0, 23069.0, 21666.0, 20263.0, 18860.0, 17457.0,
+    16054.0, 14651.0, 13248.0, 11845.0, 10443.0, 9139.0, 8094.0, 7244.0,
+    6453.0, 5711.0, 5025.0, 4388.0, 3791.0, 3233.8, 2716.4, 2500.0
+]).astype(np.float64)
 
-def interpolate_to_levels(ppin, xxin, ppout, linlog=1, xmsg=np.nan):
-    """
-    Interpolate or extrapolate data from one set of pressure levels to another.
-
-    Parameters:
-    -----------
-    ppin : numpy.ndarray
-        Input pressure levels (1D array).
-    xxin : numpy.ndarray
-        Input variable values at ppin levels (1D array).
-    ppout : numpy.ndarray
-        Output pressure levels (1D array).
-    linlog : int, optional
-        Flag indicating interpolation method:
-        - 1: linear interpolation (default)
-        - 0: logarithmic interpolation
-        - Negative: extrapolation allowed using the nearest valid slope.
-    xmsg : float, optional
-        Missing data marker. Default is np.nan.
-
-    Returns:
-    --------
-    xxout : numpy.ndarray
-        Interpolated variable values at ppout levels.
-    """
-
-    # Initialize output array with missing values
-    xxout = np.full_like(ppout, xmsg)
-
-    # Error check: make sure we have enough points
-    if len(ppin) < 2 or len(ppout) < 1:
-        return xxout  # Return all missing values
-
-    # Determine if input and output pressures need to be reordered
-    ppin_reordered = ppin[::-1] if ppin[0] < ppin[1] else ppin
-    xxin_reordered = xxin[::-1] if ppin[0] < ppin[1] else xxin
-    ppout_reordered = ppout[::-1] if ppout[0] < ppout[1] else ppout
-
-    # Filter out missing data in xxin
-    valid_mask = (xxin_reordered != xmsg) & (ppin_reordered != xmsg)
-    pin_valid = ppin_reordered[valid_mask]
-    xin_valid = xxin_reordered[valid_mask]
-
-    if len(pin_valid) < 2:
-        return xxout  # Not enough valid data points
-
-    # Perform interpolation
-    if linlog == 1:
-        # Linear interpolation
-        xxout = np.interp(ppout_reordered, pin_valid, xin_valid)
-    else:
-        # Logarithmic interpolation
-        xxout = np.interp(np.log(ppout_reordered), np.log(pin_valid), xin_valid)
-
-    # Extrapolation if linlog < 0
-    if linlog < 0:
-        if ppout_reordered[0] > pin_valid[0]:  # Extrapolate above range
-            slope = (xin_valid[1] - xin_valid[0]) / (pin_valid[1] - pin_valid[0])
-            xxout[ppout_reordered > pin_valid[0]] = xin_valid[0] + slope * (ppout_reordered[ppout_reordered > pin_valid[0]] - pin_valid[0])
-        if ppout_reordered[-1] < pin_valid[-1]:  # Extrapolate below range
-            slope = (xin_valid[-1] - xin_valid[-2]) / (pin_valid[-1] - pin_valid[-2])
-            xxout[ppout_reordered < pin_valid[-1]] = xin_valid[-1] + slope * (ppout_reordered[ppout_reordered < pin_valid[-1]] - pin_valid[-1])
-
-    # Reorder output back to original if necessary
-    if ppout[0] < ppout[1]:
-        xxout = xxout[::-1]
-
-    return xxout
+# These HRRRv1 and v2 eta levels, HRRRv3 switched to hybrid coord with lid ~10mb
+def hrrr_eta_to_plev(nominal_surface_pressure_Pa=1000.0):
+    eta_levels = [1.0000, 0.9980, 0.9940, 0.9870, 0.9750, 0.9590, 0.9390, 0.9160, 0.8920, 0.8650,
+                  0.8350, 0.8020, 0.7660, 0.7270, 0.6850, 0.6400, 0.5920, 0.5420, 0.4970, 0.4565,
+                  0.4205, 0.3877, 0.3582, 0.3317, 0.3078, 0.2863, 0.2670, 0.2496, 0.2329, 0.2188,
+                  0.2047, 0.1906, 0.1765, 0.1624, 0.1483, 0.1342, 0.1201, 0.1060, 0.0919, 0.0778,
+                  0.0657, 0.0568, 0.0486, 0.0409, 0.0337, 0.0271, 0.0209, 0.0151, 0.0097, 0.0047, 0.0000]
+    p_interfaces = np.array(eta_levels) * nominal_surface_pressure_Pa * 100.
+    p_midpoints = 0.5 * (p_interfaces[:-1] + p_interfaces[1:])
+    return p_midpoints
 
 
 @jit(nopython=True)
@@ -92,14 +43,13 @@ def int2p(pin, xin, pout, linlog):
     Parameters:
     -----------
     pin : array-like
-        Array of input pressure levels. If multi-dimensional, the level dimension must be in the rightmost position.
+        1-D array of input pressure levels.
 
     xin : array-like
-        Array of data to be interpolated. Should have the same shape as `pin`.
+        1-D array of data to be interpolated. Should have the same length as `pin`.
 
     pout : array-like
-        Array of output pressure levels. If multi-dimensional, the level dimension must be in the rightmost position
-        and all other dimensions must match `xin`. If one-dimensional, all of `xin` will be interpolated to the same levels.
+        1-D array of output pressure levels.
 
     linlog : int
         Integer indicating the type of interpolation:
@@ -110,10 +60,10 @@ def int2p(pin, xin, pout, linlog):
     Returns:
     --------
     array-like
-        Interpolated data array of the same shape as `pout`.
+        Interpolated data array of the same length as `pout`.
     """
 
-    # Initialize some things
+    # Initialize needed bools
     xflipped = False
 
     # Initialize the output array
@@ -186,45 +136,151 @@ def int2p_n(pin, xin, pout, linlog, dim=-1):
     Parameters:
     -----------
     pin : array-like
-        Array of input pressure levels.
-
+        Array of input pressure levels. Can be:
+        - 1D array: same pressure levels for all spatial points
+        - Multi-dimensional: different pressure levels for each spatial point
     xin : array-like
         Multi-dimensional array of data to be interpolated.
-
     pout : array-like
         Array of output pressure levels.
-
     linlog : int
         Integer indicating the type of interpolation:
         - abs(linlog) == 1 --> linear interpolation
         - abs(linlog) != 1 --> logarithmic interpolation
         - If linlog is negative, extrapolation outside the range of `pin` will occur.
-
     dim : int, optional (default=-1)
         The dimension index corresponding to pressure levels in `xin`.
 
     Returns:
     --------
     xout : array-like
-        Interpolated data array with the same shape as `xin`, except along the `dim` dimension, which matches the size of `pout`.
+        Interpolated data array with the same shape as `xin`, except along the `dim` dimension.
     """
 
-    # Move the specified dimension to the last position for easier iteration
+    # Determine if pin is 1D or multi-dimensional
+    pin_is_1d = (pin.ndim == 1)
+
+    # Move the level dimension to the last position for easier iteration
     xin_moved = np.moveaxis(xin, dim, -1)
 
-    # Prepare the output array with the new shape
+    # If a 3D pressure field (for example) move lev to the end
+    if not pin_is_1d:
+        pin_moved = np.moveaxis(pin, dim, -1)
+
+    # Prepare the output array
     new_shape = list(xin_moved.shape)
-    new_shape[-1] = len(pout)  # Update the last dimension to match pout
+    new_shape[-1] = len(pout)
     xout = np.empty(new_shape, dtype=xin.dtype)
 
-    # Iterate over all but the last dimension (which is now the pressure dimension)
+    # Perform interpolation for each spatial point
     for index in np.ndindex(xin_moved.shape[:-1]):
-        xout[index] = int2p(pin, xin_moved[index], pout, linlog)
+        if pin_is_1d:
+            # Use the same 1D pressure profile for all spatial points
+            xout[index] = int2p(pin, xin_moved[index], pout, linlog)
+        else:
+            # Use spatially-varying pressure profiles
+            xout[index] = int2p(pin_moved[index], xin_moved[index], pout, linlog)
 
-    # Move the dimension back to its original position
+    # Move the level dimension back to its original position
     xout = np.moveaxis(xout, -1, dim)
 
     return xout
+
+
+def int2p_n_extrap(pin, xin, pout, linlog, dim=-1, flip_p=False,
+                     extrapolate=False, variable=None, ps=None, t_bot=None, phi_sfc=None):
+    """
+    Enhanced wrapper for int2p with extrapolation options.
+
+    Parameters:
+    -----------
+    pin : array-like
+        Array of input pressure levels. Can be:
+        - 1D array: same pressure levels for all spatial points
+        - Multi-dimensional: different pressure levels for each spatial point
+        - Should be organized top-to-bottom (see flip_p)
+    xin : array-like
+        Multi-dimensional array of data to be interpolated.
+    pout : array-like
+        Array of output pressure levels.
+    linlog : int
+        Integer indicating the type of interpolation.
+    dim : int, optional (default=-1)
+        The dimension index corresponding to pressure levels.
+    flip_p : bool, optional (default=False)
+        If True, flip arrays before interpolation and flip output back.
+        This is needed if p dimension is natively bottom->top
+    extrapolate : bool, optional (default=False)
+        If True, use sophisticated extrapolation for below-ground points.
+    variable : str, optional
+        Variable type for sophisticated extrapolation:
+        - 'temperature': Use ECMWF temperature extrapolation
+        - 'geopotential': Use ECMWF geopotential extrapolation
+        - 'other' or None: Use simple persistence
+    ps : array-like, optional
+        Surface pressure (2D array). Required if extrapolate=True.
+    t_bot : array-like, optional
+        Bottom-level temperature. Required for geopotential extrapolation.
+    phi_sfc : array-like, optional
+        Surface geopotential. Required for temperature extrapolation.
+
+    Returns:
+    --------
+    xout : array-like
+        Interpolated data array with sophisticated extrapolation applied.
+    """
+
+    # First do the basic interpolation
+    xout = int2p_n(pin, xin, pout, linlog, dim)
+
+    # If no extrapolation requested, return basic result
+    if not extrapolate:
+        return xout
+
+    # Validate inputs for extrapolation
+    if ps is None:
+        raise ValueError("Surface pressure (ps) required for extrapolation")
+    if variable == 'temperature' and phi_sfc is None:
+        raise ValueError("Surface geopotential (phi_sfc) required for temperature extrapolation")
+    if variable == 'geopotential' and (t_bot is None or phi_sfc is None):
+        raise ValueError("Both t_bot and phi_sfc required for geopotential extrapolation")
+
+    # Sophisticated extrapolation only works with multi-dimensional pressure fields
+    if pin.ndim == 1:
+        print("Warning: Sophisticated extrapolation requires 3D pressure field. Using basic result.")
+        return xout
+
+    # Prepare data for extrapolation (handle flipping if needed)
+    pin_for_extrap = pin
+    xin_for_extrap = xin
+    pout_for_extrap = pout
+    xout_for_extrap = xout
+
+    # Flip everything if needed
+    if flip_p:
+        pin_for_extrap = np.flip(pin, axis=dim)
+        xin_for_extrap = np.flip(xin, axis=dim)
+        pout_for_extrap = pout[::-1]
+        xout_for_extrap = np.flip(xout, axis=dim)
+
+    # Apply extrapolation
+    xout_extrap = _vertical_remap_extrap(
+        new_levels=pout_for_extrap,
+        lev_dim=dim,
+        data=xin_for_extrap,
+        output=xout_for_extrap,
+        pressure=pin_for_extrap,
+        ps=ps,
+        variable=variable or 'other',
+        t_bot=t_bot,
+        phi_sfc=phi_sfc
+    )
+
+    # Apply final flipping if needed
+    if flip_p:
+        xout_extrap = np.flip(xout_extrap, axis=dim)
+
+    return xout_extrap
 
 
 @jit(nopython=True)
@@ -519,6 +575,8 @@ def _vertical_remap(func_interpolate, new_levels, xcoords, data, interp_axis=0):
 
 def _vertical_remap_extrap(new_levels, lev_dim, data, output, pressure, ps, variable, t_bot, phi_sfc):
     """A helper function to call the appropriate extrapolation function based on the user's inputs."""
+    ## NEEDS TO BE TOP-TO-BOTTOM (i.e., small pressures in the 0th index, large numbers in -1!
+
     # Get indices for the top and bottom of the vertical dimension
     bottom_index = -1
 

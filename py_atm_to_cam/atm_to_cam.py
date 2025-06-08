@@ -29,6 +29,9 @@ args = pyfuncs.parse_args()
 
 pyfuncs.configure_logging(args.verbose)
 
+# Set nc fill values
+nc.default_fillvals['f4'] = NC_FLOAT_FILL
+nc.default_fillvals['f8'] = float(NC_FLOAT_FILL)
 
 def main():
 
@@ -140,8 +143,10 @@ def main():
     # IMPORTANT! data_vars should be organized top-to-bottom when loaddata returns
     # (i.e., lowest pressure/highest z at 0 index of lev)
     # I attempt to account for this elsewhere in the code with flips, but make no promises
-    if datasource == 'GFS' or datasource == 'HWRF':
+    if datasource == 'GFS' or datasource == 'HWRF' or datasource == 'HRRR':   # NCEP pressure level data
         data_vars = loaddata.load_CFSR_data(data_filename, dycore)
+    elif datasource == 'HRRRml':   # HRRR model level data
+        data_vars = loaddata.load_HRRRml_data(data_filename, dycore)
     elif datasource == 'SAMPLE':
         data_vars = loaddata.load_SAMPLE_data(data_filename, dycore)
     elif datasource == 'ERA5RDA':
@@ -309,38 +314,40 @@ def main():
     else:
         logging.info("No TC modification requested")
 
+    # Do vertical interpolation here for pressure, sigma, and hybrid targets
     if dycore == 'fv' or dycore == 'se':
 
         if write_debug_files:
-            pyfuncs.print_debug_file(
-                DEBUGDIR+"/"+"py_era5_before_interp.nc",
-                ps_cam=(["lat", "lon"], data_vars['ps']),
-                ps_vortex_cam=(["lat", "lon"], data_vars['ps_vortex']),
-                t_cam=(["lev_p", "lat", "lon"], data_vars['t']),
-                u_cam=(["lev_p", "lat", "lon"], data_vars['u']),
-                v_cam=(["lev_p", "lat", "lon"], data_vars['v']),
-                q_cam=(["lev_p", "lat", "lon"], data_vars['q']),
-                cldliq_cam=(["lev_p", "lat", "lon"], data_vars['cldliq']),
-                cldice_cam=(["lev_p", "lat", "lon"], data_vars['cldice']),
-                lat=(["lat"], data_vars['lat']),
-                lon=(["lon"], data_vars['lon'])
-            )
+            debug_vars = {
+                "ps_cam": (["lat", "lon"], data_vars["ps"]),
+                "t_cam": (["lev_p", "lat", "lon"], data_vars["t"]),
+                "u_cam": (["lev_p", "lat", "lon"], data_vars["u"]),
+                "v_cam": (["lev_p", "lat", "lon"], data_vars["v"]),
+                "q_cam": (["lev_p", "lat", "lon"], data_vars["q"]),
+                "cldliq_cam": (["lev_p", "lat", "lon"], data_vars["cldliq"]),
+                "cldice_cam": (["lev_p", "lat", "lon"], data_vars["cldice"]),
+            }
+            if datasource not in ('HRRRml', 'HRRR', 'HWRF', 'RAP'):
+                debug_vars["lat"] = (["lat"], data_vars["lat"])
+                debug_vars["lon"] = (["lon"], data_vars["lon"])
+            pyfuncs.print_debug_file(DEBUGDIR + "/py_era5_before_interp.nc", **debug_vars)
 
         data_vint = vertremap.pres2hyb_all(data_vars, data_vars['ps'], hya, hyb)
 
         if write_debug_files:
-            pyfuncs.print_debug_file(
-                DEBUGDIR+"/"+"py_era5_on_hybrid.nc",
-                ps_cam=(["latitude", "longitude"], data_vint['ps']),
-                t_cam=(["level", "latitude", "longitude"], data_vint['t']),
-                u_cam=(["level", "latitude", "longitude"], data_vint['u']),
-                v_cam=(["level", "latitude", "longitude"], data_vint['v']),
-                q_cam=(["level", "latitude", "longitude"], data_vint['q']),
-                cldliq_cam=(["level", "latitude", "longitude"], data_vint['cldliq']),
-                cldice_cam=(["level", "latitude", "longitude"], data_vint['cldice']),
-                latitude=(["latitude"], data_vint['lat']),
-                longitude=(["longitude"], data_vint['lon'])
-            )
+            debug_vars = {
+                "ps_cam": (["latitude", "longitude"], data_vint["ps"]),
+                "t_cam": (["level", "latitude", "longitude"], data_vint["t"]),
+                "u_cam": (["level", "latitude", "longitude"], data_vint["u"]),
+                "v_cam": (["level", "latitude", "longitude"], data_vint["v"]),
+                "q_cam": (["level", "latitude", "longitude"], data_vint["q"]),
+                "cldliq_cam": (["level", "latitude", "longitude"], data_vint["cldliq"]),
+                "cldice_cam": (["level", "latitude", "longitude"], data_vint["cldice"]),
+            }
+            if datasource not in ('HRRRml', 'HRRR', 'HWRF', 'RAP'):
+                debug_vars["latitude"] = (["latitude"], data_vint["lat"])
+                debug_vars["longitude"] = (["longitude"], data_vint["lon"])
+            pyfuncs.print_debug_file(DEBUGDIR + "/py_era5_on_hybrid.nc", **debug_vars)
 
         pyfuncs.print_min_max_dict(data_vint)
 
@@ -805,6 +812,9 @@ def main():
 
     else:
 
+        def replace_nans_with_fill(data, fill_value=-9999.0):
+            return np.where(np.isnan(data), fill_value, data)
+
         if compress_file:
             netcdf_format = "NETCDF4_CLASSIC"
             compression_opts = {'zlib': True, 'complevel': 1}
@@ -858,42 +868,42 @@ def main():
             cldliq_nc.units = "kg/kg"
             cldice_nc.units = "kg/kg"
         if 'correct_or_not' in locals():
-            correct_or_not = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=-1.0, **compression_opts)
+            correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=-1.0, **compression_opts)
         if add_pmid:
             pmid_nc = nc_file.createVariable('PMID', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
         # Place data_horiz data into var fields
         if dycore == "fv":
-            ps_nc[0, :, :] = data_horiz['ps']
-            u_nc[0, :, :, :] = data_horiz['u']
-            v_nc[0, :, :, :] = data_horiz['v']
-            t_nc[0, :, :, :] = data_horiz['t']
-            q_nc[0, :, :, :] = data_horiz['q']
+            ps_nc[0, :, :] = replace_nans_with_fill(data_horiz['ps'],fill_value=NC_FLOAT_FILL)
+            u_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['u'],fill_value=NC_FLOAT_FILL)
+            v_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['v'],fill_value=NC_FLOAT_FILL)
+            t_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['t'],fill_value=NC_FLOAT_FILL)
+            q_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['q'],fill_value=NC_FLOAT_FILL)
             if add_cloud_vars:
-                cldliq_nc[0, :, :, :] = data_horiz['cldliq']
-                cldice_nc[0, :, :, :] = data_horiz['cldice']
+                cldliq_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['cldliq'],fill_value=NC_FLOAT_FILL)
+                cldice_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['cldice'],fill_value=NC_FLOAT_FILL)
             if 'correct_or_not' in locals():
-                correct_or_not_nc[0, :, :] = data_horiz['correct_or_not']
+                correct_or_not_nc[0, :, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
         elif dycore == "se":
-            ps_nc[0, :] = data_horiz['ps']
-            u_nc[0, :, :] = data_horiz['u']
-            v_nc[0, :, :] = data_horiz['v']
-            t_nc[0, :, :] = data_horiz['t']
-            q_nc[0, :, :] = data_horiz['q']
+            ps_nc[0, :] = replace_nans_with_fill(data_horiz['ps'],fill_value=NC_FLOAT_FILL)
+            u_nc[0, :, :] = replace_nans_with_fill(data_horiz['u'],fill_value=NC_FLOAT_FILL)
+            v_nc[0, :, :] = replace_nans_with_fill(data_horiz['v'],fill_value=NC_FLOAT_FILL)
+            t_nc[0, :, :] = replace_nans_with_fill(data_horiz['t'],fill_value=NC_FLOAT_FILL)
+            q_nc[0, :, :] = replace_nans_with_fill(data_horiz['q'],fill_value=NC_FLOAT_FILL)
             if add_cloud_vars:
-                cldliq_nc[0, :, :] = data_horiz['cldliq']
-                cldice_nc[0, :, :] = data_horiz['cldice']
+                cldliq_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldliq'],fill_value=NC_FLOAT_FILL)
+                cldice_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldice'],fill_value=NC_FLOAT_FILL)
             if 'correct_or_not' in locals():
-                correct_or_not_nc[0, :] = data_horiz['correct_or_not']
+                correct_or_not_nc[0, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
         elif dycore == "mpas":
-            ps_nc[0, :] = data_horiz['ps']
-            u_nc[0, :, :] = data_horiz['u'][::-1, :]
-            v_nc[0, :, :] = data_horiz['v'][::-1, :]
-            t_nc[0, :, :] = data_horiz['t'][::-1, :]
-            q_nc[0, :, :] = data_horiz['q'][::-1, :]
+            ps_nc[0, :] = replace_nans_with_fill(data_horiz['ps'],fill_value=NC_FLOAT_FILL)
+            u_nc[0, :, :] = replace_nans_with_fill(data_horiz['u'][::-1, :],fill_value=NC_FLOAT_FILL)
+            v_nc[0, :, :] = replace_nans_with_fill(data_horiz['v'][::-1, :],fill_value=NC_FLOAT_FILL)
+            t_nc[0, :, :] = replace_nans_with_fill(data_horiz['t'][::-1, :],fill_value=NC_FLOAT_FILL)
+            q_nc[0, :, :] = replace_nans_with_fill(data_horiz['q'][::-1, :],fill_value=NC_FLOAT_FILL)
             if 'correct_or_not' in locals():
-                correct_or_not_nc[0, :] = data_horiz['correct_or_not']
+                correct_or_not_nc[0, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
             if add_pmid:
-                pmid_nc[0, :, :] = data_horiz['pmid'][::-1, :]
+                pmid_nc[0, :, :] = replace_nans_with_fill(data_horiz['pmid'][::-1, :],fill_value=NC_FLOAT_FILL)
 
         # If the model has a hybrid coordinate, do that here
         if dycore == "se" or dycore == "fv":
@@ -906,6 +916,7 @@ def main():
             lev_nc = nc_file.createVariable('lev', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
             ilev_nc = nc_file.createVariable('ilev', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
 
+            # Let's not allow nans here, so no filling
             hyam_nc[:] = hya
             hybm_nc[:] = hyb
             hyai_nc[:] = hyai
@@ -925,8 +936,8 @@ def main():
 
             slat_nc[:] = data_horiz['fvslat']
             slon_nc[:] = data_horiz['fvslon']
-            us_nc[0, :, :, :] = data_horiz['us']
-            vs_nc[0, :, :, :] = data_horiz['vs']
+            us_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['us'],fill_value=NC_FLOAT_FILL)
+            vs_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['vs'],fill_value=NC_FLOAT_FILL)
 
         # Add global attributes
         nc_file.title = "Betacast-generated ncdata file"
