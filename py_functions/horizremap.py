@@ -196,7 +196,7 @@ def remap_with_weights_wrapper(src_data, wgt_filename, return_xarray=False, **kw
 
 def remap_all(data_in, wgt_filename, dycore='se'):
 
-    allowable_interp_vars = ['ps', 't', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w', 'phis', 'ts']
+    allowable_interp_vars = ['ps', 't', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w', 'phis', 'ts', 'o3']
 
     data_out = {}
 

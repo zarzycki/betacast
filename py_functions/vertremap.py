@@ -339,7 +339,7 @@ def p2hyo(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag):
     return data_on_hybrid_levels
 
 
-def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, level_dim=0, p0=100000, kflag=1):
+def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, level_dim=0, p0=100000, kflag=1, name=None):
     """
     Interpolate data on constant pressure levels to hybrid sigma levels.
 
@@ -366,7 +366,10 @@ def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, level_d
 
     # Print elapsed time
     elapsed_time = time.time() - start_time
-    logging.info(f"Interpolation completed in {elapsed_time:.2f} seconds.")
+    if name:
+        logging.info(f"Interpolation for {name} completed in {elapsed_time:.2f} seconds.")
+    else:
+        logging.info(f"Interpolation completed in {elapsed_time:.2f} seconds.")
 
     return data_on_hybrid_levels
 
@@ -380,7 +383,7 @@ def pres2hyb_all(data_vars, ps, hya, hyb):
 
     data_vint = {}
 
-    allowable_interp_vars = ['t', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w']
+    allowable_interp_vars = ['t', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w', 'o3']
 
     # Create non-interpolated vars
     data_vint['hya'] = hya
@@ -389,7 +392,7 @@ def pres2hyb_all(data_vars, ps, hya, hyb):
     # Loop ovr the keys in data_in and interpolate if the key is in allowable_interp_vars
     for key in data_vars:
         if key in allowable_interp_vars:
-            data_vint[key] = pressure_to_hybrid(data_vars['lev'], data_vars[key], ps, data_vint['hya'], data_vint['hyb'])
+            data_vint[key] = pressure_to_hybrid(data_vars['lev'], data_vars[key], ps, data_vint['hya'], data_vint['hyb'], name=key)
         else:
             data_vint[key] = data_vars[key]
 
@@ -398,7 +401,7 @@ def pres2hyb_all(data_vars, ps, hya, hyb):
 
 def interp_hybrid_to_pressure_wrapper(data_vars, ps, hyam, hybm, new_levels, lev_dim=0, method='log', extrapolate=True):
 
-    allowable_interp_vars = ['t', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w']
+    allowable_interp_vars = ['t', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w', 'o3']
 
     for var_name, data in data_vars.items():
         if isinstance(data, np.ndarray) and data.ndim == 3:

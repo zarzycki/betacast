@@ -21,17 +21,18 @@ import loaddata
 import meteo
 import py_seedfuncs
 from constants import (
-    p0, NC_FLOAT_FILL, dtime_map, QMINTHRESH, QMAXTHRESH, CLDMINTHRESH,
+    p0, NC_FLOAT_FILL, dtime_map,
+    QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH,
     ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav
 )
-
-args = pyfuncs.parse_args()
-
-pyfuncs.configure_logging(args.verbose)
 
 # Set nc fill values
 nc.default_fillvals['f4'] = NC_FLOAT_FILL
 nc.default_fillvals['f8'] = float(NC_FLOAT_FILL)
+
+args = pyfuncs.parse_args()
+
+pyfuncs.configure_logging(args.verbose)
 
 def main():
 
@@ -56,6 +57,7 @@ def main():
         "Compress file": args.compress_file,
         "Write floats": args.write_floats,
         "Add cloud vars": args.add_cloud_vars,
+        "Add chemistry:": args.add_chemistry,
         "Adjust config": args.adjust_config,
         "Model topo file": args.model_topo_file,
         "MOD in topo": args.mod_in_topo,
@@ -82,6 +84,7 @@ def main():
     RDADIR = args.RDADIR
     adjust_config = args.adjust_config
     add_cloud_vars = args.add_cloud_vars
+    add_chemistry = args.add_chemistry
     compress_file = args.compress_file
     se_inic = args.se_inic
     mpas_as_cam = args.mpas_as_cam
@@ -150,7 +153,7 @@ def main():
     elif datasource == 'SAMPLE':
         data_vars = loaddata.load_SAMPLE_data(data_filename, dycore)
     elif datasource == 'ERA5RDA':
-        data_vars = loaddata.load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
+        data_vars = loaddata.load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore, get_chemistry=add_chemistry)
     elif datasource == 'ERA5mlRDA':
         data_vars = loaddata.load_ERA5mlRDA_data(RDADIR, data_filename, VERTCOORDSPATH, yearstr, monthstr, daystr, cyclestr, dycore)
         pyfuncs.log_resource_usage()
@@ -652,8 +655,11 @@ def main():
         )
 
     data_horiz['q'] = pyfuncs.clip_and_count(data_horiz['q'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
-    data_horiz['cldliq'] = pyfuncs.clip_and_count(data_horiz['cldliq'], min_thresh=CLDMINTHRESH, var_name="CLDLIQ")
-    data_horiz['cldice'] = pyfuncs.clip_and_count(data_horiz['cldice'], min_thresh=CLDMINTHRESH, var_name="CLDICE")
+    if add_cloud_vars:
+        data_horiz['cldliq'] = pyfuncs.clip_and_count(data_horiz['cldliq'], min_thresh=CLDMINTHRESH, var_name="CLDLIQ")
+        data_horiz['cldice'] = pyfuncs.clip_and_count(data_horiz['cldice'], min_thresh=CLDMINTHRESH, var_name="CLDICE")
+    if add_chemistry:
+        data_horiz['o3'] = pyfuncs.clip_and_count(data_horiz['o3'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="O3")
 
     add_pmid = False
     if add_pmid:
@@ -680,6 +686,8 @@ def main():
             if add_cloud_vars:
                 out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
                 out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
+            if add_chemistry:
+                out_data['o3'] = pyfuncs.numpy_to_dataarray(data_horiz['o3'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
             out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
             out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
             out_data['correct_or_not'] = pyfuncs.numpy_to_dataarray(data_horiz['correct_or_not'], dims=['ncol'], attrs={"_FillValue": -1.0}, name='correct_or_not')
@@ -692,6 +700,8 @@ def main():
             if add_cloud_vars:
                 out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, True)
                 out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, True)
+            if add_chemistry:
+                out_data['o3'] = pyfuncs.add_time_define_precision(out_data['o3'], write_type, True)
 
         elif dycore == "fv":
             out_data['ps'] = pyfuncs.numpy_to_dataarray(data_horiz['ps'], dims=['lat', 'lon'], attrs={'units': 'Pa', "_FillValue": NC_FLOAT_FILL})
@@ -704,6 +714,8 @@ def main():
             if add_cloud_vars:
                 out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
                 out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
+            if add_chemistry:
+                out_data['o3'] = pyfuncs.numpy_to_dataarray(data_horiz['o3'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
             out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['lat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
             out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['lon'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
             out_data['slat'] = pyfuncs.numpy_to_dataarray(data_horiz['fvslat'], dims=['slat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
@@ -720,6 +732,8 @@ def main():
             if add_cloud_vars:
                 out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, False)
                 out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, False)
+            if add_chemistry:
+                out_data['o3'] = pyfuncs.add_time_define_precision(out_data['o3'], write_type, False)
 
         elif dycore == "mpas":
             # Need to flip the 3-D arrays!
@@ -760,6 +774,8 @@ def main():
             if add_cloud_vars:
                 ds["CLDLIQ"] = out_data['cldliq']
                 ds["CLDICE"] = out_data['cldice']
+            if add_chemistry:
+                ds["O3"] = out_data['o3']
             ds["hyam"] = hya
             ds["hybm"] = hyb
             ds["hyai"] = hyai
@@ -867,6 +883,9 @@ def main():
             cldice_nc = nc_file.createVariable('CLDICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
             cldliq_nc.units = "kg/kg"
             cldice_nc.units = "kg/kg"
+        if add_chemistry:
+            o3_nc = nc_file.createVariable('O3', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            o3_nc.units = "kg/kg"
         if 'correct_or_not' in locals():
             correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=-1.0, **compression_opts)
         if add_pmid:
@@ -881,6 +900,8 @@ def main():
             if add_cloud_vars:
                 cldliq_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['cldliq'],fill_value=NC_FLOAT_FILL)
                 cldice_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['cldice'],fill_value=NC_FLOAT_FILL)
+            if add_chemistry:
+                o3_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['o3'],fill_value=NC_FLOAT_FILL)
             if 'correct_or_not' in locals():
                 correct_or_not_nc[0, :, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
         elif dycore == "se":
@@ -892,6 +913,8 @@ def main():
             if add_cloud_vars:
                 cldliq_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldliq'],fill_value=NC_FLOAT_FILL)
                 cldice_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldice'],fill_value=NC_FLOAT_FILL)
+            if add_chemistry:
+                o3_nc[0, :, :] = replace_nans_with_fill(data_horiz['o3'],fill_value=NC_FLOAT_FILL)
             if 'correct_or_not' in locals():
                 correct_or_not_nc[0, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
         elif dycore == "mpas":
@@ -938,6 +961,12 @@ def main():
             slon_nc[:] = data_horiz['fvslon']
             us_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['us'],fill_value=NC_FLOAT_FILL)
             vs_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['vs'],fill_value=NC_FLOAT_FILL)
+
+        # Add reference pressure (P0)
+        p0_nc = nc_file.createVariable('P0', 'f4', (), fill_value=NC_FLOAT_FILL, **compression_opts)
+        p0_nc.setncattr('long_name', 'reference pressure')
+        p0_nc.setncattr('units', 'Pa')
+        p0_nc[:] = p0
 
         # Add global attributes
         nc_file.title = "Betacast-generated ncdata file"

@@ -67,12 +67,12 @@ def correct_state_variables(data_horiz, correct_or_not, tempadjustflag, dycore):
                 pm_corr = data_horiz['hya'] * p0 + data_horiz['hyb'] * data_horiz['ps'][kk]
                 linlog = 2 if abs(ps_orig - data_horiz['ps'][kk]) > extrap_threshold else -2
 
-                data_horiz['t'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['t'][:, kk], pm_corr, linlog)), data_horiz['t'][:, kk], vertremap.int2p(pm_orig, data_horiz['t'][:, kk], pm_corr, linlog))
-                data_horiz['q'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['q'][:, kk], pm_corr, linlog)), data_horiz['q'][:, kk], vertremap.int2p(pm_orig, data_horiz['q'][:, kk], pm_corr, linlog))
-                data_horiz['u'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['u'][:, kk], pm_corr, linlog)), data_horiz['u'][:, kk], vertremap.int2p(pm_orig, data_horiz['u'][:, kk], pm_corr, linlog))
-                data_horiz['v'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['v'][:, kk], pm_corr, linlog)), data_horiz['v'][:, kk], vertremap.int2p(pm_orig, data_horiz['v'][:, kk], pm_corr, linlog))
-                data_horiz['cldice'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['cldice'][:, kk], pm_corr, linlog)), data_horiz['cldice'][:, kk], vertremap.int2p(pm_orig, data_horiz['cldice'][:, kk], pm_corr, linlog))
-                data_horiz['cldliq'][:, kk] = np.where(np.isnan(vertremap.int2p(pm_orig, data_horiz['cldliq'][:, kk], pm_corr, linlog)), data_horiz['cldliq'][:, kk], vertremap.int2p(pm_orig, data_horiz['cldliq'][:, kk], pm_corr, linlog))
+                allowable_interp_vars = ['t', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w', 'o3']
+
+                for var in data_horiz:
+                    if var in allowable_interp_vars:
+                        interp_result = vertremap.int2p(pm_orig, data_horiz[var][:, kk], pm_corr, linlog)
+                        data_horiz[var][:, kk] = np.where(np.isnan(interp_result), data_horiz[var][:, kk], interp_result)
 
                 vert_corrs += 1
 

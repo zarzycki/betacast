@@ -144,7 +144,7 @@ def load_SAMPLE_data(data_filename, dycore=None):
     return data_vars
 
 
-def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore):
+def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore, get_chemistry=False):
     # Define directories
     pl_dir = f"{RDADIR}/e5.oper.an.pl/{yearstr}{monthstr}"
     sf_dir = f"{RDADIR}/e5.oper.an.sfc/{yearstr}{monthstr}"
@@ -173,6 +173,9 @@ def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr
         data_vars['z'] = load_ERA5RDA_variable('Z', pl_dir, "e5.oper.an.pl.128_129_z.ll025sc", yearstr, monthstr, daystr, cyclestr)
         data_vars['z_is_phi'] = True
 
+    if get_chemistry:
+        data_vars['o3'] = load_ERA5RDA_variable('O3', pl_dir, "e5.oper.an.pl.128_203_o3.ll025sc", yearstr, monthstr, daystr, cyclestr)
+
     data_vars['ts'] = load_ERA5RDA_variable('VAR_2T', sf_dir, "e5.oper.an.sfc.128_167_2t.ll025sc", yearstr, monthstr, daystr, cyclestr)
 
     ds = load_ERA5_file(data_filename)
@@ -180,6 +183,7 @@ def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr
     ds.close
 
     return data_vars
+
 
 def load_CFSR_file(data_filename,TYPE_OF_LEVEL,VAR_SHORTNAME):
     return xr.open_dataset(

@@ -105,6 +105,8 @@ def parse_args():
                         help='If set, write outputs as single precision (default: False)')
     parser.add_argument('--add_cloud_vars', action='store_true', default=False,
                         help='If set, add CLDICE and CLDLIQ to output file (default: False)')
+    parser.add_argument('--add_chemistry', action='store_true', default=False,
+                        help='If set, add O3 to output file (default: False)')
     parser.add_argument('--adjust_config', type=str, default=' ',
                         help='String defining how to perform hydro adjustment (default: "")')
     parser.add_argument('--model_topo_file', type=str, default='',
