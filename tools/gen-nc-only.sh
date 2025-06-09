@@ -8,13 +8,13 @@ mapping_files_path=$PWD
 # For E3SM, np is the gridfile, pg is the topofile
 modelgridfile="/glade/u/home/zarzycki/work/grids/scrip/ne0np4natlanticref.ne30x4.g_scrip.nc"
 MODEL_TOPO_FILE="/glade/work/zarzycki/CESM_files/topo/ne0np4natlanticref.ne30x4_np4_gmted2010_modis_bedmachine_nc3000_Laplace0100_noleak_20250515.nc"
-SE_INIC="/glade/derecho//scratch/zarzycki/SAMPLE_ne0np4natlanticref.ne30x4_np4_L32_inic.nc"
+SE_INIC="/glade/work/zarzycki/FG_ne0np4natlanticref.ne30x4_np4_L32_inic.nc"
 NUM_LEVELS=32
 
 # Model configuration
 DYCORE="se"
 ADJUST_CONFIG="a"
-YYYYMMDDHH=2005082900
+YYYYMMDDHH=2017010700
 
 # Source data configuration
 # DATASOURCE="SAMPLE"
@@ -26,6 +26,14 @@ RLLSOURCEGRID="era5_0.25x0.25"
 RDA_DIR="/glade/u/home/zarzycki/rda/ds633.0/"
 #RDA_DIR="/global/cfs/projectdirs/m3522/cmip6/ERA5/"
 DATA_FILENAME="${RDA_DIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
+
+do_frankengrid=true
+REGDATASRC="HRRR"
+regionalName="hrrr_3km"
+regional_src="/glade/u/home/zarzycki/work/regional/HRRR_wrfprs_f00_2017010700.grib2"
+DEBUG_FILE_DIR="/glade/work/zarzycki/"
+
+#----------------------------------------------------------------------------------------
 
 # Python paths and directories
 PY_REMAPPING_PATH=${BETACAST}/py_remapping
@@ -91,4 +99,75 @@ time python ${ATM_TO_CAM_PATH}/atm_to_cam.py \
 if [ "$write_weights" = "true" ]; then
   echo "Removing temporary weights..."
   rm -fv "$anl2mdlWeights"
+fi
+
+echo "Done with primary generation of: ${SE_INIC}"
+
+if [ "$do_frankengrid" = true ] ; then
+
+  if [ "$REGDATASRC" == "HRRR" ]; then
+    regionalName="hrrr_3km"
+  elif [ "$REGDATASRC" == "HWRF" ]; then
+    regionalName="hwrf"
+  elif [ "$REGDATASRC" == "RAP" ]; then
+    regionalName="rap_13km"
+  else
+    echo "Error: Unknown REGDATASRC value '$REGDATASRC'" >&2
+    exit 1
+  fi
+
+  echo "Doing Frankengrid $REGDATASRC/$regionalName with $regional_src"
+
+  if [ "$REGDATASRC" == "HWRF" ]; then
+    (set -x ; time python ${PY_REMAPPING_PATH}/py_remapping/gen_reglatlon_SCRIP.py \
+        --dstGridName "${regionalName}_storm_scrip.nc" \
+        --dstDir "${mapping_files_path}" \
+        --srcfilename "${regional_src}"
+    )
+    TMPWGTFILE="${mapping_files_path}/map_hwrf_storm_TO_modelgrid_patc.nc"
+  else
+    TMPWGTFILE="${mapping_files_path}/map_${regionalName}_TO_modelgrid_patc.nc"
+  fi
+
+  (set -x ; time python ${PY_REMAPPING_PATH}/gen_analysis_to_model_wgt_file.py \
+      --ANLGRID "${regionalName}" \
+      --DSTGRIDNAME "modelgrid" \
+      --DSTGRIDFILE "${modelgridfile}" \
+      --ANLGRIDPATH "${GRIDS_PATH}" \
+      --WGTFILEDIR "${mapping_files_path}"
+  )
+
+  (set -x ; time python ${ATM_TO_CAM_PATH}/atm_to_cam.py \
+      --datasource "${REGDATASRC}" \
+      --numlevels ${NUM_LEVELS} \
+      --YYYYMMDDHH ${YYYYMMDDHH} \
+      --data_filename "${regional_src}" \
+      --wgt_filename "${TMPWGTFILE}" \
+      --dycore "${DYCORE}" \
+      --compress_file \
+      --write_floats \
+      --add_cloud_vars \
+      --adjust_config "${ADJUST_CONFIG}" \
+      --model_topo_file "${MODEL_TOPO_FILE}" \
+      --se_inic "${SE_INIC}_reg.nc" \
+      --verbose \
+      --write_debug_files \
+      --write_debug_dir "${DEBUG_FILE_DIR}"
+  )
+
+  echo "Overlay regional file on top of basefile"
+  # Make a copy to archive
+  cp -v ${SE_INIC} ${SE_INIC}_base.nc
+  # Overlay the reg file to the OG base file
+  (set -x ; time python ${ATM_TO_CAM_PATH}/overlay.py \
+      "${SE_INIC}" \
+      "${SE_INIC}_reg.nc" \
+      --maxLev 80.
+  )
+
+  echo "Cleaning up temporary ESMF files"
+  rm -fv "$TMPWGTFILE"
+  rm -fv hwrf_storm_scrip.nc
+  rm -fv ${SE_INIC}_reg.nc
+
 fi
