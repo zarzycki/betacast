@@ -6,6 +6,10 @@ import logging
 from scipy.interpolate import RegularGridInterpolator
 logger = logging.getLogger(__name__)
 
+_HORIZ_REMAP_VARS = [
+    'ps', 't', 'u', 'v', 'q', 'cldice', 'cldliq',
+    'z', 'theta', 'rho', 'w', 'phis', 'ts', 'o3'
+]
 
 def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_grid_type, dest_frac=None, dest_frac_thresh=0.999, **kwargs):
     """
@@ -196,7 +200,7 @@ def remap_with_weights_wrapper(src_data, wgt_filename, return_xarray=False, **kw
 
 def remap_all(data_in, wgt_filename, dycore='se'):
 
-    allowable_interp_vars = ['ps', 't', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w', 'phis', 'ts', 'o3']
+    allowable_interp_vars = _HORIZ_REMAP_VARS
 
     data_out = {}
 

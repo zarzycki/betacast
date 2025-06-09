@@ -8,6 +8,11 @@ from scipy import interpolate
 
 logger = logging.getLogger(__name__)
 
+_VERT_REMAP_VARS = [
+    't', 'u', 'v', 'q', 'cldice', 'cldliq',
+    'z', 'theta', 'rho', 'w', 'o3'
+]
+
 __pres_lev_mandatory__ = np.array([
     1000, 925, 850, 700, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10,
     7, 5, 3, 2, 1
@@ -22,6 +27,7 @@ __pres_lev_hrrr__ = np.array([
     16054.0, 14651.0, 13248.0, 11845.0, 10443.0, 9139.0, 8094.0, 7244.0,
     6453.0, 5711.0, 5025.0, 4388.0, 3791.0, 3233.8, 2716.4, 2500.0
 ]).astype(np.float64)
+
 
 # These HRRRv1 and v2 eta levels, HRRRv3 switched to hybrid coord with lid ~10mb
 def hrrr_eta_to_plev(nominal_surface_pressure_Pa=1000.0):
@@ -383,7 +389,7 @@ def pres2hyb_all(data_vars, ps, hya, hyb):
 
     data_vint = {}
 
-    allowable_interp_vars = ['t', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w', 'o3']
+    allowable_interp_vars = _VERT_REMAP_VARS
 
     # Create non-interpolated vars
     data_vint['hya'] = hya
@@ -401,7 +407,7 @@ def pres2hyb_all(data_vars, ps, hya, hyb):
 
 def interp_hybrid_to_pressure_wrapper(data_vars, ps, hyam, hybm, new_levels, lev_dim=0, method='log', extrapolate=True):
 
-    allowable_interp_vars = ['t', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w', 'o3']
+    allowable_interp_vars = _VERT_REMAP_VARS
 
     for var_name, data in data_vars.items():
         if isinstance(data, np.ndarray) and data.ndim == 3:

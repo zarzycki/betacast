@@ -67,7 +67,7 @@ def correct_state_variables(data_horiz, correct_or_not, tempadjustflag, dycore):
                 pm_corr = data_horiz['hya'] * p0 + data_horiz['hyb'] * data_horiz['ps'][kk]
                 linlog = 2 if abs(ps_orig - data_horiz['ps'][kk]) > extrap_threshold else -2
 
-                allowable_interp_vars = ['t', 'u', 'v', 'q', 'cldice', 'cldliq', 'z', 'theta', 'rho', 'w', 'o3']
+                allowable_interp_vars = vertremap._VERT_REMAP_VARS
 
                 for var in data_horiz:
                     if var in allowable_interp_vars:
