@@ -23,9 +23,9 @@ import loaddata
 import meteo
 import py_seedfuncs
 from constants import (
-    p0, NC_FLOAT_FILL, dtime_map,
-    QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH,
-    ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav
+    p0, dtime_map, ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav,
+    NC_FLOAT_FILL, DEFAULT_FILL_VALUE, COORD_FILL_VALUE, CORRECT_OR_NOT_FILL_VALUE,
+    QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH
 )
 
 # Set nc fill values
@@ -690,9 +690,9 @@ def main():
                 out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_horiz['cldice'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
             if add_chemistry:
                 out_data['o3'] = pyfuncs.numpy_to_dataarray(data_horiz['o3'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
-            out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
-            out_data['correct_or_not'] = pyfuncs.numpy_to_dataarray(data_horiz['correct_or_not'], dims=['ncol'], attrs={"_FillValue": -1.0}, name='correct_or_not')
+            out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "latitude", "units": "degrees_north"})
+            out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "longitude", "units": "degrees_east"})
+            out_data['correct_or_not'] = pyfuncs.numpy_to_dataarray(data_horiz['correct_or_not'], dims=['ncol'], attrs={"_FillValue": CORRECT_OR_NOT_FILL_VALUE}, name='correct_or_not')
 
             out_data['ps'] = pyfuncs.add_time_define_precision(out_data['ps'], write_type, True)
             out_data['u'] = pyfuncs.add_time_define_precision(out_data['u'], write_type, True)
@@ -718,11 +718,11 @@ def main():
                 out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_horiz['cldliq'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
             if add_chemistry:
                 out_data['o3'] = pyfuncs.numpy_to_dataarray(data_horiz['o3'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['lat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
-            out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['lon'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
-            out_data['slat'] = pyfuncs.numpy_to_dataarray(data_horiz['fvslat'], dims=['slat'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
-            out_data['slon'] = pyfuncs.numpy_to_dataarray(data_horiz['fvslon'], dims=['slon'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
-            out_data['correct_or_not'] = pyfuncs.numpy_to_dataarray(data_horiz['correct_or_not'], dims=['lat', 'lon'], attrs={"_FillValue": -1.0}, name='correct_or_not')
+            out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['lat'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "latitude", "units": "degrees_north"})
+            out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['lon'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "longitude", "units": "degrees_east"})
+            out_data['slat'] = pyfuncs.numpy_to_dataarray(data_horiz['fvslat'], dims=['slat'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "latitude", "units": "degrees_north"})
+            out_data['slon'] = pyfuncs.numpy_to_dataarray(data_horiz['fvslon'], dims=['slon'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "longitude", "units": "degrees_east"})
+            out_data['correct_or_not'] = pyfuncs.numpy_to_dataarray(data_horiz['correct_or_not'], dims=['lat', 'lon'], attrs={"_FillValue": CORRECT_OR_NOT_FILL_VALUE}, name='correct_or_not')
 
             out_data['ps'] = pyfuncs.add_time_define_precision(out_data['ps'], write_type, False)
             out_data['u'] = pyfuncs.add_time_define_precision(out_data['u'], write_type, False)
@@ -744,8 +744,8 @@ def main():
             out_data['v'] = pyfuncs.numpy_to_dataarray(data_horiz['v'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
             out_data['t'] = pyfuncs.numpy_to_dataarray(data_horiz['t'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'K', "_FillValue": NC_FLOAT_FILL})
             out_data['q'] = pyfuncs.numpy_to_dataarray(data_horiz['q'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "latitude", "units": "degrees_north"})
-            out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": -900., "long_name": "longitude", "units": "degrees_east"})
+            out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "latitude", "units": "degrees_north"})
+            out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "longitude", "units": "degrees_east"})
 
             out_data['ps'] = pyfuncs.add_time_define_precision(out_data['ps'], write_type, True)
             out_data['u'] = pyfuncs.add_time_define_precision(out_data['u'], write_type, True)
@@ -830,7 +830,7 @@ def main():
 
     else:
 
-        def replace_nans_with_fill(data, fill_value=-9999.0):
+        def replace_nans_with_fill(data, fill_value=DEFAULT_FILL_VALUE):
             return np.where(np.isnan(data), fill_value, data)
 
         if compress_file:
@@ -859,15 +859,15 @@ def main():
         # Horiz coordinates
         if dycore == "se" or dycore == "scream" or dycore == "mpas":
             nc_file.createDimension('ncol', nncol[0])
-            lat_nc = nc_file.createVariable('lat', 'f8', ('ncol',), fill_value=-900., **compression_opts)
-            lon_nc = nc_file.createVariable('lon', 'f8', ('ncol',), fill_value=-900., **compression_opts)
+            lat_nc = nc_file.createVariable('lat', 'f8', ('ncol',), fill_value=COORD_FILL_VALUE, **compression_opts)
+            lon_nc = nc_file.createVariable('lon', 'f8', ('ncol',), fill_value=COORD_FILL_VALUE, **compression_opts)
             lat_nc[:] = data_horiz['lat']
             lon_nc[:] = data_horiz['lon']
         elif dycore == "fv":
             nc_file.createDimension('lat', nfvlat)
             nc_file.createDimension('lon', nfvlon)
-            lat_nc = nc_file.createVariable('lat', 'f8', ('lat',), fill_value=-900., **compression_opts)
-            lon_nc = nc_file.createVariable('lon', 'f8', ('lon',), fill_value=-900., **compression_opts)
+            lat_nc = nc_file.createVariable('lat', 'f8', ('lat',), fill_value=COORD_FILL_VALUE, **compression_opts)
+            lon_nc = nc_file.createVariable('lon', 'f8', ('lon',), fill_value=COORD_FILL_VALUE, **compression_opts)
             lat_nc[:] = data_horiz['lat']
             lon_nc[:] = data_horiz['lon']
 
@@ -917,7 +917,7 @@ def main():
             o3_nc.units = "mol/mol"
 
         if 'correct_or_not' in locals():
-            correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "scream" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=-1.0, **compression_opts)
+            correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "scream" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=CORRECT_OR_NOT_FILL_VALUE, **compression_opts)
 
         if add_pmid:
             pmid_nc = nc_file.createVariable('PMID', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
@@ -1010,8 +1010,8 @@ def main():
             nc_file.createDimension('slat', nfvlat - 1)
             nc_file.createDimension('slon', nfvlon)
 
-            slat_nc = nc_file.createVariable('slat', 'f8', ('slat',), fill_value=-900., **compression_opts)
-            slon_nc = nc_file.createVariable('slon', 'f8', ('slon',), fill_value=-900., **compression_opts)
+            slat_nc = nc_file.createVariable('slat', 'f8', ('slat',), fill_value=COORD_FILL_VALUE, **compression_opts)
+            slon_nc = nc_file.createVariable('slon', 'f8', ('slon',), fill_value=COORD_FILL_VALUE, **compression_opts)
             us_nc = nc_file.createVariable('US', 'f4', ('time', 'lev', 'slat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
             vs_nc = nc_file.createVariable('VS', 'f4', ('time', 'lev', 'lat', 'slon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
