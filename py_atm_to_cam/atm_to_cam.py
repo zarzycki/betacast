@@ -2,6 +2,8 @@
 import os
 import sys
 import logging
+import shutil
+import subprocess
 
 # Third party modules
 import numpy as np
@@ -318,7 +320,7 @@ def main():
         logging.info("No TC modification requested")
 
     # Do vertical interpolation here for pressure, sigma, and hybrid targets
-    if dycore == 'fv' or dycore == 'se':
+    if dycore == 'fv' or dycore == 'se' or dycore == 'scream':
 
         if write_debug_files:
             debug_vars = {
@@ -394,7 +396,7 @@ def main():
     data_horiz = horizremap.remap_all(data_vint, wgt_filename, dycore=dycore)
 
     if write_debug_files:
-        if dycore == "se":
+        if dycore == "se" or dycore == "scream":
             pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_regrid.nc",
                          lat=(["ncol"], data_horiz['lat']),
                          lon=(["ncol"], data_horiz['lon']),
@@ -588,7 +590,7 @@ def main():
             sys.exit(0)
 
     grid_dims = data_horiz['ps'].shape
-    if dycore == "se" or dycore == "mpas":
+    if dycore == "se" or dycore == "scream" or dycore == "mpas":
         nncol = grid_dims
     elif dycore == "fv":
         nfvlat, nfvlon = grid_dims
@@ -596,7 +598,7 @@ def main():
     if dycore == "fv":
         data_horiz = packing.unpack_fv(data_horiz)
 
-    if dycore == "se" or dycore == "fv":
+    if dycore == "se" or dycore == "scream" or dycore == "fv":
         data_horiz['correct_or_not'] = topoadjust.topo_adjustment(data_horiz, dycore, model_topo_file, adjust_config)
 
     if ps_wet_to_dry:
@@ -617,7 +619,7 @@ def main():
         data_horiz = packing.repack_fv(data_horiz, grid_dims)
 
     if write_debug_files:
-        if dycore == "se":
+        if dycore == "se" or dycore == "scream":
             pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_topoadjust.nc",
                             lat=(["ncol"], data_horiz['lat']),
                             lon=(["ncol"], data_horiz['lon']),
@@ -851,9 +853,11 @@ def main():
 
         nc_file.createDimension('lev', numlevels)
         nc_file.createDimension('ilev', numlevels + 1)
+        if dycore == "scream":
+            nc_file.createDimension('dim2', 2)
 
         # Horiz coordinates
-        if dycore == "se" or dycore == "mpas":
+        if dycore == "se" or dycore == "scream" or dycore == "mpas":
             nc_file.createDimension('ncol', nncol[0])
             lat_nc = nc_file.createVariable('lat', 'f8', ('ncol',), fill_value=-900., **compression_opts)
             lon_nc = nc_file.createVariable('lon', 'f8', ('ncol',), fill_value=-900., **compression_opts)
@@ -868,28 +872,56 @@ def main():
             lon_nc[:] = data_horiz['lon']
 
         # Create nc variables for state fields
-        ps_nc = nc_file.createVariable('PS', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        u_nc = nc_file.createVariable('U', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        v_nc = nc_file.createVariable('V', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        t_nc = nc_file.createVariable('T', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        q_nc = nc_file.createVariable('Q', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        # Surface pressure
+        if dycore == "scream":
+            ps_nc = nc_file.createVariable('ps', 'f4', ('time', 'ncol'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        else:
+            ps_nc = nc_file.createVariable('PS', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
         ps_nc.units = 'Pa'
-        u_nc.units = 'm/s'
-        v_nc.units = 'm/s'
+
+        # Horizontal winds
+        if dycore == "scream":
+            horiz_nc = nc_file.createVariable('horiz_winds', 'f4', ('time','ncol','dim2','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            horiz_nc.units = 'm/s'
+        else:
+            u_nc = nc_file.createVariable('U', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            v_nc = nc_file.createVariable('V', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            u_nc.units = 'm/s'
+            v_nc.units = 'm/s'
+
+        # Thermodynamic fields
+        if dycore == "scream":
+            t_nc = nc_file.createVariable('T_mid', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            q_nc = nc_file.createVariable('qv', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        else:
+            t_nc = nc_file.createVariable('T', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            q_nc = nc_file.createVariable('Q', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
         t_nc.units = 'K'
         q_nc.units = 'kg/kg'
-        if dycore != "mpas" and add_cloud_vars:
-            cldliq_nc = nc_file.createVariable('CLDLIQ', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            cldice_nc = nc_file.createVariable('CLDICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+
+        if add_cloud_vars:
+            if dycore == "scream":
+                cldliq_nc = nc_file.createVariable('qc', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                cldice_nc = nc_file.createVariable('qi', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            elif dycore != "mpas":
+                cldliq_nc = nc_file.createVariable('CLDLIQ', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                cldice_nc = nc_file.createVariable('CLDICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
             cldliq_nc.units = "kg/kg"
             cldice_nc.units = "kg/kg"
+
         if add_chemistry:
-            o3_nc = nc_file.createVariable('O3', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            o3_nc.units = "kg/kg"
+            if dycore == "scream":
+                o3_nc = nc_file.createVariable('o3_volume_mix_ratio', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            else:
+                o3_nc = nc_file.createVariable('O3', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            o3_nc.units = "mol/mol"
+
         if 'correct_or_not' in locals():
-            correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=-1.0, **compression_opts)
+            correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "scream" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=-1.0, **compression_opts)
+
         if add_pmid:
             pmid_nc = nc_file.createVariable('PMID', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+
         # Place data_horiz data into var fields
         if dycore == "fv":
             ps_nc[0, :, :] = replace_nans_with_fill(data_horiz['ps'],fill_value=NC_FLOAT_FILL)
@@ -917,6 +949,20 @@ def main():
                 o3_nc[0, :, :] = replace_nans_with_fill(data_horiz['o3'],fill_value=NC_FLOAT_FILL)
             if 'correct_or_not' in locals():
                 correct_or_not_nc[0, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
+        elif dycore == "scream":
+            # Note, 3D fields needs to be transposed here (.T) because the ordering is ncol, lev while data_horiz has lev, ncol
+            ps_nc[0, :] = replace_nans_with_fill(data_horiz['ps'],fill_value=NC_FLOAT_FILL)
+            horiz_nc[0, :, 0, :] = replace_nans_with_fill(data_horiz['u'].T, fill_value=NC_FLOAT_FILL)
+            horiz_nc[0, :, 1, :] = replace_nans_with_fill(data_horiz['v'].T, fill_value=NC_FLOAT_FILL)
+            t_nc[0, :, :] = replace_nans_with_fill(data_horiz['t'].T,fill_value=NC_FLOAT_FILL)
+            q_nc[0, :, :] = replace_nans_with_fill(data_horiz['q'].T,fill_value=NC_FLOAT_FILL)
+            if add_cloud_vars:
+                cldliq_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldliq'].T,fill_value=NC_FLOAT_FILL)
+                cldice_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldice'].T,fill_value=NC_FLOAT_FILL)
+            if add_chemistry:
+                o3_nc[0, :, :] = replace_nans_with_fill(data_horiz['o3'].T,fill_value=NC_FLOAT_FILL)
+            if 'correct_or_not' in locals():
+                correct_or_not_nc[0, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
         elif dycore == "mpas":
             ps_nc[0, :] = replace_nans_with_fill(data_horiz['ps'],fill_value=NC_FLOAT_FILL)
             u_nc[0, :, :] = replace_nans_with_fill(data_horiz['u'][::-1, :],fill_value=NC_FLOAT_FILL)
@@ -929,14 +975,27 @@ def main():
                 pmid_nc[0, :, :] = replace_nans_with_fill(data_horiz['pmid'][::-1, :],fill_value=NC_FLOAT_FILL)
 
         # If the model has a hybrid coordinate, do that here
-        if dycore == "se" or dycore == "fv":
+        if dycore == "se" or dycore == "scream" or dycore == "fv":
             hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels, load_xarray=False)
+
+            # lev coordinate is special
+            if dycore == "scream":
+                # keep raw lev coordinate for any index-based consumers
+                lev_nc = nc_file.createVariable('lev', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+                lev_nc[:] = lev
+                # SCREAMI mid-level coordinate
+                pref_mid_nc = nc_file.createVariable('pref_mid', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+                pref_mid_nc.long_name = 'mid-level hybrid coordinate parameter'
+                pref_mid_nc.units     = 'Pa'
+                pref_mid_nc[:]        = lev
+            else:
+                lev_nc = nc_file.createVariable('lev', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+                lev_nc[:] = lev
 
             hyam_nc = nc_file.createVariable('hyam', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
             hybm_nc = nc_file.createVariable('hybm', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
             hyai_nc = nc_file.createVariable('hyai', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
             hybi_nc = nc_file.createVariable('hybi', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
-            lev_nc = nc_file.createVariable('lev', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
             ilev_nc = nc_file.createVariable('ilev', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
 
             # Let's not allow nans here, so no filling
@@ -944,7 +1003,6 @@ def main():
             hybm_nc[:] = hyb
             hyai_nc[:] = hyai
             hybi_nc[:] = hybi
-            lev_nc[:] = lev
             ilev_nc[:] = ilev
 
         # If FV, add staggered information
@@ -979,6 +1037,21 @@ def main():
 
         # Close the file
         nc_file.close()
+
+        # SCREAM specific conversion
+        if dycore == "scream":
+            if shutil.which("ncks") is not None:
+                try:
+                    subprocess.run(
+                        ["ncks", "-5", se_inic, se_inic + ".cdf5"],
+                        check=True
+                    )
+                    shutil.move(se_inic + ".cdf5", se_inic)
+                    print("→ converted to CDF5 format")
+                except subprocess.CalledProcessError as e:
+                    print(f"ncks failed (exit {e.returncode}), skipping CDF5 conversion")
+            else:
+                print("ncks not found on PATH; skipping CDF5 conversion")
 
 
 if __name__ == "__main__":
