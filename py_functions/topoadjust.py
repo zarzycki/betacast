@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def load_model_orography(dycore, model_topo_file, dim_sePS):
     """Load model orography based on dycore type."""
     ttfile = xr.open_dataset(model_topo_file)
-    if dycore == "se":
+    if dycore == "se" or dycore == "scream":
         if "PHIS" in ttfile.variables and ttfile["PHIS"].shape == dim_sePS:
             return ttfile["PHIS"].values
         elif "PHIS_d" in ttfile.variables and ttfile["PHIS_d"].shape == dim_sePS:
