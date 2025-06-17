@@ -841,7 +841,10 @@ def main():
             netcdf_format = "NETCDF4" if var_max_size >= 4e9 else "NETCDF3_64BIT"
             compression_opts = {}
 
-        nc_file = nc.Dataset(se_inic, 'w', format=netcdf_format)
+        try:
+            nc_file = nc.Dataset(se_inic, 'w', format=netcdf_format)
+        except Exception as e:
+            raise IOError(f"Failed to create NetCDF file {se_inic}: {e}")
 
         nc_file.createDimension('time', None)  # None makes the dimension unlimited
 
