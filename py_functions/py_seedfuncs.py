@@ -640,9 +640,13 @@ def radialAvg3D_unstruc(data, lat, lon, lev, deltaMax, psminlat, psminlon, outer
     rad_thevar_hit = np.zeros((nlev, numRadBins), dtype=int)
     rad_thevar_cum = np.zeros((nlev, numRadBins), dtype=float)
 
+    total_hits = 0
+    total_loops = 0
+
     # Iterate over each column in the dataset
     logging.info("Starting loop")
     for i in range(ncol):
+        total_loops = total_loops += 1
         # Use the gc_latlon function to calculate the great circle distance
         gcdist, _ = gc_latlon(psminlat, psminlon, lat[i], lon[i], 2, 4)
 
@@ -650,12 +654,15 @@ def radialAvg3D_unstruc(data, lat, lon, lev, deltaMax, psminlat, psminlon, outer
             bin_idx = np.argmin(np.abs(radiusArr - gcdist))
             rad_thevar_hit[:, bin_idx] += 1
             rad_thevar_cum[:, bin_idx] += data[:, i]
+            total_hits = total_hits += 1
 
     # Handle grid boxes with no hits
     rad_thevar_hit = np.where(rad_thevar_hit == 0, np.nan, rad_thevar_hit)
 
     logging.info(f"Minimum number of hits per gridbox: {np.nanmin(rad_thevar_hit)}")
     logging.info(f"Maximum number of hits per gridbox: {np.nanmax(rad_thevar_hit)}")
+    logging.info(f"Total hits found: {total_hits}")
+    logging.info(f"Total loops conducted: {total_loops}")
 
     # Calculate the radial average
     rad_thevar = np.divide(rad_thevar_cum, rad_thevar_hit, out=np.zeros_like(rad_thevar_cum), where=rad_thevar_hit != 0)
@@ -1626,3 +1633,82 @@ def safe_exp(arg, max_arg=300):
         #logging.info(f"Clamping exp({arg:.2f}) to exp({max_arg}) to avoid overflow")
         return np.exp(max_arg)
     return np.exp(arg)
+
+
+def calculate_wind_components_unstructured(U, V, lat, lon, psminlat, psminlon, movespd=0, movedir=0):
+    """
+    Calculate radial and tangential wind components relative to storm center on unstructured grid.
+
+    Parameters:
+    -----------
+    U, V : array (ncol, nlev) or (ncol,)
+        Zonal and meridional wind components (m/s)
+    lat, lon : array (ncol,)
+        Latitude and longitude coordinates (degrees)
+    psminlat, psminlon : float
+        Storm center coordinates (degrees)
+    movespd : float, optional
+        Storm movement speed in m/s (default: 0)
+    movedir : float, optional
+        Storm movement direction in meteorological degrees
+        (0=N, 90=E, 180=S, 270=W, default: 0)
+
+    Returns:
+    --------
+    v_rad, v_theta : array
+        Radial and tangential wind components (same shape as U, V)
+        v_rad: positive = outflow from center
+        v_theta: positive = counterclockwise rotation
+    """
+    import numpy as np
+
+    # Constants
+    pi = np.pi
+    d2r = pi / 180.0
+    r2d = 180.0 / pi
+
+    # Convert coordinates to radians
+    lonr = lon * d2r
+    latr = lat * d2r
+    psminlat_r = psminlat * d2r
+    psminlon_r = psminlon * d2r
+
+    # Calculate longitude difference
+    deltalong = lonr - psminlon_r
+
+    # Calculate bearing angle from storm center to each grid point
+    # This uses the standard bearing calculation formula
+    arr1 = np.sin(deltalong) * np.cos(latr)
+    arr2 = (np.cos(psminlat_r) * np.sin(latr) -
+            np.sin(psminlat_r) * np.cos(latr) * np.cos(deltalong))
+    dir_angle_r = np.arctan2(arr1, arr2)
+
+    # Calculate wind direction angle
+    phi_r = np.arctan2(U, V)
+
+    # Make copies for manipulation
+    U_adj = U.copy()
+    V_adj = V.copy()
+
+    # Remove storm motion if specified
+    if movespd > 0:
+        print(f"Adjusting U and V fields to remove TC forward motion: {movespd} m/s at {movedir}°")
+        U_adj = U_adj - movespd * np.sin(movedir * d2r)
+        V_adj = V_adj - movespd * np.cos(movedir * d2r)
+
+    # Calculate wind speed magnitude
+    WIND = np.sqrt(U_adj**2 + V_adj**2)
+
+    # Handle broadcasting for 3D case (ncol, nlev)
+    if U.ndim == 2:
+        # Broadcast direction angle to match 3D wind data
+        dir_angle_r_bc = dir_angle_r[:, np.newaxis]
+        # Transform to radial/tangential components
+        v_theta = WIND * np.sin(dir_angle_r_bc - phi_r)
+        v_rad = -WIND * np.cos(dir_angle_r_bc - phi_r)
+    else:
+        # 2D case
+        v_theta = WIND * np.sin(dir_angle_r - phi_r)
+        v_rad = -WIND * np.cos(dir_angle_r - phi_r)
+
+    return v_rad, v_theta
