@@ -88,6 +88,7 @@ def int2p(pin, xin, pout, linlog):
 
     # Initialize needed bools
     xflipped = False
+    oflipped = False
 
     # Initialize the output array
     xout = np.full_like(pout, np.nan)
@@ -103,6 +104,7 @@ def int2p(pin, xin, pout, linlog):
 
     if pout[0] < pout[-1]:
         pout = pout[::-1]
+        oflipped = True
 
     # Remove missing data
     valid_mask = ~np.isnan(xin) & ~np.isnan(pin)
@@ -147,6 +149,8 @@ def int2p(pin, xin, pout, linlog):
 
     # If xin was flipped, we need to flip xout for consistency
     if xflipped:
+        xout = xout[::-1]
+    if oflipped:
         xout = xout[::-1]
 
     return xout
