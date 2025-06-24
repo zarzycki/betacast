@@ -12,9 +12,9 @@ import numba as nb
 from constants import (
     p0, grav, Rd, Rv_over_Rd, kappa, mpas_uv_damping_coeffs
 )
+import py_seedfuncs
 
-
-#@nb.jit(nopython=True)
+@nb.jit(nopython=True)
 def hydro_bottom_to_top(ps, pint, T, q, zsfc=0.0):
     """
     Compute midlayer geopotential height via hydrostatic integration from surface pressure upward.
@@ -486,3 +486,158 @@ def noflux_boundary_condition(w, nlev):
     logging.info("... done setting lower BC for W so flow can't go through surface")
 
     return w
+
+
+@nb.jit(nopython=True)
+def calculate_geopotential_height_unstructured(PS, T, Q, PRES):
+    """
+    Calculate geopotential height for unstructured grid using hydrostatic integration.
+
+    Parameters:
+    -----------
+    PS : array (ncol,)
+        Surface pressure [Pa]
+    T : array (ncol, nlev)
+        Temperature [K] at layer midpoints
+    Q : array (ncol, nlev)
+        Water vapor mixing ratio [kg/kg]
+    PRES : array (ncol, nlev)
+        Pressure [Pa] at layer midpoints
+
+    Returns:
+    --------
+    Z : array (ncol, nlev)
+        Geopotential height [m] at layer midpoints
+    """
+    ncol, nlev = T.shape
+    Z = np.zeros_like(T)
+    top_to_bottom = False
+
+    for i in range(ncol):
+
+        pint = np.zeros(nlev)  # Interface pressures at TOP of each layer
+
+        if PRES[i, 0] < PRES[i, -1]:  # Top-to-bottom ordering
+            for k in range(nlev):
+                top_to_bottom = True
+                layer_idx = nlev - 1 - k
+                if k == nlev - 1:  # Top layer - extrapolate above
+                    pint[k] = PRES[i, 0] * 0.5
+                else:  # All other layers - midpoint between this and next layer up
+                    pint[k] = (PRES[i, layer_idx] + PRES[i, layer_idx-1]) / 2.0
+        else:  # Bottom-to-top ordering
+            for k in range(nlev):
+                if k == nlev - 1:  # Top layer - extrapolate above
+                    pint[k] = PRES[i, -1] * 0.5
+                else:  # All other layers - midpoint between this and next layer up
+                    pint[k] = (PRES[i, k] + PRES[i, k+1]) / 2.0
+
+        # Call hydrostatic integration - surface interface will be PS
+        if top_to_bottom:
+            Z[i, ::-1] = hydro_bottom_to_top(PS[i], pint, T[i, ::-1], Q[i, ::-1], zsfc=0.0)
+        else:
+            Z[i, :] = hydro_bottom_to_top(PS[i], pint, T[i, :], Q[i, :], zsfc=0.0)
+
+    return Z
+
+
+@nb.jit(nopython=True)
+def pres_hybrid_ccm_unstructured(psfc, p0, hya, hyb, pmsg=np.nan):
+    """
+    Calculate pressure at hybrid levels for unstructured grid using vectorized operations.
+
+    Parameters:
+    -----------
+    psfc : numpy.ndarray
+        1D array of surface pressures in Pa (shape: [ncol]).
+    p0 : float
+        Base pressure in Pa.
+    hya : numpy.ndarray
+        1D array of "a" or pressure hybrid coefficients (shape: [nlev]).
+    hyb : numpy.ndarray
+        1D array of "b" or sigma coefficients (shape: [nlev]).
+    pmsg : float, optional
+        Missing value indicator, defaults to NaN.
+
+    Returns:
+    --------
+    phy : numpy.ndarray
+        2D array of pressure at hybrid levels (shape: [ncol, nlev]).
+    """
+    # Get dimensions
+    ncol = len(psfc)
+    nlev = len(hya)
+
+    # Initialize output array
+    phy = np.empty((ncol, nlev), dtype=psfc.dtype)
+
+    # Calculate pressure at hybrid levels using vectorized operations
+    for i in range(ncol):
+        for k in range(nlev):
+            phy[i, k] = hya[k] * p0 + hyb[k] * psfc[i]
+
+            # Handle missing values
+            if np.isnan(psfc[i]):
+                phy[i, k] = pmsg
+
+    return phy
+
+
+def find_pressure_minimum_unstructured(ps, lat, lon, guess_lat, guess_lon, offset):
+    """
+    Find pressure minimum location on unstructured grid within a search radius.
+
+    Parameters:
+    -----------
+    ps : array (ncol,)
+        Surface pressure values
+    lat, lon : array (ncol,)
+        Latitude and longitude coordinates
+    guess_lat, guess_lon : float
+        Initial guess for location (degrees)
+    offset : float
+        Search radius in degrees
+
+    Returns:
+    --------
+    min_ps : float
+        Minimum pressure value found
+    min_lat, min_lon : float
+        Coordinates of pressure minimum
+    """
+
+    # Convert offset from degrees to km (approximate)
+    # Use 111.32 km/degree as rough conversion
+    offset_km = offset * 111.32
+
+    # Calculate distance from guess location to all grid points
+    distances = np.zeros(len(lat))
+    for i in range(len(lat)):
+        dist, _ = py_seedfuncs.gc_latlon(guess_lat, guess_lon, lat[i], lon[i], 2, 4)  # Return in km
+        distances[i] = dist
+
+    # Create mask for points within the search radius
+    within_radius = distances <= offset_km
+
+    if not np.any(within_radius):
+        logging.warning(f"No grid points found within {offset} degrees of guess location!")
+        logging.warning(f"Using closest point to guess location instead.")
+        closest_idx = np.argmin(distances)
+        return ps[closest_idx], lat[closest_idx], lon[closest_idx]
+
+    # Find minimum pressure within the search radius
+    ps_subset = ps[within_radius]
+    lat_subset = lat[within_radius]
+    lon_subset = lon[within_radius]
+
+    # Find index of minimum pressure within subset
+    min_idx_subset = np.argmin(ps_subset)
+
+    min_ps = ps_subset[min_idx_subset]
+    min_lat = lat_subset[min_idx_subset]
+    min_lon = lon_subset[min_idx_subset]
+
+    logging.info(f"Found {np.sum(within_radius)} grid points within {offset}° search radius")
+    logging.info(f"Pressure minimum: {min_ps:.1f} Pa at ({min_lat:.3f}°N, {min_lon:.3f}°E)")
+
+    return min_ps, min_lat, min_lon
