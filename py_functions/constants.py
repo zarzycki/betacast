@@ -7,6 +7,7 @@ cp = 1004.
 Rv_over_Rd = Rv / Rd
 p0 = 100000
 kappa = Rd / cp
+Lv = 2264.76 * 1000.0  # J/kg
 
 vert_interp_thresh = 0.1  # ps corr diff (Pa) req. to interp vert profiles
 extrap_threshold = 5000.  # maximum ps corr diff (Pa) to allow extrapolation
