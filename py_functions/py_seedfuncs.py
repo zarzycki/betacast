@@ -646,7 +646,7 @@ def radialAvg3D_unstruc(data, lat, lon, lev, deltaMax, psminlat, psminlon, outer
     # Iterate over each column in the dataset
     logging.info("Starting loop")
     for i in range(ncol):
-        total_loops = total_loops += 1
+        total_loops += 1
         # Use the gc_latlon function to calculate the great circle distance
         gcdist, _ = gc_latlon(psminlat, psminlon, lat[i], lon[i], 2, 4)
 
@@ -654,7 +654,7 @@ def radialAvg3D_unstruc(data, lat, lon, lev, deltaMax, psminlat, psminlon, outer
             bin_idx = np.argmin(np.abs(radiusArr - gcdist))
             rad_thevar_hit[:, bin_idx] += 1
             rad_thevar_cum[:, bin_idx] += data[:, i]
-            total_hits = total_hits += 1
+            total_hits += 1
 
     # Handle grid boxes with no hits
     rad_thevar_hit = np.where(rad_thevar_hit == 0, np.nan, rad_thevar_hit)
