@@ -852,7 +852,7 @@ def read_tcseed_settings(vortex_input):
     return tc_settings
 
 
-def find_actual_center(guess_lat, guess_lon, lat, lon, pressure, search_radius=15.0):
+def find_actual_center(guess_lat, guess_lon, lat, lon, pressure, search_radius=15.0, psunits='Pa'):
     """
     Find the actual TC center by locating minimum pressure within a search radius.
 
@@ -866,14 +866,17 @@ def find_actual_center(guess_lat, guess_lon, lat, lon, pressure, search_radius=1
         Surface pressure values at each grid point
     search_radius : float, optional
         Search radius in great circle degrees, default=15.0
+    search_radius : string, optional
+        Units of the pressure array, default='Pa'
 
     Returns
     -------
     actual_lat, actual_lon : float
         Coordinates of the located TC center
     """
-    # Calculate great circle distances from guessed center to all grid points
-    gcdist, _ = gc_latlon(guess_lat, guess_lon, lat, lon, 2, 4)
+
+    # Calculate great circle distances (GCD) from guessed center to all grid points
+    gcdist, _ = gc_latlon(guess_lat, guess_lon, lat, lon, 2, 2)
 
     # Create a masked array where points outside search radius are set to NaN
     masked_pressure = np.where(gcdist > search_radius, np.nan, pressure)
@@ -887,9 +890,9 @@ def find_actual_center(guess_lat, guess_lon, lat, lon, pressure, search_radius=1
 
     # Log the results
     logging.info(f"Initial TC center guess: lat={guess_lat:.2f}, lon={guess_lon:.2f}")
-    logging.info(f"Actual TC center found: lat={actual_lat:.2f}, lon={actual_lon:.2f}")
+    logging.info(f"Actual TC center found ({pressure[min_index]:.1f} {psunits}): lat={actual_lat:.2f}, lon={actual_lon:.2f}")
 
-    return actual_lat, actual_lon
+    return actual_lat, actual_lon, pressure[min_index]
 
 
 def find_fill_parameters(mps, T, lat, lon, lev, tc_settings, plot_bestfits=True, debug=False):
