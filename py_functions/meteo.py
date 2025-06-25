@@ -541,48 +541,6 @@ def calculate_geopotential_height_unstructured(PS, T, Q, PRES):
     return Z
 
 
-@nb.jit(nopython=True)
-def pres_hybrid_ccm_unstructured(psfc, p0, hya, hyb, pmsg=np.nan):
-    """
-    Calculate pressure at hybrid levels for unstructured grid using vectorized operations.
-
-    Parameters:
-    -----------
-    psfc : numpy.ndarray
-        1D array of surface pressures in Pa (shape: [ncol]).
-    p0 : float
-        Base pressure in Pa.
-    hya : numpy.ndarray
-        1D array of "a" or pressure hybrid coefficients (shape: [nlev]).
-    hyb : numpy.ndarray
-        1D array of "b" or sigma coefficients (shape: [nlev]).
-    pmsg : float, optional
-        Missing value indicator, defaults to NaN.
-
-    Returns:
-    --------
-    phy : numpy.ndarray
-        2D array of pressure at hybrid levels (shape: [ncol, nlev]).
-    """
-    # Get dimensions
-    ncol = len(psfc)
-    nlev = len(hya)
-
-    # Initialize output array
-    phy = np.empty((ncol, nlev), dtype=psfc.dtype)
-
-    # Calculate pressure at hybrid levels using vectorized operations
-    for i in range(ncol):
-        for k in range(nlev):
-            phy[i, k] = hya[k] * p0 + hyb[k] * psfc[i]
-
-            # Handle missing values
-            if np.isnan(psfc[i]):
-                phy[i, k] = pmsg
-
-    return phy
-
-
 def find_pressure_minimum_unstructured(ps, lat, lon, guess_lat, guess_lon, offset):
     """
     Find pressure minimum location on unstructured grid within a search radius.

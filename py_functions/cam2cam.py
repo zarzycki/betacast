@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit
+import numba as nb
 import logging
 logger = logging.getLogger(__name__)
 
@@ -290,6 +290,50 @@ def omega_ccm_driver(p0, psfc, u, v, lat, lon, hyam, hybm, hyai, hybi):
 
     return omega
 
+
+@nb.jit(nopython=True)
+def pres_hybrid_ccm_unstructured(psfc, p0, hya, hyb, pmsg=np.nan):
+    """
+    Calculate pressure at hybrid levels for unstructured grid using vectorized operations.
+
+    Parameters:
+    -----------
+    psfc : numpy.ndarray
+        1D array of surface pressures in Pa (shape: [ncol]).
+    p0 : float
+        Base pressure in Pa.
+    hya : numpy.ndarray
+        1D array of "a" or pressure hybrid coefficients (shape: [nlev]).
+    hyb : numpy.ndarray
+        1D array of "b" or sigma coefficients (shape: [nlev]).
+    pmsg : float, optional
+        Missing value indicator, defaults to NaN.
+
+    Returns:
+    --------
+    phy : numpy.ndarray
+        2D array of pressure at hybrid levels (shape: [ncol, nlev]).
+    """
+    # Get dimensions
+    ncol = len(psfc)
+    nlev = len(hya)
+
+    # Initialize output array
+    phy = np.empty((ncol, nlev), dtype=psfc.dtype)
+
+    # Calculate pressure at hybrid levels using vectorized operations
+    for i in range(ncol):
+        for k in range(nlev):
+            phy[i, k] = hya[k] * p0 + hyb[k] * psfc[i]
+
+            # Handle missing values
+            if np.isnan(psfc[i]):
+                phy[i, k] = pmsg
+
+    return phy
+
+
+@nb.jit(nopython=True)
 def pres_hybrid_ccm(psfc, p0, hya, hyb, pmsg=np.nan):
     """
     Calculate pressure at hybrid levels using vectorized operations.
@@ -329,6 +373,53 @@ def pres_hybrid_ccm(psfc, p0, hya, hyb, pmsg=np.nan):
 
     return phy
 
+
+@nb.jit(nopython=True)
+def dpres_hybrid_ccm_unstructured(psfc, p0, hyai, hybi, pmsg=np.nan):
+    """
+    Calculate delta pressure between hybrid levels for unstructured grid using vectorized operations.
+    Parameters:
+    -----------
+    psfc : numpy.ndarray
+        1D array of surface pressures in Pa (shape: [ncol]).
+    p0 : float
+        Base pressure in Pa.
+    hyai : numpy.ndarray
+        1D array of interface "a" or pressure hybrid coefficients (shape: [nlev+1]).
+    hybi : numpy.ndarray
+        1D array of interface "b" or sigma coefficients (shape: [nlev+1]).
+    pmsg : float, optional
+        Missing value indicator, defaults to NaN.
+    Returns:
+    --------
+    dphy : numpy.ndarray
+        2D array of delta pressure between hybrid levels (shape: [ncol, nlev]).
+    """
+    # Get dimensions
+    ncol = len(psfc)
+    nlev = len(hyai) - 1  # Number of layers between interfaces
+
+    # Initialize output array
+    dphy = np.empty((ncol, nlev), dtype=psfc.dtype)
+
+    # Calculate delta pressure between hybrid levels
+    for i in range(ncol):
+        for k in range(nlev):
+            # Calculate pressure at upper interface (k) and lower interface (k+1)
+            pa = p0 * hyai[k] + hybi[k] * psfc[i]
+            pb = p0 * hyai[k+1] + hybi[k+1] * psfc[i]
+
+            # Calculate delta pressure (absolute difference)
+            dphy[i, k] = np.abs(pb - pa)
+
+            # Handle missing values
+            if np.isnan(psfc[i]):
+                dphy[i, k] = pmsg
+
+    return dphy
+
+
+@nb.jit(nopython=True)
 def dpres_hybrid_ccm(psfc, p0, hyai, hybi, pmsg=np.nan):
     """
     Calculate delta pressure between hybrid levels using vectorized operations.
@@ -340,16 +431,16 @@ def dpres_hybrid_ccm(psfc, p0, hyai, hybi, pmsg=np.nan):
     p0 : float
         Base pressure in Pa.
     hyai : numpy.ndarray
-        1D array of interface "a" or pressure hybrid coefficients (shape: [klev+1]).
+        1D array of interface "a" or pressure hybrid coefficients (shape: [nlev+1]).
     hybi : numpy.ndarray
-        1D array of interface "b" or sigma coefficients (shape: [klev+1]).
+        1D array of interface "b" or sigma coefficients (shape: [nlev+1]).
     pmsg : float, optional
         Missing value indicator, defaults to NaN.
 
     Returns:
     --------
     dphy : numpy.ndarray
-        3D array of delta pressure between hybrid levels (shape: [klev-1, lat, lon]).
+        3D array of delta pressure between hybrid levels (shape: [nlev, lat, lon]).
     """
 
     # Get dimensions
@@ -573,7 +664,7 @@ def ddvfidf_wrapper(u, v, glat, glon, iopt, xmsg=np.nan):
     return div
 
 
-@njit
+@nb.jit(nopython=True)
 def ddvfidf(u, v, glat, glon, iopt, xmsg=np.nan):
     """
     Calculate the divergence of the wind field using centered finite differences.
