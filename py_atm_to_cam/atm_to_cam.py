@@ -1042,19 +1042,19 @@ def main():
         nc_file.close()
 
         # SCREAM specific conversion
-        if dycore == "scream":
-            if shutil.which("ncks") is not None:
-                try:
-                    subprocess.run(
-                        ["ncks", "-5", se_inic, se_inic + ".cdf5"],
-                        check=True
-                    )
-                    shutil.move(se_inic + ".cdf5", se_inic)
-                    print("→ converted to CDF5 format")
-                except subprocess.CalledProcessError as e:
-                    print(f"ncks failed (exit {e.returncode}), skipping CDF5 conversion")
-            else:
-                print("ncks not found on PATH; skipping CDF5 conversion")
+#         if dycore == "scream":
+#             if shutil.which("ncks") is not None:
+#                 try:
+#                     subprocess.run(
+#                         ["ncks", "-5", se_inic, se_inic + ".cdf5"],
+#                         check=True
+#                     )
+#                     shutil.move(se_inic + ".cdf5", se_inic)
+#                     print("→ converted to CDF5 format")
+#                 except subprocess.CalledProcessError as e:
+#                     print(f"ncks failed (exit {e.returncode}), skipping CDF5 conversion")
+#             else:
+#                 print("ncks not found on PATH; skipping CDF5 conversion")
 
 
 if __name__ == "__main__":
