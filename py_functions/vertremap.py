@@ -87,7 +87,6 @@ def int2p(pin, xin, pout, linlog):
     """
 
     # Initialize needed bools
-    xflipped = False
     oflipped = False
 
     # Initialize the output array
@@ -100,7 +99,6 @@ def int2p(pin, xin, pout, linlog):
     if pin[0] < pin[-1]:
         pin = pin[::-1]
         xin = xin[::-1]
-        xflipped = True
 
     if pout[0] < pout[-1]:
         pout = pout[::-1]
@@ -147,9 +145,7 @@ def int2p(pin, xin, pout, linlog):
                 else:
                     xout[np_idx] = xin[-1] + slope_low * (np.log(pout[np_idx]) - np.log(pin[-1]))
 
-    # If xin was flipped, we need to flip xout for consistency
-    if xflipped:
-        xout = xout[::-1]
+    # flip xout for consistency
     if oflipped:
         xout = xout[::-1]
 
