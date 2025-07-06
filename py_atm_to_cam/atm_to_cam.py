@@ -23,7 +23,8 @@ import loaddata
 import meteo
 import py_seedfuncs
 from constants import (
-    p0, dtime_map, ps_wet_to_dry, output_diag, w_smooth_iter, damp_upper_winds_mpas, grav,
+    p0, dtime_map, ps_wet_to_dry, output_diag, w_smooth_iter, grav,
+    damp_upper_winds_mpas, MPAS_W_DAMPING_COEF,
     NC_FLOAT_FILL, DEFAULT_FILL_VALUE, COORD_FILL_VALUE, CORRECT_OR_NOT_FILL_VALUE,
     QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH
 )
@@ -635,7 +636,7 @@ def main():
                     new_file.variables['qv'][0, :, :] = data_horiz['q'].T
                     new_file.variables['rho'][0, :, :] = data_horiz['rho'].T
                     new_file.variables['theta'][0, :, :] = data_horiz['theta'].T
-                    new_file.variables['w'][0, :, :] = 0.06 * data_horiz['w'].T
+                    new_file.variables['w'][0, :, :] = MPAS_W_DAMPING_COEF * data_horiz['w'].T
 
                 logging.info(f"Done generating MPAS initial condition file: {se_inic}, exiting...")
 

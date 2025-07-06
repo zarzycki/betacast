@@ -30,6 +30,7 @@ rho_d_algo = 1
 
 damp_upper_winds_mpas = False
 mpas_uv_damping_coeffs = [0.90, 0.95, 0.98]
+MPAS_W_DAMPING_COEF = 0.06   # Mult. scaling on MPAS vertical velocity derived by Betacast
 
 ps_wet_to_dry = False
 output_diag = True
