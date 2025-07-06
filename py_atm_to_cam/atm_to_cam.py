@@ -962,15 +962,28 @@ def main():
             elif dycore != "mpas":
                 cldliq_nc = nc_file.createVariable('CLDLIQ', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
                 cldice_nc = nc_file.createVariable('CLDICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            cldliq_nc.units = "kg/kg"
-            cldice_nc.units = "kg/kg"
+
+            # If cldliq_nc and cldice_nc don't exist, pass and warn, otherwise define units
+            try:
+                cldliq_nc.units = "kg/kg"
+                cldice_nc.units = "kg/kg"
+            except NameError:
+                logging.info(f"cldliq_nc and cldice_nc don't exist even though add_cloud_vars is {add_cloud_vars}, ignoring")
+                pass
 
         if add_chemistry:
             if dycore == "scream":
                 o3_nc = nc_file.createVariable('o3_volume_mix_ratio', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            else:
+            elif dycore != "mpas":
                 o3_nc = nc_file.createVariable('O3', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
             o3_nc.units = "mol/mol"
+
+            # If o3_nc doesn't exist, pass and warn, otherwise define units
+            try:
+                o3_nc.units = "mol/mol"
+            except NameError:
+                logging.info(f"o3_nc doesn't exist even though add_chemistry is {add_chemistry}, ignoring")
+                pass
 
         if 'correct_or_not' in locals():
             correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "scream" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=CORRECT_OR_NOT_FILL_VALUE, **compression_opts)
