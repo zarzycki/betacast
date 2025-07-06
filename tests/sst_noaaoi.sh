@@ -1,8 +1,4 @@
 #!/bin/bash
-# Environment setup
-export TEST_FILES_DIR="/glade/u/home/zarzycki/scratch/test_files/"
-export DEBUG_FILE_DIR="/glade/u/home/zarzycki/scratch/tmp_betacast/"
-export BETACAST="/glade/u/home/zarzycki/scratch/betacast/"
 
 # Additional variables specific to this test
 DATE="2023052300"

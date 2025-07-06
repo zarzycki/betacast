@@ -1,8 +1,4 @@
 #!/bin/bash
-# Environment setup
-export TEST_FILES_DIR="/glade/u/home/zarzycki/scratch/test_files/"
-export DEBUG_FILE_DIR="/glade/u/home/zarzycki/scratch/tmp_betacast/"
-export BETACAST="/glade/u/home/zarzycki/scratch/betacast/"
 
 # Function to run Python test
 run_python_test() {
@@ -18,7 +14,7 @@ run_python_test() {
         --write_floats \
         --add_cloud_vars \
         --adjust_config "" \
-        --model_topo_file "${TEST_FILES_DIR}/mpasa120.CFSR.L32.nc" \
+        --model_topo_file "${TEST_FILES_DIR}/mpasa120.CFSR.L32_no-met.nc" \
         --se_inic "${DEBUG_FILE_DIR}/py_final.nc" \
         --verbose \
         --write_debug_files \

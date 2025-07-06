@@ -1,8 +1,4 @@
 #!/bin/bash
-# Environment setup
-export TEST_FILES_DIR="/glade/campaign/univ/upsu0032/betacast_test_files/"
-export DEBUG_FILE_DIR="/glade/u/home/zarzycki/scratch/tmp_betacast/"
-export BETACAST="/glade/u/home/zarzycki/betacast/"
 
 # Additional configuration for filter test
 export filterHourLength=6

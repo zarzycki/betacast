@@ -4,6 +4,11 @@
 # This script runs comparison tests between Python and NCL implementations
 # of the BetaCast weather model initialization system with timing measurements.
 
+# Environment setup
+export TEST_FILES_DIR="/glade/campaign/univ/upsu0032/betacast_test_files/"
+export DEBUG_FILE_DIR="/glade/derecho/scratch/zarzycki/tmp_betacast/"
+export BETACAST="/glade/u/home/zarzycki/betacast/"
+
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'

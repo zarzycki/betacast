@@ -1,8 +1,4 @@
 #!/bin/bash
-# Environment setup
-export TEST_FILES_DIR="/glade/u/home/zarzycki/scratch/test_files/"
-export DEBUG_FILE_DIR="/glade/u/home/zarzycki/scratch/tmp_betacast/"
-export BETACAST="/glade/u/home/zarzycki/scratch/betacast/"
 
 # Additional configuration
 export NCL_BEFORE_ATM="${DEBUG_FILE_DIR}/ncl_final.nc"

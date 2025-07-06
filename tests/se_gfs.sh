@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Environment setup
-export TEST_FILES_DIR="/glade/derecho/scratch/zarzycki/test_files/"
-export DEBUG_FILE_DIR="/glade/derecho/scratch/zarzycki/tmp_betacast/"
-export BETACAST="/glade/derecho/scratch/zarzycki/betacast/"
-
 DATE=2024081400
 NLEV=10
 DATASOURCE="GFS"

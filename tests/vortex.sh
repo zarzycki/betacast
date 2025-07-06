@@ -1,8 +1,4 @@
 #!/bin/bash
-# Environment setup
-export TEST_FILES_DIR="/glade/u/home/zarzycki/scratch/test_files/"
-export DEBUG_FILE_DIR="/glade/u/home/zarzycki/scratch/tmp_betacast/"
-export BETACAST="/glade/u/home/zarzycki/scratch/betacast/"
 
 # Set vortex namelist path
 export VORTEX_NAMELIST="/glade/u/home/zarzycki/scratch/betacast/namelists/unseed.default.nl"

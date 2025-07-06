@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Environment setup
-export TEST_FILES_DIR="${HOME}/scratch/test_files/"
-export DEBUG_FILE_DIR="${HOME}/scratch/tmp_betacast/"
-export BETACAST="${HOME}/scratch/betacast/"
-
 # Function to run Python test
 run_python_test() {
     python ${BETACAST}/py_atm_to_cam/atm_to_cam.py \

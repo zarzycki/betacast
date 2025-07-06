@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Environment setup
-export TEST_FILES_DIR="/glade/campaign/univ/upsu0032/betacast_test_files/"
-export DEBUG_FILE_DIR="/glade/derecho/scratch/zarzycki/tmp_betacast/"
-export BETACAST="/glade/u/home/zarzycki/betacast/"
-
 # Function to run Python test
 run_python_test() {
 
