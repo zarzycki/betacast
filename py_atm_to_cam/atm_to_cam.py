@@ -487,6 +487,10 @@ def main():
                 # Open src + target MPAS files simultaneously using NetCDF4
                 with nc.Dataset(mpasfile, mode='r') as src_file, nc.Dataset(se_inic, mode='w', format='NETCDF4') as new_file:
 
+                    # Define a list of variables to modify later
+                    # These are "Betacast-derived" MPAS fields
+                    skip_vars = ['u', 'qv', 'rho', 'theta', 'w']
+
                     # Copy global file attributes from src -> target
                     for attr_name in src_file.ncattrs():
                         logging.debug(f"... copying global attr {attr_name}")
@@ -535,8 +539,55 @@ def main():
                                 except Exception as e:
                                     logging.warning(f"Error setting attribute {attr_name} for {var_name}: {e}")
 
-                    # Define a list of variables to modify later
-                    skip_vars = ['u', 'qv', 'rho', 'theta', 'w']
+                    # Check and see if MPAS state fields are available, if not create them from scratch
+                    logging.info("Creating any missing variables not in source file")
+                    additional_vars = {
+                        'u': {
+                            'type': 'f8',
+                            'dimensions': ('Time', 'nEdges', 'nVertLevels'),
+                            'units': 'm s^{-1}',
+                            'long_name': 'Horizontal normal velocity at edges'
+                        },
+                        'w': {
+                            'type': 'f8',
+                            'dimensions': ('Time', 'nCells', 'nVertLevelsP1'),
+                            'units': 'm s^{-1}',
+                            'long_name': 'Vertical velocity at vertical cell faces'
+                        },
+                        'qv': {
+                            'type': 'f8',
+                            'dimensions': ('Time', 'nCells', 'nVertLevels'),
+                            'units': 'kg kg^{-1}',
+                            'long_name': 'Water vapor mixing ratio'
+                        },
+                        'rho': {
+                            'type': 'f8',
+                            'dimensions': ('Time', 'nCells', 'nVertLevels'),
+                            'units': 'kg m^{-3}',
+                            'long_name': 'Dry air density'
+                        },
+                        'theta': {
+                            'type': 'f8',
+                            'dimensions': ('Time', 'nCells', 'nVertLevels'),
+                            'units': 'K',
+                            'long_name': 'Potential temperature'
+                        }
+                    }
+
+                    for var_name, var_info in additional_vars.items():
+                        if var_name not in new_file.variables:
+                            logging.info(f"Creating missing MPAS state variable: {var_name}")
+                            new_var = new_file.createVariable(
+                                var_name,
+                                var_info['type'],
+                                var_info['dimensions'],
+                                fill_value=None,
+                                contiguous=True
+                            )
+                            new_var.units = var_info['units']
+                            new_var.long_name = var_info['long_name']
+                        else:
+                            logging.info(f"MPAS state variable {var_name} already exists from src")
 
                     # Now copy data, one variable at a time
                     for idx, var_name in enumerate(src_file.variables, 1):
@@ -578,6 +629,7 @@ def main():
                         logging.info(f"Finished copying {var_name}")
 
                     # Write out Betacast modified vars last
+                    # These are the "skip_vars"
                     logging.info(f"Writing new MPAS fields to target netcdf file")
                     new_file.variables['u'][0, :, :] = data_horiz['uNorm'].T
                     new_file.variables['qv'][0, :, :] = data_horiz['q'].T
