@@ -59,7 +59,9 @@ def calculate_normalized_rmse(var1, var2):
         return np.nan
     return rmse / mean_var1
 
-def check_same(file1, file2, variables_to_check=None):
+def check_same(file1, file2, variables_to_check=None,
+               corr_threshold_strict=0.999, corr_threshold_normal=0.99,
+               nrmse_threshold_strict=0.1, nrmse_threshold_normal=1.0):
     """Returns True if files match within acceptable tolerances, False otherwise."""
     ds1 = xr.open_dataset(file1)
     ds2 = xr.open_dataset(file2)
@@ -110,6 +112,11 @@ def check_same(file1, file2, variables_to_check=None):
         print("\nChecking all common variables between files")
 
     all_vars_ok = True
+
+    # Threshold info
+    print(f"\nUsing thresholds:")
+    print(f"   Correlation - Strict variables: {corr_threshold_strict}, Normal variables: {corr_threshold_normal}")
+    print(f"   NRMSE - Strict variables: {nrmse_threshold_strict}, Normal variables: {nrmse_threshold_normal}")
 
     for var_name in common_vars:
 
@@ -180,8 +187,8 @@ def check_same(file1, file2, variables_to_check=None):
 
                 strict_vars = {'PS', 'U', 'V', 'T', 'Q'}
 
-                corr_threshold = 0.999 if var_name in strict_vars else 0.99
-                nrmse_threshold = 0.1 if var_name in strict_vars else 1.0
+                corr_threshold = corr_threshold_strict if var_name in strict_vars else corr_threshold_normal
+                nrmse_threshold = nrmse_threshold_strict if var_name in strict_vars else nrmse_threshold_normal
 
                 # Check if this variable passes validation
                 var_ok = True
@@ -215,9 +222,20 @@ def check_same(file1, file2, variables_to_check=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Compare two NetCDF files')
-    parser.add_argument('file1', help='First NetCDF file')
-    parser.add_argument('file2', help='Second NetCDF file')
-    parser.add_argument('variables', nargs='?', help='Comma-separated list of variables to compare')
+    parser.add_argument('file1',
+                        help='First NetCDF file')
+    parser.add_argument('file2',
+                        help='Second NetCDF file')
+    parser.add_argument('variables', nargs='?',
+                        help='Comma-separated list of variables to compare')
+    parser.add_argument('--corr-threshold-strict', type=float, default=0.999,
+                        help='Correlation threshold for strict variables (PS, U, V, T, Q). Default: 0.999')
+    parser.add_argument('--corr-threshold-normal', type=float, default=0.99,
+                        help='Correlation threshold for normal variables. Default: 0.99')
+    parser.add_argument('--nrmse-threshold-strict', type=float, default=0.1,
+                        help='NRMSE threshold for strict variables (PS, U, V, T, Q). Default: 0.1')
+    parser.add_argument('--nrmse-threshold-normal', type=float, default=1.0,
+                        help='NRMSE threshold for normal variables. Default: 1.0')
 
     args = parser.parse_args()
 
@@ -226,7 +244,11 @@ if __name__ == "__main__":
         variables_to_check = set(args.variables.split(','))
 
     try:
-        match = check_same(args.file1, args.file2, variables_to_check)
+        match = check_same(args.file1, args.file2, variables_to_check,
+                  corr_threshold_strict=args.corr_threshold_strict,
+                  corr_threshold_normal=args.corr_threshold_normal,
+                  nrmse_threshold_strict=args.nrmse_threshold_strict,
+                  nrmse_threshold_normal=args.nrmse_threshold_normal)
         # Exit with 0 if files match, 1 if they don't
         sys.exit(0 if match else 1)
     except Exception as e:

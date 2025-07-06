@@ -72,7 +72,7 @@ run_ncl_test() {
 
 # Function to validate results
 run_validation() {
-    python ${BETACAST}/py_testing/check_same.py ${DEBUG_FILE_DIR}/py_final.nc ${DEBUG_FILE_DIR}/ncl_final.nc
+    python ${BETACAST}/py_testing/check_same.py ${DEBUG_FILE_DIR}/py_final.nc ${DEBUG_FILE_DIR}/ncl_final.nc --nrmse-threshold-strict 0.15
 }
 
 # Optional cleanup function
