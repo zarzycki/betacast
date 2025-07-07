@@ -700,15 +700,109 @@ def interp_hybrid_to_pressure(data: np.ndarray,
 
 
 def interpolate_mpas_columns_wrapper(mpas_data, data_horiz):
+    """
+    Wrapper to interpolate all columns for specified variables
 
-    t_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
-    theta_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
-    rho_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
-    w_wrf = np.zeros((mpas_data['nlevi'], mpas_data['ncell']))
-    q_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
-    u_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
-    v_wrf = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
+    Args:
+        mpas_data: dictionary containing MPAS grid info
+        data_horiz: dictionary containing horizontal data arrays
+        vert_remap_keys: list of variable keys to interpolate
 
+    Returns:
+        Updated data_horiz dictionary with interpolated variables
+    """
+
+    # Check for required source height coordinate
+    if 'z' not in data_horiz:
+        raise KeyError("MPAS interp: required 'z' coordinate not found in data_horiz (source data).")
+
+    # allowable interpolatable keys
+    vert_remap_keys = ['t', 'theta', 'rho', 'w', 'q', 'u', 'v', 'cldice', 'cldliq', 'o3']
+
+    # Define variable-specific interpolation configuration
+    var_config = {
+        't': {
+            'extrap_low': 'linear',
+            'extrap_high': 'linear',
+            'quality_control': {
+                'enforce_positive': True,
+                'positive_replacement': 180.0
+            }
+        },
+        'theta': {
+            'extrap_low': 'linear',
+            'extrap_high': 'linear',
+            'quality_control': {
+                'enforce_positive': True,
+                'positive_replacement': 500.0
+            }
+        },
+        'rho': {
+            'extrap_low': 'linear',
+            'extrap_high': 'log',
+            'quality_control': {
+                'enforce_positive': True,
+                'positive_replacement': 1.0e-7
+            }
+        },
+        'w': {
+            'use_interfaces': True,  # Use interface levels instead of cell centers
+            'extrap_low': 'linear',
+            'extrap_high': 'fade'
+        },
+        'q': {
+            'extrap_low': 'linear',
+            'extrap_high': 'linear',
+            # Will enforce QC later in the code (clip_and_count)
+        },
+        'cldliq': {
+            'extrap_low': 'linear',
+            'extrap_high': 'persist',
+            # Will enforce QC later in the code (clip_and_count)
+        },
+        'cldice': {
+            'extrap_low': 'linear',
+            'extrap_high': 'persist',
+            # Will enforce QC later in the code (clip_and_count)
+        },
+        'o3': {
+            'extrap_low': 'linear',
+            'extrap_high': 'persist',
+            'quality_control': {
+                'enforce_positive': True,
+                'positive_replacement': 0.0
+            }
+        },
+        'u': {
+            'extrap_low': 'linear',
+            'extrap_high': 'persist'  # Don't extrapolate aloft to prevent high wind speeds
+        },
+        'v': {
+            'extrap_low': 'linear',
+            'extrap_high': 'persist'  # Don't extrapolate aloft to prevent high wind speeds
+        }
+    }
+
+    # Filter to only allowable keys that exist in data_horiz
+    valid_keys = []
+    for var_key in vert_remap_keys:
+        if var_key not in data_horiz:
+            logger.warning(f"Variable {var_key} not found in data_horiz, skipping")
+        else:
+            valid_keys.append(var_key)
+
+    logger.info(f"MPAS vert interp: will interpolate {len(valid_keys)} variables: {valid_keys}")
+
+    # Initialize output arrays for valid variables
+    results = {}
+    for var_key in valid_keys:
+        config = var_config.get(var_key, {})
+        if config.get('use_interfaces', False):
+            results[var_key] = np.zeros((mpas_data['nlevi'], mpas_data['ncell']))
+        else:
+            results[var_key] = np.zeros((mpas_data['nlev'], mpas_data['ncell']))
+
+    # Process each column
     for ix in range(mpas_data['ncell']):
         if ix % 10000 == 0:
             logging.info(f"... MPAS_VERT_INTERP: {100. * ix / (mpas_data['ncell'] - 1):.2f}%")
@@ -716,7 +810,6 @@ def interpolate_mpas_columns_wrapper(mpas_data, data_horiz):
         if ix == 0:
             z_src_orientation = 'bottom_to_top' if data_horiz['z'][-1, ix] > data_horiz['z'][0, ix] else 'top_to_bottom'
             z_mpas_orientation = 'bottom_to_top' if mpas_data['z'][ix, -1] > mpas_data['z'][ix, 0] else 'top_to_bottom'
-
             logger.debug(f"z_src_orientation is {z_src_orientation}")
             logger.debug(f"z_mpas_orientation is {z_mpas_orientation}")
 
@@ -729,36 +822,34 @@ def interpolate_mpas_columns_wrapper(mpas_data, data_horiz):
                 logger.debug("we will flip arrays in interpolate_mpas_columns_wrapper")
                 flip_array = True
 
-        # We want to priorize the mpas grid orientation, so flip the src arrays if z
-        # orientation differs between the two
-        if flip_array:
-            t_wrf[:, ix], theta_wrf[:, ix], rho_wrf[:, ix], w_wrf[:, ix], \
-            q_wrf[:, ix], u_wrf[:, ix], v_wrf[:, ix] = interpolate_single_mpas_column(
-                ix,
-                mpas_data['nlev'], mpas_data['nlevi'], mpas_data['z'],
-                data_horiz['t'][::-1, ix], data_horiz['z'][::-1, ix],
-                data_horiz['theta'][::-1, ix], data_horiz['rho'][::-1, ix],
-                data_horiz['w'][::-1, ix], data_horiz['q'][::-1, ix],
-                data_horiz['u'][::-1, ix], data_horiz['v'][::-1, ix]
-            )
-        else:
-            t_wrf[:, ix], theta_wrf[:, ix], rho_wrf[:, ix], w_wrf[:, ix], \
-            q_wrf[:, ix], u_wrf[:, ix], v_wrf[:, ix] = interpolate_single_mpas_column(
-                ix,
-                mpas_data['nlev'], mpas_data['nlevi'], mpas_data['z'],
-                data_horiz['t'][:, ix], data_horiz['z'][:, ix],
-                data_horiz['theta'][:, ix], data_horiz['rho'][:, ix],
-                data_horiz['w'][:, ix], data_horiz['q'][:, ix],
-                data_horiz['u'][:, ix], data_horiz['v'][:, ix]
-            )
+        # Prepare data for interpolation (flip if needed)
+        column_data = {}
+        for var_key in vert_remap_keys:
+            if var_key in data_horiz:
+                if flip_array:
+                    column_data[var_key] = data_horiz[var_key][::-1, ix]
+                else:
+                    column_data[var_key] = data_horiz[var_key][:, ix]
 
-    data_horiz['t'] = t_wrf
-    data_horiz['theta'] = theta_wrf
-    data_horiz['rho'] = rho_wrf
-    data_horiz['w'] = w_wrf
-    data_horiz['q'] = q_wrf
-    data_horiz['u'] = u_wrf
-    data_horiz['v'] = v_wrf
+        # Attach z coordinate from source data
+        if flip_array:
+            column_data['z'] = data_horiz['z'][::-1, ix]
+        else:
+            column_data['z'] = data_horiz['z'][:, ix]
+
+        # Interpolate this column from source -> MPAS
+        column_results = interpolate_single_mpas_column(
+            ix, mpas_data['nlev'], mpas_data['nlevi'], mpas_data['z'],
+            column_data, valid_keys, var_config
+        )
+
+        # Store results
+        for var_key, result_array in column_results.items():
+            results[var_key][:, ix] = result_array
+
+    # Update data_horiz with interpolated results
+    for var_key in results:
+        data_horiz[var_key] = results[var_key]
 
     return data_horiz
 
@@ -856,57 +947,97 @@ def taper_to_standard(valid_data, valid_z, full_z, std_data, taper_rate=1.0):
 
 
 
-def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, t_fv, z_fv, theta_fv, rho_fv, w_fv, q_fv, u_fv, v_fv):
+def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, data_dict, vert_remap_keys, var_config):
+    """
+    Interpolate a single column for specified variables
 
+    Args:
+        ix: column index
+        mpas_nlev: number of MPAS levels (cell centers)
+        mpas_nlevi: number of MPAS interface levels
+        mpas_z: target height coordinate for MPAS column
+        data_dict: dictionary containing source data arrays
+        vert_remap_keys: list of variable keys to interpolate
+        var_config: configuration dictionary for each variable
+
+    Returns:
+        Dictionary of interpolated results
+    """
+
+    # The z in for MPAS is interface, create midpoints
     zmid = (mpas_z[ix, 1:mpas_nlevi] + mpas_z[ix, 0:mpas_nlevi - 1]) / 2.0
     zint = mpas_z[ix, :]
 
-    t_wrf_col = np.zeros(mpas_nlev)
-    theta_wrf_col = np.zeros(mpas_nlev)
-    rho_wrf_col = np.zeros(mpas_nlev)
-    w_wrf_col = np.zeros(mpas_nlevi)
-    q_wrf_col = np.zeros(mpas_nlev)
-    u_wrf_col = np.zeros(mpas_nlev)
-    v_wrf_col = np.zeros(mpas_nlev)
+    # Empty dicts to store interpolated values in this column + any adjustments
+    results = {}
+    adjustments = {}
 
-    if ix == 0:
-        logger.debug("interpolate_single_mpas_column T metrics at ix = 0:")
-        logger.debug(f"z_fv[0]: {z_fv[0]}, z_fv[nlev-1]: {z_fv[-1]}")
-        logger.debug(f"zmid[0]: {zmid[0]}, zmid[nlev-1]: {zmid[-1]}")
-        logger.debug(f"t_fv[0]: {t_fv[0]}, t_fv[nlev-1]: {t_fv[-1]}")
-        logger.debug(f"t_fv range: {t_fv.min()} to {t_fv.max()}")
-        logger.debug(f"t_fv size: {t_fv.size}, z_fv size: {z_fv.size}, zmid size: {zmid.size}")
+    # Process each variable in the key list
+    for var_key in vert_remap_keys:
 
-    t_wrf_col = z_to_z_interp_wrapper(t_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
-    theta_wrf_col = z_to_z_interp_wrapper(theta_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
-    rho_wrf_col = z_to_z_interp_wrapper(rho_fv, z_fv, zmid, extrap_low="linear", extrap_high="log")
-    w_wrf_col = z_to_z_interp_wrapper(w_fv, z_fv, zint, extrap_low="linear", extrap_high="fade")
-    q_wrf_col = z_to_z_interp_wrapper(q_fv, z_fv, zmid, extrap_low="linear", extrap_high="linear")
+        # Sanity check to make sure the requested key is actually in the data
+        # In theory, the wrapper should only give matching pairs so this shouldn't get flagged
+        if var_key not in data_dict:
+            raise KeyError(f"Required key '{var_key}' is missing.")
 
-    # u and v we don't extrapolate aloft to prevent wind speeds from getting too high
-    u_wrf_col = z_to_z_interp_wrapper(u_fv, z_fv, zmid, extrap_low="linear", extrap_high="persist")
-    v_wrf_col = z_to_z_interp_wrapper(v_fv, z_fv, zmid, extrap_low="linear", extrap_high="persist")
+        config = var_config[var_key]
 
-    # Get standard atmosphere for this column
-    #std_T, std_P, std_rho = standard_atmosphere(zmid)
-    #std_theta = std_T * (100000 / std_P) ** (2/7)  # Potential temperature
-    #t_wrf_col = taper_to_standard(t_wrf_col, zmid, zmid, std_T, taper_rate=2.5)
-    #theta_wrf_col = taper_to_standard(theta_wrf_col, zmid, zmid, std_theta, taper_rate=2.5)
-    #rho_wrf_col = taper_to_standard(rho_wrf_col, zmid, zmid, std_rho, taper_rate=2.5)
+        # Determine target vertical grid and size
+        if config.get('use_interfaces', False):
+            target_z = zint
+            target_size = mpas_nlevi
+        else:
+            target_z = zmid
+            target_size = mpas_nlev
 
-    # Initialize all adjustment counters to 0
-    adjustments = {var + '_adjustments': 0 for var in ['t_pos', 'theta_pos', 'rho_pos', 'rho_mono', 'q_pos']}
-    t_wrf_col, adjustments['t_pos_adjustments'] = enforce_positive_values(t_wrf_col, replacement_value=180.0)
-    theta_wrf_col, adjustments['theta_pos_adjustments'] = enforce_positive_values(theta_wrf_col, replacement_value=500.0)
-    rho_wrf_col, adjustments['rho_pos_adjustments'] = enforce_positive_values(rho_wrf_col, replacement_value=1.0e-7)
-    # rho_wrf_col, adjustments['rho_mono_adjustments'] = enforce_monotonic_values(rho_wrf_col)
-    q_wrf_col, adjustments['q_pos_adjustments'] = enforce_positive_values(q_wrf_col, replacement_value=0.0)
+        # Initialize output array
+        results[var_key] = np.zeros(target_size)
+
+        # Get source data for this column (already 1D from wrapper)
+        src_data = data_dict[var_key]
+        src_z = data_dict['z']
+
+        # Debug logging for first column
+        if ix == 0:
+            logger.debug(f"interpolate_single_mpas_column {var_key} metrics at ix = 0:")
+            logger.debug(f"src_z[0]: {src_z[0]}, src_z[-1]: {src_z[-1]}")
+            logger.debug(f"target_z[0]: {target_z[0]}, target_z[-1]: {target_z[-1]}")
+            logger.debug(f"{var_key}[0]: {src_data[0]}, {var_key}[-1]: {src_data[-1]}")
+            logger.debug(f"{var_key} range: {src_data.min()} to {src_data.max()}")
+            logger.debug(f"{var_key} size: {src_data.size}, z size: {src_z.size}, target_z size: {target_z.size}")
+
+        # Interpolate, default is linear
+        extrap_low = config.get('extrap_low', 'linear')
+        extrap_high = config.get('extrap_high', 'linear')
+
+        # Interpolate from the src z to target z
+        results[var_key] = z_to_z_interp_wrapper(
+            src_data, src_z, target_z,
+            extrap_low=extrap_low,
+            extrap_high=extrap_high
+        )
+
+        # Apply quality control if specified
+        qc_config = config.get('quality_control', {})
+        if qc_config.get('enforce_positive', False):
+            replacement_value = qc_config.get('positive_replacement', 0.0)
+            results[var_key], adj_count = enforce_positive_values(
+                results[var_key], replacement_value=replacement_value
+            )
+            adjustments[f'{var_key}_pos_adjustments'] = adj_count
+
+        # Add other quality control methods as needed
+        # if qc_config.get('enforce_monotonic', False):
+        #     results[var_key], adj_count = enforce_monotonic_values(results[var_key])
+        #     adjustments[f'{var_key}_mono_adjustments'] = adj_count
+
+    # Log adjustments
     if ix == 0 or any(adjustments.values()):
         logger.debug(f"Column {ix} adjustments:")
         for adjustment_type, count in adjustments.items():
             logger.debug(f"  {adjustment_type}: {count}")
 
-    return t_wrf_col, theta_wrf_col, rho_wrf_col, w_wrf_col, q_wrf_col, u_wrf_col, v_wrf_col
+    return results
 
 
 @jit(nopython=True)

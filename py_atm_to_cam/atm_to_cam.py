@@ -797,6 +797,12 @@ def main():
             out_data['v'] = pyfuncs.numpy_to_dataarray(data_horiz['v'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
             out_data['t'] = pyfuncs.numpy_to_dataarray(data_horiz['t'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'K', "_FillValue": NC_FLOAT_FILL})
             out_data['q'] = pyfuncs.numpy_to_dataarray(data_horiz['q'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
+            if add_cloud_vars:
+                out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_horiz['cldliq'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
+                out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_horiz['cldice'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
+            if add_chemistry:
+                out_data['o3'] = pyfuncs.numpy_to_dataarray(data_horiz['o3'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
+
             out_data['lat'] = pyfuncs.numpy_to_dataarray(data_horiz['lat'], dims=['ncol'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "latitude", "units": "degrees_north"})
             out_data['lon'] = pyfuncs.numpy_to_dataarray(data_horiz['lon'], dims=['ncol'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "longitude", "units": "degrees_east"})
 
@@ -805,6 +811,11 @@ def main():
             out_data['v'] = pyfuncs.add_time_define_precision(out_data['v'], write_type, True)
             out_data['t'] = pyfuncs.add_time_define_precision(out_data['t'], write_type, True)
             out_data['q'] = pyfuncs.add_time_define_precision(out_data['q'], write_type, True)
+            if add_cloud_vars:
+                out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, True)
+                out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, True)
+            if add_chemistry:
+                out_data['o3'] = pyfuncs.add_time_define_precision(out_data['o3'], write_type, True)
 
         # Create CF-compliant time
         time, time_atts = pyfuncs.create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr))
@@ -959,7 +970,7 @@ def main():
             if dycore == "scream":
                 cldliq_nc = nc_file.createVariable('qc', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
                 cldice_nc = nc_file.createVariable('qi', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            elif dycore != "mpas":
+            else:
                 cldliq_nc = nc_file.createVariable('CLDLIQ', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
                 cldice_nc = nc_file.createVariable('CLDICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
@@ -1038,6 +1049,11 @@ def main():
             v_nc[0, :, :] = replace_nans_with_fill(data_horiz['v'][::-1, :],fill_value=NC_FLOAT_FILL)
             t_nc[0, :, :] = replace_nans_with_fill(data_horiz['t'][::-1, :],fill_value=NC_FLOAT_FILL)
             q_nc[0, :, :] = replace_nans_with_fill(data_horiz['q'][::-1, :],fill_value=NC_FLOAT_FILL)
+            if add_cloud_vars:
+                cldliq_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldliq'][::-1, :],fill_value=NC_FLOAT_FILL)
+                cldice_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldice'][::-1, :],fill_value=NC_FLOAT_FILL)
+            if add_chemistry:
+                o3_nc[0, :, :] = replace_nans_with_fill(data_horiz['o3'][::-1, :],fill_value=NC_FLOAT_FILL)
             if 'correct_or_not' in locals():
                 correct_or_not_nc[0, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
             if add_pmid:
