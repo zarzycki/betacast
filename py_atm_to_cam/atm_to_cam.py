@@ -363,6 +363,7 @@ def main():
         mpas_file = xr.open_dataset(mpasfile)
         mpas_data = {}
         mpas_data['z'] = mpas_file['zgrid'].values
+        mpas_data['zz'] = mpas_file['zz'].values
         mpas_data['ncell'], mpas_data['nlevi'] = mpas_data['z'].shape
         mpas_data['nlev'] = mpas_data['nlevi'] - 1
 
@@ -445,6 +446,9 @@ def main():
         )
         logging.info("... done performing vertical interpolation at each MPAS column!")
 
+        # Calculate MPAS base state fields (rho_base + theta_base)
+        data_horiz = vertremap.calculate_mpas_base_state(data_horiz, mpas_data)
+
         # Set it so flow doesn't go through the lower boundary condition
         data_horiz['w'] = meteo.noflux_boundary_condition(data_horiz['w'], mpas_data['nlev'])
 
@@ -471,6 +475,8 @@ def main():
                 mpas_file['qv'].values[0, :, :] = data_horiz['q'].T
                 mpas_file['rho'].values[0, :, :] = data_horiz['rho'].T
                 mpas_file['theta'].values[0, :, :] = data_horiz['theta'].T
+                mpas_file['rho_base'].values[0, :, :] = data_horiz['rho_base'].T
+                mpas_file['theta_base'].values[0, :, :] = data_horiz['theta_base'].T
                 mpas_file['w'].values[0, :, :] = 0.06 * data_horiz['w'].T
                 logging.info(f"Beginning actual file write")
                 mpas_file.to_netcdf(se_inic, format='NETCDF4')
@@ -490,7 +496,7 @@ def main():
 
                     # Define a list of variables to modify later
                     # These are "Betacast-derived" MPAS fields
-                    skip_vars = ['u', 'qv', 'rho', 'theta', 'w']
+                    skip_vars = ['u', 'qv', 'rho', 'theta', 'w', 'rho_base', 'theta_base']
 
                     # Copy global file attributes from src -> target
                     for attr_name in src_file.ncattrs():
@@ -572,6 +578,18 @@ def main():
                             'dimensions': ('Time', 'nCells', 'nVertLevels'),
                             'units': 'K',
                             'long_name': 'Potential temperature'
+                        },
+                        'rho_base': {
+                            'type': 'f8',
+                            'dimensions': ('Time', 'nCells', 'nVertLevels'),
+                            'units': 'kg m^{-3}',
+                            'long_name': 'Base state dry air density'
+                        },
+                        'theta_base': {
+                            'type': 'f8',
+                            'dimensions': ('Time', 'nCells', 'nVertLevels'),
+                            'units': 'K',
+                            'long_name': 'Base state potential temperature'
                         }
                     }
 
@@ -637,6 +655,8 @@ def main():
                     new_file.variables['rho'][0, :, :] = data_horiz['rho'].T
                     new_file.variables['theta'][0, :, :] = data_horiz['theta'].T
                     new_file.variables['w'][0, :, :] = MPAS_W_DAMPING_COEF * data_horiz['w'].T
+                    new_file.variables['rho_base'][0, :, :] = data_horiz['rho_base'].T
+                    new_file.variables['theta_base'][0, :, :] = data_horiz['theta_base'].T
 
                 logging.info(f"Done generating MPAS initial condition file: {se_inic}, exiting...")
 

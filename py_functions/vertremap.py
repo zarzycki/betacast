@@ -943,8 +943,83 @@ def taper_to_standard(valid_data, valid_z, full_z, std_data, taper_rate=1.0):
     return tapered_data
 
 
+def calculate_mpas_base_state(data_horiz, mpas_data):
+    """
+    Calculate MPAS base state fields (theta_base and rho_base) for isothermal atmosphere.
 
+    Parameters:
+    -----------
+    data_horiz : dict
+        Dictionary containing horizontally interpolated data fields
+    mpas_data : dict
+        Dictionary containing MPAS grid information, must have 'z' field
+    p0 : float, optional
+        Reference pressure in Pa (default: 1.0e5)
+    grav : float, optional
+        Gravitational acceleration in m/s² (default: 9.80616)
 
+    Returns:
+    --------
+    dict
+        Updated data_horiz dictionary with added theta_base and rho_base fields
+    """
+
+    logging.info("Calculating theta_base and rho_base for MPAS...")
+
+    # Physical constants (these need to get moved)
+    p0 = 1.0e5
+    grav = 9.80616
+    t0b = 250.0   # Reference temperature (K) for base state
+    rgas = 287.0  # Gas constant for dry air (J/kg/K)
+    cp = 1004.5   # Specific heat at constant pressure (J/kg/K)
+
+    # Get dimensions
+    ncell = mpas_data['ncell']
+    nlev = mpas_data['nlev']
+
+    # zz field represents the vertical coordinate metric
+    # values > 1 indicate compressed layers (thinner than reference)
+    # values < 1 indicate stretched layers (thicker than reference).
+    # Accounts for terrain-following z where dz varies in x-y due to topography.
+    zz = mpas_data['zz']
+
+    # Calculate layer center heights from interface heights
+    zmid = 0.5 * (mpas_data['z'][:, :-1] + mpas_data['z'][:, 1:])  # (ncell, nlev)
+
+    # Initialize base state arrays
+    pressure_base = np.zeros((ncell, nlev))
+    exner_base = np.zeros((ncell, nlev))
+    rho_base = np.zeros((ncell, nlev))
+    theta_base = np.zeros((ncell, nlev))
+
+    # Calculate base state for each level (before metric coupling)
+    for k in range(nlev):
+
+        # Base pressure using hydrostatic balance in isothermal atmosphere
+        pressure_base[:, k] = p0 * np.exp(-grav * zmid[:, k] / (rgas * t0b))
+
+        # Exner function
+        exner_base[:, k] = (pressure_base[:, k] / p0) ** (rgas / cp)
+
+        # Base density (before metric coupling)
+        rho_base[:, k] = pressure_base[:, k] / (rgas * t0b)
+
+        # Base potential temperature
+        theta_base[:, k] = t0b / exner_base[:, k]
+
+    # Apply vertical coordinate metric to rho_base (see above)
+    rho_base = rho_base / zz
+
+    # Add to data_horiz dictionary
+    # Transpose to match expected shape (nlev, ncell) for consistency with other fields
+    data_horiz['theta_base'] = theta_base.T  # Shape: (nlev, ncell)
+    data_horiz['rho_base'] = rho_base.T      # Shape: (nlev, ncell)
+
+    logging.info(f"theta_base range: {np.min(data_horiz['theta_base']):.2f} to {np.max(data_horiz['theta_base']):.2f} K")
+    logging.info(f"rho_base range: {np.min(data_horiz['rho_base']):.4f} to {np.max(data_horiz['rho_base']):.4f} kg/m³")
+    logging.info("... done calculating MPAS base state fields!")
+
+    return data_horiz
 
 
 def interpolate_single_mpas_column(ix, mpas_nlev, mpas_nlevi, mpas_z, data_dict, vert_remap_keys, var_config):
