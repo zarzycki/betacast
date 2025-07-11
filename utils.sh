@@ -399,57 +399,64 @@ run_CIME () {
 ### This is the v2 version of this that figures out what the status is by reading
 ### the last valid entry in CaseStatus
 run_CIME2 () {
-  # 1 path_to_run_dir
-  # 2 ${CIMEsubstring}
-  # 3 ${CIMEbatchargs}
-  # 4 exit_on_error
+  # 1: path_to_run_dir
+  # 2: CIMEsubstring
+  # 3: CIMEbatchargs
+  # 4: exit_on_error (true/false)
 
-  echo "run_CIME2: path_to_rundir: "$1
-  echo "run_CIME2: CIMEsubstring: "$2
-  echo "run_CIME2: CIMEbatchargs: "$3
-  echo "run_CIME2: exit_on_error: "$4
+  echo "run_CIME2: path_to_rundir: $1"
+  echo "run_CIME2: CIMEsubstring: $2"
+  echo "run_CIME2: CIMEbatchargs: $3"
+  echo "run_CIME2: exit_on_error: $4"
 
-  # Get number of log .gz files for sleeping
-
-  local CASESTR=""
+  local run_dir="$1"
+  local substr="$2"
+  local batchargs="$3"
+  local exit_on_error="$4"
+  local case_status_str=""
+  local case_status=1
 
   echo "RUN_CIME2: SUBMITTING FORECAST RUN"
-  set +e ; ./case.submit $2 --batch-args "${3}" ; set -e
+  ./case.submit "$substr" --batch-args "$batchargs"
 
-  ## Set up NUKEing
-  if [ -f "${1}/NUKE" ] ; then rm -v $1/NUKE ; sleep 5 ; fi
-  echo "RUN_CIME2: To NUKE, run \"touch ${1}/NUKE\" "
+  # Reset NUKE file if it exists
+  if [ -f "$run_dir/NUKE" ]; then rm -v "$run_dir/NUKE"; sleep 5; fi
+  echo "RUN_CIME2: To NUKE, run \"touch $run_dir/NUKE\" "
 
-  ## Hold script while log files from filter run haven't been archived yet
-  CIMESTATUS=1
-  while [ $CIMESTATUS == 1 ]
-  do
-    if [ -f "${1}/NUKE" ] ; then echo "RUN_CIME2: Nuke sequence initiated, exiting betacast" ; exit ; fi
-
-    # Get the last valid two lines from the CaseStatus file...
-    CASESTR=$(grep "^20" CaseStatus | tail -2)
-
-    # See if success or error
-    if echo "$CASESTR" | grep -q "case.run success"; then
-      CIMESTATUS=0
-    elif echo "$CASESTR" | grep -q "case.run error"; then
-      CIMESTATUS=99
-    else
-      CIMESTATUS=1
-    fi
-
-    sleep 10 ; echo "RUN_CIME2: Sleeping... CIMESTATUS: $CIMESTATUS -- $(date '+%Y%m%d %H:%M:%S')"
-  done
-
-  if [ $CIMESTATUS -eq 0 ]; then
-    echo "RUN_CIME2: Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 30 more sec to make sure files moved"
-    sleep 30
-  else
-    echo "RUN_CIME2: Uh oh, something wrong!"
-    if [ $4 = true ]; then
-      echo "RUN_CIME2: Exiting because of error with model run, check log files in $path_to_rundir"
+  # Wait for model run to complete or fail
+  while [ $case_status -eq 1 ]; do
+    if [ -f "$run_dir/NUKE" ]; then
+      echo "RUN_CIME2: Nuke sequence initiated, exiting betacast"
       exit 1
     fi
+
+    case_status_str=$(grep -a "^20" CaseStatus | tail -2)
+
+    if echo "$case_status_str" | grep -q "case.run success"; then
+      case_status=0
+    elif echo "$case_status_str" | grep -q "case.run error"; then
+      case_status=99
+    elif echo "$case_status_str" | grep -q "ERROR: Model did not complete"; then
+      case_status=99
+    else
+      case_status=1
+    fi
+
+    sleep 10
+    echo "RUN_CIME2: Sleeping... status=$case_status -- $(date '+%Y%m%d %H:%M:%S')"
+  done
+
+  if [ $case_status -eq 0 ]; then
+    echo "RUN_CIME2: Run completed successfully, sleeping 30s to allow file flush..."
+    sleep 30
+    return 0
+  else
+    echo "RUN_CIME2: Run failed"
+    if [ "$exit_on_error" = true ]; then
+      echo "RUN_CIME2: Exiting due to error in model run; check logs in $run_dir"
+      exit 1
+    fi
+    return 1
   fi
 }
 

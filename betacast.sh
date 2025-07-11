@@ -1240,7 +1240,10 @@ if [ "$doFilter" = true ] ; then
   if [ "$debug" = false ] ; then
 
     echo "Begin call to filter-run"
+    set +e
     run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs" true
+    CIMESTATUS=$?
+    set -e
 
     ## Run NCL filter
     echo "Running filter, currently in $PWD"
@@ -1378,7 +1381,10 @@ if [ "$debug" = false ] ; then
     fi
     CIMEITER=$((CIMEITER+1))
     echo "Running CIME on CIMEITER $CIMEITER"
+    set +e
     run_CIME2 "$path_to_rundir" "$CIMEsubstring" "$CIMEbatchargs" false
+    CIMESTATUS=$?
+    set -e
   done
   echo "Returned status $CIMESTATUS"
 fi
