@@ -724,7 +724,7 @@ main_archive () {
   mkdir -p $1/logs
   mkdir -p $1/betacast
 
-  echo "Moving relevant files to archive folder"
+  echo "Moving relevant files to archive folder (${1})"
   mv -v *.$2.h*.nc $1 || true
   mv -v *.$3*.h*.nc $1 || true
   mv -v *.$4*.h*.nc $1 || true
@@ -876,10 +876,23 @@ function compress_single_file() {
   fi
 }
 
+# # Timer function to measure execution time of another function
+# # Usage: timer compress_history /path/to/directory
+# timer() {
+#   /usr/bin/time -f "Time elapsed for $1: %E ---> Maximum memory used: %M kilobytes" "$@" 2>&1
+# }
+
 # Timer function to measure execution time of another function
 # Usage: timer compress_history /path/to/directory
 timer() {
-  /usr/bin/time -f "Time elapsed for $1: %E ---> Maximum memory used: %M kilobytes" "$@" 2>&1
+    local start_time=$(date +%s)
+
+    # Call the function passed as argument with all its arguments
+    "$@"
+
+    local end_time=$(date +%s)
+    local elapsed=$((end_time - start_time))
+    echo "Time elapsed for $1: $elapsed seconds"
 }
 
 #### NCO functions!
