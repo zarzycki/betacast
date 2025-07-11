@@ -138,7 +138,7 @@ function read_bash_nl() {
   while [ $# -ge 3 ]; do
     local var="$1"
     local eq="$2"
-    local val="${3//___/ }"
+    local val="${3//___/}"
 
     if [ "$eq" != "=" ]; then
       echo "NAMELIST ERR: Uh oh, in $FILETOREAD bad format: $1 $2 $3"
