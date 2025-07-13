@@ -112,6 +112,8 @@ and `HR_RES` is 6 and `NDAYS_PER_DATE` is 2, the resulting array of nudging to g
 
 This works by going down forecast-by-forecast (each line) and creating an array of required dates to nudge that forecast. The code will internally sort and remove duplicates.
 
+**NOTE:** The special case of "just generate files for the dates in my list" can be achieved by setting `NDAYS_PER_DATE=0`. This may be useful if one just wants to create nudging files for specific user-defined dates only.
+
 #### Auto-generated dates mode
 
 If dates file (second command line arg) is non-existant (or some garbage string like NULL), the code will use the `STYR`, `STMON`, `STDAY`, `ENYR`, `ENMON`, `ENDAY`, and `HR_RES` variables to generate an array of files to be generated.
