@@ -454,7 +454,7 @@ def main():
 
         # Damp the top few layers of MPAS winds
         if damp_upper_winds_mpas:
-            data_horiz['u'], data_horiz['v'] = meteo.mpas.damp_upper_level_winds(data_horiz['u'], data_horiz['v'], mpas_data['nlev'])
+            data_horiz['u'], data_horiz['v'] = meteo.damp_upper_level_winds(data_horiz['u'], data_horiz['v'], mpas_data['nlev'])
 
         if not mpas_as_cam:
             # put u + v on cell edges...
