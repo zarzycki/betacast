@@ -9,7 +9,7 @@ get_gfs_atm() {
   if [ ! -f "$LOCALGFSFILE" ]; then
     echo "Getting Atmo file"
     if [ "$islive" = true ] ; then
-      gfsFTPPath="https://ftpprd.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.${yearstr}${monthstr}${daystr}/${cyclestr}/atmos/"
+      gfsFTPPath="https://noaa-gfs-bdp-pds.s3.amazonaws.com/gfs.${yearstr}${monthstr}${daystr}/${cyclestr}/atmos/"
       gfsFTPFile="gfs.t${cyclestr}z.pgrb2.0p25.anl"
       rm -fv "$gfsFTPFile"
       echo "Attempting to download ${gfsFTPPath}${gfsFTPFile}"
@@ -124,7 +124,7 @@ get_gdas_sst() {
   cd "${sst_files_path}" || exit
 
   if [ "$islive" = true ]; then
-    sstFTPPath="https://ftpprd.ncep.noaa.gov/data/nccf/com/nsst/v1.2/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/"
+    sstFTPPath="https://noaa-gfs-bdp-pds.s3.amazonaws.com/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/"
     sstFTPFile="rtgssthr_grb_0.5.grib2"
     rm -fv "${sstFTPFile}"
     echo "Attempting to download ${sstFTPPath}${sstFTPFile}"
