@@ -12,17 +12,32 @@ logger = logging.getLogger(__name__)
 def load_model_orography(dycore, model_topo_file, dim_sePS):
     """Load model orography based on dycore type."""
     ttfile = xr.open_dataset(model_topo_file)
+
+    # Internal function gets PHIS of either (ncol) or (time,ncol) sizes
+    def get_topo_variable(varname):
+        if varname in ttfile.variables:
+            var = ttfile[varname]
+            # Remove time dim if it exists
+            if "time" in var.dims:
+                var = var.isel(time=0)
+            # Check shape
+            if var.shape == dim_sePS:
+                # Return numpy array
+                return var.values
+        return None
+
     if dycore == "se" or dycore == "scream":
-        if "PHIS" in ttfile.variables and ttfile["PHIS"].shape == dim_sePS:
-            return ttfile["PHIS"].values
-        elif "PHIS_d" in ttfile.variables and ttfile["PHIS_d"].shape == dim_sePS:
-            return ttfile["PHIS_d"].values
-        elif "PHIS_gll" in ttfile.variables and ttfile["PHIS_gll"].shape == dim_sePS:
-            return ttfile["PHIS_gll"].values
-        else:
-            raise ValueError(f"Cannot find valid PHIS or PHIS_d or PHIS_gll with dimensions that match ncol: {dim_sePS[0]}")
+        for varname in ["PHIS", "PHIS_d", "PHIS_gll"]:
+            var = get_topo_variable(varname)
+            if var is not None:
+                return var
+        raise ValueError(f"Cannot find valid PHIS or PHIS_d or PHIS_gll with dimensions that match ncol: {dim_sePS[0]}")
     else:
-        return ttfile["PHIS"].values
+        # For other dycores, right now just straight up return PHIS
+        var = ttfile["PHIS"]
+        if "time" in var.dims:
+            var = var.isel(time=0)
+        return var.values
 
 
 def correct_state_variables(data_horiz, correct_or_not, tempadjustflag, dycore):
