@@ -75,6 +75,46 @@ function strip_quotes() {
   local -n var="$1"
   [[ "${var}" == \"*\" || "${var}" == \'*\' ]] && var="${var:1:-1}"
 }
+
+### -----------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# check_shell_flags
+#
+# Displays the current status of key Bash execution flags
+# Useful for debugging script, just drop "check_shell_flags" in various locales
+#
+# Function combines the output of two helpers:
+#   - check_direct_flags: Inspects shell flags stored in the special $- variable
+#       - errexit (-e): Exit immediately on command failure
+#       - nounset (-u): Treat unset variables as an error
+#       - xtrace  (-x): Print each command before execution
+#       - noexec  (-n): Parse commands but do not execute them
+#   - check_pipefail: Uses `set -o` to determine the state of the `pipefail` option
+# -----------------------------------------------------------------------------
+
+# Helper function #1
+check_direct_flags() {
+  echo "Current shell flags in \$-: '$-'"
+  [[ $- == *e* ]] && echo "  errexit (-e)  : ON" || echo "  errexit (-e)  : OFF"
+  [[ $- == *u* ]] && echo "  nounset (-u)  : ON" || echo "  nounset (-u)  : OFF"
+  [[ $- == *x* ]] && echo "  xtrace  (-x)  : ON" || echo "  xtrace  (-x)  : OFF"
+  [[ $- == *n* ]] && echo "  noexec  (-n)  : ON" || echo "  noexec  (-n)  : OFF"
+}
+
+# Helper function #2
+check_pipefail() {
+  pipefail_status=$(set -o | grep pipefail | awk '{print $2}')
+  echo "  pipefail      : $pipefail_status"
+}
+
+# Use this function as the one invoked
+check_shell_flags() {
+  echo "Bash flag status:"
+  check_direct_flags
+  check_pipefail
+}
+
 ### -----------------------------------------------------------------------------------
 
 # Check if a boolean is set via 0/1 and correct.
