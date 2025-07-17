@@ -51,21 +51,21 @@ replace_betacast_string() {
 ### -----------------------------------------------------------------------------------
 
 check_required_vars() {
-    local missing_vars=()
-    for var_name in "$@"; do
-        if [[ -z ${!var_name+x} ]]; then
-            missing_vars+=("$var_name")
-        fi
-    done
-
-    if [[ ${#missing_vars[@]} -ne 0 ]]; then
-        echo "The following required variables are not set:" >&2
-        printf ' - %s\n' "${missing_vars[@]}" >&2
-        exit 1
-    else
-        echo "All required variables are set!"
-        return 0
+  local missing_vars=()
+  for var_name in "$@"; do
+    if [[ -z ${!var_name+x} ]]; then
+      missing_vars+=("$var_name")
     fi
+  done
+
+  if [[ ${#missing_vars[@]} -ne 0 ]]; then
+    echo "The following required variables are not set:" >&2
+    printf ' - %s\n' "${missing_vars[@]}" >&2
+    exit 1
+  else
+    echo "All required variables are set!"
+    return 0
+  fi
 }
 
 ### -----------------------------------------------------------------------------------
@@ -102,11 +102,13 @@ check_direct_flags() {
   [[ $- == *n* ]] && echo "  noexec  (-n)  : ON" || echo "  noexec  (-n)  : OFF"
 }
 
+
 # Helper function #2
 check_pipefail() {
   pipefail_status=$(set -o | grep pipefail | awk '{print $2}')
   echo "  pipefail      : $pipefail_status"
 }
+
 
 # Use this function as the one invoked
 check_shell_flags() {
@@ -211,6 +213,7 @@ function exit_file_no_exist() {
   fi
 }
 
+
 # Usage: exit_files_no_exist $path_to_case/SourceMods/src.${lndName}/lnd_comp_mct.F90 $path_to_case/SourceMods/src.${lndName}/lnd_comp_nuopc.F90
 function exit_files_no_exist() {
   local checkthisfile
@@ -287,6 +290,7 @@ remove_top_line_from_dates() {
   tail -n +2 "${datesfile}" > "${datesfile}.tmp" && mv -v "${datesfile}.tmp" "${datesfile}"
 }
 
+
 # Usage--> longdate=$(get_top_line_from_dates "dates.txt")
 get_top_line_from_dates() {
   local datesfile="$1"  # The first argument to the function is the path to the file
@@ -347,7 +351,6 @@ get_cyclestrsec () {
     cyclestrsec="0"$cyclestrsec
   done
 }
-
 
 
 function getSSTtime() {
@@ -501,8 +504,6 @@ run_CIME2 () {
 }
 
 
-
-
 # Example usage of the function (assuming COMPRESS_SW and a file path are set)
 # COMPRESS_SW is determined by the find_compression_software function
 # file_to_decompress="/path/to/your/compressed_file"
@@ -512,102 +513,105 @@ run_CIME2 () {
 
 # Function to determine the available compression software
 find_compression_software() {
-    # Define an array of desired compression algorithms
-    local compression_tools=("xz" "zstd" "pigz" "lz4" "gzip")
+  # Define an array of desired compression algorithms
+  local compression_tools=("xz" "zstd" "pigz" "lz4" "gzip")
 
-    # Loop through the array to find the first available tool
-    for tool in "${compression_tools[@]}"; do
-        if command -v "$tool" > /dev/null 2>&1; then
-            # Return the found tool
-            echo "$tool"
-            return
-        fi
-    done
+  # Loop through the array to find the first available tool
+  for tool in "${compression_tools[@]}"; do
+    if command -v "$tool" > /dev/null 2>&1; then
+      # Return the found tool
+      echo "$tool"
+      return
+    fi
+  done
 
-    # If we reach this point, no tool was found
-    echo "null"
+  # If we reach this point, no tool was found
+  echo "null"
 }
+
 
 # Function to compress a file using the specified compression software
 compress_file() {
-    local file="$1"
-    local compress_sw="$2"
-    local start_time end_time original_size compressed_size time_taken speed compression_percentage
+  local file="$1"
+  local compress_sw="$2"
+  local start_time end_time original_size compressed_size time_taken speed compression_percentage
 
-    start_time=$(date +%s.%N)
-    original_size=$(stat --format=%s "$file")
+  start_time=$(date +%s.%N)
+  original_size=$(stat --format=%s "$file")
 
-    case "$compress_sw" in
-        zstd)
-            zstd -3 -T4 -q --rm "$file"
-            compressed_size=$(stat --format=%s "${file}.zst")
-            ;;
-        pigz)
-            pigz "$file"
-            compressed_size=$(stat --format=%s "${file}.gz")
-            ;;
-        gzip)
-            gzip "$file"
-            compressed_size=$(stat --format=%s "${file}.gz")
-            ;;
-        xz)
-            xz -0 -T8 -f -q "$file"
-            compressed_size=$(stat --format=%s "${file}.xz")
-            ;;
-        lz4)
-            lz4 -1 --rm -q "$file"
-            compressed_size=$(stat --format=%s "${file}.lz4")
-            ;;
-        *)
-            echo "Unsupported compression software: $compress_sw"
-            return 1
-            ;;
-    esac
+  case "$compress_sw" in
+    zstd)
+      zstd -3 -T4 -q --rm "$file"
+      compressed_size=$(stat --format=%s "${file}.zst")
+      ;;
+    pigz)
+      pigz "$file"
+      compressed_size=$(stat --format=%s "${file}.gz")
+      ;;
+    gzip)
+      gzip "$file"
+      compressed_size=$(stat --format=%s "${file}.gz")
+      ;;
+    xz)
+      xz -0 -T8 -f -q "$file"
+      compressed_size=$(stat --format=%s "${file}.xz")
+      ;;
+    lz4)
+      lz4 -1 --rm -q "$file"
+      compressed_size=$(stat --format=%s "${file}.lz4")
+      ;;
+    *)
+      echo "Unsupported compression software: $compress_sw"
+      return 1
+      ;;
+  esac
 
-    end_time=$(date +%s.%N)
-    time_taken=$(echo "$end_time - $start_time" | bc)
-    compression_percentage=$(echo "scale=2; (100 * $compressed_size / $original_size)" | bc)
-    speed=$(echo "scale=2; $original_size / 1048576 / $time_taken" | bc)
+  end_time=$(date +%s.%N)
+  time_taken=$(echo "$end_time - $start_time" | bc)
+  compression_percentage=$(echo "scale=2; (100 * $compressed_size / $original_size)" | bc)
+  speed=$(echo "scale=2; $original_size / 1048576 / $time_taken" | bc)
 
-    echo "COMPRESS: Compressed using $compress_sw: ${file}"
-    echo "COMPRESS: -- Original size: $original_size bytes, Compressed size: $compressed_size bytes, Compression percentage: ${compression_percentage}%, Time taken: ${time_taken}s, Speed: ${speed}MB/s"
+  echo "COMPRESS: Compressed using $compress_sw: ${file}"
+  echo "COMPRESS: -- Original size: $original_size bytes, Compressed size: $compressed_size bytes, Compression percentage: ${compression_percentage}%, Time taken: ${time_taken}s, Speed: ${speed}MB/s"
 }
+
 
 uncompress_file() {
-    local file="$1"
-    local compress_sw="$2"
-    local start_time end_time time_taken
+  local file="$1"
+  local compress_sw="$2"
+  local start_time end_time time_taken
 
-    start_time=$(date +%s.%N)
+  start_time=$(date +%s.%N)
 
-    case "$compress_sw" in
-        zstd)
-            zstd -d -q "$file" --rm
-            ;;
-        pigz)
-            pigz -d "$file"
-            ;;
-        gzip)
-            gzip -d "$file"
-            ;;
-        xz)
-            xz -d -q "$file"
-            ;;
-        lz4)
-            lz4 -d -q --rm "$file"
-            ;;
-        *)
-            echo "Unsupported compression software for decompression: $compress_sw"
-            return 1
-            ;;
-    esac
+  case "$compress_sw" in
+    zstd)
+      zstd -d -q "$file" --rm
+      ;;
+    pigz)
+      pigz -d "$file"
+      ;;
+    gzip)
+      gzip -d "$file"
+      ;;
+    xz)
+      xz -d -q "$file"
+      ;;
+    lz4)
+      lz4 -d -q --rm "$file"
+      ;;
+    *)
+      echo "Unsupported compression software for decompression: $compress_sw"
+      return 1
+      ;;
+  esac
 
-    end_time=$(date +%s.%N)
-    time_taken=$(echo "$end_time - $start_time" | bc)
+  end_time=$(date +%s.%N)
+  time_taken=$(echo "$end_time - $start_time" | bc)
 
-    echo "UNCOMPRESS: file uncompressed using $compress_sw: ${file%.*}"
-    echo "UNCOMPRESS: -- Time taken: ${time_taken}s"
+  echo "UNCOMPRESS: file uncompressed using $compress_sw: ${file%.*}"
+  echo "UNCOMPRESS: -- Time taken: ${time_taken}s"
 }
+
 
 try_uncompress() {
   local file="$1"
@@ -623,12 +627,6 @@ try_uncompress() {
       ;;
   esac
 }
-
-
-
-
-
-
 
 
 #shopt -s nullglob
@@ -672,6 +670,7 @@ compress_history () {
   done
 }
 
+
 #$path_to_nc_files $2
 #$tmparchivecdir $1
 #$compress_history $3
@@ -687,6 +686,7 @@ archive_nudging () {
   fi
   )
 }
+
 
 #tmparchivecdir = 1
 #path_to_case =2
@@ -798,6 +798,7 @@ delete_leftovers () {
   )
 }
 
+
 #Usage example:
 #delete_except_last "*.clm2.r.*"
 #delete_except_last "*.clm2.r.*,*.elm.r.*"
@@ -828,6 +829,7 @@ function delete_except_last() {
   done
 }
 
+
 # Copy files given a set of patterns (comma-separated)
 # Usage: safe_cp2 "*.clm2.r.*,*.elm.r.*" /path/to/destination
 safe_cp2() {
@@ -855,6 +857,7 @@ safe_cp2() {
   done
 }
 
+
 # Copy files only if non-empty and exist
 # Usage: safe_cp_files file1 file2 ... destdir
 safe_cp_files() {
@@ -870,6 +873,7 @@ safe_cp_files() {
     fi
   done
 }
+
 
 # Usage:
 # xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
@@ -889,6 +893,7 @@ xmlchange_verbose() {
   fi
 }
 
+
 # Usage:
 # script_start=$(date +%s)
 # script_end=$(date +%s)
@@ -906,6 +911,7 @@ function print_elapsed_time() {
   echo "TIME ELAPSED: $elapsed_days days, $elapsed_hours hours, $elapsed_minutes minutes, $elapsed_seconds seconds"
 }
 
+
 function compress_single_file() {
   local filename="$1"
   if ! type ncks &> /dev/null ; then
@@ -916,26 +922,20 @@ function compress_single_file() {
   fi
 }
 
-# # Timer function to measure execution time of another function
-# # Usage: timer compress_history /path/to/directory
-# timer() {
-#   /usr/bin/time -f "Time elapsed for $1: %E ---> Maximum memory used: %M kilobytes" "$@" 2>&1
-# }
 
 # Timer function to measure execution time of another function
 # Usage: timer compress_history /path/to/directory
 timer() {
-    local start_time=$(date +%s)
+  local start_time=$(date +%s)
 
-    # Call the function passed as argument with all its arguments
-    "$@"
+  # Call the function passed as argument with all its arguments
+  "$@"
 
-    local end_time=$(date +%s)
-    local elapsed=$((end_time - start_time))
-    echo "Time elapsed for $1: $elapsed seconds"
+  local end_time=$(date +%s)
+  local elapsed=$((end_time - start_time))
+  echo "Time elapsed for $1: $elapsed seconds"
 }
 
 #### NCO functions!
 # ncdmnsz $dmn_nm $fl_nm : What is dimension size?
 function ncdmnsz { ncks --trd -m -M ${2} | grep -E -i ": ${1}, size =" | cut -f 7 -d ' ' | uniq ; }
-
