@@ -486,6 +486,9 @@ if [ "$debug" = false ] ; then
   RDADIR="" # Init to empty, but fill in if RDA available later
   ERA5RDA=0 # Set whether or not ERA5 is local (0 = local, 1 = RDA)
 
+  echo "FLAGS at get_atm_data"
+  check_shell_flags
+
   case "$atmDataType" in
     1)
       get_gfs_atm
