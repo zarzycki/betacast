@@ -747,7 +747,7 @@ def read_tcseed_settings(vortex_input):
         'exppr': None,
         'degree_adjust': 15.0,
         # Optimization settings (can be overridden in namelist)
-        'truePS_scan_radius': 300.0,
+        'truePS_scan_radius': 0.3,
         'rad_for_corr': 800.0,
         'n_p_steps': 32,
         'n_t_steps': 60,
@@ -852,7 +852,7 @@ def read_tcseed_settings(vortex_input):
     return tc_settings
 
 
-def find_actual_center(guess_lat, guess_lon, lat, lon, pressure, search_radius=15.0, psunits='Pa'):
+def find_actual_center(guess_lat, guess_lon, lat, lon, pressure, search_radius=5.0, psunits='Pa'):
     """
     Find the actual TC center by locating minimum pressure within a search radius.
 
@@ -878,8 +878,16 @@ def find_actual_center(guess_lat, guess_lon, lat, lon, pressure, search_radius=1
     # Calculate great circle distances (GCD) from guessed center to all grid points
     gcdist, _ = gc_latlon(guess_lat, guess_lon, lat, lon, 2, 2)
 
+    logging.info(f"find_actual_center: search_radius: {search_radius}")
+
     # Create a masked array where points outside search radius are set to NaN
     masked_pressure = np.where(gcdist > search_radius, np.nan, pressure)
+
+    # Report number of cells remaining after masking
+    cells_remaining = np.sum(~np.isnan(masked_pressure))
+    total_cells = len(pressure)
+    percentage_remaining = (cells_remaining / total_cells) * 100
+    logging.info(f"find_actual_center: Cells remaining after masking: {cells_remaining} of {total_cells} ({percentage_remaining:.6f}%)")
 
     # Find the index of the minimum pressure point
     min_index = np.nanargmin(masked_pressure)
@@ -956,7 +964,7 @@ def find_fill_parameters(mps, T, lat, lon, lev, tc_settings, plot_bestfits=True,
         T_for_radial = T
 
     # Find the actual minimum pressure location
-    cen_lat_actual, cen_lon_actual = find_actual_center(psminlat, psminlon, lat_flat, lon_flat, mps_flat, search_radius=truePS_scan_radius)
+    cen_lat_actual, cen_lon_actual, _ = find_actual_center(psminlat, psminlon, lat_flat, lon_flat, mps_flat, search_radius=truePS_scan_radius)
 
     # Calculate radial averages
     # Both variables get keys: radius, radial_average, hit_count
