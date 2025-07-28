@@ -162,7 +162,7 @@ get_era5_atm() {
     if [[ "$MACHINEFILE" == *derecho* ]]; then
       echo "We are on derecho, so even though we lack a local file, we can use RDA"
       ERA5RDA=1
-      RDADIR="/glade/campaign/collections/rda/data/ds633.0/"
+      RDADIR="/glade/campaign/collections/rda/data/d633000/"
     elif [[ "$MACHINEFILE" == *pm* ]]; then
       echo "We are on Cori, so even though we lack a local file, we can use RDA"
       ERA5RDA=1
