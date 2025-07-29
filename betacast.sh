@@ -199,7 +199,9 @@ process_model_times "$islive" "$casename" "$datestemplate" "$numHoursSEStart" "$
 #   ${yearstr}${monthstr}${daystr}${cyclestr}
 
 # Replace any time strings
-vortex_namelist=$(replace_betacast_string "$vortex_namelist" "${yearstr}${monthstr}${daystr}${cyclestr}" "!YYYYMMDDHH!")
+if [[ -n "$vortex_namelist" ]]; then
+  vortex_namelist=$(replace_betacast_string "$vortex_namelist" "${yearstr}${monthstr}${daystr}${cyclestr}" "!YYYYMMDDHH!")
+fi
 
 ### ERROR CHECKING BLOCK! #########################################################
 
