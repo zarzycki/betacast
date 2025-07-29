@@ -747,7 +747,7 @@ def read_tcseed_settings(vortex_input):
         'exppr': None,
         'degree_adjust': 15.0,
         # Optimization settings (can be overridden in namelist)
-        'truePS_scan_radius': 0.3,
+        'truePS_scan_radius': 0.5,
         'rad_for_corr': 800.0,
         'n_p_steps': 32,
         'n_t_steps': 60,
