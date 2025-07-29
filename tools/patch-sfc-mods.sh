@@ -77,4 +77,4 @@ echo "Component: $COMPONENT_NAME"
 
 filename="${component_type}_comp_$COUPLER.F90"
 cp -v $comp_restart_file ./SourceMods/src.$clean_component_name
-patch ./SourceMods/src.$clean_component_name/$filename < ${BETACAST}/patches/${filename%.F90}${special_string}.patch
+patch -F 3 --ignore-whitespace ./SourceMods/src.$clean_component_name/$filename < ${BETACAST}/patches/${filename%.F90}${special_string}.patch
