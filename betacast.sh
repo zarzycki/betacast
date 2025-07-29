@@ -187,6 +187,20 @@ echo "Files will be archived in ${ARCHIVEDIR}/YYYYMMDDHH/"
 sstFileIC=${sstFileIC/DOCNRES/$docnres}
 echo "Actual sstFileIC: ${sstFileIC}"
 
+# Get times!
+process_model_times "$islive" "$casename" "$datestemplate" "$numHoursSEStart" "$doFilter"
+# Now we have globally set...
+#   - yearstr, monthstr, daystr, cyclestr, cyclestrsec
+#   - se_yearstr, se_monthstr, se_daystr, se_cyclestr, se_cyclestrsec
+#   - sstyearstr, sstmonthstr, sstdaystr, sstcyclestr (via getSSTtime)
+#   - yestmonthstr, yestdaystr, yestyearstr
+#   - datesfile (for non-live runs)
+#   - currtime_UTC_HHMM (current UTC time in HHMM format)
+#   ${yearstr}${monthstr}${daystr}${cyclestr}
+
+# Replace any time strings
+vortex_namelist=$(replace_betacast_string "$vortex_namelist" "${yearstr}${monthstr}${daystr}${cyclestr}" "!YYYYMMDDHH!")
+
 ### ERROR CHECKING BLOCK! #########################################################
 
 # Adjust bools (for backwards compatibility, 0 = false and 1 = true)
@@ -235,9 +249,9 @@ fi
 
 # If we are using nuopc, we need to generate an ESMF mesh
 if [ "${cime_coupler}" == "nuopc" ] && ! type ESMF_Scrip2Unstruct &> /dev/null; then
-    echo "ERROR: ESMF_Scrip2Unstruct does not exist, which is needed when cime_coupler is: ${cime_coupler}"
-    echo "ERROR: Install via conda/mamba or from source and add to PATH"
-    exit 1
+  echo "ERROR: ESMF_Scrip2Unstruct does not exist, which is needed when cime_coupler is: ${cime_coupler}"
+  echo "ERROR: Install via conda/mamba or from source and add to PATH"
+  exit 1
 fi
 
 # Check to make sure required ATM variables are provided by the user if we are using model-to-model
@@ -336,113 +350,6 @@ timestamp=$(date +%Y%m%d.%H%M)
 uniqtime=$(date +"%s%N")
 
 echo "We are using ${casename} for the case"
-
-# Get the current time
-currtime=$(date -u +%H%M)
-
-if [ "$islive" = true ] ; then    # Find most recent GFS forecast
-  ## Here we get two digit strings for UTC time for month, day, year
-  ## We also get current time in hoursminutes (because the GFS output lags by 3.5 hours)
-  monthstr=$(date -u +%m)
-  daystr=$(date -u +%d)
-  yearstr=$(date -u +%Y)
-
-  ## Use currtime to figure out what is the latest cycle we have access to
-  if [ "$currtime" -lt 0328 ] ; then
-    echo "12Z cycle"
-    monthstr=$(date --date="yesterday" -u +%m)
-    daystr=$(date --date="yesterday" -u +%d)
-    yearstr=$(date --date="yesterday" -u +%Y)
-    cyclestr=12
-  elif [ "$currtime" -lt 0928 ] ; then
-    echo "00Z cycle"
-    cyclestr=00
-  elif [ "$currtime" -lt 1528 ] ; then
-    echo "00Z cycle"
-    cyclestr=00
-  elif [ "$currtime" -lt 2128 ] ; then
-    echo "12Z cycle"
-    cyclestr=12
-  elif [ "$currtime" -ge 2128 ] ; then
-    echo "12Z cycle"
-    cyclestr=12
-  else
-    echo "Can't figure out start time"
-    exit 1
-  fi
-
-else     # if not live, draw from head of dates.txt file
-
-  # Figure out if dates.CASE.txt exists and where it is located
-  datesbase=dates.${casename}.txt
-  if [ -f "./dates/${datesbase}" ]; then
-    # Preferred location is dates subdir as of 4/13/2022
-    echo "$datesbase exists in dates subdirectory"
-    datesfile=./dates/${datesbase}
-  else
-    if [ -f "./${datesbase}" ]; then
-      echo "WARNING! $datesbase isn't in dates subdir but exists in home dir!"
-      echo "This is allowed for backwards compatibility but is less organized!"
-      echo "You should create a subdir called 'dates' and put the dates.CASE.txt file there!"
-      datesfile=${datesbase}
-    else
-      if [[ ${datestemplate+x} && -f ./dates/${datestemplate} ]]; then
-        echo "Didn't find case dates, but you specified a datestemplate in the namelist..."
-        echo "So I'm copying $datestemplate to this case and using that..."
-        cp -v ./dates/${datestemplate} ./dates/${datesbase}
-        datesfile=./dates/${datesbase}
-      else
-        echo "Uh, oh. Can't find a dates file OR template AND run isn't live. Exiting..."
-        exit 1
-      fi
-    fi
-  fi
-
-  echo "Using dates in: "${datesfile}
-  longdate=$(get_top_line_from_dates "${datesfile}")
-  echo "Getting parsed time from $longdate"
-  parse_YYYYMMDDHH "$longdate"
-  echo "From datesfile, read in: $yearstr $monthstr $daystr ${cyclestr}Z"
-fi
-
-## Figure out the seconds which correspond to the cycle and zero pad if neces
-get_cyclestrsec "$cyclestr"
-
-## Figure out what the SE start time will be after filter
-## These values are *only* used if do_filter is true
-if [ "$numHoursSEStart" -lt 6 ] ; then
-  let se_cyclestr="$cyclestr"+03
-  while [ ${#se_cyclestr} -lt 2 ]; do
-    se_cyclestr="0$se_cyclestr"
-  done
-  se_monthstr="$monthstr"
-  se_daystr="$daystr"
-  se_yearstr="$yearstr"
-  let se_cyclestrsec=$((10#$se_cyclestr))*3600
-  while [ ${#se_cyclestrsec} -lt 5 ]; do
-    se_cyclestrsec="0$se_cyclestrsec"
-  done
-else
-  echo "SE forecast lead time too long, 18Z cycle causes trouble"
-  echo "Not supported."
-  exit 1
-fi
-
-
-# Get time for pulling SST
-getSSTtime "$islive" "$currtime" "$monthstr" "$daystr" "$yearstr" "$cyclestr"
-
-yestmonthstr=$(date --date="yesterday" -u +%m)
-yestdaystr=$(date --date="yesterday" -u +%d)
-yestyearstr=$(date --date="yesterday" -u +%Y)
-
-echo "We are using $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds) for ATM init. data"
-echo "We are using $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z for SST init. data"
-if [ "$doFilter" = true ] ; then
-  echo "Filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $se_cyclestr Z ($se_cyclestrsec seconds)"
-else
-  echo "No filter: True model init. will occur at $se_yearstr $se_monthstr $se_daystr $cyclestr Z ($cyclestrsec seconds)"
-fi
 
 if [ "$runmodel" = true ] ; then
 

@@ -355,35 +355,35 @@ get_cyclestrsec () {
 
 function getSSTtime() {
   local islive=$1
-  local currtime=$2
+  local currtime_UTC_HHMM=$2
   local monthstr=$3
   local daystr=$4
   local yearstr=$5
   local cyclestr=$6
 
   if [ $islive = true ] ; then
-    ## Use currtime to figure out what SST we can download
+    ## Use currtime_UTC_HHMM to figure out what SST we can download
     ## Current GDAS SST appears 555 after cycle time
     ## First guess is today's dates!
     sstmonthstr=$monthstr
     sstdaystr=$daystr
     sstyearstr=$yearstr
-    if [ $currtime -lt 0555 ] ; then
+    if [ $currtime_UTC_HHMM -lt 0555 ] ; then
       echo "SSTs are previous days 18Z"
       sstmonthstr=$(date --date="yesterday" -u +%m)
       sstdaystr=$(date --date="yesterday" -u +%d)
       sstyearstr=$(date --date="yesterday" -u +%Y)
       sstcyclestr=18
-    elif [ $currtime -lt 1155 ] ; then
+    elif [ $currtime_UTC_HHMM -lt 1155 ] ; then
       echo "SSTs are current days 00Z"
       sstcyclestr=00
-    elif [ $currtime -lt 1755 ] ; then
+    elif [ $currtime_UTC_HHMM -lt 1755 ] ; then
       echo "SSTs are current days 06Z"
       sstcyclestr=06
-    elif [ $currtime -lt 2355 ] ; then
+    elif [ $currtime_UTC_HHMM -lt 2355 ] ; then
       echo "SSTs are current days 12Z"
       sstcyclestr=12
-    elif [ $currtime -ge 2355 ] ; then
+    elif [ $currtime_UTC_HHMM -ge 2355 ] ; then
       echo "SSTs are current days 18Z"
       sstcyclestr=18
     else
@@ -939,3 +939,154 @@ timer() {
 #### NCO functions!
 # ncdmnsz $dmn_nm $fl_nm : What is dimension size?
 function ncdmnsz { ncks --trd -m -M ${2} | grep -E -i ": ${1}, size =" | cut -f 7 -d ' ' | uniq ; }
+
+
+# -----------------------------------------------------------------------------
+# process_model_times
+#
+# Determines appropriate forecast cycle times and sets all time-related variables
+# needed by the main driver script. Handles both live forecasting and historical
+# cases from dates files.
+#
+# Inputs (passed as parameters):
+#   $1 - islive (true/false)
+#   $2 - casename (required for non-live runs)
+#   $3 - datestemplate (optional, for non-live runs)
+#   $4 - numHoursSEStart (for SE filtering calculations)
+#   $5 - doFilter (true/false, affects output messaging)
+#
+# Sets the following global variables:
+#   - yearstr, monthstr, daystr, cyclestr, cyclestrsec
+#   - se_yearstr, se_monthstr, se_daystr, se_cyclestr, se_cyclestrsec
+#   - sstyearstr, sstmonthstr, sstdaystr, sstcyclestr (via getSSTtime)
+#   - yestmonthstr, yestdaystr, yestyearstr
+#   - datesfile (for non-live runs)
+#   - currtime_UTC_HHMM (current UTC time in HHMM format)
+# -----------------------------------------------------------------------------
+process_model_times() {
+  local islive="$1"
+  local casename="$2"
+  local datestemplate="$3"
+  local numHoursSEStart="$4"
+  local doFilter="$5"
+  local datesbase
+  local longdate
+
+  # Get the current time
+  currtime_UTC_HHMM=$(date -u +%H%M)
+
+  if [ "$islive" = true ]; then
+    echo "Processing live forecast times..."
+    # Get current UTC date components
+    monthstr=$(date -u +%m)
+    daystr=$(date -u +%d)
+    yearstr=$(date -u +%Y)
+
+    # Determine latest available GFS cycle based on current time
+    # (GFS output lags by ~3.5 hours)
+    if [ "$currtime_UTC_HHMM" -lt 0328 ]; then
+      echo "12Z cycle (previous day)"
+      monthstr=$(date --date="yesterday" -u +%m)
+      daystr=$(date --date="yesterday" -u +%d)
+      yearstr=$(date --date="yesterday" -u +%Y)
+      cyclestr=12
+    elif [ "$currtime_UTC_HHMM" -lt 0928 ]; then
+      echo "00Z cycle"
+      cyclestr=00
+    elif [ "$currtime_UTC_HHMM" -lt 1528 ]; then
+      echo "00Z cycle"
+      cyclestr=00
+    elif [ "$currtime_UTC_HHMM" -lt 2128 ]; then
+      echo "12Z cycle"
+      cyclestr=12
+    elif [ "$currtime_UTC_HHMM" -ge 2128 ]; then
+      echo "12Z cycle"
+      cyclestr=12
+    else
+      echo "ERROR: Can't determine appropriate start time for current time: $currtime_UTC_HHMM"
+      exit 1
+    fi
+  else
+    echo "Processing historical times from dates file..."
+    datesbase="dates.${casename}.txt"
+    # Locate the dates file
+    if [ -f "./dates/${datesbase}" ]; then
+      echo "$datesbase exists in dates subdirectory"
+      datesfile="./dates/${datesbase}"
+    elif [ -f "./${datesbase}" ]; then
+      echo "WARNING! $datesbase isn't in dates subdir but exists in home dir!"
+      echo "This is allowed for backwards compatibility but is less organized!"
+      echo "You should create a subdir called 'dates' and put the dates.CASE.txt file there!"
+      datesfile="$datesbase"
+    else
+      # Try to use template if provided
+      if [[ -n "${datestemplate}" && -f "./dates/${datestemplate}" ]]; then
+        echo "Didn't find case dates, but you specified a datestemplate..."
+        echo "So I'm copying $datestemplate to this case and using that..."
+        cp -v "./dates/${datestemplate}" "./dates/${datesbase}"
+        datesfile="./dates/${datesbase}"
+      else
+        echo "ERROR: Can't find a dates file OR template AND run isn't live. Exiting..."
+        exit 1
+      fi
+    fi
+
+    echo "Using dates file: $datesfile"
+
+    # Parse the top line from dates file
+    longdate=$(get_top_line_from_dates "$datesfile")
+    echo "Getting parsed time from $longdate"
+    parse_YYYYMMDDHH "$longdate"
+    echo "From datesfile, read in: $yearstr $monthstr $daystr ${cyclestr}Z"
+
+  fi
+
+  # Calculate cycle seconds
+  get_cyclestrsec "$cyclestr"
+
+  # Calculate SE (Spectral Element) start times for filtering
+  if [ "$numHoursSEStart" -lt 6 ]; then
+    # Calculate SE start time (3 hours after main cycle)
+    se_cyclestr=$((10#$cyclestr + 3))
+
+    # Zero pad if necessary
+    while [ ${#se_cyclestr} -lt 2 ]; do
+      se_cyclestr="0$se_cyclestr"
+    done
+
+    # For now, assume same day (this logic might need enhancement for edge cases)
+    se_monthstr="$monthstr"
+    se_daystr="$daystr"
+    se_yearstr="$yearstr"
+
+    # Calculate seconds and zero pad
+    se_cyclestrsec=$((10#$se_cyclestr * 3600))
+    while [ ${#se_cyclestrsec} -lt 5 ]; do
+      se_cyclestrsec="0$se_cyclestrsec"
+    done
+  else
+    echo "ERROR: SE forecast lead time too long, 18Z cycle causes trouble"
+    echo "Not supported."
+    exit 1
+  fi
+
+  # Get SST times using existing function
+  getSSTtime "$islive" "$currtime_UTC_HHMM" "$monthstr" "$daystr" "$yearstr" "$cyclestr"
+
+  # Set yesterday's date strings
+  yestmonthstr=$(date --date="yesterday" -u +%m)
+  yestdaystr=$(date --date="yesterday" -u +%d)
+  yestyearstr=$(date --date="yesterday" -u +%Y)
+
+  # Print summary
+  echo "=== TIME PROCESSING SUMMARY ==="
+  echo "ATM init data: $yearstr $monthstr $daystr $cyclestr Z ($cyclestrsec seconds)"
+  echo "SST init data: $sstyearstr $sstmonthstr $sstdaystr $sstcyclestr Z"
+
+  if [ "$doFilter" = true ]; then
+    echo "Filter: True model init will occur at $se_yearstr $se_monthstr $se_daystr $se_cyclestr Z ($se_cyclestrsec seconds)"
+  else
+    echo "No filter: True model init will occur at $se_yearstr $se_monthstr $se_daystr $cyclestr Z ($cyclestrsec seconds)"
+  fi
+  echo "==============================="
+}
