@@ -167,6 +167,9 @@ def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr
     data_vars['cldliq'] = load_ERA5RDA_variable('CLWC', pl_dir, "e5.oper.an.pl.128_246_clwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
     data_vars['cldice'] = load_ERA5RDA_variable('CIWC', pl_dir, "e5.oper.an.pl.128_247_ciwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
 
+    # Create a 3-D pressure field from constant pressure surfaces
+    data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
+
     if dycore == 'mpas':
         data_vars['w'] = load_ERA5RDA_variable('W', pl_dir, "e5.oper.an.pl.128_135_w.ll025sc", yearstr, monthstr, daystr, cyclestr)
         data_vars['w_is_omega'] = True
@@ -294,6 +297,9 @@ def load_CFSR_data(grb_file_name, dycore):
     data_vars['t'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 't')
     data_vars['u'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'u')
     data_vars['v'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'v')
+
+    # Create a 3-D pressure field from constant pressure surfaces
+    data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
 
     if dycore == "mpas":
         data_vars['w'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'w')
@@ -456,6 +462,9 @@ def load_HRRRml_data(grb_file_name, dycore):
         extrapolate=True, variable='other', ps=data_vars['ps'], phi_sfc=data_vars['phis']
     )
 
+    # Create a 3-D pressure field from constant pressure surfaces
+    data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
+
     # MPAS-specific variables
     if dycore == "mpas":
         data_vars['w'] = vertremap.int2p_n_extrap(
@@ -612,6 +621,9 @@ def load_ERA5mlRDA_data(RDADIR, data_filename, VERT_COORD_PATH, yearstr, monthst
         new_levels=data_vars['lev']
         )
 
+    # Create a 3-D pressure field from constant pressure surfaces
+    data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
+
     # No cloud ice/liq, so set these to zero same shape as interpolated t
     data_vars['cldice'] = np.zeros_like(data_vars['t'])
     data_vars['cldliq'] = np.zeros_like(data_vars['t'])
@@ -732,6 +744,9 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
         hybm=hybm,
         new_levels=data_vars['lev']
         )
+
+    # Create a 3-D pressure field from constant pressure surfaces
+    data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
 
     data_vars['cldice'] = np.zeros_like(data_vars['t'])
     data_vars['cldliq'] = np.zeros_like(data_vars['t'])

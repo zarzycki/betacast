@@ -105,6 +105,8 @@ def parse_args():
                         help='If set, write outputs as single precision (default: False)')
     parser.add_argument('--add_cloud_vars', action='store_true', default=False,
                         help='If set, add CLDICE and CLDLIQ to output file (default: False)')
+    parser.add_argument('--add_numconc_vars', action='store_true', default=False,
+                        help='If set, add NUMCLD, NUMLIQ, and NUMICE to output file (default: False)')
     parser.add_argument('--add_chemistry', action='store_true', default=False,
                         help='If set, add O3 to output file (default: False)')
     parser.add_argument('--adjust_config', type=str, default=' ',
@@ -347,7 +349,7 @@ def replace_nans_with_fill_value(data_horiz, variables, NC_FLOAT_FILL):
     return data_horiz
 
 
-def clip_and_count(arr, min_thresh=None, max_thresh=None, var_name="Variable"):
+def clip_and_count(arr, min_thresh=None, max_thresh=None, round_to_int=False, var_name="Variable"):
     """
     Clips the values in the array to the specified minimum and maximum thresholds,
     and returns the clipped array along with the number of adjustments made.
@@ -359,6 +361,8 @@ def clip_and_count(arr, min_thresh=None, max_thresh=None, var_name="Variable"):
         The minimum threshold value. Values below this will be set to min_thresh.
     - max_thresh: float or None
         The maximum threshold value. Values above this will be set to max_thresh.
+    - round_to_int: boolean (default False)
+        If true, round field to nearest integer before clipping/counting.
     - var_name: str
         The name of the variable for diagnostic output.
 
@@ -366,6 +370,10 @@ def clip_and_count(arr, min_thresh=None, max_thresh=None, var_name="Variable"):
     - clipped_arr: numpy.ndarray
         The clipped array.
     """
+
+    if round_to_int:
+        logging.info(f"Rounding requested for {var_name} to integer value.")
+        arr = np.round(arr)
 
     # Apply the maximum threshold if specified
     if max_thresh is not None:

@@ -7,7 +7,7 @@ from scipy.interpolate import RegularGridInterpolator
 logger = logging.getLogger(__name__)
 
 _HORIZ_REMAP_VARS = [
-    'ps', 't', 'u', 'v', 'q', 'cldice', 'cldliq',
+    'ps', 't', 'u', 'v', 'q', 'cldice', 'cldliq', 'numliq', 'numice', 'numcld',
     'z', 'theta', 'rho', 'w', 'phis', 'ts', 'o3'
 ]
 

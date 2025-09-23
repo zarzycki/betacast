@@ -26,7 +26,8 @@ from constants import (
     p0, dtime_map, ps_wet_to_dry, output_diag, w_smooth_iter, grav,
     damp_upper_winds_mpas, MPAS_W_DAMPING_COEF,
     NC_FLOAT_FILL, DEFAULT_FILL_VALUE, COORD_FILL_VALUE, CORRECT_OR_NOT_FILL_VALUE,
-    QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH
+    QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH,
+    NUMCLDMAXTHRESH, NUMICEMAXTHRESH, NUMLIQMAXTHRESH
 )
 
 # Set nc fill values
@@ -60,6 +61,7 @@ def main():
         "Compress file": args.compress_file,
         "Write floats": args.write_floats,
         "Add cloud vars": args.add_cloud_vars,
+        "Add numconc vars": args.add_numconc_vars,
         "Add chemistry:": args.add_chemistry,
         "Adjust config": args.adjust_config,
         "Model topo file": args.model_topo_file,
@@ -87,6 +89,7 @@ def main():
     RDADIR = args.RDADIR
     adjust_config = args.adjust_config
     add_cloud_vars = args.add_cloud_vars
+    add_numconc_vars = args.add_numconc_vars
     add_chemistry = args.add_chemistry
     compress_file = args.compress_file
     se_inic = args.se_inic
@@ -169,9 +172,31 @@ def main():
     logging.info(f"Min: {np.min(data_vars['lev'])}")
     logging.info(f"Input Coords: nlat: {len(data_vars['lat'])}, nlon: {len(data_vars['lon'])}")
 
+    if dycore == "scream":
+        add_numconc_vars = True
+
+    if add_numconc_vars:
+        if add_cloud_vars:
+            # Since we have the cloud vars, we can estimate cld and ice num conc using
+            # some empirical relationships
+            logging.info(f"Estimating number concentrations for microphysics")
+            data_vars['numcld'] = (
+                4.310e+09
+                * data_vars['cldliq']**0.436
+                * (data_vars['pres']/1e5)**7.531
+                * np.exp(3.084*(data_vars['t']-273.15)/100)
+            )
+            data_vars['numice'] = (
+                7.423e+05
+                * data_vars['cldice']**0.340
+                * (data_vars['pres']/1e5)**-1.414
+                * np.exp(-0.925*(data_vars['t']-273.15)/100)
+            )
+
     if dycore == "mpas":
         # Create a 3-D pressure field from constant pressure surfaces
-        data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
+        # NOTE, 9/22/25 pres is now a required 3D variable in all source data
+        #data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
 
         # If z is reported in geopotential, convert to geometric height
         if data_vars['z_is_phi']:
@@ -729,10 +754,25 @@ def main():
             data_horiz['fvslat'], data_horiz['fvslon']
         )
 
+    # Adding any zeros (doing so here means no redundant interpolation of null fields)
+    # Add num concentrations as zeros if they don't exist
+    if add_numconc_vars:
+        if 'numcld' not in data_horiz:
+            data_horiz['numcld'] = np.zeros_like(data_horiz['q'])
+        if 'numice' not in data_horiz:
+            data_horiz['numice'] = np.zeros_like(data_horiz['q'])
+        if 'numliq' not in data_horiz:
+            data_horiz['numliq'] = np.zeros_like(data_horiz['q'])
+
+    # Clip q, cloud vars, num concentrations, and chem
     data_horiz['q'] = pyfuncs.clip_and_count(data_horiz['q'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="Q")
     if add_cloud_vars:
         data_horiz['cldliq'] = pyfuncs.clip_and_count(data_horiz['cldliq'], min_thresh=CLDMINTHRESH, var_name="CLDLIQ")
         data_horiz['cldice'] = pyfuncs.clip_and_count(data_horiz['cldice'], min_thresh=CLDMINTHRESH, var_name="CLDICE")
+    if add_numconc_vars:
+        data_horiz['numcld'] = pyfuncs.clip_and_count(data_horiz['numcld'], min_thresh=0, max_thresh=NUMCLDMAXTHRESH, round_to_int=True, var_name="NUMCLD")
+        data_horiz['numice'] = pyfuncs.clip_and_count(data_horiz['numice'], min_thresh=0, max_thresh=NUMICEMAXTHRESH, round_to_int=True, var_name="NUMICE")
+        data_horiz['numliq'] = pyfuncs.clip_and_count(data_horiz['numliq'], min_thresh=0, max_thresh=NUMLIQMAXTHRESH, round_to_int=True, var_name="NUMLIQ")
     if add_chemistry:
         data_horiz['o3'] = pyfuncs.clip_and_count(data_horiz['o3'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="O3")
 
@@ -917,6 +957,7 @@ def main():
         def replace_nans_with_fill(data, fill_value=DEFAULT_FILL_VALUE):
             return np.where(np.isnan(data), fill_value, data)
 
+        # NetCDF and compression settings
         if compress_file:
             netcdf_format = "NETCDF4_CLASSIC"
             compression_opts = {'zlib': True, 'complevel': 1}
@@ -925,6 +966,7 @@ def main():
             netcdf_format = "NETCDF4" if var_max_size >= 4e9 else "NETCDF3_64BIT"
             compression_opts = {}
 
+        # Open file
         try:
             nc_file = nc.Dataset(se_inic, 'w', format=netcdf_format)
         except Exception as e:
@@ -1002,6 +1044,25 @@ def main():
                 logging.info(f"cldliq_nc and cldice_nc don't exist even though add_cloud_vars is {add_cloud_vars}, ignoring")
                 pass
 
+        if add_numconc_vars:
+            if dycore == "scream":
+                numcld_nc = nc_file.createVariable('nc', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                numice_nc = nc_file.createVariable('ni', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                numliq_nc = nc_file.createVariable('nr', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            else:
+                numcld_nc = nc_file.createVariable('NUMCLD', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                numice_nc = nc_file.createVariable('NUMICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                numliq_nc = nc_file.createVariable('NUMLIQ', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+
+            # If numcld_nc, numice_nc, numliq_nc don't exist, pass and warn, otherwise define units
+            try:
+                numcld_nc.units = "num/kg"
+                numice_nc.units = "num/kg"
+                numliq_nc.units = "num/kg"
+            except NameError:
+                logging.info(f"numcld_nc and numliq_nc and numice_nc don't exist even though add_numconc_vars is {add_numconc_vars}, ignoring")
+                pass
+
         if add_chemistry:
             if dycore == "scream":
                 o3_nc = nc_file.createVariable('o3_volume_mix_ratio', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
@@ -1059,6 +1120,10 @@ def main():
             if add_cloud_vars:
                 cldliq_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldliq'].T,fill_value=NC_FLOAT_FILL)
                 cldice_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldice'].T,fill_value=NC_FLOAT_FILL)
+            if add_numconc_vars:
+                numcld_nc[0, :, :] = replace_nans_with_fill(data_horiz['numcld'].T,fill_value=NC_FLOAT_FILL)
+                numliq_nc[0, :, :] = replace_nans_with_fill(data_horiz['numliq'].T,fill_value=NC_FLOAT_FILL)
+                numice_nc[0, :, :] = replace_nans_with_fill(data_horiz['numice'].T,fill_value=NC_FLOAT_FILL)
             if add_chemistry:
                 o3_nc[0, :, :] = replace_nans_with_fill(data_horiz['o3'].T,fill_value=NC_FLOAT_FILL)
             if 'correct_or_not' in locals():
@@ -1140,23 +1205,33 @@ def main():
         nc_file.dycore = dycore
         nc_file.datasource = datasource
 
-        # Close the file
-        nc_file.close()
+        logging.info(f"Done writing output file: {se_inic}")
+        nc_file.close()     # Close the file
+        logging.info(f"Done closing output file: {se_inic}")
 
-        # SCREAM specific conversion
+#         # SCREAM specific conversion
 #         if dycore == "scream":
+#             import time
+#             from pathlib import Path
+#
 #             if shutil.which("ncks") is not None:
+#                 se_inic = Path(se_inic)
+#                 tmp_file = se_inic.with_suffix(se_inic.suffix + ".cdf5")
+#
+#                 logging.info("Converting to CDF5")
+#                 start = time.perf_counter()
 #                 try:
 #                     subprocess.run(
-#                         ["ncks", "-5", se_inic, se_inic + ".cdf5"],
+#                         ["ncks", "-5", str(se_inic), str(tmp_file)],
 #                         check=True
 #                     )
-#                     shutil.move(se_inic + ".cdf5", se_inic)
-#                     print("→ converted to CDF5 format")
+#                     elapsed = time.perf_counter() - start
+#                     shutil.move(tmp_file, se_inic)
+#                     logging.info(f"→ converted to CDF5 format in {elapsed:.2f} s")
 #                 except subprocess.CalledProcessError as e:
-#                     print(f"ncks failed (exit {e.returncode}), skipping CDF5 conversion")
+#                     logging.info(f"ncks failed (exit {e.returncode}), skipping CDF5 conversion")
 #             else:
-#                 print("ncks not found on PATH; skipping CDF5 conversion")
+#                 logging.info("ncks not found on PATH; skipping CDF5 conversion")
 
 
 if __name__ == "__main__":

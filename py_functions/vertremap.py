@@ -9,7 +9,7 @@ from scipy import interpolate
 logger = logging.getLogger(__name__)
 
 _VERT_REMAP_VARS = [
-    't', 'u', 'v', 'q', 'cldice', 'cldliq',
+    't', 'u', 'v', 'q', 'cldice', 'cldliq', 'numice', 'numliq', 'numcld',
     'z', 'theta', 'rho', 'w', 'o3'
 ]
 
@@ -717,7 +717,7 @@ def interpolate_mpas_columns_wrapper(mpas_data, data_horiz):
         raise KeyError("MPAS interp: required 'z' coordinate not found in data_horiz (source data).")
 
     # allowable interpolatable keys
-    vert_remap_keys = ['t', 'theta', 'rho', 'w', 'q', 'u', 'v', 'cldice', 'cldliq', 'o3']
+    vert_remap_keys = ['t', 'theta', 'rho', 'w', 'q', 'u', 'v', 'cldice', 'cldliq', 'o3', 'numice', 'numliq', 'numcld']
 
     # Define variable-specific interpolation configuration
     var_config = {
@@ -761,6 +761,21 @@ def interpolate_mpas_columns_wrapper(mpas_data, data_horiz):
             # Will enforce QC later in the code (clip_and_count)
         },
         'cldice': {
+            'extrap_low': 'linear',
+            'extrap_high': 'persist',
+            # Will enforce QC later in the code (clip_and_count)
+        },
+        'numliq': {
+            'extrap_low': 'linear',
+            'extrap_high': 'persist',
+            # Will enforce QC later in the code (clip_and_count)
+        },
+        'numice': {
+            'extrap_low': 'linear',
+            'extrap_high': 'persist',
+            # Will enforce QC later in the code (clip_and_count)
+        },
+        'numcld': {
             'extrap_low': 'linear',
             'extrap_high': 'persist',
             # Will enforce QC later in the code (clip_and_count)
