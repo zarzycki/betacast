@@ -35,7 +35,7 @@ if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
     cd ${TCVITFOLDER}/combined/
 
     # if get_from_nhc, get from NHC servers for this current year by gluing storm archived vitals
-    get_from_nhc=false
+    get_from_nhc=true
 
     if [ "$get_from_nhc" = true ]; then
       BASE_URL="https://ftp.nhc.noaa.gov/atcf/com/"
@@ -47,15 +47,17 @@ if [ ! -f ${TCVITFILE} ]; then   #if TCVITFILE doesn't exist, download
 
       # CURL STUFF
       curl -s $BASE_URL > index.html
-      # Extract the list of *-tcvitals-arch.dat files
-      FILES=$(grep -oP 'href="\K[^"]*-tcvitals-arch\.dat' index.html)
+      # Extract any tcvitals files we can find
+      FILES=$(grep -oP 'href="\K[^"]*tcvitals[^"]*' index.html)
       # Loop through each file and download it
       for FILE in $FILES; do
+        echo "get-vitals: downloading: $BASE_URL$FILE"
         curl -O "$BASE_URL$FILE"
       done
 
       # Concatenate all the downloaded files into a single combined file
-      cat *-tcvitals-arch.dat > $COMBINEDVITFILE
+      head *tcvitals*
+      cat *tcvitals* > "$COMBINEDVITFILE"
 
       # Sort the combined file by the 4th and 5th columns (YYYYMMDD then HHNN)
       sort -k 4,4 -k 5,5 $COMBINEDVITFILE -o $COMBINEDVITFILE
