@@ -28,10 +28,8 @@ def configure_logging(verbose=False):
         level=logging_level,
         datefmt='%Y-%m-%d %H:%M:%S',
         format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler("atm_to_cam.log"),
-            logging.StreamHandler(sys.stdout)
-        ]
+        stream=sys.stdout,
+        force=True
     )
     numba_logger = logging.getLogger('numba')
     numba_logger.setLevel(logging.WARNING)
