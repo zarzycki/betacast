@@ -70,10 +70,11 @@ CASESDIR=~/tests-betacast/
 
 ```
 cd ${MODELROOT}/cime/scripts
-./create_newcase --case ${CASESDIR}/F-betacast-F2000climo --compset F2000climo --res ne30_g16 --mach cheyenne --project ${PROJECTID} --run-unsupported
+./create_newcase --case ${CASESDIR}/F-betacast-F2000climo --compset F2000climo --res ne30_g16 --mach derecho --project ${PROJECTID} --run-unsupported
 cd ${CASESDIR}/F-betacast-F2000climo
 ./case.setup
 ${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} nuopc clm
+./xmlchange DOUT_S=False
 ./case.build
 ./case.submit
 ```
