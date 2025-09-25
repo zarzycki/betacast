@@ -584,6 +584,7 @@ def latRegWgt(lat, nType="float", opt=0):
 
 def smooth_with_smth9(var, numiter, p=0.5, q=0.25):
     if var.ndim == 3:
+        logging.info(f"SMOOTH (SMTH9): Received 3 dimensions, assuming (time, lat, lon) or (lev, lat lon)")
         for ii in range(numiter):
             logging.info(f"SMOOTH (SMTH9) ITER: {ii+1}")
             for level in range(var.shape[0]):
@@ -592,6 +593,7 @@ def smooth_with_smth9(var, numiter, p=0.5, q=0.25):
                     raise ValueError(f"Shape mismatch after smoothing. Expected {var[level, :, :].shape}, but got {smoothed.shape}.")
                 var[level, :, :] = smoothed
     elif var.ndim == 2:
+        logging.info(f"SMOOTH (SMTH9): Received 2 dimensions, assuming lat/lon")
         for ii in range(numiter):
             logging.info(f"SMOOTH (SMTH9) ITER: {ii+1}")
             smoothed = dsmth9(var, p, q, True)
