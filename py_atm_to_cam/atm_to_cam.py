@@ -172,7 +172,8 @@ def main():
     logging.info(f"Min: {np.min(data_vars['lev'])}")
     logging.info(f"Input Coords: nlat: {len(data_vars['lat'])}, nlon: {len(data_vars['lon'])}")
 
-    if dycore == "scream":
+    if dycore == "scream" and not add_numconc_vars:
+        logging.info(f"Dycore is {dycore} and add_numconc_vars is {add_numconc_vars}. Toggling to true!")
         add_numconc_vars = True
 
     if add_numconc_vars:
