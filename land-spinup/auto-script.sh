@@ -9,9 +9,11 @@ source ../utils.sh
 
 # Usage:
 #./auto-script.sh MODELSYSTEM DATAFORCING DATE_YYYYMMDD NMONTHS NCYCLES ANOMYEAR NORMYEAR NAMELIST
-# CESM
+# CESM (historical)
 #./auto-script.sh 0 0 20200103 36 1 -1 -1 nl.landspinup.derecho
-# E3SM
+# E3SM (historical)
+#./auto-script.sh 1 0 20110827 12 1 -1 -1 nl.landspinup.philly.pm
+# E3SM (perturbations)
 #./auto-script.sh 1 0 19960113 12 1 2018 1920 nl.landspinup.pm-cpu
 # Model
 #./auto-script.sh 1 2 19840101 0 1 -1 -1 NAMELIST.MACHINE
@@ -71,7 +73,8 @@ BETACAST_ANOMALIGN=1920
 if [ $modelSystem -eq 0 ]; then
   echo "Using CESM"
   EXTRAFLAGS="--run-unsupported"
-  COMPSET=I2000Clm50Sp
+  #COMPSET=I2000Clm50Sp
+  COMPSET=IHistClm60Sp
 elif [ $modelSystem -eq 1 ]; then
   echo "Using E3SM"
   EXTRAFLAGS=""
@@ -352,6 +355,7 @@ cat > user_nl_clm <<EOF
 !check_finidat_fsurdat_consistency = .false.
 !use_init_interp = .true.
 !do_transient_pfts = .false.
+flanduse_timeseries=''
 hist_avgflag_pertape='A','I'
 hist_nhtfrq = 0,-1
 hist_mfilt = 1,24
