@@ -6,18 +6,18 @@ from ESMF_regridding import latlon_to_SCRIP, esmf_regrid_gen_weights
 logging.basicConfig(level=logging.INFO)
 
 # User settings
-gridName = "mp15-120-atlantic"
-InterpMethod = "patch"  # bilinear, patch, conserve, nearestdtos, neareststod
+gridName = "philly128x8pg2"
+InterpMethod = "nearestdtos"  # bilinear, patch, conserve, nearestdtos, neareststod
 regional = True
-regdomain = "florida"  # asd, atlantic, tctest, florida
+regdomain = "midatlantic"  # asd, atlantic, tctest, florida
 
 # RLL GRID
-outres = "0.125x0.125"  # Change this to desired resolution
-srcGridDir = "/glade/u/home/zarzycki/work/grids/scrip/"
-srcGridFile = "mpasa15natl_scrip.nc"
+outres = "0.02x0.02"  # Change this to desired resolution
+srcGridDir = "/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/grids/scrip/"
+srcGridFile = "Philadelphia_TC_grid_v2_ne128x8_pg2_SCRIP.nc"
 
 # Destination grid settings
-dstGridDir = "/glade/work/zarzycki/grids/scrip/"
+dstGridDir = "/pscratch/sd/c/czarzyck/"
 if regional:
     dstGridFile = f"{outres}_reg_SCRIP.nc"
     wgtFileName = f"map_{gridName}_to_{outres}reg_{InterpMethod}.nc"
@@ -51,6 +51,9 @@ if regional:
     elif regdomain == "florida":
         Opt["LLCorner"] = [15.0, 271.0]
         Opt["URCorner"] = [35.0, 296.0]
+    elif regdomain == "midatlantic":
+        Opt["LLCorner"] = [34.0, 278.0]
+        Opt["URCorner"] = [45.0, 300.0]
     elif regdomain == "narr":
         Opt["LLCorner"] = [12.0, 215.0]
         Opt["URCorner"] = [65.0, 298.0]
@@ -72,4 +75,3 @@ logging.info("Generating weights file...")
 esmf_regrid_gen_weights(srcGridName, dstGridName, os.path.join(wgtFileDir, wgtFileName), Opt)
 
 logging.info("Completed SCRIP and weight file generation.")
-
