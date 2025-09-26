@@ -17,6 +17,57 @@ except ImportError:
     print("Warning: numba not found, falling back to slower implementation")
 
 
+def get_unknown_variable(dataset, var_type=None, names_list=None, return_da=False):
+    """
+    Try multiple variable names and return the first one that exists.
+
+    Args:
+        dataset: xarray Dataset to search in
+        var_type: Either 'lat'/'lon' for default lists, or a descriptive string for custom lists
+        names_list: Optional list of variable names to try (overrides var_type defaults)
+        return_da: If true, return DataArray instead of numpy
+
+    Returns:
+        Array of the variable values. np.array by default.
+
+    Raises:
+        KeyError: If none of the attempted names exist in the dataset
+        ValueError: If neither var_type nor names_list is provided
+    """
+    # Define default name lists for common variables
+    default_names = {
+        'lat': ['lat', 'latitude', 'lat_0', 'lat0', 'Latitude', 'LAT',
+                'XLAT', 'XLAT_M', 'nav_lat', 'y', 'rlat', 'grid_latitude'],
+        'lon': ['lon', 'longitude', 'lon_0', 'lon0', 'Longitude', 'LON',
+                'XLONG', 'XLONG_M', 'nav_lon', 'x', 'rlon', 'grid_longitude'],
+        'lev': ['lev', 'level']
+    }
+
+    if names_list:
+        # User provided explicit list - use it
+        possible_names = names_list
+    elif var_type in default_names:
+        # Use default list for known variable types
+        possible_names = default_names[var_type]
+    else:
+        raise ValueError(f"Must provide either names_list or a valid var_type ('lat', 'lon', 'lev'). "
+                        f"Got var_type='{var_type}' with no names_list.")
+
+    # Try each name in the list
+    for name in possible_names:
+        if name in dataset.variables:
+            print(f"Found {var_type} using name: '{name}'")
+            if return_da:
+                return dataset.variables[name]
+            else:
+                return dataset.variables[name].values
+
+    # If we get here, none of the names worked, wuh-oh!
+    available_vars = list(dataset.variables.keys())
+    raise KeyError(f"Could not find {var_type}. Tried names: {possible_names}. "
+                   f"Available variables in file: {available_vars}")
+
+
 def mirrorP2P(p1, po):
     """Mirrors point p1 with respect to po."""
     dVec = p1 - po
@@ -820,6 +871,7 @@ def esmf_regrid_gen_weights(srcGridFile, dstGridFile, wgtFile, opt):
         esmf_cmd.append("--norm_type fracarea")
 
     # Execute the command
+    logging.info(f"ESMF command to run is:  {' '.join(esmf_cmd)}")
     result = subprocess.run(esmf_cmd, capture_output=True, text=True)
     if result.returncode != 0:
         logging.error(f"ESMF_regrid_gen_weights: failed with output:\n{result.stderr}")
