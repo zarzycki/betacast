@@ -15,11 +15,21 @@ parser.add_argument('--appendLL', action='store_true', help='Append top left cor
 args = parser.parse_args()
 
 # Load data
-src_file = xr.open_dataset(args.srcfilename, engine='cfgrib', filter_by_keys={'stepType': 'instant', 'typeOfLevel': 'surface'})
+file_ext = os.path.splitext(filename)[1].lower()
+print(f"Detected file extension: {file_ext}")
+if file_ext in ['.nc', '.nc4', '.netcdf', '.nc3', '.cdf5']:
+    print(f"Detected NetCDF file based on extension: {file_ext}")
+    return xr.open_dataset(filename)
+elif file_ext in ['.grib', '.grb', '.grib2', '.grb2']:
+    print(f"Detected GRIB file based on extension: {file_ext}")
+    return xr.open_dataset(filename, engine='cfgrib',
+                            filter_by_keys={'stepType': 'instant', 'typeOfLevel': 'surface'})
+else:
+    print(f"Unknown file extension: {file_ext}"
 
 # Load lat/lon
-lat = src_file.variables['latitude'].values
-lon = src_file.variables['longitude'].values
+lat = get_unknown_variable(src_file, var_type='lat')
+lon = get_unknown_variable(src_file, var_type='lon')
 print(lat)
 print(lon)
 
