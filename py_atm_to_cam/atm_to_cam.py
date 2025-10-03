@@ -133,6 +133,14 @@ def main():
         load_vert_templates = True
     logging.info(f"load_vert_templates: {load_vert_templates}")
 
+    # Check if scream and toggle some bools needed
+    if dycore == "scream" and not add_numconc_vars:
+        logging.info(f"Dycore is {dycore} and add_numconc_vars is {add_numconc_vars}. Toggling to true!")
+        add_numconc_vars = True
+    if dycore == "scream" and not add_chemistry:
+        logging.info(f"Dycore is {dycore} and add_chemistry is {add_chemistry}. Toggling to true!")
+        add_chemistry = True
+
     # Toggle whether the output streams will be floats or doubles
     write_type = "float" if write_floats else "double"
     logging.info(f"Output type set to: {write_type}")
@@ -171,10 +179,6 @@ def main():
     logging.info(f"Max: {np.max(data_vars['lev'])}")
     logging.info(f"Min: {np.min(data_vars['lev'])}")
     logging.info(f"Input Coords: nlat: {len(data_vars['lat'])}, nlon: {len(data_vars['lon'])}")
-
-    if dycore == "scream" and not add_numconc_vars:
-        logging.info(f"Dycore is {dycore} and add_numconc_vars is {add_numconc_vars}. Toggling to true!")
-        add_numconc_vars = True
 
     if add_numconc_vars:
         if add_cloud_vars:
