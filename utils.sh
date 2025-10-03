@@ -698,6 +698,16 @@ archive_nudging () {
 archive_inic () {
 local compress_sw
 
+  echo "==== archive_inic input arguments ===="
+  echo "tmparchivecdir (1)      = $1"
+  echo "path_to_case (2)        = $2"
+  echo "compress_history_nc (3) = $3"
+  echo "atmName (4)             = $4"
+  echo "lndName (5)             = $5"
+  echo "rofName (6)             = $6"
+  echo "sstFileIC (7)           = $7"
+  echo "======================================"
+
   echo "Archiving initial condition files..."
   mkdir -p $1/inic
 
@@ -712,13 +722,22 @@ local compress_sw
   fi
 
   # Copy ATM initial conditions
-  ARCFILE=$(grep ^ncdata $2/user_nl_$4 | cut -d "=" -f2)
+  if [[ "$4" == "scream" ]]; then
+    # For SCREAM, we need to dig into the archived yaml files
+    ARCFILE=$(grep "^[[:space:]]*filename:" ${1}/nl_files/${4}_input.yaml | cut -d ":" -f2- | sed 's/^[[:space:]]*//')
+  else
+    ARCFILE=$(grep ^ncdata $2/user_nl_$4 | cut -d "=" -f2)
+  fi
   if [[ -n "$ARCFILE" ]]; then
     strip_quotes ARCFILE
     echo "Found atm initial file: $ARCFILE"
-    cp -v "$ARCFILE" "$1/inic"
+    if [[ -f "$ARCFILE" ]]; then
+      cp -v "$ARCFILE" "$1/inic"
+    else
+      echo "Warning: ARCFILE points to '$ARCFILE' but file does not exist!"
+    fi
   else
-    echo "Atm ARCFILE not found in $2/user_nl_$4"
+    echo "Atm ARCFILE not found in $2/user_nl_$4 or ${1}/nl_files/${4}_input.yaml"
   fi
 
   # Copy ROF initial conditions
@@ -756,6 +775,14 @@ local compress_sw
 
 ## Usage: main_archive $archive_dir $atmName $lndName $rofName
 main_archive () {
+
+  echo "==== main_archive input arguments ===="
+  echo "archive_dir (1)  = $1"
+  echo "atmName (2)      = $2"
+  echo "lndName (3)      = $3"
+  echo "rofName (4)      = $4"
+  echo "======================================"
+
   echo "Creating archive folder data structure"
   mkdir -p $1
   mkdir -p $1/images
@@ -765,10 +792,18 @@ main_archive () {
   mkdir -p $1/betacast
 
   echo "Moving relevant files to archive folder (${1})"
-  mv -v *.$2.h*.nc $1 || true
+  if [ "$2" = "scream" ]; then
+    mv -v *.AVERAGE.*.nc $1 || true
+    mv -v *.INSTANT.*.nc $1 || true
+  else
+    mv -v *.$2.h*.nc $1 || true
+  fi
   mv -v *.$3*.h*.nc $1 || true
   mv -v *.$4*.h*.nc $1 || true
   cp -v *_in seq_maps.rc *_modelio.nml docn.streams.txt.prescribed $1/nl_files || true
+  if [ "$2" = "scream" ]; then
+    mv -v data/* $1/nl_files || true
+  fi
   mv -v *.txt $1/text || true
   mv -v *.xml $1/nl_files || true
   mv -v mpibind*.log $1/logs || true
@@ -881,18 +916,24 @@ safe_cp_files() {
 # Usage:
 # xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
 # xmlchange_verbose "ATM_NCPL" "$ATM_NCPL"
+# xmlchange_verbose --atmchange "filename" "$initialconditions"
 xmlchange_verbose() {
+  local change_cmd="xmlchange"
+  if [[ "$1" == "--atmchange" ]]; then
+    change_cmd="atmchange"
+    shift
+  fi
   local variable_name="$1"
   local variable_value="$2"
   shift 2
   local additional_args="$@"
 
-  echo "XMLCHANGE: Setting ${variable_name} to ${variable_value} ${additional_args}"
+  echo "Setting ${variable_name}=${variable_value} ${additional_args} via ${change_cmd}"
 
   if [ -z "$additional_args" ]; then
-    ./xmlchange "${variable_name}=${variable_value}"
+    ./${change_cmd} "${variable_name}=${variable_value}"
   else
-    ./xmlchange "${additional_args}" "${variable_name}=${variable_value}"
+    ./${change_cmd} "${additional_args}" "${variable_name}=${variable_value}"
   fi
 }
 
@@ -936,8 +977,91 @@ timer() {
 
   local end_time=$(date +%s)
   local elapsed=$((end_time - start_time))
-  echo "Time elapsed for $1: $elapsed seconds"
+  local minutes=$((elapsed / 60))
+  local seconds=$((elapsed % 60))
+  echo "---> Time elapsed for $1: ${minutes} min, ${seconds} sec"
 }
+
+
+# Concatenate multiple files into one, embedding BEGIN/END markers with filenames.
+# Last argument is the output file.
+# Usage: pack_files 15min_* 6hourly_snap.yaml daily_avg.yaml SCREAM.packed.yaml
+pack_files() {
+  local output_file="${@: -1}"   # last argument
+  set -- "${@:1:$(($#-1))}"      # strip last arg so only inputs remain
+
+  : > "$output_file"   # truncate output
+
+  for f in "$@"; do
+    echo "::::BEGIN $(basename "$f")::::" >> "$output_file"
+    cat "$f" >> "$output_file"
+    echo "::::END $(basename "$f")::::" >> "$output_file"
+  done
+}
+
+
+# Split a packed file created by pack_files back into individual files in an output directory.
+# unpack_files SCREAM.packed.yaml /path/to/outdir
+unpack_files() {
+  local input_file="$1"
+  local output_dir="$2"
+  mkdir -p "$output_dir"
+
+  awk '
+    /^::::BEGIN / {
+      fname = substr($0, 11, length($0)-14)
+      out = "'"$output_dir"'/" fname
+      next
+    }
+    /^::::END /   { out=""; next }
+    out          { print > out }
+  ' "$input_file"
+}
+
+
+# Parse filenames from a packed file and feed them into atmchange as output_yaml_files entries.
+# Usage: scream_atmchange_from_packed SCREAM.packed.yaml
+scream_atmchange_from_packed() {
+  local packed_file="$1"
+
+  # Extract filenames from "::::BEGIN <filename>::::"
+  grep '^::::BEGIN ' "$packed_file" | while read -r line; do
+    fname=$(echo "$line" | sed -E 's/^::::BEGIN (.*)::::$/\1/')
+    echo "./atmchange output_yaml_files+=\"./$fname\""
+    ./atmchange output_yaml_files+="./$fname"
+  done
+}
+
+
+# Usage: nccopy_convert 5 /path/to/F-betacast-F2010-CICE_INIC.nc
+nccopy_convert() {
+  local fmt="$1"          # NCO NetCDF format, e.g., 4 for NetCDF4, 5 for CDF5
+  local input_file="$2"   # Input NetCDF file
+
+  # Choose the best available scratch directory to work with
+  local LOCAL_SCRATCH="${SCRATCHDIR:-${SCRATCH:-${TMPDIR:-/tmp}}}"
+  echo "NCCOPY_CONVERT: Using local scratch directory: $LOCAL_SCRATCH"
+
+  # Set a bunch of filenames
+  local base_name=$(basename "$input_file")
+  local scratch_input="${LOCAL_SCRATCH}/${base_name}"
+  local scratch_output="${scratch_input}.conv${fmt}"
+  local output_file="${input_file}.conv${fmt}"
+
+  # Copy the orig file to scratch
+  echo "NCCOPY_CONVERT: Copying $input_file to scratch: $scratch_input"
+  cp "$input_file" "$scratch_input"
+
+  # Convert on scratch to minimize I/O bottlenecks
+  echo "NCCOPY_CONVERT: Running nccopy to NCO nc format ${fmt}..."
+  nccopy -k "$fmt" "$scratch_input" "$scratch_output"
+
+  # Move result back
+  echo "NCCOPY_CONVERT: Overwriting $input_file with $scratch_output"
+  mv "$scratch_output" "$input_file"
+}
+
+
 
 #### NCO functions!
 # ncdmnsz $dmn_nm $fl_nm : What is dimension size?

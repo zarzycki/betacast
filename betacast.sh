@@ -1,15 +1,15 @@
-#!/bin/bash
+#!/bin/bash -l
 
-##=======================================================================
-#PBS -N wx-driver
-#PBS -A P54048000
-#PBS -l walltime=6:00:00
-#PBS -q share
-#PBS -k oe
-#PBS -m a
-#PBS -M zarzycki@ucar.edu
-#PBS -l select=1:ncpus=8
-##=======================================================================
+#SBATCH -C cpu
+#SBATCH -A m2637
+#SBATCH --qos=shared
+#SBATCH --time=24:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=16
+#SBATCH --chdir=/global/homes/c/czarzyck/betacast
+
+module load conda
+conda activate betacast
 
 ###################################################################################
 # Colin Zarzycki (czarzycki@psu.edu)
@@ -21,6 +21,7 @@
 # Generally can be executed on login nodes or in the background, ex:
 # $> nohup ./main-realtime.sh nl.neconus30x8 &
 # but see above for example of PBS options to submit to batch nodes
+# $> sbatch betacast.sh machine_files/machine.pm-cpu namelists/nl.philly.pm-gpu output_streams/SCREAM.packed.yaml
 #
 # Details can be found in:
 # C. M. Zarzycki and C. Jablonowski (2015), Experimental tropical cyclone forecasts
@@ -39,7 +40,23 @@ script_start=$(date +%s)
 set -e
 #set -v
 
-SCRIPTPATH=$(dirname "$(realpath "$0")")
+if [[ -n "$SLURM_SUBMIT_DIR" ]]; then
+  # Running under Slurm batch
+  SCRIPTPATH="$SLURM_SUBMIT_DIR"
+  USING_BATCH=true
+  BATCH_PREFIX="sbatch"
+elif [[ -n "$PBS_O_WORKDIR" ]]; then
+  # Running under PBS/Torque
+  SCRIPTPATH="$PBS_O_WORKDIR"
+  USING_BATCH=true
+  BATCH_PREFIX="qsub"
+else
+  # Running interactively, nohup, by hand
+  SCRIPTPATH=$(dirname "$(realpath "$0")")
+  USING_BATCH=false
+  BATCH_PREFIX=""
+fi
+
 echo "Our script path is $SCRIPTPATH"
 source ${SCRIPTPATH}/utils.sh         # Source external bash functions
 source ${SCRIPTPATH}/datahelpers.sh   # Source external bash functions
@@ -164,6 +181,14 @@ elif [ "$modelSystem" -eq 1 ]; then
   rofName="mosart"
   rofSpecialName="mosart"
   rof_finidat="finidat_rtm"
+elif [ "$modelSystem" -eq 2 ]; then
+  echo "Using SCREAMv1"
+  atmName="scream"
+  lndName="elm"
+  lndSpecialName="elm"
+  rofName="mosart"
+  rofSpecialName="mosart"
+  rof_finidat="finidat_rtm"
 else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
@@ -232,6 +257,11 @@ if [ -z "${anl2mdlWeights+x}" ] && [ -n "${gfs2seWeights+x}" ] ; then
   anl2mdlWeights="$gfs2seWeights"
 fi
 
+if [ "$save_nudging_files" = true ] && [ "$modelSystem" -eq 2 ] ; then
+  echo "ERROR: save_nudging_files cannot be true with SCREAM model (2) set"
+  exit 1
+fi
+
 # Check if ncl exists
 if ! type ncl &> /dev/null ; then
   echo "ERROR: ncl does not exist. Make sure ncl is in your path when betacast is invoked"
@@ -241,8 +271,11 @@ fi
 # Check if ncks exists for compression
 ncks_exists=true
 if ! type ncks &> /dev/null ; then
-  #echo "ERROR: ncks does not exist. Make sure ncks is in your path when betacast is invoked"
-  #exit 1
+  # SCREAM requires NCO to convert filetypes, so this is a hard stop
+  if [ "$modelSystem" -eq 2 ]; then
+    echo "ERROR: ncks does not exist. Make sure ncks is in your path when betacast is invoked"
+    exit 1
+  fi
   echo "WARNING: ncks does not exist, cannot compress. Setting compress_history_nc to 0 (false)"
   echo "WARNING: if you'd like remedy, make sure ncks is in your path when betacast.sh is invoked"
   compress_history_nc=false
@@ -359,10 +392,14 @@ if [ "$runmodel" = true ] ; then
 
 cdv "$path_to_case"
 DYCORE=$(./xmlquery CAM_DYCORE | sed 's/^[^\:]\+\://' | xargs)
-if [ -z "$DYCORE" ]; then
+if [ -z "$DYCORE" ] && [ "$modelSystem" -ne 2 ]; then
   echo "Couldn't automagically figure out dycore, assuming SE/HOMME"
   DYCORE="se"
+elif [ "$modelSystem" -eq 2 ]; then
+  echo "Using SCREAM, setting dycore to SCREAM/EAMXX"
+  DYCORE="scream"
 fi
+
 echo "DYCORE: $DYCORE"
 
 if [ "$debug" = false ] ; then
@@ -844,6 +881,20 @@ if [ "$add_perturbs" = true ] ; then
   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
 fi
 
+###################### FILE CONVERSION ###############################
+
+# Convert SCREAM files to CDF5
+if [ "$modelSystem" -eq 2 ]; then
+  echo "SCREAM, converting to CDF5"
+  # If ne to 9, it means we generated the file and should convert
+  # If = 9, assuming the user has a SCREAM-compatible SST file
+  if [[ "$sstDataType" -ne 9 ]]; then
+    timer nccopy_convert 5 "${sstFileIC}"
+  fi
+  # We generated the atm INIC so convert here ourselves
+  timer nccopy_convert 5 "${sePreFilterIC}"
+fi
+
 cdv "$path_to_case"
 
 ############################### CISM SETUP ###############################
@@ -943,7 +994,7 @@ if [ "$modelSystem" -eq 0 ]; then   # CLM/CTSM
   sed -i '/check_finidat_year_consistency/d' user_nl_${lndName}
   echo "check_finidat_pct_consistency = .false." >> user_nl_${lndName}
   echo "check_finidat_year_consistency = .false." >> user_nl_${lndName}
-elif [ "$modelSystem" -eq 1 ]; then   # ELM
+elif [ "$modelSystem" -eq 1 ] || [ "$modelSystem" -eq 2 ]; then   # ELM
   sed -i '/check_finidat_fsurdat_consistency/d' user_nl_${lndName}
   echo "check_finidat_fsurdat_consistency = .false." >> user_nl_${lndName}
   # 2/25/24 CMZ added since ELM doesn't have use_init_interp support for rawlandrestartfile
@@ -1030,7 +1081,7 @@ xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
 # Turning off archiving and restart file output in env_run.xml
 xmlchange_verbose "DOUT_S" "FALSE"
 xmlchange_verbose "REST_OPTION" "nyears"
-xmlchange_verbose "REST_N" "9999"
+xmlchange_verbose "REST_N" "999"
 
 if [ ${sstDataType} -ne 9 ] ; then
   # We are using some sort of analysis SST
@@ -1078,7 +1129,10 @@ fi
 #  echo "Updating atmName to $atmName"
 #fi
 
-cp user_nl_${atmName} user_nl_${atmName}.BAK
+# Non-SCREAM models backup atm config file
+if [ "$modelSystem" -ne 2 ]; then
+  cp user_nl_${atmName} user_nl_${atmName}.BAK
+fi
 
 # Update env_run.xml with runtime parameters
 xmlchange_verbose "RUN_STARTDATE" "$yearstr-$monthstr-$daystr"
@@ -1091,8 +1145,14 @@ SEINIC=${sePreFilterIC}
 ############################### (IF) FILTER SETUP ###############################
 
 if [ "$doFilter" = true ] ; then
-  # If filtering, need to change these options
 
+  # Can we run filtering?
+  if [ "$modelSystem" -ne 2 ]; then
+    echo "SCREAM and digital filter not supported"
+    exit
+  fi
+
+  # If filtering, need to change these options
   xmlchange_verbose "STOP_OPTION" "nhours"
   xmlchange_verbose "STOP_N" "$filterHourLength"
 
@@ -1217,23 +1277,32 @@ fi
 
 ############################### "ACTUAL" FORECAST RUN ###############################
 
-## Initial modification of user_nl_atm
-sed -i '/.*nhtfrq/d' user_nl_${atmName}
-sed -i '/.*mfilt/d' user_nl_${atmName}
-sed -i '/.*fincl/d' user_nl_${atmName}
-sed -i '/.*empty_htapes/d' user_nl_${atmName}
-sed -i '/.*collect_column_output/d' user_nl_${atmName}
-sed -i '/.*avgflag_pertape/d' user_nl_${atmName}  # Note, we delete this and user either specifies as :A, :I for each var or as a sep var
-echo "empty_htapes=.TRUE." >> user_nl_${atmName}
-sed -i '/.*inithist/d' user_nl_${atmName}
-if [ "$save_nudging_files" = true ] ; then
-  echo "inithist='6-HOURLY'" >> user_nl_${atmName}
-else
-  echo "inithist='NONE'" >> user_nl_${atmName}
+# Set NHTFRQ, MFILT, and FINCL fields for models that user user_nl_atm
+if [ "$modelSystem" -eq 0 ] || [ "$modelSystem" -eq 1 ]; then
+  ## Initial modification of user_nl_atm
+  sed -i '/.*nhtfrq/d' user_nl_${atmName}
+  sed -i '/.*mfilt/d' user_nl_${atmName}
+  sed -i '/.*fincl/d' user_nl_${atmName}
+  sed -i '/.*empty_htapes/d' user_nl_${atmName}
+  sed -i '/.*collect_column_output/d' user_nl_${atmName}
+  sed -i '/.*avgflag_pertape/d' user_nl_${atmName}  # Note, we delete this and user either specifies as :A, :I for each var or as a sep var
+  echo "empty_htapes=.TRUE." >> user_nl_${atmName}
+  sed -i '/.*inithist/d' user_nl_${atmName}
+  if [ "$save_nudging_files" = true ] ; then
+    echo "inithist='6-HOURLY'" >> user_nl_${atmName}
+  else
+    echo "inithist='NONE'" >> user_nl_${atmName}
+  fi
+  # Concatenate output streams to end of user_nl_${atmName}
+  cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
+elif [ "$modelSystem" -eq 2 ]; then
+  # Clear any existing output datastream YAML links
+  xmlchange_verbose --atmchange "output_yaml_files" ""
+  # Here, we unpack the packed output streams as separate yaml files
+  unpack_files ${OUTPUTSTREAMS} "./"
+  # Then append the streams
+  scream_atmchange_from_packed ${OUTPUTSTREAMS}
 fi
-
-# Concatenate output streams to end of user_nl_${atmName}
-cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
 
 # Calculate timestep stability criteria
 ATM_NCPL=$(python -c "print(int(86400/${DTIME}))")
@@ -1264,6 +1333,22 @@ if [[ "$DYCORE" == "se" ]]; then
       echo "se_tstep=${STABILITY}" >> user_nl_${atmName}
     fi
   fi
+elif [[ "$DYCORE" == "scream" ]]; then
+  # SCREAM/EAMXX must have use_nsplit = false, so error if true
+  if [ "$use_nsplit" = true ]; then
+    echo "SCREAM/EAMXX cannot have use_nsplit be true, exiting"
+    exit 1
+  else
+    if [ "$VALIDSTABVAL" = false ]; then
+      echo "Betacast cannot handle when $VALIDSTABVAL is false and use_nsplit is false"
+      echo "You need to set USERSTAB -> desired se_tstep in the namelist. Exiting..."
+      exit
+    else
+      # Add se_tstep directly from stability
+      echo "SE_TSTEP --> STABILITY: $STABILITY   "
+      xmlchange_verbose --atmchange "se_tstep" "${STABILITY}"
+    fi
+  fi
 else
   echo "non-SE/HOMME core, make sure timestepping is happy!"
 fi
@@ -1278,9 +1363,16 @@ if [ -n "${RUNPRIORITY+x}" ] && [ -n "$RUNPRIORITY" ]; then
   xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
 fi
 
-# Delete existing ncdata and inject new one into user_nl_atm file
-sed -i '/.*ncdata/d' user_nl_${atmName}
-echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
+if [ "$modelSystem" -eq 0 ] || [ "$modelSystem" -eq 1 ]; then
+  # Delete existing ncdata and inject new one into user_nl_atm file
+  sed -i '/.*ncdata/d' user_nl_${atmName}
+  echo "ncdata='${SEINIC}'" >> user_nl_${atmName}
+elif [ "$modelSystem" -eq 2 ]; then
+  xmlchange_verbose --atmchange "filename" "${SEINIC}"
+else
+  echo "Cannot inject initial conditions file!"
+  exit
+fi
 
 if [ "$debug" = false ] ; then
   echo "Begin call to forecast run"
@@ -1306,7 +1398,8 @@ fi # end run model
 cdv "$outputdir"
 
 # Generate folder structure and move NetCDF files
-main_archive "$tmparchivecdir" "$atmName" "$lndName" "$rofName"
+# This also moves nl_files and logs
+timer main_archive "$tmparchivecdir" "$atmName" "$lndName" "$rofName"
 
 # Copy betacast configs to archive directory for posterity
 safe_cp_files "$MACHINEFILE" "$NAMELISTFILE" "$OUTPUTSTREAMS" "$perturb_namelist" "$tmparchivecdir/betacast"
@@ -1315,17 +1408,18 @@ declare -p | sort > "$tmparchivecdir/betacast/shellvars_$(date +%Y%m%d_%H%M%S).t
 
 # Copy user_nl* files to archive dir as well...
 safe_cp2 "${path_to_case}/user_nl_*" "${tmparchivecdir}/nl_files/"
+safe_cp2 "${path_to_case}/*.xml" "${tmparchivecdir}/nl_files/"
 
 # Archive initial conditions?
 if [ "$archive_inic" = true ]; then
   echo "BETACAST_USER: requesting initial condition files be archived"
-  archive_inic "$tmparchivecdir" "$path_to_case" "$compress_history_nc" "$atmName" "$lndName" "$rofName" "$sstFileIC"
+  timer archive_inic "$tmparchivecdir" "$path_to_case" "$compress_history_nc" "$atmName" "$lndName" "$rofName" "$sstFileIC"
 fi
 
 # Archive nudging files generated by hindcasts
 if [ "$save_nudging_files" = true ] ; then
   echo "BETACAST_USER: requesting nudging files be archived"
-  archive_nudging "$tmparchivecdir" "$path_to_nc_files" "$compress_history_nc"
+  timer archive_nudging "$tmparchivecdir" "$path_to_nc_files" "$compress_history_nc"
 fi
 
 ## Move land files to new restart location
@@ -1363,7 +1457,7 @@ else
 fi
 
 ## Delete any leftover files in the run dir that we don't need/want anymore
-delete_leftovers "$path_to_nc_files" "$atmName" "$lndName" "$rofName"
+timer delete_leftovers "$path_to_nc_files" "$atmName" "$lndName" "$rofName"
 
 ## Delete run temp directory
 rm -rfv "$RUNTMPDIR"
@@ -1447,7 +1541,7 @@ fi
 # Let's do this last so all the above scripts can operate on uncompressed files
 if [ "$compress_history_nc" = true ]; then
   echo "BETACAST_USER: Requesting history be compressed"
-  compress_history "${ARCHIVEDIR}/${ARCHIVESUBDIR}"
+  timer compress_history "${ARCHIVEDIR}/${ARCHIVESUBDIR}"
 fi
 
 # Tar archive files so they are contained in a single directory
@@ -1470,7 +1564,22 @@ if [ "$islive" = false ] ; then
   AUTORESUB="yes"
   if [ "$AUTORESUB" == "yes" ]; then
     echo "*-*-*-* Automatically resubbing next date!"
-    exec ./betacast.sh ${MACHINEFILE} ${NAMELISTFILE} ${OUTPUTSTREAMS}
+
+    case "$BATCH_PREFIX" in
+      sbatch)
+        echo "(Re)submitting: sbatch $0 $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS"
+        exec sbatch "$0" "$MACHINEFILE" "$NAMELISTFILE" "$OUTPUTSTREAMS"
+        ;;
+      qsub)
+        echo "(Re)submitting: qsub -v MACHINEFILE=$MACHINEFILE,NAMELISTFILE=$NAMELISTFILE,OUTPUTSTREAMS=$OUTPUTSTREAMS $0"
+        exec qsub -v MACHINEFILE="$MACHINEFILE",NAMELISTFILE="$NAMELISTFILE",OUTPUTSTREAMS="$OUTPUTSTREAMS" "$0"
+        ;;
+      *)
+        echo "(Re)submitting directly: $0 $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS"
+        exec "$0" "$MACHINEFILE" "$NAMELISTFILE" "$OUTPUTSTREAMS"
+        ;;
+    esac
+
   fi
 fi
 
