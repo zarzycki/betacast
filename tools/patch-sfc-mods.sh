@@ -3,10 +3,21 @@
 #Usage:
 #~/betacast/tools/patch-sfc-mods.sh ~/betacast/ /glade/u/home/zarzycki/work/cam_20230623/ nuopc clm
 
+# Check to see if dumdum me passed in four args!
+if [[ $# -ne 4 ]]; then
+  echo "Usage: $0 <BETACAST> <PATHTOCESM> <COUPLER> <COMPONENT_NAME>"
+  exit 1
+fi
+
 BETACAST=$1
 PATHTOCESM=$2
 COUPLER=$3
 COMPONENT_NAME=$4
+
+echo $BETACAST
+echo $PATHTOCESM
+echo $COUPLER
+echo $COMPONENT_NAME
 
 declare -A component_types
 component_types=(
