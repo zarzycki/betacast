@@ -73,7 +73,15 @@ check_required_vars() {
 # Strip surrounding quotes from string [$1: variable name]
 function strip_quotes() {
   local -n var="$1"
-  [[ "${var}" == \"*\" || "${var}" == \'*\' ]] && var="${var:1:-1}"
+  # If the variable has a leading single or double quote, strip off the first/last chars
+  # Otherwise leave var untouched and return 0
+  if [[ "${var}" == \"*\" || "${var}" == \'*\' ]]; then
+    echo "[STRIP_QUOTES] Quotes detected in var: ${var}"
+    var="${var:1:-1}"
+    echo "[STRIP_QUOTES] Quotes stripped, new value: '${var}'"
+  else
+    echo "[STRIP_QUOTES] No quotes found, var unchanged: '${var}'"
+  fi
 }
 
 ### -----------------------------------------------------------------------------------
