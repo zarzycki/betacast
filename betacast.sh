@@ -2,11 +2,11 @@
 
 #SBATCH -C cpu
 #SBATCH -A m2637
-#SBATCH --qos=shared
-#SBATCH --time=24:00:00
+#SBATCH --qos=premium
+#SBATCH --time=8:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=16
-#SBATCH --chdir=/global/homes/c/czarzyck/betacast
+#SBATCH --ntasks-per-node=1
+#SBATCH --mem=0
 
 module load conda
 conda activate betacast
@@ -45,16 +45,30 @@ if [[ -n "$SLURM_SUBMIT_DIR" ]]; then
   SCRIPTPATH="$SLURM_SUBMIT_DIR"
   USING_BATCH=true
   BATCH_PREFIX="sbatch"
+  AVAIL_CPUS=${SLURM_CPUS_ON_NODE:-${SLURM_CPUS_PER_TASK:-1}}
+  AVAIL_MEM_MB=${SLURM_MEM_PER_NODE:-0}  # In MB
 elif [[ -n "$PBS_O_WORKDIR" ]]; then
   # Running under PBS/Torque
   SCRIPTPATH="$PBS_O_WORKDIR"
   USING_BATCH=true
   BATCH_PREFIX="qsub"
+  AVAIL_CPUS=${PBS_NUM_PPN:-$(nproc)}
+  AVAIL_MEM_MB=$(free -m | awk '/^Mem:/ {print $2}')
 else
   # Running interactively, nohup, by hand
   SCRIPTPATH=$(dirname "$(realpath "$0")")
   USING_BATCH=false
   BATCH_PREFIX=""
+  AVAIL_CPUS=$(nproc)
+  AVAIL_MEM_MB=$(free -m | awk '/^Mem:/ {print $2}')
+fi
+echo "Available CPUs: $AVAIL_CPUS"
+echo "Available Memory: $AVAIL_MEM_MB MB"
+if [[ "$USING_BATCH" == true ]] && command -v parallel &>/dev/null; then
+  echo "GNU parallel is available"
+  GNUPAR_AVAIL=true
+else
+  GNUPAR_AVAIL=false
 fi
 
 echo "Our script path is $SCRIPTPATH"
@@ -918,7 +932,7 @@ else
 fi
 ## END TEMP FIX
 
-echo "Setting input land dataset"
+echo "-------\nUSER_NL: Setting input ${lndName} dataset"
 # Clean up file to delete any special interp lines that may be needed later (but aren't needed for native init)
 sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_${lndName}
 sed -i '/use_init_interp/d' user_nl_${lndName}
@@ -937,16 +951,16 @@ landrestartfile=$(find "${landdir}" -maxdepth 1 \( -type f -o -type l \) -name "
 
 # Check to see if file exists on native SE land grid
 if [ -n "${landrestartfile}" ] && [ -f "${landrestartfile}" ]; then
-  echo "File ${landrestartfile} exists at exact time"
+  echo "File ${landrestartfile} exists at exact time -- in landstart folder"
 else
   # If we don't have an exact match from above, trying 00Z first, then check landrawdir
-  echo "File ${landrestartfile} does not exist at exact time"
+  echo "File ${landrestartfile} does not exist at exact time -- in landstart folder"
   landrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.*" | head -n 1)
   if [ -n "${landrestartfile}" ] && [ -f "${landrestartfile}" ]; then
-    echo "File ${landrestartfile} exists at 00Z"
+    echo "File ${landrestartfile} exists at 00Z -- in landstart folder"
   else
     rawlandrestartfile=$(find "${landrawdir}" -maxdepth 1 -type f -name "*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
-    echo "rawlandrestartfile: ${rawlandrestartfile}"
+    echo "rawlandrestartfile: ${rawlandrestartfile} -- in raw folder"
     if [ -n "${rawlandrestartfile}" ] && [ -f "${rawlandrestartfile}" ]; then
       landrestartfile=${rawlandrestartfile}
     else
@@ -955,14 +969,14 @@ else
     fi
   fi
 fi
-echo "landrestartfile: ${landrestartfile}"
+echo "--> FINAL landrestartfile: ${landrestartfile}"
 
 if [ -f "${landrestartfile}" ] && [[ "${landrestartfile}" != *.nc ]]; then
   echo "${landrestartfile} was found, but does not have an *.nc extension. Assuming compressed. Copying..."
   cp -v ${landrestartfile} "$RUNTMPDIR"
   try_uncompress "$RUNTMPDIR/$(basename "${landrestartfile}")"
   landrestartfile=$(find "${RUNTMPDIR}" -maxdepth 1 -type f -name "*.${lndSpecialName}.r.${yearstr}-${monthstr}-${daystr}-*.nc" | head -n 1)
-  echo "Updated landrestartfile: ${landrestartfile}"
+  echo "--> FINAL (uncompressed) landrestartfile: ${landrestartfile}"
 fi
 
 ## Now modify user_nl_${lndName}
@@ -999,7 +1013,7 @@ elif [ "$modelSystem" -eq 1 ] || [ "$modelSystem" -eq 2 ]; then   # ELM
   echo "check_finidat_fsurdat_consistency = .false." >> user_nl_${lndName}
   # 2/25/24 CMZ added since ELM doesn't have use_init_interp support for rawlandrestartfile
   if [ -n "${rawlandrestartfile-}" ]; then # if rawlandrestartfile is SET *and* not empty...
-    echo "WARNING USER_NL: We used a rawlandrestartfile, but ELM doesn't support interpolation, removing relevant lines"
+    echo "WARNING USER_NL: We used a rawlandrestartfile, but E3SM/ELM doesn't support interpolation, removing relevant lines"
     echo "WARNING USER_NL: If your model fails, check to make sure the rawlandrestartfile supports your target land grid"
     sed -i '/use_init_interp/d' user_nl_${lndName}
     sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_${lndName}
@@ -1013,7 +1027,7 @@ fi
 
 if [ "$do_runoff" = true ]; then
 
-  echo "USER_NL: Setting input ${rofName} dataset"
+  echo "-------\nUSER_NL: Setting input ${rofName} dataset"
 
   # Delete any existing input data
   sed -i '/.*finidat/d' user_nl_${rofName}
@@ -1024,15 +1038,15 @@ if [ "$do_runoff" = true ]; then
 
   # Check to see if file exists on native SE land grid
   if [ -n "${rofrestartfile}" ] && [ -f "${rofrestartfile}" ]; then
-     echo "USER_NL: ${rofName} file exists at exact time"
+     echo "USER_NL: ${rofName} file exists at exact time -- in landstart folder"
   else
-     echo "USER_NL: ${rofName} file does not exist at exact time"
+     echo "USER_NL: ${rofName} file does not exist at exact time -- in landstart folder"
      rofrestartfile=$(find "${landdir}" -maxdepth 1 -type f -name "${casename}.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-00000.*" | head -n 1)
      if [ -n "${rofrestartfile}" ] && [ -f "${rofrestartfile}" ]; then
-       echo "USER_NL: ${rofName} file exists at 00Z"
+       echo "USER_NL: ${rofName} file exists at 00Z -- in landstart folder"
     else
       rawrofrestartfile=$(find "${landrawdir}" -maxdepth 1 -type f -name "*.${rofSpecialName}.r.${yearstr}-${monthstr}-${daystr}-${cyclestrsec}.*" | head -n 1)
-      echo "rawrofrestartfile: ${rawrofrestartfile}"
+      echo "rawrofrestartfile: ${rawrofrestartfile} -- in raw folder"
       if [ -n "${rawrofrestartfile}" ] && [ -f "${rawrofrestartfile}" ]; then
         rofrestartfile=${rawrofrestartfile}
       else
@@ -1396,6 +1410,7 @@ fi
 fi # end run model
 
 cdv "$outputdir"
+check_shell_flags
 
 # Generate folder structure and move NetCDF files
 # This also moves nl_files and logs
@@ -1541,7 +1556,7 @@ fi
 # Let's do this last so all the above scripts can operate on uncompressed files
 if [ "$compress_history_nc" = true ]; then
   echo "BETACAST_USER: Requesting history be compressed"
-  timer compress_history "${ARCHIVEDIR}/${ARCHIVESUBDIR}"
+  timer compress_history "${ARCHIVEDIR}/${ARCHIVESUBDIR}" $GNUPAR_AVAIL
 fi
 
 # Tar archive files so they are contained in a single directory
