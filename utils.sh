@@ -636,47 +636,109 @@ try_uncompress() {
   esac
 }
 
-
-#shopt -s nullglob
-#Usage: compress_history $DIR
+#===========================================================================================
+#Usage: compress_history $DIR [do_parallel]
 #Attempt to compress all *.nc in $DIR
-#Will try using ncks deflation first
-#If that fails, will use pigz
-#If that fails, we'll just move on but should deal with it...
-
-#xz -0 -T4 -f -v LANDFALL_20050828_0024.elm.r.2005-08-28-00000.nc
-compress_history () {
+#If do_parallel is true, uses GNU parallel for ncks (which is single-threaded)
+#Fallback tools (xz, zstd, pigz) are already parallelized, so run serially
+compress_history() {
   echo "Compressing model history files..."
   cd "$1" || exit
-  local start_time end_time duration f original_size compressed_size compression_percentage
-  for f in *.nc; do
-    if [ ! -f "$f" ]; then
-      echo "compress_history: No .nc files found. Moving on..."
-      continue
+  local do_parallel=${2:-false}
+
+  # Check to see if we have any nc files to begin with...
+  if [[ -z $(ls *.nc 2>/dev/null) ]]; then
+    echo "compress_history: No .nc files found. Moving on..."
+    return
+  fi
+
+  if [[ "$do_parallel" == true ]] ; then
+    echo "compress_history: Using GNU parallel for ncks compression"
+    export -f try_ncks
+    # Find all .nc files and compress with ncks in parallel
+    # If for some reason it failed, collect(grep) lines that begin "FAILED:" + rip filename off > ncks_failures
+    # $$ gives the process id for tmp file processing
+    local NCPUS=8
+    find . -maxdepth 1 -name "*.nc" -print0 | parallel -0 -j "${NCPUS}" try_ncks {} 2>&1 | grep "^FAILED:" | cut -d: -f2 > /tmp/ncks_failures_$$.txt
+    # Process any ncks failures one-by-one with fallback (i.e., non GNU parallel) methods
+    if [[ -s /tmp/ncks_failures_$$.txt ]]; then
+      echo "compress_history: Processing ncks failures with fallback methods..."
+      while IFS= read -r f; do
+        try_fallback_compression "$f"
+      done < /tmp/ncks_failures_$$.txt
+      rm -f /tmp/ncks_failures_$$.txt
     fi
-    echo "compress_history: compressing $f with ncks"
-    start_time=$(date +%s)
-    original_size=$(stat --format=%s "$f")
-    if ! ncks -4 -L 1 --rad --no_abc -O "$f" "$f"; then
-      rm -v *.ncks.tmp
-      echo "compress_history: ncks failed for $f, attempting xz..."
-      if ! xz -2 -T8 -q -f "$f"; then
-        echo "compress_history: xz failed for $f, attempting zstd..."
-        if ! zstd --adapt -T8 -q --rm "$f"; then
-          echo "compress_history: zstd failed for $f, attempting pigz..."
-          if ! pigz "$f"; then
-            echo "compress_history: error: Failed to compress $f with ncks, zstd, and pigz. Moving on..."
-          fi #pigz
-        fi   #zstd
-      fi   #xz
-    fi  #ncks
-    compressed_size=$(stat --format=%s "$f")
-    compression_percentage=$(echo "scale=2; (100 * $compressed_size / $original_size)" | bc)
-    end_time=$(date +%s)
-    duration=$((end_time - start_time))
-    echo "compress_history: ... final percentage: $compression_percentage%, took $duration seconds."
-  done
+  else
+    # Serial processing (do_parallel = false)
+    # Declare some local vars for ncks
+    local start_time end_time duration f original_size compressed_size compression_percentage
+    # Loop over all nc files in the directory
+    for f in *.nc; do
+      echo "compress_history: compressing $f with ncks"
+      start_time=$(date +%s)
+      original_size=$(stat --format=%s "$f")
+      # Try ncks -- if that exists non-zero, go to fallback. Otherwise we're good, print stats!
+      if ! ncks -4 -L 1 --rad --no_abc -O "$f" "$f"; then
+        rm -v *.ncks.tmp
+        try_fallback_compression "$f"
+      else
+        compressed_size=$(stat --format=%s "$f")
+        compression_percentage=$(echo "scale=2; (100 * $compressed_size / $original_size)" | bc)
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
+        echo "compress_history: ... final percentage: $compression_percentage%, took $duration seconds."
+      fi
+    done
+  fi
 }
+
+# Try ncks compression (used for parallel only)
+try_ncks() {
+  local f="$1"
+  local start_time=$(date +%s)
+  local original_size=$(stat --format=%s "$f")
+
+  echo "compress_history: compressing $f with ncks"
+  if ncks -4 -L 1 --rad --no_abc -O "$f" "$f" 2>/dev/null; then
+    local compressed_size=$(stat --format=%s "$f")
+    local compression_percentage=$(echo "scale=2; (100 * $compressed_size / $original_size)" | bc)
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+    echo "compress_history: ... $f final percentage: $compression_percentage%, took $duration seconds."
+  else
+    rm -f "${f}.ncks.tmp" 2>/dev/null
+    echo "FAILED:$f"
+  fi
+}
+
+# Fallback compression (i.e., non-ncks, already parallelized tools: xz -T8, zstd -T8, pigz)
+try_fallback_compression() {
+  local f="$1"
+  local start_time=$(date +%s)
+  local original_size=$(stat --format=%s "$f")
+
+  # Try all these fallback methods in order
+  echo "compress_history: ncks failed for $f, attempting xz..."
+  if ! xz -2 -T8 -q -f "$f"; then
+    echo "compress_history: xz failed for $f, attempting zstd..."
+    if ! zstd --adapt -T8 -q --rm "$f"; then
+      echo "compress_history: zstd failed for $f, attempting pigz..."
+      if ! pigz "$f"; then
+        echo "compress_history: error: Failed to compress $f with ncks, xz, zstd, and pigz. Moving on..."
+        return
+      fi
+    fi
+  fi
+
+  # Print stats if things went well
+  # Try to find compressed file with various extensions
+  local compressed_size=$(stat --format=%s "$f" 2>/dev/null || stat --format=%s "$f.xz" 2>/dev/null || stat --format=%s "$f.zst" 2>/dev/null || stat --format=%s "$f.gz" 2>/dev/null || echo "$original_size")
+  local compression_percentage=$(echo "scale=2; (100 * $compressed_size / $original_size)" | bc)
+  local end_time=$(date +%s)
+  local duration=$((end_time - start_time))
+  echo "compress_history: ... $f final percentage: $compression_percentage%, took $duration seconds."
+}
+#===========================================================================================
 
 
 #$path_to_nc_files $2
