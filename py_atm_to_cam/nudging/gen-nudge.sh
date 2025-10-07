@@ -289,7 +289,8 @@ for f in "${DATES_ARRAY[@]}"; do
         --wgt_filename ${WGTNAME} \
         --dycore ${DYCORE} \
         --RDADIR ${RDADIR} \
-        --mpas_as_cam \
+        --add_cloud_vars \
+	--mpas_as_cam \
         --write_floats \
         --adjust_config \"\" \
         --model_topo_file ${BNDTOPO} \

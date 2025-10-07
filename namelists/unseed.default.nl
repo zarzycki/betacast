@@ -1,6 +1,6 @@
 invert_vortex=True
-psminlat=28.34926719693993
-psminlon=312.4610617653133
+psminlat=23.0
+psminlon=-85.7
 deltaMax=0.25
 gamma=-1.
 modify_q=True

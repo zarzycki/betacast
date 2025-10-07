@@ -88,9 +88,16 @@ tmpps = np.where(gcdist > truePS_scan_radius, np.nan, mps)
 minix = np.nanargmin(tmpps)
 psminlat, psminlon = lat[minix], lon[minix]
 
+print(lat)
+print(lon)
+print(mps)
+print(T[0,:])
+
 # Radial profiles of pressure and temperature
 rad_psl = radialAvg2D_unstruc(mps, lat, lon, deltaMax, psminlat, psminlon, rad_for_corr, False)
 Tavg = radialAvg3D_unstruc(T, lat, lon, lev, deltaMax, psminlat, psminlon, rad_for_corr, False)
+print(Tavg)
+print("---")
 
 print(f"psminlat {psminlat}, psminlon {psminlon}")
 print(rad_psl['radial_average'])
@@ -101,6 +108,10 @@ nrad_T = Tavg['radial_average'].shape[1]
 Tenv = Tavg['radial_average'][:, nrad_T - 1]
 Tanom = Tavg['radial_average'] - Tenv[:, np.newaxis]
 Tavg = Tanom
+print(Tavg)
+print(lev)
+print(Tenv)
+print("***")
 
 # ===================OPTIMIZATION ROUND 1==============
 wcOptimStrt = "now"  # Placeholder for the start time of optimization
@@ -108,6 +119,7 @@ wcOptimStrt = "now"  # Placeholder for the start time of optimization
 # Convert radius associated with radial averaging to degrees along a line of constant latitude
 mylon = rad_psl['radius'] / (111.0 * np.cos(np.radians(psminlat)))
 psl_amb = rad_psl['radial_average'][nrad_T - 1]
+print(psl_amb)
 
 anlPS = np.full_like(mylon, 100000.0)
 anlT = np.zeros((nlev, len(mylon)))
@@ -130,6 +142,12 @@ rmsd = np.zeros((1 + 3, int(n_p_steps ** 3)))
 
 # Initialize linear counter
 counter = 0
+
+print(rp_arr)
+print(dp_arr)
+print(exppr_arr)
+print(mylon)
+print(psl_amb)
 
 # Optimization loop over PS variables
 for aa in range(len(rp_arr)):
@@ -212,6 +230,8 @@ for dd in range(len(zp_arr)):
     anlT_anom = anlT[:, 0] - anlT[:, -1]
 
     # Correlation skill calculation
+    print(anlT_anom.shape)
+    print(Tavg[:, 0].shape)
     corr[0, counter] = np.corrcoef(anlT_anom, Tavg[:, 0])[0, 1]
     corr[1, counter] = zp
     counter += 1

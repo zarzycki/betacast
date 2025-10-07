@@ -28,33 +28,43 @@ deg_bnd = 15.0
 P0 = 100000.0
 
 # Get values from namelist
-invert_vortex = keyword_values(pthi, "invert_vortex", "bool")
-modify_q = keyword_values(pthi, "modify_q", "bool")
-modify_q_mult = 1.0 if not modify_q else keyword_values(pthi, "modify_q_mult", "float")
-gamma_ = keyword_values(pthi, "gamma", "float")
-cen_lat = keyword_values(pthi, "psminlat", "float")
-cen_lon = keyword_values(pthi, "psminlon", "float")
-zp = keyword_values(pthi, "zp", "float")
-exppr = keyword_values(pthi, "exppr", "float")
-restart_file = keyword_values(pthi, "restart_file", "bool")
+invert_vortex = keyword_values(pthi, "invert_vortex", "bool", default=False, verbose=True)
+modify_q = keyword_values(pthi, "modify_q", "bool", verbose=True)
+modify_q_mult = 1.0 if not modify_q else keyword_values(pthi, "modify_q_mult", "float", verbose=True)
+gamma_ = keyword_values(pthi, "gamma", "float", verbose=True)
+cen_lat = keyword_values(pthi, "psminlat", "float", verbose=True)
+cen_lon = keyword_values(pthi, "psminlon", "float", verbose=True)
+zp = keyword_values(pthi, "zp", "float", verbose=True)
+exppr = keyword_values(pthi, "exppr", "float", verbose=True)
+restart_file = keyword_values(pthi, "restart_file", "bool", verbose=True)
+adjust_vortex = keyword_values(pthi, "adjust_vortex", "bool", default=False, verbose=True)
 
+if adjust_vortex:
+    print("THEARR: ADJUSTING VORTEX!")
+    # These are the TARGET values
+    minp_obsv = keyword_values(pthi, "minp", "float", verbose=True)
+    target_rmw_obsv = keyword_values(pthi, "target_rmw", "float", verbose=True)
+    # These are the inversion values
+    rp_data = keyword_values(pthi, "rp", "float", verbose=True)
+    dp_data = keyword_values(pthi, "dp", "float", verbose=True)
 # If we are seeding, read target pressure and RMW
 # If we are NOT seeding, assume these have been precalculated or set
-if not invert_vortex:
-    minp = keyword_values(pthi, "minp", "float")
-    target_rmw = keyword_values(pthi, "target_rmw", "float")
-
-    # Handle default values for minp and target_rmw
-    if minp < -19999.0:
-        minp = 995.0
-    elif 0.0 < minp <= -19999.0:
-        minp = abs(minp)
-
-    if target_rmw < 0.0:
-        target_rmw = 200000.0
 else:
-    rp = keyword_values(pthi, "rp", "float")
-    dp = keyword_values(pthi, "dp", "float")
+    if not invert_vortex:
+        minp = keyword_values(pthi, "minp", "float", verbose=True)
+        target_rmw = keyword_values(pthi, "target_rmw", "float", verbose=True)
+
+        # Handle default values for minp and target_rmw
+        if minp < -19999.0:
+            minp = 995.0
+        elif 0.0 < minp <= -19999.0:
+            minp = abs(minp)
+
+        if target_rmw < 0.0:
+            target_rmw = 200000.0
+    else:
+        rp = keyword_values(pthi, "rp", "float", verbose=True)
+        dp = keyword_values(pthi, "dp", "float", verbose=True)
 
 # Start the script timer
 wcSeedStrt = datetime.now()
@@ -142,7 +152,15 @@ q_orig = np.copy(q)
 gcdist, _ = gc_latlon(cen_lat, cen_lon, lat, lon, 2, 2)
 
 # Find relevant parameters for TC seed
-if not invert_vortex:
+if adjust_vortex:
+    print("GETRPDP: ADJUSTING VORTEX!")
+    minix = np.argmin(gcdist)
+    ambps = ps[0, minix] + dp_data  # ambient PS is "minimum PS" + dp_data calculated before
+    print(f"ambient ps: {ambps}")
+    dp_obsv = ambps - minp_obsv * 100.0 if minp_obsv > 0.0 else -minp_obsv
+    rp_obsv = get_rp_from_dp_rmw(cen_lat, dp_obsv, target_rmw_obsv)
+    print(f"rp: {rp_obsv}  -- dp: {dp_obsv}")
+elif not invert_vortex:
     minix = np.argmin(gcdist)
     ambps = ps[0, minix]
     print(f"ambient ps: {ambps}")
@@ -152,19 +170,27 @@ if not invert_vortex:
 
 # Add the vortex seed to the state fields
 for ii in range(ncol):
-#     if ii % 1000 == 0:
-#         print(f"Progress: {ii}/{ncol}")
     if gcdist[ii] <= deg_bnd:
         for kk in range(nlev):
             p = hyam[kk] * P0 + hybm[kk] * ps[0, ii]
-            # Note, -999 is a failsafe for "z" since zcoords = 0, should be pressure.
-            theArr = tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon[ii], lat[ii], p, -999, 0, ps[0, ii], u[0, kk, ii], v[0, kk, ii], t[0, kk, ii], q[0, kk, ii], invert_vortex, modify_q, modify_q_mult)
-            v[0, kk, ii] = theArr[0]
-            u[0, kk, ii] = theArr[1]
-            q[0, kk, ii] = theArr[2]
-            t[0, kk, ii] = theArr[3]
-
-        ps[0, ii] = theArr[4]
+            if not adjust_vortex:
+                # Note, -999 is a failsafe for "z" since zcoords = 0, should be pressure.
+                theArr = tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon[ii], lat[ii], p, -999, 0, ps[0, ii], u[0, kk, ii], v[0, kk, ii], t[0, kk, ii], q[0, kk, ii], invert_vortex, modify_q, modify_q_mult)
+                v[0, kk, ii] = theArr[0]
+                u[0, kk, ii] = theArr[1]
+                q[0, kk, ii] = theArr[2]
+                t[0, kk, ii] = theArr[3]
+                if kk == 0:
+                    ps[0, ii] = theArr[4]
+            else:
+                anom_data = tctestcase(cen_lon, cen_lat, dp_data, rp_data, zp, exppr, gamma_, lon[ii], lat[ii], p, -999, 0, ps[0, ii], u[0, kk, ii], v[0, kk, ii], t[0, kk, ii], q[0, kk, ii], True, modify_q, modify_q_mult, return_anoms=True)
+                anom_obsv = tctestcase(cen_lon, cen_lat, dp_obsv, rp_obsv, zp, exppr, gamma_, lon[ii], lat[ii], p, -999, 0, ps[0, ii], u[0, kk, ii], v[0, kk, ii], t[0, kk, ii], q[0, kk, ii], False, modify_q, modify_q_mult, return_anoms=True)
+                v[0, kk, ii] = v[0, kk, ii] + anom_obsv[0] + anom_data[0]
+                u[0, kk, ii] = u[0, kk, ii] + anom_obsv[1] + anom_data[1]
+                q[0, kk, ii] = q[0, kk, ii] + anom_obsv[2] + anom_data[2]
+                t[0, kk, ii] = t[0, kk, ii] + anom_obsv[3] + anom_data[3]
+                if kk == 0:
+                    ps[0, ii] = ps[0, ii] + anom_obsv[4] + anom_data[4]
 
 # Correct mass
 if restart_file:

@@ -2,10 +2,10 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
 
-srcfilename="/glade/work/zarzycki/2023_mawar/mawar02w.2023052300.hwrfprs.storm.0p015.f000.grb2"
+srcfilename="/glade/u/home/zarzycki/scratch/sst_reynolds_daily_0.25deg_yr2011_timeseries.nc"
 dstDir = "./"
-dstGridName = "hwrf_storm_scrip.nc"
-metatitle = "HWRF"
+dstGridName = "0.25deg.nc"
+metatitle = "0.25"
 appendLL = False      ; append corner lat lon to SCRIP filename? (useful for regional nests that may move)
 
 ; ====================================================================================
@@ -33,8 +33,8 @@ end if
 src_file = addfile(srcfilename,"r")
 
 ; load lat/lon
-lat = src_file->lat_0
-lon = src_file->lon_0
+lat = src_file->lat
+lon = src_file->lon
 
 ; figure out top lat/lon corners
 top_left_lat = lat(0)

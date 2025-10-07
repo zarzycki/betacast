@@ -875,6 +875,7 @@ def esmf_regrid_gen_weights(srcGridFile, dstGridFile, wgtFile, opt):
     result = subprocess.run(esmf_cmd, capture_output=True, text=True)
     if result.returncode != 0:
         logging.error(f"ESMF_regrid_gen_weights: failed with output:\n{result.stderr}")
+        logging.error(f"ESMF_regrid_gen_weights: NOTE: if error = segfault/cryptic/non-existent, may be OOM issue.")
         return
 
     # Remove files if requested

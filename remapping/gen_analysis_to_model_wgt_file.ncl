@@ -6,14 +6,14 @@ begin
 ; ============= User settings
 
 ; hrrr_3km_scrip.nc, era5_0.25x0.25, era5_0.3gaus, gfs_0.50x0.50, gfs_0.25x0.25, rap_13km, hrrr_3km, hwrf_storm
-anlgrid="era5_0.3gaus"
+anlgrid="era5_0.25x0.25"
 anlgridpath="../grids/anl_scrip/"
 
 ; shortname for grid (for naming purposes)
-dstGridName="mp120a"
+dstGridName="ne16np4"
 ; full path to model SCRIP file
-dstGridFile="/glade/u/home/zarzycki/work/ASD2017_files/grids/scrip/mp120a_grid_140708.nc"
-;dstGridFile="./model_scrip/ne30np4_091226_pentagons.nc"
+;dstGridFile="/glade/u/home/zarzycki/work/ASD2017_files/grids/scrip/mp120a_grid_140708.nc"
+dstGridFile="../grids/model_scrip/ne16np4_scrip_171002.nc"
 ;dstGridFile="/glade/work/zarzycki/grids/scrip/ne0np4natlanticwat.ne30x4.g_scrip.nc"
 ;dstGridFile="./rrm.x4_ESMF.nc"
 
