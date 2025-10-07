@@ -12,7 +12,7 @@ source ../utils.sh
 # CESM (historical)
 #./auto-script.sh 0 0 20200103 36 1 -1 -1 nl.landspinup.derecho
 # E3SM (historical)
-#./auto-script.sh 1 0 20110827 12 1 -1 -1 nl.landspinup.philly.pm
+#./auto-script.sh 1 0 2011082612 12 1 -1 -1 nl.landspinup.philly.pm
 # E3SM (perturbations)
 #./auto-script.sh 1 0 19960113 12 1 2018 1920 nl.landspinup.pm-cpu
 # Model
@@ -88,9 +88,28 @@ if [[ -n "$USER_ICOMPSET" ]]; then
   COMPSET=$USER_ICOMPSET
 fi
 
+
+
 ### Do not edit below this line!
+
+### Check date passed in
+date_length=${#FORECASTDATE}
+if [[ $date_length -ne 8 && $date_length -ne 10 ]]; then
+  echo "ERROR: FORECASTDATE must be 8 (YYYYMMDD) or 10 (YYYYMMDDHH) digits long"
+  echo "STOP"
+  exit 1
+fi
 ### Date logic
 FORECASTYEAR="${FORECASTDATE:0:4}"
+FORECASTMON="${FORECASTDATE:4:2}"
+FORECASTDAY="${FORECASTDATE:6:2}"
+if [[ $date_length -eq 10 ]]; then
+  FORECASTCYCLE="${FORECASTDATE:8:2}"
+  FORECASTSSSSS=$((10#$FORECASTCYCLE * 3600))
+else
+  FORECASTCYCLE="00"
+  FORECASTSSSSS="00000"
+fi
 
 echo "CYCLE: NCYCLES = ${NCYCLES}"
 NMONTHSSPIN_WITH_CYCLES=$((NMONTHSSPIN*NCYCLES))
@@ -98,9 +117,9 @@ echo "NMONTHSSPIN: ${NMONTHSSPIN} / NMONTHSSPIN_WITH_CYCLES: ${NMONTHSSPIN_WITH_
 
 ### Print diagnostics
 # This is the actual start date the model sees
-MODEL_STARTDATE=`date -d "${FORECASTDATE} - ${NMONTHSSPIN_WITH_CYCLES} months" "+%Y-%m-%d"`
+MODEL_STARTDATE=`date -d "${FORECASTYEAR}${FORECASTMON}${FORECASTDAY} - ${NMONTHSSPIN_WITH_CYCLES} months" "+%Y-%m-%d"`
 # This is the first year of the DATM stream required
-DATM_STARTYEAR=`date -d "${FORECASTDATE} - ${NMONTHSSPIN} months" "+%Y"`
+DATM_STARTYEAR=`date -d "${FORECASTYEAR}${FORECASTMON}${FORECASTDAY} - ${NMONTHSSPIN} months" "+%Y"`
 # Some other variables that may be helpful
 FORECASTYEARM1=$((FORECASTYEAR-1))
 FORECASTYEARP1=$((FORECASTYEAR+1))
@@ -128,12 +147,6 @@ if [ $NMONTHSSPIN -eq 0 ]; then
 fi
 
 ### Error checking
-if [ ${#FORECASTDATE} -ne 8 ]; then
-  echo "Incorrect string length for FORECASTDATE, needs to be YYYYMMDD"
-  echo "You provided $FORECASTDATE"
-  echo "STOP"
-  exit 1
-fi
 if [ $dataForcing -eq 1 ] && (( FORECASTYEAR > 2016 )); then
   echo "No default DATM files beyond 2016"
   echo "Need to either find a different DATM set or spin up when coupled"
@@ -193,7 +206,11 @@ echo "NMONTHSSPIN: "${NMONTHSSPIN}
 echo "NMONTHSSPIN_WITH_CYCLES: "${NMONTHSSPIN_WITH_CYCLES}
 echo "MODEL_STARTDATE: "${MODEL_STARTDATE}
 echo "DATM_STARTYEAR: "${DATM_STARTYEAR}
-echo "FORECASTYEAR: "${FORECASTYEAR}
+echo "FORECASTYEAR: "$FORECASTYEAR
+echo "FORECASTMON: "$FORECASTMON
+echo "FORECASTDAY: "$FORECASTDAY
+echo "FORECASTCYCLE: "$FORECASTCYCLE
+echo "FORECASTSSSSS: "$FORECASTSSSSS
 echo "addDeltas: "${addDeltas}
 echo "BETACAST_ANOMYEAR: "${BETACAST_ANOMYEAR}
 echo "BETACAST_ANOMALIGN: "${BETACAST_ANOMALIGN}
@@ -226,22 +243,23 @@ cd ${PATHTOCASE}/${ICASENAME}
 set +e ; ./xmlchange NTASKS_ESP=1 ; set -e
 set +e ; ./xmlchange NTASKS_IAC=1 ; set -e
 ./xmlchange DATM_MODE=CLMCRUNCEPv7
-./xmlchange STOP_N=20
-./xmlchange STOP_OPTION='nyears'
+./xmlchange STOP_N=${NMONTHSSPIN_WITH_CYCLES}
+./xmlchange STOP_OPTION='nmonths'
 # For now, let's try both with CLMNCEP and not in there...
 # If CLMNCEP isn't there, try just DATM_ prefixes
 ./xmlchange DATM_CLMNCEP_YR_ALIGN=${DATM_STARTYEAR} || ./xmlchange DATM_YR_ALIGN=${DATM_STARTYEAR}
 ./xmlchange DATM_CLMNCEP_YR_START=${DATM_STARTYEAR} || ./xmlchange DATM_YR_START=${DATM_STARTYEAR}
 ./xmlchange DATM_CLMNCEP_YR_END=${FORECASTYEAR} || ./xmlchange DATM_YR_END=${FORECASTYEAR}
 ./xmlchange RUN_STARTDATE=${MODEL_STARTDATE}
+./xmlchange START_TOD=${FORECASTSSSSS}
 ./xmlchange REST_OPTION='end'
 ./xmlchange DOUT_S=FALSE
-# If NMONTHSSPIN is 0, doesn't make sense to stop model on same day
-if [ $NMONTHSSPIN -gt 0 ]; then
-  ./xmlchange STOP_DATE=${FORECASTDATE}
-else
-  echo "NMONTHSSPIN is zero (--> $NMONTHSSPIN), no update to STOP_DATE"
-fi
+# # If NMONTHSSPIN is 0, doesn't make sense to stop model on same day
+# if [ $NMONTHSSPIN -gt 0 ]; then
+#   ./xmlchange STOP_DATE=${FORECASTDATE}
+# else
+#   echo "NMONTHSSPIN is zero (--> $NMONTHSSPIN), no update to STOP_DATE"
+# fi
 
 ### If using ERA5, add the stream files and reset DATM_CLMNCEP_YR_START, etc.
 if [ $dataForcing -eq 0 ]; then
