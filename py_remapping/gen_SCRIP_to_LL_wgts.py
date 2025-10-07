@@ -74,4 +74,16 @@ Opt = {
 logging.info("Generating weights file...")
 esmf_regrid_gen_weights(srcGridName, dstGridName, os.path.join(wgtFileDir, wgtFileName), Opt)
 
+# Compress the weight file using ncks if available
+ncks_exists = shutil.which("ncks") is not None
+if ncks_exists:
+    logging.info(f"NCO compressing: {os.path.join(wgtFileDir, wgtFileName)}")
+    before_size = os.path.getsize(os.path.join(wgtFileDir, wgtFileName))
+    subprocess.run(["ncks", "-O", "-4", "-L", "1", os.path.join(wgtFileDir, wgtFileName), os.path.join(wgtFileDir, wgtFileName)])
+    after_size = os.path.getsize(os.path.join(wgtFileDir, wgtFileName))
+    compression_percentage = 100.0 * (1 - after_size / before_size)
+    logging.info(f"Compression percentage: {compression_percentage:.2f}%")
+else:
+    logging.warning(f"Cannot compress {os.path.join(wgtFileDir, wgtFileName)}, ncks not found")
+
 logging.info("Completed SCRIP and weight file generation.")
