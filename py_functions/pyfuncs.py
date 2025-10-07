@@ -14,12 +14,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def log_resource_usage():
+def log_resource_usage(label=""):
     process = psutil.Process()
     cpu_percent = process.cpu_percent(interval=1)
     memory_info = process.memory_info()
-    memory_usage = memory_info.rss / 1024 / 1024  # Convert to MB
-    logger.info(f"CPU Usage: {cpu_percent}%, Memory Usage: {memory_usage:.2f} MB")
+    memory_gb = memory_info.rss / 1024 / 1024 / 1024  # Convert to GB
+    sys_mem = psutil.virtual_memory()
+    logger.info(f"[MEMORY {label}] Process: {memory_gb:.2f} GB | System: {sys_mem.percent:.1f}% used")
 
 
 def configure_logging(verbose=False):

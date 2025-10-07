@@ -214,7 +214,7 @@ def main():
         data_vars['pint'] = np.broadcast_to(interfaces[:, np.newaxis, np.newaxis],data_vars['pres'].shape)
 
     # Print diagnostics
-    pyfuncs.log_resource_usage()
+    pyfuncs.log_resource_usage("After data loading and setup")
     pyfuncs.print_min_max_dict(data_vars)
 
     # TC augmentation code
@@ -350,6 +350,8 @@ def main():
     else:
         logging.info("No TC modification requested")
 
+    pyfuncs.log_resource_usage("After TC augmentation")
+
     # Do vertical interpolation here for pressure, sigma, and hybrid targets
     if dycore == 'fv' or dycore == 'se' or dycore == 'scream':
 
@@ -370,6 +372,8 @@ def main():
 
         data_vint = vertremap.pres2hyb_all(data_vars, data_vars['ps'], hya, hyb)
 
+        pyfuncs.log_resource_usage("After vertical interpolation")
+
         if write_debug_files:
             debug_vars = {
                 "ps_cam": (["latitude", "longitude"], data_vint["ps"]),
@@ -386,6 +390,7 @@ def main():
             pyfuncs.print_debug_file(DEBUGDIR + "/py_era5_on_hybrid.nc", **debug_vars)
 
         pyfuncs.print_min_max_dict(data_vint)
+
 
     if dycore == 'mpas':
         # Load the MPAS init file and get the zgrid
@@ -426,6 +431,8 @@ def main():
         pyfuncs.print_min_max_dict(data_vint)
 
     data_horiz = horizremap.remap_all(data_vint, wgt_filename, dycore=dycore)
+
+    pyfuncs.log_resource_usage("After horizontal remap")
 
     if write_debug_files:
         if dycore == "se" or dycore == "scream":
@@ -704,6 +711,8 @@ def main():
     if dycore == "se" or dycore == "scream" or dycore == "fv":
         data_horiz['correct_or_not'] = topoadjust.topo_adjustment(data_horiz, dycore, model_topo_file, adjust_config)
 
+    pyfuncs.log_resource_usage("After topo adjustment")
+
     if ps_wet_to_dry:
         if output_diag:
             ps_fv_before = np.copy(data_horiz['ps'])
@@ -789,6 +798,8 @@ def main():
     if datasource == "HWRF":
         logging.info(f"{datasource} replacing nan with _FillValue {NC_FLOAT_FILL} since regional")
         data_horiz = pyfuncs.replace_nans_with_fill_value(data_horiz, ['ps', 'u', 'v', 't', 'q', 'cldliq', 'cldice'], NC_FLOAT_FILL)
+
+    pyfuncs.log_resource_usage("After clipping, counting, and zeros")
 
     logging.info(f"Begin writing output file: {se_inic}")
 
@@ -1213,6 +1224,9 @@ def main():
         logging.info(f"Done writing output file: {se_inic}")
         nc_file.close()     # Close the file
         logging.info(f"Done closing output file: {se_inic}")
+
+        pyfuncs.log_resource_usage("DONE")
+
 
 #         # SCREAM specific conversion
 #         if dycore == "scream":
