@@ -2,8 +2,8 @@
 
 #SBATCH -C cpu
 #SBATCH -A m2637
-#SBATCH --qos=premium
-#SBATCH --time=8:00:00
+#SBATCH --qos=regular
+#SBATCH --time=36:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=0
@@ -47,6 +47,9 @@ if [[ -n "$SLURM_SUBMIT_DIR" ]]; then
   BATCH_PREFIX="sbatch"
   AVAIL_CPUS=${SLURM_CPUS_ON_NODE:-${SLURM_CPUS_PER_TASK:-1}}
   AVAIL_MEM_MB=${SLURM_MEM_PER_NODE:-0}  # In MB
+  SUBMIT_EPOCH=$(scontrol show job $SLURM_JOB_ID | grep SubmitTime | sed 's/.*SubmitTime=\([^ ]*\).*/\1/' | xargs -I {} date -d {} +%s)
+  QUEUE_MINUTES=$(( ($(date +%s) - SUBMIT_EPOCH) / 60 ))
+  echo "Job $SLURM_JOB_ID currently running, was queued for $QUEUE_MINUTES minutes"
 elif [[ -n "$PBS_O_WORKDIR" ]]; then
   # Running under PBS/Torque
   SCRIPTPATH="$PBS_O_WORKDIR"
@@ -54,6 +57,9 @@ elif [[ -n "$PBS_O_WORKDIR" ]]; then
   BATCH_PREFIX="qsub"
   AVAIL_CPUS=${PBS_NUM_PPN:-$(nproc)}
   AVAIL_MEM_MB=$(free -m | awk '/^Mem:/ {print $2}')
+  SUBMIT_EPOCH=$(qstat -f $PBS_JOBID | grep 'qtime = ' | sed 's/.*= //')
+  QUEUE_MINUTES=$(( ($(date +%s) - SUBMIT_EPOCH) / 60 ))
+  echo "Job $PBS_JOBID currently running, was queued for $QUEUE_MINUTES minutes"
 else
   # Running interactively, nohup, by hand
   SCRIPTPATH=$(dirname "$(realpath "$0")")
