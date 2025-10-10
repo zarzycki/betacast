@@ -1,11 +1,11 @@
 invert_vortex=False
-minp=955.7
-target_rmw=40000.0
-psminlat=26.70879226
-psminlon=-77.21819711
+minp=-1.
+target_rmw=-1.
+psminlat =    25.315
+psminlon =    282.831
 gamma=-1.
 zp=-1.
 exppr=-1.
 modify_q=True
-modify_q_mult=5.0
+modify_q_mult=-1.
 restart_file=False
