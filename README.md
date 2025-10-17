@@ -101,6 +101,36 @@ ${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} mct elm
 ./case.submit
 ```
 
+**SCREAMv1 example:**
+
+<!--
+module load python
+MODELROOT=/global/homes/c/czarzyck/E3SM-20250617/
+BETACAST=~/betacast/
+PROJECTID=m2637
+CASESDIR=/global/homes/c/czarzyck/F-runs/
+COMPILER=gnu
+MACHINE=pm-cpu
+-->
+
+```
+${MODELROOT}/cime/scripts/create_newcase \
+	--case ${CASESDIR}/F-betacast-F2010-SCREAMv1 \
+	--compset F2010-SCREAMv1 \
+	--res ne30pg2_ne30pg2 \
+	--pecount 1024x1 \
+	--compiler ${COMPILER} \
+	--project ${PROJECTID} \
+	--machine ${MACHINE}
+cd ${CASESDIR}/F-betacast-F2010-SCREAMv1
+# SCREAM specific build settings
+./xmlchange SCREAM_CMAKE_OPTIONS="SCREAM_NP 4 SCREAM_NUM_VERTICAL_LEV 128 SCREAM_NUM_TRACERS 10"
+./case.setup
+${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} mct elm
+./case.build
+./case.submit
+```
+
 Some notes:
 
 1. In the "patch-sfc-mods" step, a small modification is made to the land model to enforce restart files to be printed every 12 hours. This is done since the land model is initialized via nudging with the atmosphere in this framework. A shell script `${BETACAST}/tools/patch-sfc-mods.sh` has been created to ease this application, which takes the Betacast directory, top-level model directory, driver (mct or nuopc) and model component (e.g., elm, clm, mosart, rtm) as inputs. These patches can be manually applied by copying CESM or E3SM's `lnd_comp_mct.F90` (from the land model source code) into `$CASEDIR/SourceMods/src.clm` (or equivalent) and running
@@ -307,6 +337,35 @@ mfilt=1
 fincl1='PS:I',U10:I','PRECT:I'
 ```
 
+#### SCREAM-specific output
+
+For SCREAMv1+, output streams are included as separate YAML files. For Betacast to handle this, a user can "pack" the YAML files into a single format following this format (note the delimiters which contain the desired YAML file name upon unpacking):
+
+```
+::::BEGIN 60min_snap.yaml::::
+%YAML 1.1
+---
+filename_prefix: 60min_snap
+averaging_type: instant
+max_snapshots_per_file: 24
+floating_point_precision: single
+fields:
+  physics_pg2:
+    field_names:
+      - wind_speed_10m
+output_control:
+  frequency: 60
+  frequency_units: nmins
+  save_grid_data: true
+::::END 60min_snap.yaml::::
+::::BEGIN 6hourly_snap.yaml::::
+  ...
+::::END 6hourly_snap.yaml::::
+```
+
+Betacast will then "unpack" the YAML files into the case directory. Relevant helper function in `utils.sh`: `pack_files 15min_* 6hourly_snap.yaml daily_avg.yaml SCREAM.packed.yaml`.
+
+
 ### 3. Set up data folder structure
 
 Betacast requires a 'permanent' directory structure for which to download analysis data and write forcing data for the model. This does not have to be backed up but may be beneficial to not be truly on scratch space if simulations are to be carried out over a longer period of time.
@@ -369,7 +428,11 @@ cd ~/betacast/atm_to_cam/getECMWFdata
 
 The above command runs Betacast on a login or interactive node. However, a more practical approach is to run Betacast in *nohup* mode, as it is lightweight, unobtrusive, and can be easily restarted when using *resubmit* mode.
 
-Alternatively, you can create a batch submission script that automates the process. This script would submit the Betacast command and include logic to resubmit itself upon the successful completion of a single forecast, ensuring continuous execution without manual intervention.
+Alternatively, you can create a batch submission script that automates the process. This script would submit the Betacast command and include logic to resubmit itself upon the successful completion of a single forecast, ensuring continuous execution without manual intervention. For example:
+
+```sbatch betacast.sh machine_files/machine.pm-cpu namelists/nl.ne30.screamv1.pm-cpu output_streams/SCREAM.packed.yaml```
+
+where `betacast.sh` has a SLURM preamble that allows it to run on a single/shared node. Because the driver job runs while waiting for the formal model integration, minimizing the resources requested for a batch driver job is prudent -- the main limitation (as of 2025) is memory needed to generate the atmospheric initial condition file.
 
 This ends the Betacast workflow.
 
