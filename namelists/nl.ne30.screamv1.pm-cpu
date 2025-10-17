@@ -1,0 +1,27 @@
+  casename = F-betacast-F2010-SCREAMv1
+  path_to_case = /global/homes/c/czarzyck/F-runs/!CASENAME!/
+
+  datestemplate = dates.WUS.starting.txt
+
+  modelSystem = 2
+
+  atmDataType = 4
+  sstDataType = 3
+
+  numLevels = 128
+  numdays = 2
+
+  adjust_topo = /global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4pg2_x6t-SGH.c20210614.nc
+  adjust_flags = a
+
+# Needs to be np4 file for E3SM PG
+  modelgridfile = /global/homes/c/czarzyck/betacast/grids/model_scrip/ne30np4_091226_pentagons.nc
+
+  PROJECTID = m2637
+  RUNWALLCLOCK = 00:19:59
+  RUNQUEUE = premium
+
+  use_nsplit = false
+  DTIME = 1800.0
+  FINERES = 30
+  USERSTAB = 300.0
