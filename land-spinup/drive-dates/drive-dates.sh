@@ -1,8 +1,16 @@
 #!/bin/bash
 
+echo "Command used: $0 \"$@\""
+echo "PID       : $$"
+echo "Host      : $(hostname)"
+echo "User      : $(whoami)"
+echo "Start time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+echo "Shell     : $SHELL"
+
 set -e
 
 NAMELISTFILE=$1
+echo "NAMELISTFILE: $NAMELISTFILE"
 
 source ../../utils.sh
 
@@ -118,7 +126,9 @@ echo "Hour difference: $diff_hours"
 cd $CASEDIR
 xmlchange_verbose "JOB_WALLCLOCK_TIME" "$WALLCLOCK"
 xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
-xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
+if [[ -n "${JOB_PRIORITY:-}" ]]; then
+  xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
+fi
 xmlchange_verbose "REST_OPTION" "end"
 #./xmlchange STOP_N="86400"
 #./xmlchange STOP_OPTION="date"
@@ -140,7 +150,10 @@ while [ $CIMESTATUS != 0 ] ; do
   fi
   CIMEITER=$((CIMEITER+1))
   echo "CIME try $CIMEITER of $CIMEMAXTRIES"
+  set +e
   run_CIME2 "$PATH_TO_RUNDIR" "$CIMEsubstring" "$CIMEbatchargs" false
+  CIMESTATUS=$?
+  set -e
 done
 echo "Returned status $CIMESTATUS"
 
