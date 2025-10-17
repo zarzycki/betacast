@@ -879,6 +879,7 @@ main_archive () {
   mv -v mpibind*.log $1/logs || true
   mv -v nuopc* $1/nl_files || true
   mv -v *.log.* $1/logs || true
+  mv -v spio_stats.* $1/logs || true
   mv -v timing.*.gz $1/logs || true
   mv -v atm_chunk_costs*.gz $1/logs || true
 
