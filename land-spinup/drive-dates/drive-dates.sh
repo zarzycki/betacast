@@ -8,9 +8,10 @@ echo "Start time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
 echo "Shell     : $SHELL"
 
 set -e
+# Print the failing command and line number before exiting on error
+trap 'echo "Error on line $LINENO: $(BASH_COMMAND)"; exit 1' ERR
 
 NAMELISTFILE=$1
-echo "NAMELISTFILE: $NAMELISTFILE"
 
 source ../../utils.sh
 
@@ -31,6 +32,8 @@ echo $SCRIPTDIR
 if [ -z "${CIMEsubstring+x}" ]; then CIMEsubstring=""; fi
 if [ -z "${CIMEbatchargs+x}" ]; then CIMEbatchargs=""; fi
 if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=3; fi
+if [ -z "${SHORTCLOCK+x}" ]; then SHORTCLOCK=$WALLCLOCK; fi
+if [ -z "${SHORTQUEUE+x}" ]; then SHORTQUEUE=$RUNQUEUE; fi
 
 ## Get to this directory
 cd $SCRIPTDIR
@@ -58,20 +61,32 @@ echo "Raw xmlquery output: $output"
 restart_pointer="${output##*.}"
 echo "Initial restart_pointer (from output): $restart_pointer"
 
-# Check if restart_pointer is YYYY-MM-DD-SSSSS, if not use STARTDATE
+# Check if restart_pointer is YYYY-MM-DD-SSSSS, if not try rpointer
 if [[ ! "$restart_pointer" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{5}$ ]]; then
-  echo "Restart pointer format invalid. Falling back to RUN_STARTDATE + START_TOD..."
 
-  run_startdate=$(./xmlquery RUN_STARTDATE | awk -F': ' '{print $2}' | xargs)
-  echo "RUN_STARTDATE: $run_startdate"
+  # Check for rpointer.lnd file
+  if [[ -f "$PATH_TO_RUNDIR/rpointer.lnd" ]]; then
+    restart_pointer=$(sed -E 's/.*([0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{5}).*/\1/' "$PATH_TO_RUNDIR/rpointer.lnd")
+    echo "Second restart_pointer (from rpointer): $restart_pointer"
+  else
+    echo "No rpointer file found at: $PATH_TO_RUNDIR/rpointer.lnd, continuing..."
+  fi
 
-  start_tod=$(./xmlquery START_TOD | awk -F': ' '{print $2}' | xargs)
-  echo "START_TOD: $start_tod"
+  # Check if we still don't have YYYY-MM-DD-SSSSS, if not use STARTDATE
+  if [[ ! "$restart_pointer" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{5}$ ]]; then
+    echo "Restart pointer format invalid. Falling back to RUN_STARTDATE + START_TOD..."
 
-  start_tod_padded=$(printf "%05d" "$start_tod")
-  echo "START_TOD padded: $start_tod_padded"
+    run_startdate=$(./xmlquery RUN_STARTDATE | awk -F': ' '{print $2}' | xargs)
+    echo "RUN_STARTDATE: $run_startdate"
 
-  restart_pointer="${run_startdate}-${start_tod_padded}"
+    start_tod=$(./xmlquery START_TOD | awk -F': ' '{print $2}' | xargs)
+    echo "START_TOD: $start_tod"
+
+    start_tod_padded=$(printf "%05d" "$start_tod")
+    echo "START_TOD padded: $start_tod_padded"
+
+    restart_pointer="${run_startdate}-${start_tod_padded}"
+  fi
 fi
 
 echo "Final restart pointer: $restart_pointer"
@@ -124,9 +139,19 @@ echo "Hour difference: $diff_hours"
 
 ### Go to the case dir and do things
 cd $CASEDIR
-xmlchange_verbose "JOB_WALLCLOCK_TIME" "$WALLCLOCK"
-xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
-if [[ -n "${JOB_PRIORITY:-}" ]]; then
+if (( diff_hours <= 120 )); then
+  # If we only have a few days to go, allow user to specify debug or other tiny queue
+  echo "Short run: $diff_hours hours (<= 120)"
+  xmlchange_verbose "JOB_WALLCLOCK_TIME" "$SHORTCLOCK"
+  xmlchange_verbose "JOB_QUEUE" "$SHORTQUEUE" "--force"
+else
+  # If longer than a few days, go to a regular queue
+  echo "Long run: $diff_hours hours (> 120)"
+  xmlchange_verbose "JOB_WALLCLOCK_TIME" "$WALLCLOCK"
+  xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
+fi
+
+if [[ -n "${RUNPRIORITY:-}" ]]; then
   xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
 fi
 xmlchange_verbose "REST_OPTION" "end"
