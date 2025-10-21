@@ -19,7 +19,7 @@ This script automates advancing and resubmitting data atmosphere CLM/ELM based o
 First you must configure an I-compset using `auto-script`. Set to the date you want to start on and set spinup months to 0. Set `BUILD_ONLY=True` so the script sets up everything but doesn't submit the initial run.
 
 ```
-./auto-script.sh 0 0 20020101 0 1 -1 -1 nl.landspinup.tclf.ERA5 
+./auto-script.sh 0 0 20020101 0 1 -1 -1 nl.landspinup.tclf.ERA5
 ```
 
 The build your namelist (start with example or see below)
@@ -45,8 +45,9 @@ nohup ./drive-dates.sh nl_dd.ERA5.ne128pg2 &
 | `WALLCLOCK`     | Default long wallclock time for full-length runs.                                              | —                    | ✅        |
 | `RUNQUEUE`      | Default long-queue name for full-length runs.                                                  | —                    | ✅        |
 | `RUNPRIORITY`   | Optional CIME job priority to apply (`JOB_PRIORITY`).                                          | none                 | ⚪        |
-| `SHORTCLOCK`    | Wallclock for short runs (`<=120 h`). Useful if debug/short queue available. Defaults to `$WALLCLOCK` if unset.                       | `$WALLCLOCK`         | ⚪        |
-| `SHORTQUEUE`    | Queue for short runs (`<=120 h`). Useful if debug/short queue available. Defaults to `$RUNQUEUE` if unset.                            | `$RUNQUEUE`          | ⚪        |
+| `SHORTCLOCK`    | Wallclock for short runs (`<=SHORTCUTOFFHRS`). Useful if debug/short queue available. Defaults to `$WALLCLOCK` if unset.                       | `$WALLCLOCK`         | ⚪        |
+| `SHORTQUEUE`    | Queue for short runs (`<=SHORTCUTOFFHRS`). Useful if debug/short queue available. Defaults to `$RUNQUEUE` if unset.                            | `$RUNQUEUE`          | ⚪        |
+| `SHORTCUTOFFHRS`| Number of model hours to demarcate short and regular runs.                           | 120          | ⚪        |
 | `CIMEsubstring` | Optional substring argument for CIME job submission.                                           | `""`                 | ⚪        |
 | `CIMEbatchargs` | Optional batch arguments for CIME run submission.                                              | `""`                 | ⚪        |
 | `CIMEMAXTRIES`  | Maximum number of retry attempts if CIME run fails.                                            | `3`                  | ⚪        |

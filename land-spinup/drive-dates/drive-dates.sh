@@ -23,9 +23,9 @@ CASEDIR=$CASESRC/$CASENAME
 PATH_TO_RUNDIR=$BASERUN/$CASENAME/run/
 SCRIPTDIR=$BETACAST/land-spinup/drive-dates/
 
-echo $CASEDIR
-echo $PATH_TO_RUNDIR
-echo $SCRIPTDIR
+echo "CASEDIR: $CASEDIR"
+echo "PATH_TO_RUNDIR: $PATH_TO_RUNDIR"
+echo "SCRIPTDIR: $SCRIPTDIR"
 
 ## Set defaults
 ## Set these in your namelistfile if need to
@@ -34,6 +34,7 @@ if [ -z "${CIMEbatchargs+x}" ]; then CIMEbatchargs=""; fi
 if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=3; fi
 if [ -z "${SHORTCLOCK+x}" ]; then SHORTCLOCK=$WALLCLOCK; fi
 if [ -z "${SHORTQUEUE+x}" ]; then SHORTQUEUE=$RUNQUEUE; fi
+if [ -z "${SHORTCUTOFFHRS+x}" ]; then SHORTCUTOFFHRS=120; fi
 
 ## Get to this directory
 cd $SCRIPTDIR
@@ -139,14 +140,14 @@ echo "Hour difference: $diff_hours"
 
 ### Go to the case dir and do things
 cd $CASEDIR
-if (( diff_hours <= 120 )); then
+if (( diff_hours <= SHORTCUTOFFHRS )); then
   # If we only have a few days to go, allow user to specify debug or other tiny queue
-  echo "Short run: $diff_hours hours (<= 120)"
+  echo "Short run: $diff_hours hours (<= $SHORTCUTOFFHRS)"
   xmlchange_verbose "JOB_WALLCLOCK_TIME" "$SHORTCLOCK"
   xmlchange_verbose "JOB_QUEUE" "$SHORTQUEUE" "--force"
 else
   # If longer than a few days, go to a regular queue
-  echo "Long run: $diff_hours hours (> 120)"
+  echo "Long run: $diff_hours hours (> $SHORTCUTOFFHRS)"
   xmlchange_verbose "JOB_WALLCLOCK_TIME" "$WALLCLOCK"
   xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
 fi
