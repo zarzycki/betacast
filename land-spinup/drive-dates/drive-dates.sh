@@ -9,7 +9,7 @@ echo "Shell     : $SHELL"
 
 set -e
 # Print the failing command and line number before exiting on error
-trap 'echo "Error on line $LINENO: $(BASH_COMMAND)"; exit 1' ERR
+trap 'echo "Error on line ${LINENO}: ${BASH_COMMAND}"; exit 1' ERR
 
 NAMELISTFILE=$1
 
@@ -138,53 +138,57 @@ echo "Hour difference: $diff_hours"
 
 ## ---------------------------------------------------------------------------------------
 
-### Go to the case dir and do things
-cd $CASEDIR
-if (( diff_hours <= SHORTCUTOFFHRS )); then
-  # If we only have a few days to go, allow user to specify debug or other tiny queue
-  echo "Short run: $diff_hours hours (<= $SHORTCUTOFFHRS)"
-  xmlchange_verbose "JOB_WALLCLOCK_TIME" "$SHORTCLOCK"
-  xmlchange_verbose "JOB_QUEUE" "$SHORTQUEUE" "--force"
-else
-  # If longer than a few days, go to a regular queue
-  echo "Long run: $diff_hours hours (> $SHORTCUTOFFHRS)"
-  xmlchange_verbose "JOB_WALLCLOCK_TIME" "$WALLCLOCK"
-  xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
-fi
+if (( diff_hours != 0 )); then
 
-if [[ -n "${RUNPRIORITY:-}" ]]; then
-  xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
-fi
-xmlchange_verbose "REST_OPTION" "end"
-#./xmlchange STOP_N="86400"
-#./xmlchange STOP_OPTION="date"
-#./xmlchange STOP_DATE="$yearstr$monthstr$daystr"
-
-xmlchange_verbose "STOP_N" "$diff_hours"
-xmlchange_verbose "STOP_OPTION" "nhours"
-xmlchange_verbose "STOP_DATE" "-99999"
-
-## ---------------------------------------------------------------------------------------
-# Run the model
-
-# New formulation
-CIMESTATUS=1; CIMEITER=0
-while [ $CIMESTATUS != 0 ] ; do
-  if [ "$CIMEITER" -ge "$CIMEMAXTRIES" ]; then
-    echo "Exceeded the max tries: $CIMEMAXTRIES ... exiting"
-    exit 1
+  cd $CASEDIR
+  if (( diff_hours <= SHORTCUTOFFHRS )); then
+    # If we only have a few days to go, allow user to specify debug or other tiny queue
+    echo "Short run: $diff_hours hours (<= $SHORTCUTOFFHRS)"
+    xmlchange_verbose "JOB_WALLCLOCK_TIME" "$SHORTCLOCK"
+    xmlchange_verbose "JOB_QUEUE" "$SHORTQUEUE" "--force"
+  else
+    # If longer than a few days, go to a regular queue
+    echo "Long run: $diff_hours hours (> $SHORTCUTOFFHRS)"
+    xmlchange_verbose "JOB_WALLCLOCK_TIME" "$WALLCLOCK"
+    xmlchange_verbose "JOB_QUEUE" "$RUNQUEUE" "--force"
   fi
-  CIMEITER=$((CIMEITER+1))
-  echo "CIME try $CIMEITER of $CIMEMAXTRIES"
-  set +e
-  run_CIME2 "$PATH_TO_RUNDIR" "$CIMEsubstring" "$CIMEbatchargs" false
-  CIMESTATUS=$?
-  set -e
-done
-echo "Returned status $CIMESTATUS"
 
-# Old formulation
-#run_CIME2 "$PATH_TO_RUNDIR" "$CIMEsubstring" "$CIMEbatchargs" true
+  if [[ -n "${RUNPRIORITY:-}" ]]; then
+    xmlchange_verbose "JOB_PRIORITY" "$RUNPRIORITY" "--force"
+  fi
+  xmlchange_verbose "REST_OPTION" "end"
+  #./xmlchange STOP_N="86400"
+  #./xmlchange STOP_OPTION="date"
+  #./xmlchange STOP_DATE="$yearstr$monthstr$daystr"
+
+  xmlchange_verbose "STOP_N" "$diff_hours"
+  xmlchange_verbose "STOP_OPTION" "nhours"
+  xmlchange_verbose "STOP_DATE" "-99999"
+
+  ## ---------------------------------------------------------------------------------------
+  # Run the model
+
+  # New formulation
+  CIMESTATUS=1; CIMEITER=0
+  while [ $CIMESTATUS != 0 ] ; do
+    if [ "$CIMEITER" -ge "$CIMEMAXTRIES" ]; then
+      echo "Exceeded the max tries: $CIMEMAXTRIES ... exiting"
+      exit 1
+    fi
+    CIMEITER=$((CIMEITER+1))
+    echo "CIME try $CIMEITER of $CIMEMAXTRIES"
+    set +e
+    run_CIME2 "$PATH_TO_RUNDIR" "$CIMEsubstring" "$CIMEbatchargs" false
+    CIMESTATUS=$?
+    set -e
+  done
+  echo "Returned status $CIMESTATUS"
+
+else
+  echo "WARNING: Hour difference is zero. Restart time equals target time."
+  echo "  Restart: $restart_year-$restart_month-$restart_day ${restart_secs} seconds"
+  echo "  Target: $yearstr-$monthstr-$daystr ${cyclestr}:00"
+fi
 
 ## ---------------------------------------------------------------------------------------
 
