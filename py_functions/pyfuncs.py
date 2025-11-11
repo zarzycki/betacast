@@ -343,6 +343,7 @@ def replace_nans_with_fill_value(data_horiz, variables, NC_FLOAT_FILL):
     for var in variables:
         if var in data_horiz:
             data_horiz[var] = np.where(np.isnan(data_horiz[var]), NC_FLOAT_FILL, data_horiz[var])
+            logging.info(f"Replace_nans_with_fill_value: {var}")
         else:
             raise KeyError(f"Variable {var} not found in data_horiz.")
     return data_horiz

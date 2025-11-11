@@ -979,14 +979,18 @@ def main():
             compression_opts = {'zlib': True, 'complevel': 1}
         else:
             var_max_size = pyfuncs.print_and_return_varsize(data_horiz["ps"], data_horiz["u"], data_horiz["v"], data_horiz["t"], data_horiz["q"])
-            netcdf_format = "NETCDF4" if var_max_size >= 4e9 else "NETCDF3_64BIT"
+            netcdf_format = "NETCDF4" if var_max_size >= 1e9 else "NETCDF3_64BIT"
             compression_opts = {}
+        logging.info(f"netcdf_format: {netcdf_format}")
 
         # Open file
         try:
             nc_file = nc.Dataset(se_inic, 'w', format=netcdf_format)
+            logging.info(f"Opened: {se_inic}")
         except Exception as e:
             raise IOError(f"Failed to create NetCDF file {se_inic}: {e}")
+
+        logging.info(f"Creating dimensions...")
 
         nc_file.createDimension('time', None)  # None makes the dimension unlimited
 
@@ -1015,6 +1019,9 @@ def main():
             lon_nc = nc_file.createVariable('lon', 'f8', ('lon',), fill_value=COORD_FILL_VALUE, **compression_opts)
             lat_nc[:] = data_horiz['lat']
             lon_nc[:] = data_horiz['lon']
+
+        logging.info(f"... done creating dimensions")
+        logging.info(f"Creating variables...")
 
         # Create nc variables for state fields
         # Surface pressure
@@ -1099,6 +1106,9 @@ def main():
         if add_pmid:
             pmid_nc = nc_file.createVariable('PMID', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
+        logging.info(f"... done creating variables")
+        logging.info(f"Writing data to fields...")
+
         # Place data_horiz data into var fields
         if dycore == "fv":
             ps_nc[0, :, :] = replace_nans_with_fill(data_horiz['ps'],fill_value=NC_FLOAT_FILL)
@@ -1160,6 +1170,8 @@ def main():
             if add_pmid:
                 pmid_nc[0, :, :] = replace_nans_with_fill(data_horiz['pmid'][::-1, :],fill_value=NC_FLOAT_FILL)
 
+        logging.info(f"... done writing variables to fields")
+
         # If the model has a hybrid coordinate, do that here
         if dycore == "se" or dycore == "scream" or dycore == "fv":
             hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels, load_xarray=False)
@@ -1206,6 +1218,8 @@ def main():
             us_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['us'],fill_value=NC_FLOAT_FILL)
             vs_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['vs'],fill_value=NC_FLOAT_FILL)
 
+        logging.info(f"Writing attributes...")
+
         # Add reference pressure (P0)
         p0_nc = nc_file.createVariable('P0', 'f4', (), fill_value=NC_FLOAT_FILL, **compression_opts)
         p0_nc.setncattr('long_name', 'reference pressure')
@@ -1220,6 +1234,8 @@ def main():
         nc_file.creation_date = str(np.datetime64('now'))
         nc_file.dycore = dycore
         nc_file.datasource = datasource
+
+        logging.info(f"... done writing attributes")
 
         logging.info(f"Done writing output file: {se_inic}")
         nc_file.close()     # Close the file
