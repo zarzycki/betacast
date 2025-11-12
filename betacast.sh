@@ -2,8 +2,8 @@
 
 #SBATCH -C cpu
 #SBATCH -A m2637
-#SBATCH --qos=regular
-#SBATCH --time=36:00:00
+#SBATCH --qos=premium
+#SBATCH --time=02:20:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=0
@@ -78,10 +78,10 @@ else
 fi
 
 echo "Our script path is $SCRIPTPATH"
-source ${SCRIPTPATH}/utils.sh         # Source external bash functions
-source ${SCRIPTPATH}/datahelpers.sh   # Source external bash functions
 export BETACAST=${SCRIPTPATH}
 echo "BETACAST exported as $BETACAST"
+source ${BETACAST}/utils.sh
+source ${BETACAST}/datahelpers.sh
 
 # Set files
 MACHINEFILE=${1}
@@ -118,10 +118,8 @@ tmparchivecdir=${path_to_rundir}/proc/              # Path to temporarily stage 
 landdir=${path_to_rundir}/landstart/            # Path to store land restart files
 ###################################################################################
 ### THESE COME WITH THE REPO, DO NOT CHANGE #######################################
-gfs_to_cam_path=${SCRIPTPATH}/gfs_to_cam
-era_to_cam_path=${SCRIPTPATH}/interim_to_cam
-atm_to_cam_path=${SCRIPTPATH}/atm_to_cam
-sst_to_cam_path=${SCRIPTPATH}/sst_to_cam
+atm_to_cam_path=${BETACAST}/atm_to_cam
+sst_to_cam_path=${BETACAST}/sst_to_cam
 filter_path=${atm_to_cam_path}/filter
 ###################################################################################
 
@@ -170,12 +168,15 @@ if [ -z "${sendplots+x}" ]; then sendplots=false; fi
 if [ -z "${dotracking+x}" ]; then dotracking=false; fi
 if [ -z "${m2m_gridfile+x}" ]; then m2m_gridfile=""; fi
 if [ -z "${m2m_remap_file+x}" ]; then m2m_remap_file=""; fi
+### Runner code
+if [ -z "${batch_sst_gen+x}" ]; then batch_sst_gen=false; fi
+if [ -z "${batch_atm_gen+x}" ]; then batch_atm_gen=false; fi
 
 echo "DO_PYTHON set to $DO_PYTHON"
 if [ "$DO_PYTHON" = true ]; then
   # Update default paths to point to python folders
-  atm_to_cam_path=${SCRIPTPATH}/py_atm_to_cam
-  sst_to_cam_path=${SCRIPTPATH}/py_sst_to_cam
+  atm_to_cam_path=${BETACAST}/py_atm_to_cam
+  sst_to_cam_path=${BETACAST}/py_sst_to_cam
   # Update paths that relied on atm_to_cam_path or sst_to_cam_path
   filter_path=${atm_to_cam_path}/filter
 fi
@@ -423,30 +424,8 @@ fi
 echo "DYCORE: $DYCORE"
 
 if [ "$debug" = false ] ; then
-############################### GET ATM DATA ###############################
 
-  # The keys are $atmDataType
-  declare -A atm_data_sources=(
-    ["1"]="GFS"
-    ["2"]="ERAI"
-    ["3"]="CFSR"
-    ["4"]="ERA5"
-    ["9"]="CAM"
-  )
-  declare -A atm_data_glob_anl=(
-    ["1"]="gfs_0.25x0.25"
-    ["2"]=""
-    ["3"]="gfs_0.50x0.50"
-    ["4"]="era5_0.25x0.25"
-    ["9"]=""
-  )
-  declare -A atm_file_paths=(
-    ["1"]="${gfs_files_path}/gfs_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
-    ["2"]="${era_files_path}/ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
-    ["3"]="${gfs_files_path}/cfsr_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
-    ["4"]="${era_files_path}/ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
-    ["9"]=""
-  )
+############################### GET ATM DATA ###############################
 
   # Initialize any "global" variables needed when getting atmospheric data
   RDADIR="" # Init to empty, but fill in if RDA available later
@@ -477,12 +456,6 @@ if [ "$debug" = false ] ; then
       ;;
   esac
 
-  # If ERA5RDA flag toggled, set value w/ key to RDA data
-  if [ "$ERA5RDA" -eq 1 ] ; then
-    atm_data_sources["4"]="ERA5RDA"
-    atm_file_paths["4"]="${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
-  fi
-
 ############################### GET SST / NCL ###############################
 
   case "$sstDataType" in
@@ -506,414 +479,81 @@ if [ "$debug" = false ] ; then
 
   # If not using data streams, we have to generate the SST forcing
   if [ "$sstDataType" -ne 9 ] ; then
-    # Switch bash bool to int for NCL input
-    if [ "$predict_docn" = true ]; then INT_PREDICT_DOCN=1; else INT_PREDICT_DOCN=0; fi
 
-    echo "cd'ing to interpolation directory: $sst_to_cam_path"
-    cdv "$sst_to_cam_path"
+    echo "Doing sst_to_cam"
+    echo "cd'ing to interpolation directory: ${sst_to_cam_path}"
+    cdv "${sst_to_cam_path}"
 
-    sst_domain_file=${SCRIPTPATH}/grids/domains/domain.ocn.${docnres}.nc
-    sst_scrip_file=${SCRIPTPATH}/grids/domains/scrip.ocn.${docnres}.nc
-    sst_ESMF_file=${SCRIPTPATH}/grids/domains/ESMF.ocn.${docnres}.nc
+    sst_domain_file=${BETACAST}/grids/domains/domain.ocn.${docnres}.nc
+    sst_scrip_file=${BETACAST}/grids/domains/scrip.ocn.${docnres}.nc
+    sst_ESMF_file=${BETACAST}/grids/domains/ESMF.ocn.${docnres}.nc
 
-    # check if domain or SCRIP exist, if one is missing create both domain and scrip
-    if [ ! -f "$sst_domain_file" ] || [ ! -f "$sst_scrip_file" ]; then
-      echo "Creating SST domain file for: ${docnres}"
-      if [ "$DO_PYTHON" = true ]; then
-        echo "Oops" ; exit
-      else
-        set +e
-        (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' ) ; exit_status=$?
-        check_ncl_exit "gen-sst-domain.ncl" $exit_status
-        set -e
-      fi
-      compress_single_file "${sst_scrip_file}"
-    fi
-    # if the CIME coupler is nuopc, we need to generate a scrip file
-    if [ "${cime_coupler}" == "nuopc" ] && [ ! -f "$sst_ESMF_file" ]; then
-      ESMF_Scrip2Unstruct ${sst_scrip_file} ${sst_ESMF_file} 0 ; rm -fv PET0.ESMF_LogFile
-      compress_single_file "${sst_ESMF_file}"
-    fi
+    export BETACAST \
+           sst_domain_file sst_scrip_file sst_ESMF_file \
+           sstDataType predict_docn sst_to_cam_path \
+           docnres DO_PYTHON cime_coupler \
+           yearstr monthstr daystr cyclestr \
+           SSTTYPE sst_files_path sstFile iceFile sstFileIC
 
-    # Now generate the SST/ice datastream
-    if [ "$DO_PYTHON" = true ]; then
-      (set -x; python sst_to_cam.py \
-          --initdate "${yearstr}${monthstr}${daystr}${cyclestr}" \
-          --predict_docn ${INT_PREDICT_DOCN} \
-          --inputres "${docnres}" \
-          --datasource "${SSTTYPE}" \
-          --sstDataFile "${sst_files_path}/${sstFile}" \
-          --iceDataFile "${sst_files_path}/${iceFile}" \
-          --SST_write_file "${sstFileIC}" \
-          --smooth_ice \
-          --smooth_iter 3 \
-          --verbose
-      )
+    if [ "$batch_sst_gen" = true ]; then
+      echo "Submitting sst_to_cam as batch job..."
+      sbatch --wait \
+        -C cpu \
+        -A m2637 \
+        --qos=debug \
+        --time=00:30:00 \
+        --nodes=1 \
+        --ntasks-per-node=1 \
+        --mem=0 \
+        --output=${BETACAST}/sst_to_cam_%j.out \
+        --error=${BETACAST}/sst_to_cam_%j.out \
+        -J sst_to_cam \
+        --export=ALL \
+        ${BETACAST}/runner_sst_to_cam.sh
+      echo "sst_to_cam batch job finished."
     else
-      set +e
-      (set -x; ncl sst_interp.ncl \
-          'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
-          predict_docn=${INT_PREDICT_DOCN} \
-          'inputres="'${docnres}'"' \
-          'datasource="'${SSTTYPE}'"' \
-          'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
-          'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
-          'SST_write_file = "'${sstFileIC}'"' \
-      ) ; exit_status=$?
-      check_ncl_exit "sst_interp.ncl" $exit_status
-      set -e # Turn error checking back on
+      # Just run serially
+      bash ${BETACAST}/runner_sst_to_cam.sh
     fi
+
   fi
 
   ############################### ATM NCL ###############################
 
+  echo "Doing atm_to_cam"
   echo "cd'ing to interpolation directory: $atm_to_cam_path"
   cdv "$atm_to_cam_path"
 
-  # Figure out which anl2mdlWeights we want to use. If the user gave us one
-  # we will just use that, otherwise we'll hope they gave us modelgridfile (SCRIP)
-  # and we will use that if not generated. Once it's been generated, keep reusing until
-  # purged from the mapping directory
-  if [[ -z "${anl2mdlWeights}" || ! -e "${anl2mdlWeights}" ]]; then
-    echo "User did not explicitly specify anl2mdlWeights, trying to generate from SCRIP grid"
-    if [ ! -f ${modelgridfile} ]; then
-      echo "modelgridfile --> ${modelgridfile} does not exist, exiting"
-      echo "specify this as a SCRIP file in the namelist or anl2mdlWeights"
-      exit 19
-    fi
-    # Get name without suffix
-    modelgridshortname=$(basename "${modelgridfile%.*}")
-    # If we are doing m2m, specify the target as ERA5, otherwise let user decide
-    if [[ "$atmDataType" -eq 9 ]]; then
-      RLLSOURCEGRID="era5_0.25x0.25"
-    else
-      RLLSOURCEGRID="${atm_data_glob_anl[$atmDataType]}"
-    fi
-    # Define new anl2mdlWeights
-    anl2mdlWeights=${mapping_files_path}/map_${RLLSOURCEGRID}_TO_${modelgridshortname}_patc.nc
-    # Check if anl2mdlWeights exist or not, if not try to generate them
-    if [ ! -f ${anl2mdlWeights} ]; then
-      echo "Writing anl2mdlWeights --> ${anl2mdlWeights}"
-      if [ "$DO_PYTHON" = true ]; then
-        (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
-          --ANLGRID "${RLLSOURCEGRID}" \
-          --DSTGRIDNAME "${modelgridshortname}" \
-          --DSTGRIDFILE "${modelgridfile}" \
-          --ANLGRIDPATH "../grids/anl_scrip/" \
-          --WGTFILEDIR "${mapping_files_path}"
-        )
-      else
-        set +e
-        (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
-          'ANLGRID="'${RLLSOURCEGRID}'"' \
-          'ANLGRIDPATH="../grids/anl_scrip/"' \
-          'DSTGRIDNAME="'${modelgridshortname}'"' \
-          'DSTGRIDFILE="'${modelgridfile}'"' \
-          'WGTFILEDIR="'${mapping_files_path}'"' \
-        ) ; exit_status=$?
-        check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
-        set -e
-      fi
-    else
-      echo "Betacast-generated anl2mdlWeights --> ${anl2mdlWeights} already exists, using those!"
-    fi
+  export BETACAST atm_to_cam_path mapping_files_path modelgridfile m2m_gridfile \
+         m2m_parent_source uniqtime sePreFilterIC sstFileIC \
+         atmDataType numLevels yearstr monthstr daystr cyclestr \
+         RDADIR anl2mdlWeights DO_PYTHON DYCORE \
+         do_frankengrid model_scrip standalone_vortex add_noise add_perturbs \
+         perturb_namelist vortex_namelist modelSystem sstDataType \
+         gfs_files_path era_files_path ERA5RDA
+
+  if [ "$batch_atm_gen" = true ]; then
+    echo "Submitting atm_to_cam as batch job..."
+    sbatch --wait \
+      -C cpu \
+      -A m2637 \
+      --qos=debug \
+      --time=00:30:00 \
+      --nodes=1 \
+      --ntasks-per-node=1 \
+      --mem=0 \
+      --output=${BETACAST}/atm_to_cam_%j.out \
+      --error=${BETACAST}/atm_to_cam_%j.out \
+      -J atm_to_cam \
+      --export=ALL \
+      ${BETACAST}/runner_atm_to_cam.sh
+    echo "atm_to_cam batch job finished."
   else
-    echo "User has provided anl2mdlWeights --> ${anl2mdlWeights}, using those!"
-  fi # check if anl2mdlWeights is passed in
-
-  if [[ "$atmDataType" -eq 9 ]]; then
-    if [[ -z "${m2m_remap_file}" || ! -e "${m2m_remap_file}" ]]; then
-      echo "User did not explicitly specify m2m_remap_file, trying to generate from SCRIP grid"
-      if [ ! -f ${m2m_gridfile} ]; then
-        echo "m2m_gridfile --> ${m2m_gridfile} does not exist, exiting"
-        echo "specify this as a SCRIP file in the namelist or m2m_remap_file"
-        exit 19
-      fi
-      # Get name without suffix
-      m2mgridshortname=$(basename "${m2m_gridfile%.*}")
-
-      m2m_remap_file=${mapping_files_path}/map_${m2mgridshortname}_TO_era5_0.25x0.25_patc.nc
-
-      # Check if m2m_remap_file exist or not, if not try to generate them
-      if [ ! -f ${m2m_remap_file} ]; then
-        echo "Writing m2m_remap_file --> ${m2m_remap_file}"
-        set +e
-        (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
-          'ANLGRID="era5_0.25x0.25"' \
-          'ANLGRIDPATH="../grids/anl_scrip/"' \
-          'DSTGRIDNAME="'${m2mgridshortname}'"' \
-          'DSTGRIDFILE="'${m2m_gridfile}'"' \
-          'WGTFILEDIR="'${mapping_files_path}'"' \
-          FLIP_MODEL_AND_ANALYSIS=True \
-        ) ; exit_status=$?
-        check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
-        set -e
-      else
-        echo "Betacast-generated m2m_remap_file --> ${m2m_remap_file} already exists, using those!"
-      fi
-    else
-      echo "User has provided m2m_remap_file --> ${m2m_remap_file}, using those!"
-    fi
+    # Just run serially
+    bash ${BETACAST}/runner_atm_to_cam.sh
   fi
 
-  if [[ "$atmDataType" -eq 9 ]]; then
-    # If do_model2model is true, then we need to find the file
-    if [[ -d "$m2m_parent_source" ]]; then
-      echo "m2m_parent_source ($m2m_parent_source) is provided as a dir of nc files."
-      if [ "$DO_PYTHON" = true ]; then
-        (set -x; python find-time-file.py \
-          --DIR "${m2m_parent_source}" \
-          --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
-          --UQSTR "${uniqtime}"
-        )
-      else
-        set +e
-        (set -x; ncl find-time-file.ncl \
-          'DIR="'${m2m_parent_source}'"' \
-          YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-          'UQSTR="'${uniqtime}'"' \
-        ) ; exit_status=$?
-        check_ncl_exit "find-time-file.ncl" $exit_status
-        set -e
-      fi
-      while IFS= read -r line || [[ -n "$line" ]]; do
-        atm_file_paths["9"]="$line"
-        break # Exit after reading the first line
-      done < "m2mfile.$uniqtime"
-      [[ ! -f "${atm_file_paths["9"]}" ]] && { echo "File does not exist."; exit 1; }
-    elif [[ -f "$m2m_parent_source" ]]; then
-      echo "m2m_parent_source ($m2m_parent_source) is provided as a file."
-      atm_file_paths["9"]="$m2m_parent_source"
-    else
-      echo "m2m_parent_source ($m2m_parent_source) is not a file or directory. Exiting."
-      exit 1
-    fi
-  fi
-
-  echo "Doing atm_to_cam"
-
-  if [ "$DO_PYTHON" = true ]; then
-    (set -x ; python atm_to_cam.py \
-      --datasource "${atm_data_sources[$atmDataType]}" \
-      --numlevels ${numLevels} \
-      --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
-      --data_filename "${atm_file_paths[$atmDataType]}" \
-      --wgt_filename "${anl2mdlWeights}" \
-      --dycore "${DYCORE}" \
-      --add_cloud_vars \
-      --RDADIR "${RDADIR}" \
-      --adjust_config "${adjust_flags-}" \
-      --model_topo_file "${adjust_topo-}" \
-      --mod_remap_file "${m2m_remap_file-}" \
-      --mod_in_topo "${m2m_topo_in-}" \
-      --se_inic "${sePreFilterIC}" \
-      ${AUGMENT_STR:+$AUGMENT_STR} ${VORTEX_STR:+$VORTEX_STR}
-      )
-      # ${AUGMENT_STR:+$AUGMENT_STR} either gives AUGMENT_STR if not empty or nothing
-  else
-    set +e #Need to turn off error checking b/c NCL returns 0 even if fatal
-    (set -x; ncl -n atm_to_cam.ncl \
-        'datasource="'${atm_data_sources[$atmDataType]}'"' \
-        numlevels=${numLevels} \
-        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-        'dycore="'${DYCORE}'"' \
-        'data_filename="'${atm_file_paths[$atmDataType]}'"' \
-        'RDADIR="'${RDADIR}'"' \
-        'wgt_filename="'${anl2mdlWeights}'"' \
-        'model_topo_file="'${adjust_topo-}'"' \
-        'mod_remap_file="'${m2m_remap_file-}'"' \
-        'mod_in_topo="'${m2m_topo_in-}'"' \
-        'adjust_config="'${adjust_flags-}'"' \
-        'se_inic = "'${sePreFilterIC}'"'
-    ) ; exit_status=$?
-    check_ncl_exit "atm_to_cam.ncl" $exit_status
-    set -e
-  fi
-
-  if [ "$do_frankengrid" = true ] ; then
-
-    # Fill in "templated" information from regional_src
-    regional_src=${regional_src/YYYY/$yearstr}
-    regional_src=${regional_src/MM/$monthstr}
-    regional_src=${regional_src/DD/$daystr}
-    regional_src=${regional_src/HH/$cyclestr}
-
-    echo "Doing Frankengrid with $regional_src"
-
-    TMPWGTFILE="./map_hwrf_storm_TO_modelgrid_patc.nc"
-
-    if [ "$DO_PYTHON" = true ]; then
-      (set -x; python ../py_remapping/gen_reglatlon_SCRIP.py \
-        --dstGridName "hwrf_storm_scrip.nc" \
-        --dstDir "./" \
-        --srcfilename "${regional_src}"
-      )
-    else
-      set +e # Turn error checking off for NCL
-      echo "Generating a temporary SCRIP file for HWRF"
-      (set -x; ncl ../remapping/gen_reglatlon_SCRIP.ncl \
-        'DSTGRIDNAME="hwrf_storm_scrip.nc"' \
-        'DSTDIR="./"' \
-        'SRCFILENAME="'${regional_src}'"'
-      ) ; exit_status=$?
-      check_ncl_exit "gen_reglatlon_SCRIP.ncl" $exit_status
-    fi
-
-    if [ "$DO_PYTHON" = true ]; then
-      (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
-        --ANLGRID "hwrf_storm" \
-        --DSTGRIDNAME "modelgrid" \
-        --DSTGRIDFILE "${model_scrip}" \
-        --ANLGRIDPATH "./" \
-        --WGTFILEDIR "./"
-      )
-    else
-      echo "Generating a temporary map file for HWRF"
-      (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
-        'ANLGRID="hwrf_storm"' \
-        'DSTGRIDNAME="modelgrid"' \
-        'ANLGRIDPATH="./"' \
-        'WGTFILEDIR="./"' \
-        'DSTGRIDFILE="'${model_scrip}'"'
-      ) ; exit_status=$?
-      check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
-    fi
-
-    if [ "$DO_PYTHON" = true ]; then
-      (set -x ; python atm_to_cam.py \
-        --datasource "HWRF" \
-        --numlevels ${numLevels} \
-        --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
-        --data_filename "${regional_src}" \
-        --wgt_filename "${TMPWGTFILE}" \
-        --dycore "${DYCORE}" \
-        --add_cloud_vars \
-        --adjust_config "" \
-        --se_inic "${sePreFilterIC}_reg.nc"
-      )
-    else
-      echo "Generating regional Frankengrid for HWRF"
-      (set -x; ncl -n atm_to_cam.ncl 'datasource="HWRF"' \
-        'dycore="'${DYCORE}'"' \
-        numlevels=${numLevels} \
-        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-        'data_filename = "'${regional_src}'"' \
-        'wgt_filename="'${TMPWGTFILE}'"' \
-        'adjust_config=""' \
-        'se_inic = "'${sePreFilterIC}_reg.nc'"'
-      ) ; exit_status=$?
-      check_ncl_exit "atm_to_cam.ncl" $exit_status
-      set -e # Turn error checking back on
-    fi
-
-    echo "Overlay regional file on top of basefile"
-    cp -v ${sePreFilterIC} ${sePreFilterIC}_base.nc
-    (set -x; python overlay.py "${sePreFilterIC}" "${sePreFilterIC}_reg.nc" --maxLev 80. )
-
-    echo "Cleaning up temporary ESMF files"
-    rm -v "$TMPWGTFILE"
-    rm -v hwrf_storm_scrip.nc
-    rm -v ${sePreFilterIC}_reg.nc
-
-  fi
-
-fi #End debug if statement
-
-############################### #### ###############################
-##### ADD OR REMOVE VORTEX
-
-if [ "$standalone_vortex" = true ] ; then
-  cdv "$atm_to_cam_path/tcseed"
-  set +e
-  echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
-
-  echo "... finding fill parameters"
-  if [ "$DO_PYTHON" = true ]; then
-    (set -x; python find-tc-fill-params.py \
-        --inic_file "${sePreFilterIC}" \
-        --vortex_namelist ${vortex_namelist}
-    )
-  else
-    (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
-    check_ncl_exit "find-tc-fill-params.ncl" $exit_status
-  fi
-
-  echo "... seeding or unseeding TC"
-  if [ "$DO_PYTHON" = true ]; then
-    (set -x; python py-seed-tc-in-ncdata.py \
-        --inic_file "${sePreFilterIC}" \
-        --vortex_namelist ${vortex_namelist}
-    )
-  else
-    (set -x; ncl -n seed-tc-in-ncdata.ncl 'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
-    check_ncl_exit "seed-tc-in-ncdata.ncl" $exit_status
-  fi
-
-  set -e
-fi
-
-############################### #### ###############################
-##### ADD WHITE NOISE PERTURBATIONS
-
-if [ "$add_noise" = true ] ; then
-  set +e
-  echo "Adding white noise to initial condition"
-  cdv "$atm_to_cam_path"
-  (set -x; ncl -n perturb_white_noise.ncl 'basFileName = "'${sePreFilterIC}'"' ) ; exit_status=$?
-  check_ncl_exit "perturb_white_noise.ncl" $exit_status
-  set -e
-fi
-
-############################### #### ###############################
-##### ADD PERTURBATIONS
-
-if [ "$add_perturbs" = true ] ; then
-  echo "Adding perturbations"
-
-  cdv "$atm_to_cam_path/perturb"
-
-  set +e
-
-  ## Add perturbations to SST file
-  sstFileIC_WPERT=${sstFileIC}_PERT.nc
-  (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
-     'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' \
-     'pthi="'${perturb_namelist}'"'
-  ) ; exit_status=$?
-  check_ncl_exit "add_perturbations_to_sst.ncl" $exit_status
-  echo "SST perturbations added successfully"
-
-  ## Add perturbations to ATM file
-  sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
-  (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
-     'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
-     'gridfile = "'${modelgridfile}'"' \
-     'MAPFILEPATH = "'${mapping_files_path}'"' \
-     'pthi="'${perturb_namelist}'"'
-  ) ; exit_status=$?
-  check_ncl_exit "add_perturbations_to_cam.ncl" $exit_status
-  echo "ATM NCL completed successfully"
-
-  set -e # Turn error checking back on
-
-  # move temp perturb files to overwrite unperturbed files
-  mv ${sstFileIC_WPERT} ${sstFileIC}
-  mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
-fi
-
-###################### FILE CONVERSION ###############################
-
-# Convert SCREAM files to CDF5
-if [ "$modelSystem" -eq 2 ]; then
-  echo "SCREAM, converting to CDF5"
-  # If ne to 9, it means we generated the file and should convert
-  # If = 9, assuming the user has a SCREAM-compatible SST file
-  if [[ "$sstDataType" -ne 9 ]]; then
-    timer nccopy_convert 5 "${sstFileIC}"
-  fi
-  # We generated the atm INIC so convert here ourselves
-  timer nccopy_convert 5 "${sePreFilterIC}"
-fi
+fi # debug
 
 cdv "$path_to_case"
 
@@ -1497,7 +1137,7 @@ if [ "$dotracking" = true ] ; then
   echo "BETACAST_USER: requesting cyclones to be tracked."
 
   # Go to cyclone tracking folder...
-  pushd "${SCRIPTPATH}/cyclone-tracking/" > /dev/null
+  pushd "${BETACAST}/cyclone-tracking/" > /dev/null
 
   # Set a few things that are hardcoded
   TCVITFOLDER="./fin-tcvitals/"
@@ -1540,7 +1180,7 @@ fi
 
 if [ "$sendplots" = true ]; then
   echo "BETACAST_USER: Sending plots to remote server!"
-  upload_ncl_script="${SCRIPTPATH}/upload_ncl.sh"
+  upload_ncl_script="${BETACAST}/upload_ncl.sh"
   temp_upload_script="${upload_ncl_script}.${uniqtime}.ncl"
   cp "${upload_ncl_script}" "${temp_upload_script}"
   sed -i -e "s?.*yearstr=.*?yearstr='${yearstr}'?" \
@@ -1552,7 +1192,7 @@ if [ "$sendplots" = true ]; then
   # Call script to create plots and push to remove server
   (
     set -x
-    /bin/bash "${temp_upload_script}" "${nclPlotWeights}" "${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}" "${SCRIPTPATH}"
+    /bin/bash "${temp_upload_script}" "${nclPlotWeights}" "${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}" "${BETACAST}"
   )
   # Cleanup
   rm -f "${temp_upload_script}"
@@ -1578,7 +1218,7 @@ print_elapsed_time "$script_start" "$script_end"
 
 ### If not live and the run has made it here successively, delete top line of datesfile
 if [ "$islive" = false ] ; then
-  cdv ${SCRIPTPATH}
+  cdv ${BETACAST}
   #Remove top line from dates file
   remove_top_line_from_dates ${datesfile}
 
