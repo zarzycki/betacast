@@ -42,6 +42,8 @@ nohup*
 *.Log
 out.*
 timing.txt
+atm_to_cam_*.out
+sst_to_cam_*.out
 
 ## Betacast namelists
 namelists/*
