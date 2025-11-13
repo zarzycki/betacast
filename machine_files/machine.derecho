@@ -21,3 +21,5 @@ sst_files_path = ${path_to_inputdata}/SST/
 ### This is only needed to be edited on systems that don't support long job names
 ### in the batch submission process. ___ (the underscores) is converted to a space
 CIMEsubstring = "___"
+
+BATCH_SCHEDULER="qsub"

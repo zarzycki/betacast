@@ -160,6 +160,7 @@ if [ -z "${FILTERQUEUE+x}" ]; then FILTERQUEUE="batch"; fi
 if [ -z "${RUNWALLCLOCK+x}" ]; then RUNWALLCLOCK="12:00:00"; fi
 if [ -z "${RUNQUEUE+x}" ]; then RUNQUEUE="regular"; fi
 if [ -z "${RUNPRIORITY+x}" ]; then RUNPRIORITY=""; fi
+if [ -z "${BATCH_SCHEDULER+x}" ]; then BATCH_SCHEDULER=""; fi
 if [ -z "${use_nsplit+x}" ]; then use_nsplit="true"; fi
 if [ -z "${cime_coupler+x}" ]; then cime_coupler="mct"; fi
 if [ -z "${nclPlotWeights+x}" ]; then nclPlotWeights="NULL"; fi
@@ -252,9 +253,12 @@ fi
 ### ERROR CHECKING BLOCK! #########################################################
 
 # Adjust bools (for backwards compatibility, 0 = false and 1 = true)
-bools_to_check=("islive" "debug" "doFilter" "filterOnly" "do_runoff" "keep_land_restarts"
-       "predict_docn" "archive_inic" "compress_history_nc" "override_rest_check"
-       "tararchivedir" "save_nudging_files" "standalone_vortex" "augment_tcs")
+bools_to_check=("islive" "debug" "doFilter" "filterOnly"
+    "do_runoff" "keep_land_restarts" "predict_docn" "archive_inic"
+    "compress_history_nc" "override_rest_check" "batch_atm_gen" "batch_sst_gen"
+    "standalone_vortex" "augment_tcs" "tararchivedir" "save_nudging_files"
+    "add_noise" "runmodel" "DO_PYTHON" "add_perturbs" "land_spinup"
+    "sendplots" "dotracking")
 for bool_to_check in ${bools_to_check[@]}; do
   check_bool "$bool_to_check" ${!bool_to_check}
 done
@@ -326,6 +330,13 @@ if [[ "$sstDataType" -eq 9 ]]; then
     echo "ERROR: Ensure these are defined in the Betacast namelist"
     exit 1
   fi
+fi
+
+# If batch mode is requested, scheduler must be defined
+if { [ "${batch_atm_gen}" = true ] || [ "${batch_sst_gen}" = true ]; } && [ -z "${BATCH_SCHEDULER:-}" ]; then
+  echo "ERROR: BATCH_SCHEDULER is not set, but batch_atm_gen or batch_sst_gen is true."
+  echo "Please export BATCH_SCHEDULER in the machine file or turn off batch data generation."
+  exit 1
 fi
 
 # Check Python version for 3+
@@ -497,19 +508,33 @@ if [ "$debug" = false ] ; then
 
     if [ "$batch_sst_gen" = true ]; then
       echo "Submitting sst_to_cam as batch job..."
-      sbatch --wait \
-        -C cpu \
-        -A m2637 \
-        --qos=debug \
-        --time=00:30:00 \
-        --nodes=1 \
-        --ntasks-per-node=1 \
-        --mem=0 \
-        --output=${BETACAST}/sst_to_cam_%j.out \
-        --error=${BETACAST}/sst_to_cam_%j.out \
-        -J sst_to_cam \
-        --export=ALL \
-        ${BETACAST}/runner_sst_to_cam.sh
+      if [ "${BATCH_SCHEDULER}" = "sbatch" ]; then
+        sbatch --wait \
+          -C cpu \
+          -A m2637 \
+          --qos=debug \
+          --time=00:30:00 \
+          --nodes=1 \
+          --ntasks-per-node=1 \
+          --mem=0 \
+          --output=${BETACAST}/sst_to_cam_%j.out \
+          --error=${BETACAST}/sst_to_cam_%j.out \
+          -J sst_to_cam \
+          --export=ALL \
+          ${BETACAST}/runner_sst_to_cam.sh
+      elif [ "${BATCH_SCHEDULER}" = "qsub" ]; then
+        qsub -V -W block=true \
+          -A P93300042 \
+          -q develop \
+          -l walltime=00:30:00,select=1:ncpus=1:mpiprocs=1:ompthreads=1:mem=80GB \
+          -N sst_to_cam \
+          -o ${BETACAST}/sst_to_cam_"$(date +%Y%m%d%H%M%S)".out \
+          -j oe \
+          -- ${BETACAST}/runner_sst_to_cam.sh
+      else
+        echo "Error: Unknown BATCH_SCHEDULER='${BATCH_SCHEDULER}'. Must be 'sbatch' or 'qsub'." >&2
+        exit 1
+      fi
       echo "sst_to_cam batch job finished."
     else
       # Just run serially
@@ -534,19 +559,33 @@ if [ "$debug" = false ] ; then
 
   if [ "$batch_atm_gen" = true ]; then
     echo "Submitting atm_to_cam as batch job..."
-    sbatch --wait \
-      -C cpu \
-      -A m2637 \
-      --qos=debug \
-      --time=00:30:00 \
-      --nodes=1 \
-      --ntasks-per-node=1 \
-      --mem=0 \
-      --output=${BETACAST}/atm_to_cam_%j.out \
-      --error=${BETACAST}/atm_to_cam_%j.out \
-      -J atm_to_cam \
-      --export=ALL \
-      ${BETACAST}/runner_atm_to_cam.sh
+    if [ "${BATCH_SCHEDULER}" = "sbatch" ]; then
+      sbatch --wait \
+        -C cpu \
+        -A m2637 \
+        --qos=debug \
+        --time=00:30:00 \
+        --nodes=1 \
+        --ntasks-per-node=1 \
+        --mem=0 \
+        --output=${BETACAST}/atm_to_cam_%j.out \
+        --error=${BETACAST}/atm_to_cam_%j.out \
+        -J atm_to_cam \
+        --export=ALL \
+        ${BETACAST}/runner_atm_to_cam.sh
+    elif [ "${BATCH_SCHEDULER}" = "qsub" ]; then
+      qsub -V -W block=true \
+        -A P93300042 \
+        -q develop \
+        -l walltime=00:30:00,select=1:ncpus=1:mpiprocs=1:ompthreads=1:mem=80GB \
+        -N atm_to_cam \
+        -o ${BETACAST}/atm_to_cam_"$(date +%Y%m%d%H%M%S)".out \
+        -j oe \
+        -- ${BETACAST}/runner_atm_to_cam.sh
+    else
+      echo "Error: Unknown BATCH_SCHEDULER='${BATCH_SCHEDULER}'. Must be 'sbatch' or 'qsub'." >&2
+      exit 1
+    fi
     echo "atm_to_cam batch job finished."
   else
     # Just run serially
