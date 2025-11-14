@@ -5,7 +5,7 @@ TE_SERIAL_DIR = /global/homes/c/czarzyck/sw/tempestextremes_noMPI/
 
 ### These do not need to be changed except in special circumstances
 # CAM initial conditions (ncdata) path and file(s)
-pathToINICfiles = ${path_to_inputdata}/INIC/
+pathToINICfiles = $SCRATCH/betacast/INIC/
 sePreFilterIC = ${pathToINICfiles}/!CASENAME!_INIC.nc
 sePostFilterIC = ${pathToINICfiles}/!CASENAME!_INIC_filter.nc
 
@@ -21,3 +21,7 @@ sst_files_path = ${path_to_inputdata}/SST/
 ### This is only needed to be edited on systems that don't support long job names
 ### in the batch submission process. ___ (the underscores) is converted to a space
 CIMEsubstring = ""
+
+BATCH_SCHEDULER="sbatch"
+
+
