@@ -114,7 +114,7 @@ set -u  # turn on crashes for unbound variables in bash
 ############### OPTIONAL TO BE SET BY USER ########################################
 path_to_nc_files=${path_to_rundir}              # Path where .nc files are
 outputdir=${path_to_rundir}                     # Path where .nc files are being written
-tmparchivecdir=${path_to_rundir}/proc/              # Path to temporarily stage final data
+tmparchivecdir=${path_to_rundir}/proc/          # Path to temporarily stage final data
 landdir=${path_to_rundir}/landstart/            # Path to store land restart files
 ###################################################################################
 ### THESE COME WITH THE REPO, DO NOT CHANGE #######################################
@@ -144,6 +144,7 @@ if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=1; fi
 if [ -z "${add_noise+x}" ]; then add_noise=false; fi
 if [ -z "${runmodel+x}" ]; then runmodel=true; fi
 if [ -z "${DO_PYTHON+x}" ]; then DO_PYTHON=true; fi
+if [ -z "${LOGSDIR+x}" ]; then LOGSDIR="${BETACAST}/logs/"; fi
 ### Some defaults infrequently set
 if [ -z "${debug+x}" ]; then debug=false; fi
 if [ -z "${islive+x}" ]; then islive=false; fi
@@ -172,6 +173,10 @@ if [ -z "${m2m_remap_file+x}" ]; then m2m_remap_file=""; fi
 ### Runner code
 if [ -z "${batch_sst_gen+x}" ]; then batch_sst_gen=false; fi
 if [ -z "${batch_atm_gen+x}" ]; then batch_atm_gen=false; fi
+
+### CREATE DIRECTORIES ############################################################
+mkdir -p ${LOGSDIR}
+###################################################################################
 
 echo "DO_PYTHON set to $DO_PYTHON"
 if [ "$DO_PYTHON" = true ]; then
@@ -517,8 +522,8 @@ if [ "$debug" = false ] ; then
           --nodes=1 \
           --ntasks-per-node=1 \
           --mem=0 \
-          --output=${BETACAST}/sst_to_cam_%j.out \
-          --error=${BETACAST}/sst_to_cam_%j.out \
+          --output=${LOGSDIR}/sst_to_cam_%j.out \
+          --error=${LOGSDIR}/sst_to_cam_%j.out \
           -J sst_to_cam \
           --export=ALL \
           ${BETACAST}/runner_sst_to_cam.sh
@@ -528,7 +533,7 @@ if [ "$debug" = false ] ; then
           -q develop \
           -l walltime=00:30:00,select=1:ncpus=1:mpiprocs=1:ompthreads=1:mem=80GB \
           -N sst_to_cam \
-          -o ${BETACAST}/sst_to_cam_"$(date +%Y%m%d%H%M%S)".out \
+          -o ${LOGSDIR}/sst_to_cam_"$(date +%Y%m%d%H%M%S)".out \
           -j oe \
           -- ${BETACAST}/runner_sst_to_cam.sh
       else
@@ -568,8 +573,8 @@ if [ "$debug" = false ] ; then
         --nodes=1 \
         --ntasks-per-node=1 \
         --mem=0 \
-        --output=${BETACAST}/atm_to_cam_%j.out \
-        --error=${BETACAST}/atm_to_cam_%j.out \
+        --output=${LOGSDIR}/atm_to_cam_%j.out \
+        --error=${LOGSDIR}/atm_to_cam_%j.out \
         -J atm_to_cam \
         --export=ALL \
         ${BETACAST}/runner_atm_to_cam.sh
@@ -579,7 +584,7 @@ if [ "$debug" = false ] ; then
         -q develop \
         -l walltime=00:30:00,select=1:ncpus=1:mpiprocs=1:ompthreads=1:mem=80GB \
         -N atm_to_cam \
-        -o ${BETACAST}/atm_to_cam_"$(date +%Y%m%d%H%M%S)".out \
+        -o ${LOGSDIR}/atm_to_cam_"$(date +%Y%m%d%H%M%S)".out \
         -j oe \
         -- ${BETACAST}/runner_atm_to_cam.sh
     else
