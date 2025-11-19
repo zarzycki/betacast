@@ -1,0 +1,92 @@
+--- /glade/u/home/zarzycki/work/cesm3_0_beta06/components/clm/src/cpl/nuopc/lnd_comp_nuopc.F90	2025-05-06 11:42:50.843422384 -0600
++++ lnd_comp_nuopc.F90	2025-11-17 04:33:06.603155401 -0700
+@@ -351,6 +351,10 @@
+     use lnd_set_decomp_and_domain , only : lnd_set_mesh_for_single_column
+     use lnd_set_decomp_and_domain , only : lnd_set_decomp_and_domain_for_single_column
+ 
++!++CMZ
++    use lnd_restart_scheduleMod, only: load_restart_schedule, restart_times, n_loaded
++!--CMZ
++
+     ! input/output variables
+     type(ESMF_GridComp)  :: gcomp
+     type(ESMF_State)     :: importState
+@@ -406,6 +410,9 @@
+     character(len=CL)       :: hostname                       ! hostname of machine running on
+     character(len=CL)       :: username                       ! user running the model
+     character(len=*),parameter :: subname=trim(modName)//':(InitializeRealize) '
++!++CMZ
++    integer :: i   ! iterator
++!--CMZ
+     !-------------------------------------------------------------------------------
+ 
+     rc = ESMF_SUCCESS
+@@ -696,8 +703,19 @@
+     endif
+ #endif
+ 
++!++CMZ
++  call load_restart_schedule("restart_times.txt", iulog)
++  if (masterproc) then
++     write(iulog,*) "Loaded restart schedule (", n_loaded, " entries):"
++     do i = 1, n_loaded
++        write(iulog,*) "  restart_times(", i, ") = ", restart_times(i)
++     end do
++  end if
++!--CMZ
++
+     call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+ 
++
+   end subroutine InitializeRealize
+ 
+   !===============================================================================
+@@ -714,6 +732,10 @@
+     use decompMod   , only : bounds_type, get_proc_bounds
+     use clm_driver  , only : clm_drv
+ 
++!++CMZ
++    use lnd_restart_scheduleMod, only : restart_times, n_restart_times
++!--CMZ
++
+     ! input/output variables
+     type(ESMF_GridComp)  :: gcomp
+     integer, intent(out) :: rc
+@@ -756,6 +778,9 @@
+     character(len=32)      :: rdate          ! date char string for restart file names
+     integer                :: shrlogunit ! original log unit
+     character(len=*),parameter  :: subname=trim(modName)//':(ModelAdvance) '
++!++CMZ
++    integer      :: ymdh                 ! CMZ: YYYYMMDDHH for restart triggers
++!--CMZ
+     !-------------------------------------------------------------------------------
+ 
+     rc = ESMF_SUCCESS
+@@ -856,8 +881,17 @@
+     !--------------------------------
+     ! Determine if time to write restart
+     !--------------------------------
++!++CMZ
++    ! Get next time to get tod_sync and see if we will be writing at the step
++    ! Note model clock is updated at end of timestep, so I think that's why we need next time here
++    ! tod_sync is first init here, so querying it before ESMF_clock gives garbage answers
++    call ESMF_ClockGetNextTime(clock, nextTime=nextTime, rc=rc)
++    if (ChkErr(rc,__LINE__,u_FILE_u)) return
++    call ESMF_TimeGet( nextTime, yy=yr_sync, mm=mon_sync, dd=day_sync, s=tod_sync, rc=rc )
++    ymdh = (yr_sync*10000 + mon_sync*100 + day_sync) * 100 + ( tod_sync / 3600 )    ! build YYYYMMDDHH
++
+     rstwr = .false.
+-    if (nlend .and. write_restart_at_endofrun) then
++    if ((nlend .and. write_restart_at_endofrun) .OR. (ANY(restart_times == ymdh) .and. (MOD(tod_sync,3600) == 0)) ) then
+        rstwr = .true.
+     else 
+        call ESMF_ClockGetAlarm(clock, alarmname='alarm_restart', alarm=alarm, rc=rc)
+@@ -871,7 +905,7 @@
+           endif
+        endif
+     end if
+-
++!--CMZ
+     !--------------------------------
+     ! Run CTSM
+     !--------------------------------

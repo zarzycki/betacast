@@ -1,0 +1,82 @@
+--- /glade/u/home/zarzycki/work/cesm3_0_beta06/components/mosart/src/cpl/nuopc/rof_comp_nuopc.F90	2025-05-06 11:44:54.267743461 -0600
++++ rof_comp_nuopc.F90	2025-11-17 17:43:10.060518781 -0700
+@@ -398,6 +398,10 @@
+ 
+   subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
+ 
++!++CMZ
++    use rof_restart_scheduleMod, only: load_restart_schedule, restart_times, n_loaded
++!--CMZ
++
+     ! input/output variables
+     type(ESMF_GridComp)  :: gcomp
+     type(ESMF_State)     :: importState
+@@ -419,6 +423,10 @@
+     integer               :: localPeCount
+     integer               :: rofid                 ! component id for pio
+     character(len=*), parameter :: subname=trim(modName)//':(InitializeRealize) '
++!++CMZ
++    integer :: i   ! iterator
++!--CMZ
++
+     !---------------------------------------------------------------------------
+ 
+     rc = ESMF_SUCCESS
+@@ -550,6 +558,16 @@
+          flds_scalar_name, flds_scalar_num, rc)
+     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+ 
++!++CMZ
++    call load_restart_schedule("restart_times.txt", iulog)
++    if (mainproc) then
++       write(iulog,*) "Loaded restart schedule (", n_loaded, " entries):"
++       do i = 1, n_loaded
++          write(iulog,*) "  restart_times(", i, ") = ", restart_times(i)
++       end do
++    end if
++!--CMZ
++
+     !----------------------------------------------------------------------------
+     ! Reset shr logging
+     !----------------------------------------------------------------------------
+@@ -585,6 +603,10 @@
+     ! Run MOSART
+     !------------------------
+ 
++!++CMZ
++    use rof_restart_scheduleMod, only : restart_times, n_restart_times
++!--CMZ
++
+     ! arguments:
+     type(ESMF_GridComp)  :: gcomp
+     integer, intent(out) :: rc
+@@ -610,6 +632,9 @@
+     integer           :: g,i           ! indices
+     character(len=CS) :: rdate         ! date char string for restart file names
+     character(len=*),parameter  :: subname=trim(modName)//':(ModelAdvance) '
++!++CMZ
++    integer      :: ymdh                 ! CMZ: YYYYMMDDHH for restart triggers
++!--CMZ
+     !-------------------------------------------------------
+ 
+     rc = ESMF_SUCCESS
+@@ -688,6 +713,19 @@
+     call ESMF_TimeGet(nexttime, yy=yr_sync, mm=mon_sync, dd=day_sync, s=tod_sync, rc=rc)
+     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+ 
++!++CMZ
++    ymdh = (yr_sync*10000 + mon_sync*100 + day_sync) * 100 + ( tod_sync / 3600 )    ! build YYYYMMDDHH
++    if (mainproc) then
++       write(iulog,*)'ymdh ',ymdh
++    end if
++    if ((ANY(restart_times == ymdh) .and. (MOD(tod_sync,3600) == 0)) ) then
++      if (mainproc) then
++         write(iulog,*)'ringing at!! ',ymdh
++      end if
++      rstwr = .true.
++    endif
++!--CMZ
++
+     call shr_cal_ymd2date(yr_sync, mon_sync, day_sync, ymd_sync)
+     write(rdate,'(i4.4,"-",i2.2,"-",i2.2,"-",i5.5)') yr_sync, mon_sync, day_sync, tod_sync
+ 
