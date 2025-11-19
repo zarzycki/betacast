@@ -1,0 +1,63 @@
+--- /global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/src/E3SM-20251110/components/mosart/src/cpl/rof_comp_mct.F90	2025-11-10 13:51:28.642186929 -0800
++++ rof_comp_mct.F90	2025-11-14 08:36:33.662801866 -0800
+@@ -116,6 +116,9 @@
+     ! back from (i.e. albedos, surface temperature and snow cover over land).
+     !
+     ! !ARGUMENTS:
++!++CMZ
++    use rof_restart_scheduleMod, only: load_restart_schedule, restart_times, n_loaded
++!--CMZ
+ #ifdef HAVE_MOAB
+ #ifdef MOABDEBUG
+     use iMOAB,  only       : iMOAB_WriteMesh
+@@ -395,6 +398,16 @@
+     endif
+ #endif
+ 
++!++CMZ
++    call load_restart_schedule("restart_times.txt", iulog)
++    if (masterproc) then
++       write(iulog,*) "Loaded restart schedule (", n_loaded, " entries):"
++       do i = 1, n_loaded
++          write(iulog,*) "  restart_times(", i, ") = ", restart_times(i)
++       end do
++    end if
++!--CMZ
++
+   end subroutine rof_init_mct
+ 
+ !---------------------------------------------------------------------------
+@@ -405,6 +418,10 @@
+     ! DESCRIPTION:
+     ! Run runoff model
+ 
++!++CMZ
++    use rof_restart_scheduleMod, only : restart_times, n_restart_times
++!--CMZ
++
+     ! ARGUMENTS:
+     implicit none
+     type(ESMF_Clock) , intent(inout) :: EClock    ! Input synchronization clock from driver
+@@ -429,6 +446,9 @@
+     real(r8),               pointer :: data(:)  ! temporary
+     character(len=32)               :: rdate    ! date char string for restart file names
+     character(len=32), parameter    :: sub = "rof_run_mct"
++!++CMZ
++    integer      :: ymdh                 ! CMZ: YYYYMMDDHH for restart triggers
++!--CMZ
+     !-------------------------------------------------------
+ 
+ #ifdef MOABCOMP
+@@ -488,6 +508,12 @@
+     write(rdate,'(i4.4,"-",i2.2,"-",i2.2,"-",i5.5)') yr_sync,mon_sync,day_sync,tod_sync
+     nlend = seq_timemgr_StopAlarmIsOn( EClock )
+     rstwr = seq_timemgr_RestartAlarmIsOn( EClock )
++    !--CMZ
++    ymdh = (yr_sync*10000 + mon_sync*100 + day_sync) * 100 + ( tod_sync / 3600 )    ! build YYYYMMDDHH
++    if (ANY(restart_times == ymdh) .and. (MOD(tod_sync,3600) == 0)) then
++      rstwr = .true.
++    end if
++    !--CMZ
+     call Rtmrun(rstwr,nlend,rdate)
+ 
+     ! Map roff data to MCT datatype (input is rtmCTL%runoff, output is r2x_r)

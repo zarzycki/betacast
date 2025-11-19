@@ -1,0 +1,99 @@
+--- /global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/src/E3SM-20251110/components/elm/src/cpl/lnd_comp_mct.F90	2025-11-10 13:51:28.202143214 -0800
++++ lnd_comp_mct.F90	2025-11-14 08:25:19.070477924 -0800
+@@ -101,6 +101,9 @@
+ #ifdef MOABDEBUG
+     use iMOAB        , only: iMOAB_WriteMesh
+ #endif
++!++CMZ
++    use lnd_restart_scheduleMod, only: load_restart_schedule, restart_times, n_loaded
++!--CMZ
+ 
+     !
+     ! !ARGUMENTS:
+@@ -150,7 +153,6 @@
+     type(bounds_type) :: bounds                      ! bounds
+     character(len=32), parameter :: sub = 'lnd_init_mct'
+     character(len=*),  parameter :: format = "('("//trim(sub)//") :',A)"
+-
+ #ifdef HAVE_MOAB
+     character*100 outfile, wopts
+     integer :: ierr, nsend,n
+@@ -423,6 +425,16 @@
+     endif
+ #endif
+ 
++!++CMZ
++  call load_restart_schedule("restart_times.txt", iulog)
++  if (masterproc) then
++     write(iulog,*) "Loaded restart schedule (", n_loaded, " entries):"
++     do i = 1, n_loaded
++        write(iulog,*) "  restart_times(", i, ") = ", restart_times(i)
++     end do
++  end if
++!--CMZ
++
+   end subroutine lnd_init_mct
+ 
+   !====================================================================================
+@@ -454,6 +466,9 @@
+     use shr_orb_mod     ,  only : shr_orb_decl
+     use mct_mod
+     use ESMF
++!++CMZ
++    use lnd_restart_scheduleMod, only : restart_times, n_restart_times
++!--CMZ
+ #ifdef MOABCOMP
+     use seq_flds_mod     , only :   seq_flds_x2l_fields
+ #endif
+@@ -507,6 +522,27 @@
+     type(mct_string)    :: mctOStr  !
+     character(100) ::tagname, mct_field, modelStr
+ #endif
++!++CMZ
++    integer      :: ymdh                 ! CMZ: YYYYMMDDHH for restart triggers
++!     integer, parameter :: n_restart_times = 3
++!     integer, parameter, dimension(n_restart_times) :: restart_times = (/ &
++!          2002010112, &
++!          2002010206, &
++!          2002010300  /)
++! integer, parameter :: n_restart_times = 1000
++! integer :: restart_times(n_restart_times)
++! integer :: stfilecount, stfileierr
++! restart_times = -1      ! initialize all unused entries
++! stfilecount = 0
++! open(99, file="restart_times.txt", status="old", action="read")
++! do
++!     read(99, *, iostat=stfileierr) restart_times(stfilecount+1)
++!     if (stfileierr /= 0) exit      ! exit loop on EOF or read error
++!     stfilecount = stfilecount + 1   ! successful read → increment count
++!     if (stfilecount == n_restart_times) exit   ! array full
++! end do
++! close(99)
++!--CMZ
+     !---------------------------------------------------------------------------
+ 
+     ! Determine processor bounds
+@@ -600,6 +636,7 @@
+        call get_curr_date( yr, mon, day, tod )
+        ymd = yr*10000 + mon*100 + day
+        tod = tod
++
+        dosend = (seq_timemgr_EClockDateInSync( EClock, ymd, tod))
+ 
+        ! Determine doalb based on nextsw_cday sent from atm model
+@@ -619,6 +656,15 @@
+ 
+        rstwr = .false.
+        if (rstwr_sync .and. dosend) rstwr = .true.
++!++CMZ
++       !if (tod_sync == 0) rstwr = .true.
++       !if (tod_sync == 43200) rstwr = .true.
++       ymdh = (yr_sync*10000 + mon_sync*100 + day_sync) * 100 + ( tod_sync / 3600 )    ! build YYYYMMDDHH
++       !print *, 'ymdh =', ymdh, ' rstwr =', rstwr, 'do_restart =', ANY(restart_times == ymdh)
++       if (ANY(restart_times == ymdh) .and. (MOD(tod_sync,3600) == 0) .and. dosend) then
++          rstwr = .true.
++       end if
++!--CMZ
+        nlend = .false.
+        if (nlend_sync .and. dosend) nlend = .true.
+ 
