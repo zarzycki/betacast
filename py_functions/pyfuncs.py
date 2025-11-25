@@ -408,15 +408,33 @@ def create_cf_time(year, month, day, hour, base_time="1850-01-01 00:00:00", time
     - time_attrs: A dictionary with attributes to assign to the time variable in xarray
     """
 
-    base_year, base_month, base_day, base_hour = [int(val) for val in base_time.split()[0].split('-')] + [int(base_time.split()[1].split(':')[0])]
+    print(f"CMZ: {base_time}")
 
-    nptime = cftime.date2num(cftime.DatetimeNoLeap(year, month, day, hour), units=f"{time_units} {base_time}")
+    # Parse base_time
+    # Split on space
+    date_part, time_part = base_time.split()
+    # Now get YYYY, MM, DD from first half
+    base_year, base_month, base_day = map(int, date_part.split('-'))
+    # Get HH MM SS from second half
+    hh, mm, ss = map(int, time_part.split(':'))
 
+    # Compute seconds since midnight (SSSSS)
+    seconds_of_day = hh * 3600 + mm * 60 + ss
+    seconds_of_day_str = f"{seconds_of_day:05d}"  # zero-padded to 5 digits
+
+    # Assemble YYYY-MM-DD-SSSSS
+    base_timestring = f"{base_year:04d}-{base_month:02d}-{base_day:02d}-{seconds_of_day_str}"
+
+    nptime = cftime.date2num(
+        cftime.DatetimeNoLeap(year, month, day, hour),
+        units=f"{time_units} {base_time}"
+    )
     nptime = np.array([nptime], dtype=np.float64)
 
     time_attrs = {
         "units": f"{time_units} {base_time}",
-        "calendar": f"{calendar}"
+        "calendar": calendar,
+        "base_timestring": base_timestring,
     }
 
     return nptime, time_attrs

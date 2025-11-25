@@ -27,7 +27,8 @@ from constants import (
     damp_upper_winds_mpas, MPAS_W_DAMPING_COEF,
     NC_FLOAT_FILL, DEFAULT_FILL_VALUE, COORD_FILL_VALUE, CORRECT_OR_NOT_FILL_VALUE,
     QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH,
-    NUMCLDMAXTHRESH, NUMICEMAXTHRESH, NUMLIQMAXTHRESH
+    NUMCLDMAXTHRESH, NUMICEMAXTHRESH, NUMLIQMAXTHRESH,
+    cf_base_time
 )
 
 # Set nc fill values
@@ -894,7 +895,7 @@ def main():
                 out_data['o3'] = pyfuncs.add_time_define_precision(out_data['o3'], write_type, True)
 
         # Create CF-compliant time
-        time, time_atts = pyfuncs.create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr))
+        time, time_atts = pyfuncs.create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr), base_time=cf_base_time)
         out_data['time'] = pyfuncs.numpy_to_dataarray(time, dims=['time'], attrs=time_atts)
 
         # Data set to be written out, base variables for all models
@@ -995,7 +996,7 @@ def main():
         nc_file.createDimension('time', None)  # None makes the dimension unlimited
 
         time_nc = nc_file.createVariable('time', 'f8', ('time',), **compression_opts)
-        time, time_atts = pyfuncs.create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr))
+        time, time_atts = pyfuncs.create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr), base_time=cf_base_time)
         for attr, value in time_atts.items():
             setattr(time_nc, attr, value)
         time_nc[:] = time
@@ -1234,6 +1235,7 @@ def main():
         nc_file.creation_date = str(np.datetime64('now'))
         nc_file.dycore = dycore
         nc_file.datasource = datasource
+        nc_file.case_t0 = time_atts["base_timestring"] # This is used by EAMxx, don't see harm in using elsewhere
 
         logging.info(f"... done writing attributes")
 

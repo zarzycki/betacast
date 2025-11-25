@@ -18,6 +18,7 @@ COORD_FILL_VALUE = -900.0
 CORRECT_OR_NOT_FILL_VALUE = -1.0
 
 dtime_map = [4, 2, 2, 2]
+cf_base_time = "1900-01-01 00:00:00"
 
 QMAXTHRESH = 0.05
 QMINTHRESH = 1.0e-12
