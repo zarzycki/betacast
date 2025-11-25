@@ -12,9 +12,9 @@ ENDAY=20
 
 ####### PATHS ETC PER MACHINE
 
-#BETACASTDIR=/glade/u/home/zarzycki/betacast/
-#OUTDIR=/glade/derecho/scratch/zarzycki/ndg/
-#RDADIR=/glade/campaign/collections/rda/data/ds633.0/
+BETACASTDIR=/glade/u/home/zarzycki/betacast/
+OUTDIR=/glade/derecho/scratch/zarzycki/ndg/
+RDADIR=/glade/campaign/collections/rda/data/d633000/
 
 BETACASTDIR=/global/homes/c/czarzyck/betacast/
 OUTDIR=/pscratch/sd/c/czarzyck/ndg/
@@ -46,11 +46,12 @@ RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
 # WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_mpasa120_patc.nc
 # NUMLEVS=32
 
-# DYCORE="mpas"
-# GRIDSTR=tclf${INDEX}-mp3a
-# BNDTOPO=/glade/u/home/zarzycki/work/CESM_files/ncdata/mpasa3-60-tclf${INDEX}_init_L32.nc
-# WGTNAME=/glade/work/zarzycki/sewx/mapping/map_era5_0.25x0.25_TO_mpasa3-60-tclf${INDEX}_scrip_patc.nc
-# NUMLEVS=32
+# qsub -v NLFILE="ndg.era5.nl",input_dates_file="dates.index.001.txt",INDEX="001" gen-nudge.sh
+DYCORE="mpas"
+GRIDSTR=tclf${INDEX}-mp3a
+BNDTOPO=/glade/u/home/zarzycki/work/CESM_files/ncdata/mpasa3-60-tclf${INDEX}_init_L32.nc
+WGTNAME=/glade/work/zarzycki/sewx/mapping/map_era5_0.25x0.25_TO_mpasa3-60-tclf${INDEX}_scrip_patc.nc
+NUMLEVS=32
 
 # DYCORE="se"
 # GRIDSTR=ne0np4natlanticref.ne30x4
