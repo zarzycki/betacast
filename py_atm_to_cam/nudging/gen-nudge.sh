@@ -13,12 +13,12 @@
 ################################################################
 #### Casper
 ################################################################
-#PBS -N gen_nudge_betacast
-#PBS -A P93300042
-#PBS -l select=1:ncpus=12:mem=200GB
-#PBS -l walltime=23:00:00
-#PBS -q casper@casper-pbs
-#PBS -j oe
+#>#PBS -N gen_nudge_betacast
+#>#PBS -A P93300042
+#>#PBS -l select=1:ncpus=12:mem=200GB
+#>#PBS -l walltime=23:00:00
+#>#PBS -q casper@casper-pbs
+#>#PBS -j oe
 ################################################################
 
 ################################################################
@@ -29,11 +29,11 @@
 ################################################################
 #### PMCPU
 ################################################################
-#>#SBATCH --qos=regular
-#>#SBATCH --time=5:00:00
-#>#SBATCH --nodes=1
-#>#SBATCH --ntasks-per-node=128
-#>#SBATCH --constraint=cpu
+#SBATCH --qos=debug
+#SBATCH --time=00:30:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=128
+#SBATCH --constraint=cpu
 ################################################################
 
 ### CMZ NOTES:
@@ -249,6 +249,13 @@ for f in "${DATES_ARRAY[@]}"; do
   OUTFILE=${OUTDIR}/ndg.${DESCSTR}.${GRIDSTR}.L${NUMLEVS}.cam2.i.$YYYY-$MM-$DD-$SSSSS.nc
   OUTFILETMP=${OUTFILE}.TMP.nc
 
+  # These commands are needed to reorder scream nudging things
+  if [ "$add_scream" = true ]; then
+    SCREAM_CMDS="ncpdq -O -a ncol,lev ${OUTFILETMP} ${OUTFILETMP} ; ncrename -v T,T_mid -v Q,qv ${OUTFILETMP} ;"
+  else
+    SCREAM_CMDS=""
+  fi
+
   #4/4/22 After CESM2.2, nudging.F90 moved to PIO which doesn't support compression (I don't think...) ... supports floats, which are 25GB uncompressed vs 18GB compressed
   if ${CAM_TO_CAM} ; then
     echo "Running CAM->CAM options"
@@ -270,6 +277,7 @@ for f in "${DATES_ARRAY[@]}"; do
           --mod_in_topo ${MODINTOPO} \
           --se_inic ${OUTFILETMP} \
           --verbose ;
+          ${SCREAM_CMDS}
           mv -v ${OUTFILETMP} ${OUTFILE} "
 
       # If file doesn't exist, we want to create, but if it does let's skip
@@ -289,13 +297,13 @@ for f in "${DATES_ARRAY[@]}"; do
         --wgt_filename ${WGTNAME} \
         --dycore ${DYCORE} \
         --RDADIR ${RDADIR} \
-        --add_cloud_vars \
-	--mpas_as_cam \
+	      --mpas_as_cam \
         --write_floats \
         --adjust_config \"\" \
         --model_topo_file ${BNDTOPO} \
         --se_inic ${OUTFILETMP} \
         --verbose ;
+        ${SCREAM_CMDS}
         mv -v ${OUTFILETMP} ${OUTFILE} "
 
     # If file doesn't exist, we want to create, but if it does let's skip
