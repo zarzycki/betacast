@@ -364,6 +364,12 @@ if [ "$override_rest_check" = false ]; then
   fi
 fi
 
+if [ "$do_slab" = true ]; then
+  echo "Checking for SourceMods permiting slab ocean."
+  echo "If this exits, see README in the slab-ocn folder."
+  exit_files_no_exist "$path_to_case/SourceMods/src.docn/docn_comp_mod.F90" "$path_to_case/SourceMods/src.docn/docn_datamode_som_mod.F90"
+fi
+
 ### Check required variables
 betacast_required_vars=("casename" "atmDataType" "sstDataType" "numLevels" "numdays"
         "anl2mdlWeights" "PROJECTID" "DTIME" "FINERES" "USERSTAB")
