@@ -1,0 +1,145 @@
+--- docn_datamode_som_mod.F90	2025-11-27 05:41:23.964366000 -0700
++++ /glade/u/home/zarzycki/work/cesm3_0_beta06/components/cdeps/docn/docn_datamode_som_mod.F90	2025-05-06 11:44:19.897721000 -0600
+@@ -46,18 +46,10 @@
+   real(r8), pointer :: Faxa_snow(:)  => null()
+   real(r8), pointer :: Fioi_melth(:) => null()
+   real(r8), pointer :: Foxx_rofi(:)  => null()
+-!++CMZ
+-  ! Access 10m wind (squared) from the coupler
+-  real(r8), pointer :: So_duu10n(:)  => null()
+-!--CMZ
+ 
+   ! internal stream type
+   real(r8), pointer :: strm_h(:)    => null()
+   real(r8), pointer :: strm_qbot(:) => null()
+-!++CMZ
+-  ! Access the background SST from the data stream
+-  real(r8), pointer :: strm_sstcpl(:) => null()
+-!--CMZ
+ 
+   ! restart fields
+   real(R8), public, pointer :: somtp(:)     ! SOM ocean temperature needed for restart
+@@ -119,9 +111,6 @@
+     call dshr_fldList_add(fldsImport, 'Faxa_snow'           )
+     call dshr_fldList_add(fldsImport, 'Fioi_melth'          )
+     call dshr_fldList_add(fldsImport, 'Foxx_rofi'           )
+-!++CMZ
+-    call dshr_fldList_add(fldsImport, 'So_duu10n'           )
+-!--CMZ
+ 
+     fldlist => fldsExport ! the head of the linked list
+     do while (associated(fldlist))
+@@ -166,10 +155,6 @@
+     if (chkerr(rc,__LINE__,u_FILE_u)) return
+     call shr_strdata_get_stream_pointer( sdat, 'So_h'   , strm_h   , rc=rc)
+     if (chkerr(rc,__LINE__,u_FILE_u)) return
+-!++CMZ
+-    call shr_strdata_get_stream_pointer( sdat, 'So_sstcpl' , strm_sstcpl   , rc=rc)
+-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+-!--CMZ
+ 
+     ! initialize pointers to import fields
+     call dshr_state_getfldptr(importState, 'Foxx_swnet' , fldptr1=Foxx_swnet , rc=rc)
+@@ -188,10 +173,6 @@
+     if (chkerr(rc,__LINE__,u_FILE_u)) return
+     call dshr_state_getfldptr(importState, 'Foxx_rofi'  , fldptr1=Foxx_rofi  , rc=rc)
+     if (chkerr(rc,__LINE__,u_FILE_u)) return
+-!++CMZ
+-    call dshr_state_getfldptr(importState, 'So_duu10n'  , fldptr1=So_duu10n  , rc=rc)
+-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+-!--CMZ
+ 
+     ! initialize pointers to export fields
+     call dshr_state_getfldptr(exportState, 'So_omask'   , fldptr1=So_omask   , rc=rc)
+@@ -255,19 +236,6 @@
+     integer                 :: n
+     logical                 :: reset_temp
+     character(len=*), parameter :: subname='(docn_datamode_som): '
+-
+-!++CMZ
+-    ! Local variables and parameters for wind mixing
+-    real(R8)            :: backt                     ! stream SST wind field (K)
+-    real(R8)            :: u10                       ! 10 m wind (m/s)
+-    real(R8)            :: X_cool                    ! logistics function weight (-)
+-    real(r8), parameter :: R_cool    = 11.75_r8      ! Normalized base cooling rate (K/day)
+-    real(r8), parameter :: dT_o      = 27.0_r8       ! Scaling temperature gradient (K)
+-    real(r8), parameter :: h_o       = 30.0_r8       ! Mixed layer reference depth (m)
+-    real(r8), parameter :: relax_tau = 8.0_r8        ! Relaxation timescale (days)
+-    real(r8), parameter :: Tdeep     = 271.0_r8      ! Generalized deep water T (K)
+-!--CMZ
+-
+     !-------------------------------------------------------------------------------
+ 
+     rc = ESMF_SUCCESS
+@@ -286,11 +254,7 @@
+        do n = 1,lsize
+           if (So_omask(n) /= 0._r8) then
+              if (.not. restart_read) then
+-!++CMZ
+-              ! Initialize to SST_cpl on the data stream
+-                !somtp(n) = So_t(n) + TkFrz
+-                somtp(n) = strm_sstcpl(n) + TkFrz
+-!--CMZ
++                somtp(n) = So_t(n) + TkFrz
+              endif
+              So_t(n) = somtp(n)
+           else
+@@ -312,52 +276,18 @@
+        tfreeze(:) = shr_frz_freezetemp(So_s(:)) + TkFrz
+        do n = 1,lsize
+           if (So_omask(n) /= 0._r8) then
+-
+-!++CMZ
+-              ! Get "background" temperature, including optional correction
+-              backt = strm_sstcpl(n) + TkFrz - strm_qbot(n)
+-
+-              ! Get 10m wind speed
+-              u10 = SQRT(So_duu10n(n))
+-
+-              ! Calculate scaling function
+-              ! SLAB1 from Zarzycki (2016)
+-              X_cool = 1.0_r8/(1.0_r8 + EXP(-0.5_r8*(u10-30.0_r8))   )
+-
+-              ! SLAB2 from Zarzycki (2016)
+-              !X_cool = (u10*2.4_r8/80.0_r8) * (1.0_r8/(1.0_r8 + &
+-              !           EXP(-0.2_r8*(u10-30.0_r8))))
+-
+-              ! THERMO from Zarzycki (2016)
+-              !X_cool = 0.0
+-
+-              !Debugging stuff
+-              !print *, 'backt = ', backt, ', X_cool = ', X_cool, ', So_t(n) = ', So_t(n), ', u10 = ', u10, ', dt = ', dt
+-
+               ! compute new temp (last term is latent by prec and roff)
+               So_t(n) = somtp(n) +  &
+-                  ( Foxx_swnet(n) + &
+-                  Foxx_lwup(n) + &
+-                  Faxa_lwdn(n) + &
+-                  Foxx_sen(n) + &
+-                  Foxx_lat(n) - &
+-                  (Faxa_snow(n)+Foxx_rofi(n))*latice) * &
+-                  dt/(cpsw*rhosw* strm_h(n)) + &
+-                  ! Turb mixing
+-                  -X_cool*(R_cool/86400._r8)*((somtp(n)-Tdeep)/dT_o)*(h_o/strm_h(n))*dt + &
+-                  ! Newtonian Relaxation to backt
+-                  (1.0_r8/(relax_tau*86400._r8))*(backt - somtp(n))*dt
++                  ( Foxx_swnet(n) + Foxx_lwup(n) + Faxa_lwdn(n) + Foxx_sen(n) + Foxx_lat(n) + &
++                  Fioi_melth(n) - strm_qbot(n) - (Faxa_snow(n)+Foxx_rofi(n))*latice) * dt/(cpsw*rhosw* strm_h(n))
+ 
+              ! compute ice formed or melt potential
+-             !Fioo_q(n) = (tfreeze(n) - So_t(n))*(cpsw*rhosw*strm_h(n))/dt ! ice formed q>0
+-             ! CMZ turn off ice formation/melt!
+-             Fioo_q(n)  = 0.0
++             Fioo_q(n) = (tfreeze(n) - So_t(n))*(cpsw*rhosw*strm_h(n))/dt ! ice formed q>0
+ 
+              ! reset temp
+-             ! CMZ Do we want to cap SSTs to freezing? No.
+-             !if (reset_temp) then
+-             !   So_t(n)  = max(tfreeze(n),So_t(n))
+-             !end if
++             if (reset_temp) then
++                So_t(n)  = max(tfreeze(n),So_t(n))
++             end if
+ 
+              ! save somtp to restart file
+              somtp(n) = So_t(n)
