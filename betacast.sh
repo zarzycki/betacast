@@ -145,6 +145,7 @@ if [ -z "${add_noise+x}" ]; then add_noise=false; fi
 if [ -z "${runmodel+x}" ]; then runmodel=true; fi
 if [ -z "${DO_PYTHON+x}" ]; then DO_PYTHON=true; fi
 if [ -z "${LOGSDIR+x}" ]; then LOGSDIR="${BETACAST}/logs/"; fi
+if [ -z "${do_slab+x}" ]; then do_slab=false; fi
 ### Some defaults infrequently set
 if [ -z "${debug+x}" ]; then debug=false; fi
 if [ -z "${islive+x}" ]; then islive=false; fi
@@ -263,7 +264,7 @@ bools_to_check=("islive" "debug" "doFilter" "filterOnly"
     "compress_history_nc" "override_rest_check" "batch_atm_gen" "batch_sst_gen"
     "standalone_vortex" "augment_tcs" "tararchivedir" "save_nudging_files"
     "add_noise" "runmodel" "DO_PYTHON" "add_perturbs" "land_spinup"
-    "sendplots" "dotracking")
+    "sendplots" "dotracking" "do_slab")
 for bool_to_check in ${bools_to_check[@]}; do
   check_bool "$bool_to_check" ${!bool_to_check}
 done
@@ -507,7 +508,7 @@ if [ "$debug" = false ] ; then
     export BETACAST \
            sst_domain_file sst_scrip_file sst_ESMF_file \
            sstDataType predict_docn sst_to_cam_path \
-           docnres DO_PYTHON cime_coupler \
+           docnres DO_PYTHON do_slab cime_coupler \
            yearstr monthstr daystr cyclestr \
            SSTTYPE sst_files_path sstFile iceFile sstFileIC
 
@@ -554,13 +555,15 @@ if [ "$debug" = false ] ; then
   echo "cd'ing to interpolation directory: $atm_to_cam_path"
   cdv "$atm_to_cam_path"
 
-  export BETACAST atm_to_cam_path mapping_files_path modelgridfile m2m_gridfile \
-         m2m_parent_source uniqtime sePreFilterIC sstFileIC \
+  export BETACAST atm_to_cam_path mapping_files_path \
+         modelgridfile m2m_gridfile m2m_parent_source m2m_remap_file \
+         uniqtime sePreFilterIC sstFileIC regional_src \
          atmDataType numLevels yearstr monthstr daystr cyclestr \
          RDADIR anl2mdlWeights DO_PYTHON DYCORE \
          do_frankengrid model_scrip standalone_vortex add_noise add_perturbs \
          perturb_namelist vortex_namelist modelSystem sstDataType \
-         gfs_files_path era_files_path ERA5RDA
+         gfs_files_path era_files_path ERA5RDA adjust_topo \
+         m2m_topo_in adjust_flags AUGMENT_STR VORTEX_STR
 
   if [ "$batch_atm_gen" = true ]; then
     echo "Submitting atm_to_cam as batch job..."
@@ -815,6 +818,22 @@ else
 
   # This is a cheat so that the m2m_sstice_data_filename is archived correctly.
   #sstFileIC=$m2m_sstice_data_filename
+fi
+
+if [ "$do_slab" = true ] ; then
+  echo "Appending slab ocean settings"
+  if [ -f "user_nl_docn_streams" ]; then
+    rm -fv "user_nl_docn_streams"
+  fi
+  xmlchange_verbose "DOCN_MODE" "som"
+  cat <<EOF > "user_nl_docn_streams"
+som:meshfile=${sst_ESMF_file}
+som:datafiles=${sstFileIC}
+som:datavars=hblt So_h,qdp So_qbot,SST_cpl So_sstcpl
+som:year_first=1
+som:year_last=1
+som:year_align=1850
+EOF
 fi
 
 # Getting GLC coupling to handle forecasts across calendar years
@@ -1206,7 +1225,7 @@ if [ "$dotracking" = true ] ; then
         "${TCVITFILE}" \
         "${ATCFFILE}" \
         "${track_connectfile}" \
-        "${path_to_rundir}" \
+        "${ARCHIVEDIR}" \
         "${track_sendhtml}" \
         "${track_hstream}" \
         "${track_stride}" \

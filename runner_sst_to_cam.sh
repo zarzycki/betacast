@@ -74,4 +74,12 @@ else
   set -e
 fi
 
+if [ "$do_slab" = true ] ; then
+  ## Add slab ocean parameters
+  (set -x; python ${BETACAST}/slab-ocn/h-qdp.py \
+      --sst_file "${sstFileIC}" \
+      --output_file "${sstFileIC}"
+  )
+fi
+
 echo "SST runner complete."
