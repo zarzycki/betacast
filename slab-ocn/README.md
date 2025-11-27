@@ -31,3 +31,36 @@ To generate:
 3. (optional) if being lazy and using linear interp'ed files, clean up the SST field for reasonableness with `ncap2 -O -s where(SST < 271.34 && SST > 0.0001) SST=271.34`
 4. Create a monthly climatology of the difference `BIAS = SLAB - FIXEDSST`.
 5. Add the monthly climatology to the SOM stream as "qdp".
+
+## Troubleshooting
+
+### CICE convergence errors
+
+When using the slab with CESM3, originally ran into errors:
+
+```
+(picard_nonconvergence):picard convergence failed!
+...
+(picard_solver) picard_solver: Picard solver non-convergence
+(icepack_warnings_setabort) T :file icepack_therm_mushy.F90
+...
+(icepack_warnings_aborted) ... (temperature_changes_salinity)
+(temperature_changes_salinity): Picard solver non-convergence (no snow)
+(icepack_warnings_aborted) ... (thermo_vertical)
+(icepack_warnings_aborted) ... (icepack_step_therm1)
+```
+
+... while these errors generally indicate some sort of initial conditions mismatch, they suspiciously reported (very) bad temperatures, etc.
+
+These work solved by enforcing double precision for all stream variables (`SST\_cpl`, `ice\_cov`, `qdp`, `hblt`).
+
+Another (possible) solution, would be to try:
+
+```
+ice_ic = 'default'
+ktherm = 1
+nslyr = 1
+nilyr = 4
+```
+
+in user\_nl\_cice to roll back some of the CICE physics (see [this thread](https://bb.cgd.ucar.edu/cesm/threads/force-ktherm-1-to-disable-cice-mushy-layers-scheme-in-cesm-2-3-a17b.11829/)).
