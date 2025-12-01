@@ -64,3 +64,7 @@ nilyr = 4
 ```
 
 in user\_nl\_cice to roll back some of the CICE physics (see [this thread](https://bb.cgd.ucar.edu/cesm/threads/force-ktherm-1-to-disable-cice-mushy-layers-scheme-in-cesm-2-3-a17b.11829/)).
+
+### Weird SST behavior near coastal edges
+
+The model will run if the `SSTICE_MESH` in `env_run.xml` and the DOCN `meshfile` are different, however, it may produce spurious or weird behavior in coastal regions. Recommend enforcing that all SST and ice data are on the same grid using the same mesh file.
