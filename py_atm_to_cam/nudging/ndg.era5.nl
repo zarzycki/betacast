@@ -1,6 +1,7 @@
-CAM_TO_CAM=false
-dryrun=false
-add_scream=true
+### Special settings
+# CAM_TO_CAM=false
+# dryrun=false
+# add_scream=true
 
 STYR=2020
 ENYR=2020
@@ -85,3 +86,4 @@ GRIDSTR=ne16np4
 BNDTOPO=/global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne16np4_16xconsistentSGH.c20160612.nc
 WGTNAME=/global/homes/c/czarzyck/betacast/grids/map_era0.25_TO_ne16np4_patc.nc
 NUMLEVS=128
+add_scream=true
