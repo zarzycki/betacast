@@ -95,16 +95,30 @@ if [[ "$NLFILE" != /* ]] && [[ "$NLFILE" != ~* ]]; then NLFILE=${PWD}/${NLFILE};
 echo $NLFILE
 read_bash_nl "${NLFILE}"
 
-if ${CAM_TO_CAM} ; then
-  echo "Doing CAM_TO_CAM, everything needs to be set in the namelist!"
+# Set defaults
+if [ -z "${add_scream+x}" ]; then add_scream="false"; fi
+if [ -z "${CAM_TO_CAM+x}" ]; then CAM_TO_CAM="false"; fi
+if [ -z "${dryrun+x}" ]; then dryrun="false"; fi
+
+if [ "$CAM_TO_CAM" = true ]; then
+  # Check for required vars
+  required_vars=(SUBNAME BINLIST MODREMAPFILE MODINTOPO)
+  for v in "${required_vars[@]}"; do
+    if [ -z "${!v+x}" ]; then
+      echo "ERROR: Required CAM_TO_CAM variable '$v' is not set."
+      exit 1
+    fi
+  done
+  # If we got here, cool, make sure the user sets namelist settings
+  echo "Doing CAM_TO_CAM: STDAY, ENDAY, STMON, ENMON, HR_RES, DESCSTR need to be set in the namelist!"
 else
   echo "Doing reanalysis, writing default input if not passed in via $NLFILE"
-  if [ -z ${STDAY+x} ]; then STDAY=1; fi
-  if [ -z ${ENDAY+x} ]; then ENDAY=31; fi
-  if [ -z ${STMON+x} ]; then STMON="jan"; fi
-  if [ -z ${ENMON+x} ]; then ENMON="dec"; fi
-  if [ -z ${HR_RES+x} ]; then HR_RES=1; fi
-  if [ -z ${DESCSTR+x} ]; then DESCSTR="ERA5"; fi
+  if [ -z "${STDAY+x}" ]; then STDAY=1; fi
+  if [ -z "${ENDAY+x}" ]; then ENDAY=31; fi
+  if [ -z "${STMON+x}" ]; then STMON="jan"; fi
+  if [ -z "${ENMON+x}" ]; then ENMON="dec"; fi
+  if [ -z "${HR_RES+x}" ]; then HR_RES=1; fi
+  if [ -z "${DESCSTR+x}" ]; then DESCSTR="ERA5"; fi
 fi
 
 # This block prints all timing inputs.
@@ -113,7 +127,9 @@ set -u
 echo "CHECKING FOR UNBOUND VARIABLES!"
 echo "STYR: "$STYR"  ENYR: "$ENYR
 echo "STDAY: "$STDAY"  ENDAY: "$ENDAY"  STMON: "$STMON"  ENMON: "$ENMON"  HR_RES: "$HR_RES
-echo "DESCSTR: "$DESCSTR
+echo "DESCSTR: "$DESCSTR"  DYCORE: "$DYCORE"  GRIDSTR: "$GRIDSTR"  NUMLEVS: "$NUMLEVS
+echo "BNDTOPO: "$BNDTOPO
+echo "WGTNAME: "$WGTNAME
 set +u
 
 # Special block of code to handle Hyperion data
@@ -251,13 +267,14 @@ for f in "${DATES_ARRAY[@]}"; do
 
   # These commands are needed to reorder scream nudging things
   if [ "$add_scream" = true ]; then
+    # SCREAM needs dims reordered and variables renamed to match convention.
     SCREAM_CMDS="ncpdq -O -a ncol,lev ${OUTFILETMP} ${OUTFILETMP} ; ncrename -v T,T_mid -v Q,qv ${OUTFILETMP} ;"
   else
     SCREAM_CMDS=""
   fi
 
   #4/4/22 After CESM2.2, nudging.F90 moved to PIO which doesn't support compression (I don't think...) ... supports floats, which are 25GB uncompressed vs 18GB compressed
-  if ${CAM_TO_CAM} ; then
+  if [ "$CAM_TO_CAM" = true ]; then
     echo "Running CAM->CAM options"
     for INFILE in $BINLIST; do
       echo $INFILE
