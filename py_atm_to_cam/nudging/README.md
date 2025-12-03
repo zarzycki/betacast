@@ -48,7 +48,6 @@ The configuration is controlled through a bash namelist file that specifies vari
 
 | Option | Description |
 |--------|-------------|
-| `dryrun` | If `true`, generate parallel command file without execution |
 | `STYR` | Start year (e.g., 2008) |
 | `STMON` | Start month (e.g., "jan", "feb") |
 | `STDAY` | Start day of month (e.g., 1, 31) |
@@ -76,6 +75,14 @@ The configuration is controlled through a bash namelist file that specifies vari
 | `BNDTOPO` | Path to target model topography file (or ncdata file for MPAS) |
 | `WGTNAME` | Path to ESMF weight file for regridding (src->target) |
 | `DESCSTR` | Description string for source data |
+
+### Optional Options (fun!)
+
+| Option | Description |
+|--------|-------------|
+| `dryrun` | If `true`, generate parallel command file without execution |
+| `CAM_TO_CAM` | If `true`, interpolate from a 3D CAM state |
+| `add_scream` | If `true`, perform SCREAM-specific post-processing |
 
 ### Date Modes
 
@@ -136,11 +143,7 @@ This would process data from June 20-28, 2021 at 6-hour intervals (00Z, 06Z, 12Z
 
 ### Model Source Selection
 
-The script operates in one of two "source" modes:
-
-| Option | Description |
-|--------|-------------|
-| `CAM_TO_CAM` | If `true`, source from existing model sim; if `false`, source from reanalysis such as ERA5 |
+The script operates in one of two "source" modes. As noted above, the boolean `CAM_TO_CAM` governs this. If `true`, source from existing model sim; if `false`, source from reanalysis such as ERA5. The default (if not set) is `false`.
 
 ### CAM-to-CAM Specific Options
 
@@ -152,6 +155,10 @@ The following options are only needed when `CAM_TO_CAM=true`. They are unused wh
 | `BINLIST` | Path/pattern to source data files (supports wildcards) |
 | `MODREMAPFILE` | ESMF weight file from source model to intermediate grid |
 | `MODINTOPO` | Path to source model topography file |
+
+### Special model processing
+
+The default behavior is to produce nudging files compatible with CAM5+ and E3SMv0+. SCREAMv1+ use a different file format as of 12/25. Toggling `do_scream=true` will invoke extra steps (NCO required) to massage files into said format. See `SCREAM_CMDS` in the shell script.
 
 ## Other Features
 
@@ -180,3 +187,23 @@ ndg.ERA5.ne30pg3.L58.cam2.i.2021-06-20-00000.nc
 ```
 
 They are stored in `OUTDIR`.
+
+## Nudging weight files and visualization
+
+### CAM/E3SM
+
+For CAM and E3SM, nudging is controlled by namelist settings (see the other Markdown file in this folder). There is a visualization script that reads the `user_nl_cam` file in the directory and creates a PNG with nudging diagnostics.
+
+```
+python Lookat_NudgeWindow.py --NLEV 32
+```
+
+### SCREAM
+
+For SCREAM, nudging windows/weights are passed in via a standalone file containing a full 3D (lev, lat, lon) mesh of weights. This can be generated using a Python script that has been pulled from the EAMxx-scripts repository.
+
+```
+python SCREAMv1_create_nudging_weights.py -datafile /global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4pg2_x6t-SGH.c20210614.nc -nlev 128 -lat lat -lon lon -weightsfile your_weighting_file.nc
+```
+
+The datafile needs to contain the target physics grid (where the nudging is applied). For an npXpgY configuration, the topography file contains both meshes and is a logical choice.
