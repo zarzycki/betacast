@@ -14,7 +14,7 @@
   adjust_topo = /global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc
   adjust_flags = a
 
-  modelgridfile = /global/homes/c/czarzyck/betacast/remapping/model_scrip/ne30np4_091226_pentagons.nc
+  modelgridfile = /global/homes/c/czarzyck/betacast/grids/model_scrip/ne30np4_091226_pentagons.nc
 
   PROJECTID = m2637
   RUNWALLCLOCK = 00:30:00
