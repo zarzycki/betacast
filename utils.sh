@@ -251,6 +251,23 @@ function check_ncl_exit() {
 }
 
 
+# Usage:
+#   check_bash_dependency <binary_name> <context_string>
+#
+# Example:
+#   check_bash_dependency ncl "converting E3SM"
+
+check_bash_dependency() {
+  local bin="$1"
+  local context="$2"
+
+  if ! type "$bin" &> /dev/null ; then
+    echo "ERROR: $bin does not exist -- $context -- Make sure $bin is in your PATH when betacast is invoked"
+    exit 1
+  fi
+}
+
+
 ### -----------------------------------------------------------------------------------
 
 function get_YYYYMMDD_from_hfile() {

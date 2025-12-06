@@ -294,10 +294,10 @@ if [ "$save_nudging_files" = true ] && [ "$modelSystem" -eq 2 ] ; then
 fi
 
 # Check if ncl exists
-if ! type ncl &> /dev/null ; then
-  echo "ERROR: ncl does not exist. Make sure ncl is in your path when betacast is invoked"
-  exit 1
-fi
+# Once NCL is fully removed, we can nest this.
+# if [ "$DO_PYTHON" = false ]; then
+check_bash_dependency ncl "Initial checks"
+# fi
 
 # Check if ncks exists for compression
 ncks_exists=true

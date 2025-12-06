@@ -373,6 +373,7 @@ fi
 
 if [ "${modelSystem}" -eq 1 ]; then
   echo "Adding chemistry variables to E3SMv3"
+  check_bash_dependency ncap2 "E3SM chemistry addition"
   # Set Linoz chem variables for E3SMv3
   # H2OLNZ is just mass mixing ratio of water, ~Q
   # CH4LNZ assumes 1.8 ppm in free trop converted to MMR
@@ -387,16 +388,19 @@ if [ "${modelSystem}" -eq 1 ]; then
     -s 'where(lev<50) NOYLNZ=5.0e-09' \
     "${sePreFilterIC}" "${sePreFilterIC}_LINOZ.nc"
   mv -v "${sePreFilterIC}_LINOZ.nc" "${sePreFilterIC}"
+  echo "... done adding chemistry variables to E3SMv3"
 fi
 
 ############################### SCREAM CDF5 CONVERSION ###############################
 
 if [ "${modelSystem}" -eq 2 ]; then
   echo "SCREAM, converting to CDF5"
+  check_bash_dependency nccopy "SCREAM CDF5 conversion"
   if [[ "${sstDataType}" -ne 9 ]]; then
     timer nccopy_convert 5 "${sstFileIC}"
   fi
   timer nccopy_convert 5 "${sePreFilterIC}"
+  echo "... done with converting to CDF5"
 fi
 
 echo "ATM runner complete."
