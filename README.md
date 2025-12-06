@@ -69,9 +69,10 @@ CASESDIR=~/tests-betacast/
 -->
 
 ```
+CASENAME=F-betacast-F2000climo
 cd ${MODELROOT}/cime/scripts
-./create_newcase --case ${CASESDIR}/F-betacast-F2000climo --compset F2000climo --res ne30_g16 --mach derecho --project ${PROJECTID} --run-unsupported
-cd ${CASESDIR}/F-betacast-F2000climo
+./create_newcase --case ${CASESDIR}/${CASENAME} --compset F2000climo --res ne30_g16 --mach derecho --project ${PROJECTID} --run-unsupported
+cd ${CASESDIR}/${CASENAME}
 ./case.setup
 ${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} nuopc clm
 ./xmlchange DOUT_S=False
@@ -84,16 +85,17 @@ NOTE: The above uses the "nuopc" driver. Releases <=CESM2.2 use "mct" by default
 **E3SMv2/3 example:**
 
 <!--
-MODELROOT=/global/homes/c/czarzyck/scratch/E3SM-v3.0.2/
+MODELROOT=/global/cfs/cdirs/m2637/E3SM_SCREAM_files/src/E3SM-v3.0.2/
 BETACAST=~/betacast/
 PROJECTID=m2637
 CASESDIR=/global/homes/c/czarzyck/F-runs/
 -->
 
 ```
+CASENAME=F-betacast-F2010-CICE
 cd ${MODELROOT}/cime/scripts
-./create_newcase --case ${CASESDIR}/F-betacast-F2010-CICE --compset F2010-CICE --res ne30_g16 --mach pm-cpu --project ${PROJECTID}
-cd ${CASESDIR}/F-betacast-F2010-CICE
+./create_newcase --case ${CASESDIR}/${CASENAME} --compset F2010-CICE --res ne30_g16 --mach pm-cpu --project ${PROJECTID}
+cd ${CASESDIR}/${CASENAME}
 ./xmlchange NTASKS=-8,NTASKS_ESP=1,NTASKS_IAC=1
 ./case.setup
 ${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} mct elm
@@ -105,7 +107,7 @@ ${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} mct elm
 
 <!--
 module load python
-MODELROOT=/global/homes/c/czarzyck/E3SM-20250617/
+MODELROOT=/global/cfs/cdirs/m2637/E3SM_SCREAM_files/src/E3SM-20251110/
 BETACAST=~/betacast/
 PROJECTID=m2637
 CASESDIR=/global/homes/c/czarzyck/F-runs/
@@ -114,15 +116,16 @@ MACHINE=pm-cpu
 -->
 
 ```
+CASENAME=F-betacast-F2010-SCREAMv1
 ${MODELROOT}/cime/scripts/create_newcase \
-	--case ${CASESDIR}/F-betacast-F2010-SCREAMv1 \
+	--case ${CASESDIR}/${CASENAME} \
 	--compset F2010-SCREAMv1 \
 	--res ne30pg2_ne30pg2 \
 	--pecount 1024x1 \
 	--compiler ${COMPILER} \
 	--project ${PROJECTID} \
 	--machine ${MACHINE}
-cd ${CASESDIR}/F-betacast-F2010-SCREAMv1
+cd ${CASESDIR}/${CASENAME}
 # SCREAM specific build settings
 ./xmlchange SCREAM_CMAKE_OPTIONS="SCREAM_NP 4 SCREAM_NUM_VERTICAL_LEV 128 SCREAM_NUM_TRACERS 10"
 ./case.setup
