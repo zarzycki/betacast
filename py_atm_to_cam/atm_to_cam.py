@@ -144,7 +144,8 @@ def main():
 
     # Toggle whether the output streams will be floats or doubles
     write_type = "float" if write_floats else "double"
-    logging.info(f"Output type set to: {write_type}")
+    nc_dtype = 'f4' if write_floats else 'f8'
+    logging.info(f"Output type set to: {write_type}, nc_dtype: {nc_dtype}")
 
     # ===== Getting date from YYYYMMDDHH
     yearstr, monthstr, daystr, cyclestr = pyfuncs.split_by_lengths(str(YYYYMMDDHH), dtime_map)
@@ -1027,38 +1028,38 @@ def main():
         # Create nc variables for state fields
         # Surface pressure
         if dycore == "scream":
-            ps_nc = nc_file.createVariable('ps', 'f4', ('time', 'ncol'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            ps_nc = nc_file.createVariable('ps', nc_dtype, ('time', 'ncol'), fill_value=NC_FLOAT_FILL, **compression_opts)
         else:
-            ps_nc = nc_file.createVariable('PS', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            ps_nc = nc_file.createVariable('PS', nc_dtype, ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
         ps_nc.units = 'Pa'
 
         # Horizontal winds
         if dycore == "scream":
-            horiz_nc = nc_file.createVariable('horiz_winds', 'f4', ('time','ncol','dim2','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            horiz_nc = nc_file.createVariable('horiz_winds', nc_dtype, ('time','ncol','dim2','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
             horiz_nc.units = 'm/s'
         else:
-            u_nc = nc_file.createVariable('U', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            v_nc = nc_file.createVariable('V', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            u_nc = nc_file.createVariable('U', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            v_nc = nc_file.createVariable('V', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
             u_nc.units = 'm/s'
             v_nc.units = 'm/s'
 
         # Thermodynamic fields
         if dycore == "scream":
-            t_nc = nc_file.createVariable('T_mid', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            q_nc = nc_file.createVariable('qv', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            t_nc = nc_file.createVariable('T_mid', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            q_nc = nc_file.createVariable('qv', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
         else:
-            t_nc = nc_file.createVariable('T', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            q_nc = nc_file.createVariable('Q', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            t_nc = nc_file.createVariable('T', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            q_nc = nc_file.createVariable('Q', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
         t_nc.units = 'K'
         q_nc.units = 'kg/kg'
 
         if add_cloud_vars:
             if dycore == "scream":
-                cldliq_nc = nc_file.createVariable('qc', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                cldice_nc = nc_file.createVariable('qi', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                cldliq_nc = nc_file.createVariable('qc', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                cldice_nc = nc_file.createVariable('qi', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
             else:
-                cldliq_nc = nc_file.createVariable('CLDLIQ', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                cldice_nc = nc_file.createVariable('CLDICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                cldliq_nc = nc_file.createVariable('CLDLIQ', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                cldice_nc = nc_file.createVariable('CLDICE', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
             # If cldliq_nc and cldice_nc don't exist, pass and warn, otherwise define units
             try:
@@ -1070,13 +1071,13 @@ def main():
 
         if add_numconc_vars:
             if dycore == "scream":
-                numcld_nc = nc_file.createVariable('nc', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                numice_nc = nc_file.createVariable('ni', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                numliq_nc = nc_file.createVariable('nr', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                numcld_nc = nc_file.createVariable('nc', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                numice_nc = nc_file.createVariable('ni', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                numliq_nc = nc_file.createVariable('nr', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
             else:
-                numcld_nc = nc_file.createVariable('NUMCLD', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                numice_nc = nc_file.createVariable('NUMICE', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                numliq_nc = nc_file.createVariable('NUMLIQ', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                numcld_nc = nc_file.createVariable('NUMCLD', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                numice_nc = nc_file.createVariable('NUMICE', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                numliq_nc = nc_file.createVariable('NUMLIQ', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
             # If numcld_nc, numice_nc, numliq_nc don't exist, pass and warn, otherwise define units
             try:
@@ -1089,9 +1090,9 @@ def main():
 
         if add_chemistry:
             if dycore == "scream":
-                o3_nc = nc_file.createVariable('o3_volume_mix_ratio', 'f4', ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                o3_nc = nc_file.createVariable('o3_volume_mix_ratio', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
             elif dycore != "mpas":
-                o3_nc = nc_file.createVariable('O3', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+                o3_nc = nc_file.createVariable('O3', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
             o3_nc.units = "mol/mol"
 
             # If o3_nc doesn't exist, pass and warn, otherwise define units
@@ -1102,10 +1103,11 @@ def main():
                 pass
 
         if 'correct_or_not' in locals():
+            # This is just a diagnostic (not read by model) so let's just output lower precision here
             correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "scream" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=CORRECT_OR_NOT_FILL_VALUE, **compression_opts)
 
         if add_pmid:
-            pmid_nc = nc_file.createVariable('PMID', 'f4', ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            pmid_nc = nc_file.createVariable('PMID', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
         logging.info(f"... done creating variables")
         logging.info(f"Writing data to fields...")
@@ -1211,8 +1213,8 @@ def main():
 
             slat_nc = nc_file.createVariable('slat', 'f8', ('slat',), fill_value=COORD_FILL_VALUE, **compression_opts)
             slon_nc = nc_file.createVariable('slon', 'f8', ('slon',), fill_value=COORD_FILL_VALUE, **compression_opts)
-            us_nc = nc_file.createVariable('US', 'f4', ('time', 'lev', 'slat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            vs_nc = nc_file.createVariable('VS', 'f4', ('time', 'lev', 'lat', 'slon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            us_nc = nc_file.createVariable('US', nc_dtype, ('time', 'lev', 'slat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            vs_nc = nc_file.createVariable('VS', nc_dtype, ('time', 'lev', 'lat', 'slon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
             slat_nc[:] = data_horiz['fvslat']
             slon_nc[:] = data_horiz['fvslon']
@@ -1222,7 +1224,7 @@ def main():
         logging.info(f"Writing attributes...")
 
         # Add reference pressure (P0)
-        p0_nc = nc_file.createVariable('P0', 'f4', (), fill_value=NC_FLOAT_FILL, **compression_opts)
+        p0_nc = nc_file.createVariable('P0', 'f8', (), fill_value=NC_FLOAT_FILL, **compression_opts)
         p0_nc.setncattr('long_name', 'reference pressure')
         p0_nc.setncattr('units', 'Pa')
         p0_nc[:] = p0
