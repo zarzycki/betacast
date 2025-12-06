@@ -54,6 +54,12 @@ if [ "$ERA5RDA" -eq 1 ] ; then
   atm_file_paths["4"]="${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
 fi
 
+############################### FLAGS ###############################
+
+if [ "${modelSystem}" -eq 1 ]; then
+  ADDCHEM_STR="--add_chemistry"
+fi
+
 ############################### ATM NCL / PYTHON ###############################
 
 echo "cd'ing to interpolation directory: $atm_to_cam_path"
@@ -180,13 +186,14 @@ if [ "$DO_PYTHON" = true ]; then
     --wgt_filename "${anl2mdlWeights}" \
     --dycore "${DYCORE}" \
     --add_cloud_vars \
+    --add_chemistry \
     --RDADIR "${RDADIR}" \
     --adjust_config "${adjust_flags-}" \
     --model_topo_file "${adjust_topo-}" \
     --mod_remap_file "${m2m_remap_file-}" \
     --mod_in_topo "${m2m_topo_in-}" \
     --se_inic "${sePreFilterIC}" \
-    ${AUGMENT_STR:+$AUGMENT_STR} ${VORTEX_STR:+$VORTEX_STR}
+    ${ADDCHEM_STR:+$ADDCHEM_STR} ${AUGMENT_STR:+$AUGMENT_STR} ${VORTEX_STR:+$VORTEX_STR}
   )
 else
   set +e
@@ -360,6 +367,26 @@ if [ "${add_perturbs}" = true ] ; then
   set -e
   mv ${sstFileIC_WPERT} ${sstFileIC}
   mv ${sePreFilterIC_WPERT} ${sePreFilterIC}
+fi
+
+################################# E3SM LINOZ CHEM ###################################
+
+if [ "${modelSystem}" -eq 1 ]; then
+  echo "Adding chemistry variables to E3SMv3"
+  # Set Linoz chem variables for E3SMv3
+  # H2OLNZ is just mass mixing ratio of water, ~Q
+  # CH4LNZ assumes 1.8 ppm in free trop converted to MMR
+  # N2OLNZ assumes 300 ppbv in free trop converted to MMR
+  # NOYLNZ was "derived" from an existing input file with different values below and above 50mb
+  # Note, other vars use Q*0 to create var shape/dims
+  ncap2 -O \
+    -s 'H2OLNZ=Q' \
+    -s 'CH4LNZ=(Q*0)+1e-6' \
+    -s 'N2OLNZ=(Q*0)+4.5e-7' \
+    -s 'NOYLNZ=(Q*0)+6.0e-11' \
+    -s 'where(lev<50) NOYLNZ=5.0e-09' \
+    "${sePreFilterIC}" "${sePreFilterIC}_LINOZ.nc"
+  mv -v "${sePreFilterIC}_LINOZ.nc" "${sePreFilterIC}"
 fi
 
 ############################### SCREAM CDF5 CONVERSION ###############################
