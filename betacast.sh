@@ -38,6 +38,7 @@ echo "Shell     : $SHELL"
 
 script_start=$(date +%s)
 set -e
+trap 'status=$?; echo "ERROR: Command \"${BASH_COMMAND}\" exited with status $status at line $LINENO"; exit $status' ERR
 #set -v
 
 if [[ -n "$SLURM_SUBMIT_DIR" ]]; then
@@ -637,7 +638,7 @@ sed -i '/init_interp_fill_missing_with_natveg/d' user_nl_${lndName}
 sed -i '/use_init_interp/d' user_nl_${lndName}
 
 # Create a temp directory for now
-RUNTMPDIR="${path_to_nc_files}/tmp"
+RUNTMPDIR="${path_to_rundir}/tmp"
 [ -z "$RUNTMPDIR" ] && { echo "RUNTMPDIR is not set. Exiting."; exit 1; }
 # Create directory and make sure it was actually generated (to prevent user from not having write perms)
 mkdir -vp "$RUNTMPDIR"
