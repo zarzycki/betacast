@@ -936,7 +936,7 @@ def main():
             ds["slon"] = out_data['slon']
 
         # Output correct_or_not if available
-        if 'correct_or_not' in locals():
+        if 'correct_or_not' in data_horiz:
             ds["correct_or_not"] = out_data['correct_or_not']
 
         # Add global attributes
@@ -1102,7 +1102,7 @@ def main():
                 logging.info(f"o3_nc doesn't exist even though add_chemistry is {add_chemistry}, ignoring")
                 pass
 
-        if 'correct_or_not' in locals():
+        if 'correct_or_not' in data_horiz:
             # This is just a diagnostic (not read by model) so let's just output lower precision here
             correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "scream" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=CORRECT_OR_NOT_FILL_VALUE, **compression_opts)
 
@@ -1124,7 +1124,7 @@ def main():
                 cldice_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['cldice'],fill_value=NC_FLOAT_FILL)
             if add_chemistry:
                 o3_nc[0, :, :, :] = replace_nans_with_fill(data_horiz['o3'],fill_value=NC_FLOAT_FILL)
-            if 'correct_or_not' in locals():
+            if 'correct_or_not' in data_horiz:
                 correct_or_not_nc[0, :, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
         elif dycore == "se":
             ps_nc[0, :] = replace_nans_with_fill(data_horiz['ps'],fill_value=NC_FLOAT_FILL)
@@ -1137,7 +1137,7 @@ def main():
                 cldice_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldice'],fill_value=NC_FLOAT_FILL)
             if add_chemistry:
                 o3_nc[0, :, :] = replace_nans_with_fill(data_horiz['o3'],fill_value=NC_FLOAT_FILL)
-            if 'correct_or_not' in locals():
+            if 'correct_or_not' in data_horiz:
                 correct_or_not_nc[0, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
         elif dycore == "scream":
             # Note, 3D fields needs to be transposed here (.T) because the ordering is ncol, lev while data_horiz has lev, ncol
@@ -1155,7 +1155,7 @@ def main():
                 numice_nc[0, :, :] = replace_nans_with_fill(data_horiz['numice'].T,fill_value=NC_FLOAT_FILL)
             if add_chemistry:
                 o3_nc[0, :, :] = replace_nans_with_fill(data_horiz['o3'].T,fill_value=NC_FLOAT_FILL)
-            if 'correct_or_not' in locals():
+            if 'correct_or_not' in data_horiz:
                 correct_or_not_nc[0, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
         elif dycore == "mpas":
             ps_nc[0, :] = replace_nans_with_fill(data_horiz['ps'],fill_value=NC_FLOAT_FILL)
@@ -1168,7 +1168,7 @@ def main():
                 cldice_nc[0, :, :] = replace_nans_with_fill(data_horiz['cldice'][::-1, :],fill_value=NC_FLOAT_FILL)
             if add_chemistry:
                 o3_nc[0, :, :] = replace_nans_with_fill(data_horiz['o3'][::-1, :],fill_value=NC_FLOAT_FILL)
-            if 'correct_or_not' in locals():
+            if 'correct_or_not' in data_horiz:
                 correct_or_not_nc[0, :] = replace_nans_with_fill(data_horiz['correct_or_not'],fill_value=NC_FLOAT_FILL)
             if add_pmid:
                 pmid_nc[0, :, :] = replace_nans_with_fill(data_horiz['pmid'][::-1, :],fill_value=NC_FLOAT_FILL)
