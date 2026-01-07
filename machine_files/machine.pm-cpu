@@ -1,6 +1,6 @@
-path_to_case = /global/homes/c/czarzyck/cases-betacast/!CASENAME!/
+path_to_case = /global/homes/c/$LOGNAME/cases-betacast/!CASENAME!/
 path_to_inputdata = /global/cfs/cdirs/m2637/betacast/sewx/
-path_to_rundir = /pscratch/sd/c/czarzyck/e3sm_scratch/pm-cpu/!CASENAME!/run/
+path_to_rundir = /pscratch/sd/c/$LOGNAME/e3sm_scratch/pm-cpu/!CASENAME!/run/
 TE_SERIAL_DIR = /global/homes/c/czarzyck/sw/tempestextremes_noMPI/
 
 ### These do not need to be changed except in special circumstances
