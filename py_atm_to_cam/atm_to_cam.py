@@ -1247,6 +1247,7 @@ def main():
 
         pyfuncs.log_resource_usage("DONE")
 
+        quit()
 
 #         # SCREAM specific conversion
 #         if dycore == "scream":
