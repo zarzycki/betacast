@@ -163,7 +163,7 @@ def main():
     # (i.e., lowest pressure/highest z at 0 index of lev)
     # I attempt to account for this elsewhere in the code with flips, but make no promises
     if datasource == 'GFS' or datasource == 'HWRF' or datasource == 'HRRR':   # NCEP pressure level data
-        data_vars = loaddata.load_CFSR_data(data_filename, dycore)
+        data_vars = loaddata.load_CFSR_data(data_filename, dycore, get_chemistry=add_chemistry)
     elif datasource == 'HRRRml':   # HRRR model level data
         data_vars = loaddata.load_HRRRml_data(data_filename, dycore)
     elif datasource == 'SAMPLE':

@@ -276,7 +276,7 @@ def load_and_extract_CFSR_variable(grb_file_name, level_type, variable):
     grb_file.close()
     return data
 
-def load_CFSR_data(grb_file_name, dycore):
+def load_CFSR_data(grb_file_name, dycore, get_chemistry=False):
 
     # Inspect the file
     #inspect_GRIB_file(grb_file_name)
@@ -297,6 +297,9 @@ def load_CFSR_data(grb_file_name, dycore):
     data_vars['t'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 't')
     data_vars['u'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'u')
     data_vars['v'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'v')
+
+    if get_chemistry:
+        data_vars['o3'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'o3mr')
 
     # Create a 3-D pressure field from constant pressure surfaces
     data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
