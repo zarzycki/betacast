@@ -16,14 +16,17 @@ def remap_with_weights(src_data, sparse_map, dst_grid_dims, src_grid_type, dst_g
     Regrid data using ESMF weights.
 
     Parameters:
-    - src_data: 2D numpy array of the source data (e.g., t_cam).
-    - wgt_filename: Path to the ESMF weight file.
-    - datafile: Path to the netCDF file containing the source data.
-    - var_name: Variable name in the source datafile to apply the map onto.
-    - kwargs: Additional keyword arguments.
+    - src_data: 2D numpy array of the source data.
+    - sparse_map: Sparse matrix containing the regridding weights.
+    - dst_grid_dims: Array specifying the destination grid dimensions.
+    - src_grid_type: String indicating source grid type ("structured" or "unstructured").
+    - dst_grid_type: String indicating destination grid type ("structured" or "unstructured").
+    - dest_frac: Optional array of destination cell fractions participating in regridding.
+    - dest_frac_thresh: Threshold for dest_frac; cells below this are set to NaN (default 0.999).
+    - kwargs: Additional keyword arguments (currently unused).
 
     Returns:
-    - data_out: Regridded data as a 2D numpy array.
+    - data_out: Regridded data as a 2D numpy array with shape dst_grid_dims.
     """
 
     if src_grid_type == "structured":
@@ -59,10 +62,14 @@ def remap_with_weights_wrapper(src_data, wgt_filename, return_xarray=False, **kw
     Parameters:
     - src_data: Multi-dimensional numpy array or xarray DataArray of the source data.
     - wgt_filename: Path to the ESMF weight file.
-    - return_xarray: Boolean, if True, returns an xarray DataArray with coordinates and dimensions.
+    - return_xarray: Boolean, if True, returns an xarray DataArray with coordinates
+      and dimensions (default False).
+    - kwargs: Additional keyword arguments passed to remap_with_weights.
 
     Returns:
     - regridded_data: Multi-dimensional numpy array or xarray DataArray after regridding.
+    - dstlat: 1D array of destination latitude values.
+    - dstlon: 1D array of destination longitude values.
     """
 
     start_time = time.time()
@@ -199,6 +206,19 @@ def remap_with_weights_wrapper(src_data, wgt_filename, return_xarray=False, **kw
 
 
 def remap_all(data_in, wgt_filename, dycore='se'):
+    """
+    Regrid all applicable variables in a data dictionary.
+
+    Parameters:
+    - data_in: Dictionary of variable names to numpy arrays or xarray DataArrays.
+    - wgt_filename: Path to the ESMF weight file.
+    - dycore: Dynamical core identifier (default 'se'); currently unused.
+
+    Returns:
+    - data_out: Dictionary containing regridded data. Variables in _HORIZ_REMAP_VARS
+      are interpolated; others are passed through unchanged. The 'ps' variable is
+      always regridded, and 'lat'/'lon' coordinates are added from its output.
+    """
 
     allowable_interp_vars = _HORIZ_REMAP_VARS
 
