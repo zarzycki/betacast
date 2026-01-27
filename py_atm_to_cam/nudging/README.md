@@ -206,4 +206,9 @@ For SCREAM, nudging windows/weights are passed in via a standalone file containi
 python SCREAMv1_create_nudging_weights.py -datafile /global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4pg2_x6t-SGH.c20210614.nc -nlev 128 -lat lat -lon lon -weightsfile your_weighting_file.nc
 ```
 
+```
+INDEX=004
+python py_remapping/gen_analysis_to_model_wgt_file.py --ANLGRID era5_0.25x0.25 --DSTGRIDNAME TClandfall-${INDEX}_ne192x8_np4_scrip --DSTGRIDFILE /global/cfs/cdirs/m2637/E3SM_SCREAM_files/grids/scrip/TClandfall-${INDEX}_ne192x8_np4_scrip.nc --ANLGRIDPATH ../grids/anl_scrip/ --WGTFILEDIR /global/cfs/cdirs/m2637/betacast/sewx/mapping/
+```
+
 The datafile needs to contain the target physics grid (where the nudging is applied). For an npXpgY configuration, the topography file contains both meshes and is a logical choice.
