@@ -219,11 +219,15 @@ def main():
     pyfuncs.log_resource_usage("After data loading and setup")
     pyfuncs.print_min_max_dict(data_vars)
 
-    # TC augmentation code
+    # ====================================================================================
+    # TC augmentation
+    # ====================================================================================
+
     # How logic works...
     # If augment_tcs is true, use internal TCvitals file to take existing vortex and deepen (or weaken)
     # if vortex_namelist is provided and is valid, read a vortex_namelist file and do seeding/unseeding from scratch
     # augment_tcs takes priority
+
     if augment_tcs or (vortex_namelist and os.path.isfile(vortex_namelist)):
         logging.info(f"Starting TC operation...")
 
@@ -345,6 +349,8 @@ def main():
                 if dycore == 'mpas':
                     del data_vars['z_vx']
 
+            pyfuncs.log_resource_usage("After TC augmentation")
+
         else:
             logging.info("No valid storms found in TCVitals data - skipping TC augmentation")
             logging.info("Proceeding without TC modifications")
@@ -352,7 +358,6 @@ def main():
     else:
         logging.info("No TC modification requested")
 
-    pyfuncs.log_resource_usage("After TC augmentation")
 
     if write_debug_files:
         # Analysis grid is always structured lat/lon, so use "fv" for dimension inference
@@ -366,6 +371,10 @@ def main():
             level_dim="lev_p",
             level_coord=data_vars.get('lev')
         )
+
+    # ====================================================================================
+    # Load additional MPAS data and derive MPAS-specific variables
+    # ====================================================================================
 
     if dycore == 'mpas':
         # Load the MPAS init file and get the zgrid
@@ -457,7 +466,6 @@ def main():
             level_coord=data_horiz.get('lev')
         )
 
-
     # ====================================================================================
     # vertical interpolation
     # ====================================================================================
@@ -465,7 +473,7 @@ def main():
     # Do vertical interpolation here for pressure, sigma, and hybrid targets
     if dycore == 'fv' or dycore == 'se' or dycore == 'scream':
         data_vint = vertremap.pres2hyb_all(data_horiz, data_horiz['ps'], hya, hyb)
-    if dycore == 'mpas':
+    elif dycore == 'mpas':
         data_vint = vertremap.interpolate_mpas_columns_wrapper(
             mpas_data, data_horiz
         )
@@ -513,198 +521,188 @@ def main():
 
             # If not MPAS as CAM, we can just end here.
             logging.info(f"Writing MPAS file: {se_inic}...")
-            write_mpas_xarray=False
-            if write_mpas_xarray:  # Use the open xarray dataset to overwrite
-                mpas_file['u'].values[0, :, :] = data_vint['uNorm'].T
-                mpas_file['qv'].values[0, :, :] = data_vint['q'].T
-                mpas_file['rho'].values[0, :, :] = data_vint['rho'].T
-                mpas_file['theta'].values[0, :, :] = data_vint['theta'].T
-                mpas_file['rho_base'].values[0, :, :] = data_vint['rho_base'].T
-                mpas_file['theta_base'].values[0, :, :] = data_vint['theta_base'].T
-                mpas_file['w'].values[0, :, :] = 0.06 * data_vint['w'].T
-                logging.info(f"Beginning actual file write")
-                mpas_file.to_netcdf(se_inic, format='NETCDF4')
-                logging.info(f"Closing the xr file")
-                mpas_file.close()
-            else:   # Create a new NetCDF file with the same structure
 
-                # Get dimensions from the xarray dataset
-                dims = mpas_file.sizes
+            # Get dimensions from the xarray dataset
+            dims = mpas_file.sizes
 
-                # Close the xr file now that we have everything we need
-                logging.info(f"Closing the xr file")
-                mpas_file.close()
+            # Close the xr file now that we have everything we need
+            logging.info(f"Closing the xr file")
+            mpas_file.close()
 
-                # Open src + target MPAS files simultaneously using NetCDF4
-                with nc.Dataset(mpasfile, mode='r') as src_file, nc.Dataset(se_inic, mode='w', format='NETCDF4') as new_file:
+            # Open src + target MPAS files simultaneously using NetCDF4
+            with nc.Dataset(mpasfile, mode='r') as src_file, nc.Dataset(se_inic, mode='w', format='NETCDF4') as new_file:
 
-                    # Define a list of variables to modify later
-                    # These are "Betacast-derived" MPAS fields
-                    skip_vars = ['u', 'qv', 'rho', 'theta', 'w', 'rho_base', 'theta_base']
+                # Define a list of variables to modify later
+                # These are "Betacast-derived" MPAS fields
+                skip_vars = ['u', 'qv', 'rho', 'theta', 'w', 'rho_base', 'theta_base']
 
-                    # Copy global file attributes from src -> target
-                    for attr_name in src_file.ncattrs():
-                        logging.debug(f"... copying global attr {attr_name}")
-                        new_file.setncattr(attr_name, src_file.getncattr(attr_name))
+                # Copy global file attributes from src -> target
+                for attr_name in src_file.ncattrs():
+                    logging.debug(f"... copying global attr {attr_name}")
+                    new_file.setncattr(attr_name, src_file.getncattr(attr_name))
 
-                    # Create dimensions - all with fixed size (no unlimited for init conditions)
-                    for dim_name, dim in src_file.dimensions.items():
-                        dim_size = len(dim)
-                        logging.debug(f"... creating dim {dim_name}")
-                        new_file.createDimension(dim_name, dim_size)
+                # Create dimensions - all with fixed size (no unlimited for init conditions)
+                for dim_name, dim in src_file.dimensions.items():
+                    dim_size = len(dim)
+                    logging.debug(f"... creating dim {dim_name}")
+                    new_file.createDimension(dim_name, dim_size)
 
-                    # Create and copy variables
-                    total_mpas_vars = len(src_file.variables)
-                    logging.info(f"Total variables to process: {total_mpas_vars}")
+                # Create and copy variables
+                total_mpas_vars = len(src_file.variables)
+                logging.info(f"Total variables to process: {total_mpas_vars}")
 
-                    # First create all the variables (metadata only)
-                    for var_name, var in src_file.variables.items():
-                        logging.info(f"Creating variable {var_name}")
+                # First create all the variables (metadata only)
+                for var_name, var in src_file.variables.items():
+                    logging.info(f"Creating variable {var_name}")
 
-                        # Special handling for Time variable
-                        if var_name == 'Time':
-                            var_type = 'f8'  # Use double for Time
-                        # Handle string variables correctly
-                        elif hasattr(var, 'dtype') and (var.dtype.kind == 'S' or var.dtype.kind == 'U'):
-                            if var.dimensions and 'StrLen' in var.dimensions:
-                                var_type = 'S1'  # Char type
-                            else:
-                                var_type = str  # String type
+                    # Special handling for Time variable
+                    if var_name == 'Time':
+                        var_type = 'f8'  # Use double for Time
+                    # Handle string variables correctly
+                    elif hasattr(var, 'dtype') and (var.dtype.kind == 'S' or var.dtype.kind == 'U'):
+                        if var.dimensions and 'StrLen' in var.dimensions:
+                            var_type = 'S1'  # Char type
                         else:
-                            var_type = var.dtype
+                            var_type = str  # String type
+                    else:
+                        var_type = var.dtype
 
-                        # Create the variable with contiguous storage (no chunking, which slows down PIO)
+                    # Create the variable with contiguous storage (no chunking, which slows down PIO)
+                    new_var = new_file.createVariable(
+                        var_name,
+                        var_type,
+                        var.dimensions,
+                        fill_value=getattr(var, '_FillValue', None),
+                        contiguous=True
+                    )
+
+                    # Copy variable attributes except storage-related ones
+                    for attr_name in var.ncattrs():
+                        if attr_name not in ['_FillValue', '_Storage', '_ChunkSizes']:
+                            try:
+                                setattr(new_var, attr_name, var.getncattr(attr_name))
+                            except Exception as e:
+                                logging.warning(f"Error setting attribute {attr_name} for {var_name}: {e}")
+
+                # Check and see if MPAS state fields are available, if not create them from scratch
+                logging.info("Creating any missing variables not in source file")
+                additional_vars = {
+                    'u': {
+                        'type': 'f8',
+                        'dimensions': ('Time', 'nEdges', 'nVertLevels'),
+                        'units': 'm s^{-1}',
+                        'long_name': 'Horizontal normal velocity at edges'
+                    },
+                    'w': {
+                        'type': 'f8',
+                        'dimensions': ('Time', 'nCells', 'nVertLevelsP1'),
+                        'units': 'm s^{-1}',
+                        'long_name': 'Vertical velocity at vertical cell faces'
+                    },
+                    'qv': {
+                        'type': 'f8',
+                        'dimensions': ('Time', 'nCells', 'nVertLevels'),
+                        'units': 'kg kg^{-1}',
+                        'long_name': 'Water vapor mixing ratio'
+                    },
+                    'rho': {
+                        'type': 'f8',
+                        'dimensions': ('Time', 'nCells', 'nVertLevels'),
+                        'units': 'kg m^{-3}',
+                        'long_name': 'Dry air density'
+                    },
+                    'theta': {
+                        'type': 'f8',
+                        'dimensions': ('Time', 'nCells', 'nVertLevels'),
+                        'units': 'K',
+                        'long_name': 'Potential temperature'
+                    },
+                    'rho_base': {
+                        'type': 'f8',
+                        'dimensions': ('Time', 'nCells', 'nVertLevels'),
+                        'units': 'kg m^{-3}',
+                        'long_name': 'Base state dry air density'
+                    },
+                    'theta_base': {
+                        'type': 'f8',
+                        'dimensions': ('Time', 'nCells', 'nVertLevels'),
+                        'units': 'K',
+                        'long_name': 'Base state potential temperature'
+                    }
+                }
+
+                for var_name, var_info in additional_vars.items():
+                    if var_name not in new_file.variables:
+                        logging.info(f"Creating missing MPAS state variable: {var_name}")
                         new_var = new_file.createVariable(
                             var_name,
-                            var_type,
-                            var.dimensions,
-                            fill_value=getattr(var, '_FillValue', None),
+                            var_info['type'],
+                            var_info['dimensions'],
+                            fill_value=None,
                             contiguous=True
                         )
+                        new_var.units = var_info['units']
+                        new_var.long_name = var_info['long_name']
+                    else:
+                        logging.info(f"MPAS state variable {var_name} already exists from src")
 
-                        # Copy variable attributes except storage-related ones
-                        for attr_name in var.ncattrs():
-                            if attr_name not in ['_FillValue', '_Storage', '_ChunkSizes']:
-                                try:
-                                    setattr(new_var, attr_name, var.getncattr(attr_name))
-                                except Exception as e:
-                                    logging.warning(f"Error setting attribute {attr_name} for {var_name}: {e}")
+                # Now copy data, one variable at a time
+                for idx, var_name in enumerate(src_file.variables, 1):
+                    if var_name in skip_vars:
+                        logging.info(f"Skipping data copy for {var_name} ({idx}/{total_mpas_vars}) - will set manually later")
+                        continue
 
-                    # Check and see if MPAS state fields are available, if not create them from scratch
-                    logging.info("Creating any missing variables not in source file")
-                    additional_vars = {
-                        'u': {
-                            'type': 'f8',
-                            'dimensions': ('Time', 'nEdges', 'nVertLevels'),
-                            'units': 'm s^{-1}',
-                            'long_name': 'Horizontal normal velocity at edges'
-                        },
-                        'w': {
-                            'type': 'f8',
-                            'dimensions': ('Time', 'nCells', 'nVertLevelsP1'),
-                            'units': 'm s^{-1}',
-                            'long_name': 'Vertical velocity at vertical cell faces'
-                        },
-                        'qv': {
-                            'type': 'f8',
-                            'dimensions': ('Time', 'nCells', 'nVertLevels'),
-                            'units': 'kg kg^{-1}',
-                            'long_name': 'Water vapor mixing ratio'
-                        },
-                        'rho': {
-                            'type': 'f8',
-                            'dimensions': ('Time', 'nCells', 'nVertLevels'),
-                            'units': 'kg m^{-3}',
-                            'long_name': 'Dry air density'
-                        },
-                        'theta': {
-                            'type': 'f8',
-                            'dimensions': ('Time', 'nCells', 'nVertLevels'),
-                            'units': 'K',
-                            'long_name': 'Potential temperature'
-                        },
-                        'rho_base': {
-                            'type': 'f8',
-                            'dimensions': ('Time', 'nCells', 'nVertLevels'),
-                            'units': 'kg m^{-3}',
-                            'long_name': 'Base state dry air density'
-                        },
-                        'theta_base': {
-                            'type': 'f8',
-                            'dimensions': ('Time', 'nCells', 'nVertLevels'),
-                            'units': 'K',
-                            'long_name': 'Base state potential temperature'
-                        }
-                    }
+                    src_var = src_file.variables[var_name]
+                    dst_var = new_file.variables[var_name]
 
-                    for var_name, var_info in additional_vars.items():
-                        if var_name not in new_file.variables:
-                            logging.info(f"Creating missing MPAS state variable: {var_name}")
-                            new_var = new_file.createVariable(
-                                var_name,
-                                var_info['type'],
-                                var_info['dimensions'],
-                                fill_value=None,
-                                contiguous=True
-                            )
-                            new_var.units = var_info['units']
-                            new_var.long_name = var_info['long_name']
+                    logging.info(f"Copying data for {var_name} ({idx}/{total_mpas_vars})")
+
+                    # Handle string variables specially
+                    if hasattr(src_var, 'dtype') and (src_var.dtype.kind == 'S' or src_var.dtype.kind == 'U'):
+                        if len(src_var.dimensions) == 1 and isinstance(dst_var.dtype, str):
+                            # This is a single string
+                            dst_var[0] = str(src_var[0])
+                        elif 'StrLen' in src_var.dimensions:
+                            # This is a char array
+                            dst_var[:] = src_var[:]
                         else:
-                            logging.info(f"MPAS state variable {var_name} already exists from src")
+                            # Handle 1D array of strings
+                            for i in range(len(src_var)):
+                                dst_var[i] = str(src_var[i])
+                    else:
+                        # Handle large variables in chunks to reduce memory usage
+                        if src_var.size > 10_000_000 and len(src_var.shape) > 1:
+                            shape = src_var.shape
+                            chunk_size = max(1, min(100, shape[0] // 10))
 
-                    # Now copy data, one variable at a time
-                    for idx, var_name in enumerate(src_file.variables, 1):
-                        if var_name in skip_vars:
-                            logging.info(f"Skipping data copy for {var_name} ({idx}/{total_mpas_vars}) - will set manually later")
-                            continue
-
-                        src_var = src_file.variables[var_name]
-                        dst_var = new_file.variables[var_name]
-
-                        logging.info(f"Copying data for {var_name} ({idx}/{total_mpas_vars})")
-
-                        # Handle string variables specially
-                        if hasattr(src_var, 'dtype') and (src_var.dtype.kind == 'S' or src_var.dtype.kind == 'U'):
-                            if len(src_var.dimensions) == 1 and isinstance(dst_var.dtype, str):
-                                # This is a single string
-                                dst_var[0] = str(src_var[0])
-                            elif 'StrLen' in src_var.dimensions:
-                                # This is a char array
-                                dst_var[:] = src_var[:]
-                            else:
-                                # Handle 1D array of strings
-                                for i in range(len(src_var)):
-                                    dst_var[i] = str(src_var[i])
+                            for i in range(0, shape[0], chunk_size):
+                                end = min(i + chunk_size, shape[0])
+                                logging.debug(f"... chunk {i}:{end}")
+                                dst_var[i:end] = src_var[i:end]
                         else:
-                            # Handle large variables in chunks to reduce memory usage
-                            if src_var.size > 10_000_000 and len(src_var.shape) > 1:
-                                shape = src_var.shape
-                                chunk_size = max(1, min(100, shape[0] // 10))
+                            # Small enough variable to copy directly
+                            dst_var[:] = src_var[:]
 
-                                for i in range(0, shape[0], chunk_size):
-                                    end = min(i + chunk_size, shape[0])
-                                    logging.debug(f"... chunk {i}:{end}")
-                                    dst_var[i:end] = src_var[i:end]
-                            else:
-                                # Small enough variable to copy directly
-                                dst_var[:] = src_var[:]
+                    logging.info(f"Finished copying {var_name}")
 
-                        logging.info(f"Finished copying {var_name}")
+                # Write out Betacast modified vars last
+                # These are the "skip_vars"
+                logging.info(f"Writing new MPAS fields to target netcdf file")
+                new_file.variables['u'][0, :, :] = data_vint['uNorm'].T
+                new_file.variables['qv'][0, :, :] = data_vint['q'].T
+                new_file.variables['rho'][0, :, :] = data_vint['rho'].T
+                new_file.variables['theta'][0, :, :] = data_vint['theta'].T
+                new_file.variables['w'][0, :, :] = MPAS_W_DAMPING_COEF * data_vint['w'].T
+                new_file.variables['rho_base'][0, :, :] = data_vint['rho_base'].T
+                new_file.variables['theta_base'][0, :, :] = data_vint['theta_base'].T
 
-                    # Write out Betacast modified vars last
-                    # These are the "skip_vars"
-                    logging.info(f"Writing new MPAS fields to target netcdf file")
-                    new_file.variables['u'][0, :, :] = data_vint['uNorm'].T
-                    new_file.variables['qv'][0, :, :] = data_vint['q'].T
-                    new_file.variables['rho'][0, :, :] = data_vint['rho'].T
-                    new_file.variables['theta'][0, :, :] = data_vint['theta'].T
-                    new_file.variables['w'][0, :, :] = MPAS_W_DAMPING_COEF * data_vint['w'].T
-                    new_file.variables['rho_base'][0, :, :] = data_vint['rho_base'].T
-                    new_file.variables['theta_base'][0, :, :] = data_vint['theta_base'].T
-
-                logging.info(f"Done generating MPAS initial condition file: {se_inic}, exiting...")
+            logging.info(f"Done generating MPAS initial condition file: {se_inic}, exiting...")
 
             sys.exit(0)
+
+    # ====================================================================================
+    # Interpolate FV data to staggered lat/lon
+    # ====================================================================================
 
     if dycore == "fv":
         logging.info("FV: need to interpolate u/v to slat/slon")
@@ -717,6 +715,10 @@ def main():
             data_vint, numlevels, data_vint['fvlat'], data_vint['fvlon'],
             data_vint['fvslat'], data_vint['fvslon']
         )
+
+    # ====================================================================================
+    # Add variables, clip
+    # ====================================================================================
 
     # Adding any zeros (doing so here means no redundant interpolation of null fields)
     # Add num concentrations as zeros if they don't exist
@@ -751,475 +753,288 @@ def main():
 
     pyfuncs.log_resource_usage("After clipping, counting, and zeros")
 
+    # ====================================================================================
+    # Output
+    # ====================================================================================
+
     logging.info(f"Begin writing output file: {se_inic}")
 
-    write_xarray = False
+    def replace_nans_with_fill(data, fill_value=DEFAULT_FILL_VALUE):
+        return np.where(np.isnan(data), fill_value, data)
 
-    if write_xarray:
-        out_data = {}
-
-        if dycore == "se":
-            out_data['ps'] = pyfuncs.numpy_to_dataarray(data_vint['ps'], dims=['ncol'], attrs={'units': 'Pa', "_FillValue": NC_FLOAT_FILL})
-            out_data['u'] = pyfuncs.numpy_to_dataarray(data_vint['u'], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
-            out_data['v'] = pyfuncs.numpy_to_dataarray(data_vint['v'], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
-            out_data['t'] = pyfuncs.numpy_to_dataarray(data_vint['t'], dims=['lev', 'ncol'], attrs={'units': 'K', "_FillValue": NC_FLOAT_FILL})
-            out_data['q'] = pyfuncs.numpy_to_dataarray(data_vint['q'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            if add_cloud_vars:
-                out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_vint['cldliq'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-                out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_vint['cldice'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            if add_chemistry:
-                out_data['o3'] = pyfuncs.numpy_to_dataarray(data_vint['o3'], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            out_data['lat'] = pyfuncs.numpy_to_dataarray(data_vint['lat'], dims=['ncol'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "latitude", "units": "degrees_north"})
-            out_data['lon'] = pyfuncs.numpy_to_dataarray(data_vint['lon'], dims=['ncol'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "longitude", "units": "degrees_east"})
-            out_data['correct_or_not'] = pyfuncs.numpy_to_dataarray(data_vint['correct_or_not'], dims=['ncol'], attrs={"_FillValue": CORRECT_OR_NOT_FILL_VALUE}, name='correct_or_not')
-
-            out_data['ps'] = pyfuncs.add_time_define_precision(out_data['ps'], write_type, True)
-            out_data['u'] = pyfuncs.add_time_define_precision(out_data['u'], write_type, True)
-            out_data['v'] = pyfuncs.add_time_define_precision(out_data['v'], write_type, True)
-            out_data['t'] = pyfuncs.add_time_define_precision(out_data['t'], write_type, True)
-            out_data['q'] = pyfuncs.add_time_define_precision(out_data['q'], write_type, True)
-            if add_cloud_vars:
-                out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, True)
-                out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, True)
-            if add_chemistry:
-                out_data['o3'] = pyfuncs.add_time_define_precision(out_data['o3'], write_type, True)
-
-        elif dycore == "fv":
-            out_data['ps'] = pyfuncs.numpy_to_dataarray(data_vint['ps'], dims=['lat', 'lon'], attrs={'units': 'Pa', "_FillValue": NC_FLOAT_FILL})
-            out_data['u'] = pyfuncs.numpy_to_dataarray(data_vint['u'], dims=['lev', 'lat', 'lon'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
-            out_data['v'] = pyfuncs.numpy_to_dataarray(data_vint['v'], dims=['lev', 'lat', 'lon'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
-            out_data['us'] = pyfuncs.numpy_to_dataarray(data_vint['us'], dims=['lev', 'slat', 'lon'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
-            out_data['vs'] = pyfuncs.numpy_to_dataarray(data_vint['vs'], dims=['lev', 'lat', 'slon'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
-            out_data['t'] = pyfuncs.numpy_to_dataarray(data_vint['t'], dims=['lev', 'lat', 'lon'], attrs={'units': 'K', "_FillValue": NC_FLOAT_FILL})
-            out_data['q'] = pyfuncs.numpy_to_dataarray(data_vint['q'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "å": NC_FLOAT_FILL})
-            if add_cloud_vars:
-                out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_vint['cldice'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-                out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_vint['cldliq'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            if add_chemistry:
-                out_data['o3'] = pyfuncs.numpy_to_dataarray(data_vint['o3'], dims=['lev', 'lat', 'lon'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            out_data['lat'] = pyfuncs.numpy_to_dataarray(data_vint['lat'], dims=['lat'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "latitude", "units": "degrees_north"})
-            out_data['lon'] = pyfuncs.numpy_to_dataarray(data_vint['lon'], dims=['lon'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "longitude", "units": "degrees_east"})
-            out_data['slat'] = pyfuncs.numpy_to_dataarray(data_vint['fvslat'], dims=['slat'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "latitude", "units": "degrees_north"})
-            out_data['slon'] = pyfuncs.numpy_to_dataarray(data_vint['fvslon'], dims=['slon'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "longitude", "units": "degrees_east"})
-            out_data['correct_or_not'] = pyfuncs.numpy_to_dataarray(data_vint['correct_or_not'], dims=['lat', 'lon'], attrs={"_FillValue": CORRECT_OR_NOT_FILL_VALUE}, name='correct_or_not')
-
-            out_data['ps'] = pyfuncs.add_time_define_precision(out_data['ps'], write_type, False)
-            out_data['u'] = pyfuncs.add_time_define_precision(out_data['u'], write_type, False)
-            out_data['v'] = pyfuncs.add_time_define_precision(out_data['v'], write_type, False)
-            out_data['us'] = pyfuncs.add_time_define_precision(out_data['us'], write_type, False, lat_dim="slat")
-            out_data['vs'] = pyfuncs.add_time_define_precision(out_data['vs'], write_type, False, lon_dim="slon")
-            out_data['t'] = pyfuncs.add_time_define_precision(out_data['t'], write_type, False)
-            out_data['q'] = pyfuncs.add_time_define_precision(out_data['q'], write_type, False)
-            if add_cloud_vars:
-                out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, False)
-                out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, False)
-            if add_chemistry:
-                out_data['o3'] = pyfuncs.add_time_define_precision(out_data['o3'], write_type, False)
-
-        elif dycore == "mpas":
-            # Need to flip the 3-D arrays!
-            out_data['ps'] = pyfuncs.numpy_to_dataarray(data_vint['ps'], dims=['ncol'], attrs={'units': 'Pa', "_FillValue": NC_FLOAT_FILL})
-            out_data['u'] = pyfuncs.numpy_to_dataarray(data_vint['u'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
-            out_data['v'] = pyfuncs.numpy_to_dataarray(data_vint['v'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'm/s', "_FillValue": NC_FLOAT_FILL})
-            out_data['t'] = pyfuncs.numpy_to_dataarray(data_vint['t'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'K', "_FillValue": NC_FLOAT_FILL})
-            out_data['q'] = pyfuncs.numpy_to_dataarray(data_vint['q'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            if add_cloud_vars:
-                out_data['cldliq'] = pyfuncs.numpy_to_dataarray(data_vint['cldliq'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-                out_data['cldice'] = pyfuncs.numpy_to_dataarray(data_vint['cldice'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-            if add_chemistry:
-                out_data['o3'] = pyfuncs.numpy_to_dataarray(data_vint['o3'][::-1, :], dims=['lev', 'ncol'], attrs={'units': 'kg/kg', "_FillValue": NC_FLOAT_FILL})
-
-            out_data['lat'] = pyfuncs.numpy_to_dataarray(data_vint['lat'], dims=['ncol'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "latitude", "units": "degrees_north"})
-            out_data['lon'] = pyfuncs.numpy_to_dataarray(data_vint['lon'], dims=['ncol'], attrs={"_FillValue": COORD_FILL_VALUE, "long_name": "longitude", "units": "degrees_east"})
-
-            out_data['ps'] = pyfuncs.add_time_define_precision(out_data['ps'], write_type, True)
-            out_data['u'] = pyfuncs.add_time_define_precision(out_data['u'], write_type, True)
-            out_data['v'] = pyfuncs.add_time_define_precision(out_data['v'], write_type, True)
-            out_data['t'] = pyfuncs.add_time_define_precision(out_data['t'], write_type, True)
-            out_data['q'] = pyfuncs.add_time_define_precision(out_data['q'], write_type, True)
-            if add_cloud_vars:
-                out_data['cldliq'] = pyfuncs.add_time_define_precision(out_data['cldliq'], write_type, True)
-                out_data['cldice'] = pyfuncs.add_time_define_precision(out_data['cldice'], write_type, True)
-            if add_chemistry:
-                out_data['o3'] = pyfuncs.add_time_define_precision(out_data['o3'], write_type, True)
-
-        # Create CF-compliant time
-        time, time_atts = pyfuncs.create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr), base_time=cf_base_time)
-        out_data['time'] = pyfuncs.numpy_to_dataarray(time, dims=['time'], attrs=time_atts)
-
-        # Data set to be written out, base variables for all models
-        ds = xr.Dataset(
-            {
-                "PS": out_data['ps'],
-                "U": out_data['u'],
-                "V": out_data['v'],
-                "T": out_data['t'],
-                "Q": out_data['q'],
-                "lat": out_data['lat'],
-                "lon": out_data['lon'],
-            }
-        )
-
-        if dycore == "se" or dycore == "fv":
-            # Reload from the template xarray for metadata purposes
-            hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels, load_xarray = True)
-            if add_cloud_vars:
-                ds["CLDLIQ"] = out_data['cldliq']
-                ds["CLDICE"] = out_data['cldice']
-            if add_chemistry:
-                ds["O3"] = out_data['o3']
-            ds["hyam"] = hya
-            ds["hybm"] = hyb
-            ds["hyai"] = hyai
-            ds["hybi"] = hybi
-            ds["lev"] = lev
-            ds["ilev"] = ilev
-            ds["time"] = time
-
-        if dycore == "fv":
-            # Add staggered variables for fv
-            ds["US"] = out_data['us']
-            ds["VS"] = out_data['vs']
-            ds["slat"] = out_data['slat']
-            ds["slon"] = out_data['slon']
-
-        # Output correct_or_not if available
-        if 'correct_or_not' in data_vint:
-            ds["correct_or_not"] = out_data['correct_or_not']
-
-        # Add global attributes
-        ds.attrs.update({
-            "title": "Betacast-generated ncdata file",
-            "source_file": data_filename,
-            "wgt_file": wgt_filename,
-            "init_date": YYYYMMDDHH,
-            "creation_date": str(np.datetime64('now')),
-            "dycore": dycore,
-            "datasource": datasource
-        })
-
-        # Turn off fill value in relevant coordinate variables
-        logging.debug("Turning off _FillValue in relevant vars")
-        vars_to_check = ["hyam", "hybm", "hyai", "hybi", "lev", "ilev", "time"]
-        existing_vars = [var for var in vars_to_check if var in ds.variables]
-        encoding = {var: {'_FillValue': None} for var in existing_vars}
-
-        logging.info(f"Writing {se_inic}")
-        # Determine file format and compression based on variable size
-        if compress_file:
-            for var in list(ds.data_vars) + list(ds.coords):
-                if var in encoding:  # update it
-                    encoding[var].update({"zlib": True, "complevel": 1})
-                else:   # add it
-                    encoding[var] = {"zlib": True, "complevel": 1}
-            ds.load().to_netcdf(se_inic, format="NETCDF4_CLASSIC", unlimited_dims=["time"], encoding=encoding)
-        else:
-            var_max_size = pyfuncs.print_and_return_varsize(ds["PS"], ds["U"], ds["V"], ds["T"], ds["Q"])
-            netcdf_format = "NETCDF4" if var_max_size >= 4e9 else "NETCDF3_64BIT"
-            ds.load().to_netcdf(se_inic, format=netcdf_format, unlimited_dims=["time"], encoding=encoding)
-
+    # NetCDF and compression settings
+    if compress_file:
+        netcdf_format = "NETCDF4_CLASSIC"
+        compression_opts = {'zlib': True, 'complevel': 1}
     else:
+        var_max_size = pyfuncs.print_and_return_varsize(data_vint["ps"], data_vint["u"], data_vint["v"], data_vint["t"], data_vint["q"])
+        netcdf_format = "NETCDF4" if var_max_size >= 1e9 else "NETCDF3_64BIT"
+        compression_opts = {}
+    logging.info(f"netcdf_format: {netcdf_format}")
 
-        def replace_nans_with_fill(data, fill_value=DEFAULT_FILL_VALUE):
-            return np.where(np.isnan(data), fill_value, data)
+    # Open file
+    try:
+        nc_file = nc.Dataset(se_inic, 'w', format=netcdf_format)
+        logging.info(f"Opened: {se_inic}")
+    except Exception as e:
+        raise IOError(f"Failed to create NetCDF file {se_inic}: {e}")
 
-        # NetCDF and compression settings
-        if compress_file:
-            netcdf_format = "NETCDF4_CLASSIC"
-            compression_opts = {'zlib': True, 'complevel': 1}
+    logging.info(f"Creating dimensions...")
+
+    nc_file.createDimension('time', None)  # None makes the dimension unlimited
+
+    time_nc = nc_file.createVariable('time', 'f8', ('time',), **compression_opts)
+    time, time_atts = pyfuncs.create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr), base_time=cf_base_time)
+    for attr, value in time_atts.items():
+        setattr(time_nc, attr, value)
+    time_nc[:] = time
+
+    nc_file.createDimension('lev', numlevels)
+    nc_file.createDimension('ilev', numlevels + 1)
+    if dycore == "scream":
+        nc_file.createDimension('dim2', 2)
+
+    # Horiz coordinates
+    if dycore == "se" or dycore == "scream" or dycore == "mpas":
+        nc_file.createDimension('ncol', nncol[0])
+        lat_nc = nc_file.createVariable('lat', 'f8', ('ncol',), fill_value=COORD_FILL_VALUE, **compression_opts)
+        lon_nc = nc_file.createVariable('lon', 'f8', ('ncol',), fill_value=COORD_FILL_VALUE, **compression_opts)
+        lat_nc[:] = data_vint['lat']
+        lon_nc[:] = data_vint['lon']
+    elif dycore == "fv":
+        nc_file.createDimension('lat', nfvlat)
+        nc_file.createDimension('lon', nfvlon)
+        lat_nc = nc_file.createVariable('lat', 'f8', ('lat',), fill_value=COORD_FILL_VALUE, **compression_opts)
+        lon_nc = nc_file.createVariable('lon', 'f8', ('lon',), fill_value=COORD_FILL_VALUE, **compression_opts)
+        lat_nc[:] = data_vint['lat']
+        lon_nc[:] = data_vint['lon']
+
+    logging.info(f"... done creating dimensions")
+    logging.info(f"Creating variables...")
+
+    # Create nc variables for state fields
+    # Surface pressure
+    if dycore == "scream":
+        ps_nc = nc_file.createVariable('ps', nc_dtype, ('time', 'ncol'), fill_value=NC_FLOAT_FILL, **compression_opts)
+    else:
+        ps_nc = nc_file.createVariable('PS', nc_dtype, ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+    ps_nc.units = 'Pa'
+
+    # Horizontal winds
+    if dycore == "scream":
+        horiz_nc = nc_file.createVariable('horiz_winds', nc_dtype, ('time','ncol','dim2','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        horiz_nc.units = 'm/s'
+    else:
+        u_nc = nc_file.createVariable('U', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        v_nc = nc_file.createVariable('V', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        u_nc.units = 'm/s'
+        v_nc.units = 'm/s'
+
+    # Thermodynamic fields
+    if dycore == "scream":
+        t_nc = nc_file.createVariable('T_mid', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        q_nc = nc_file.createVariable('qv', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+    else:
+        t_nc = nc_file.createVariable('T', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        q_nc = nc_file.createVariable('Q', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+    t_nc.units = 'K'
+    q_nc.units = 'kg/kg'
+
+    if add_cloud_vars:
+        if dycore == "scream":
+            cldliq_nc = nc_file.createVariable('qc', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            cldice_nc = nc_file.createVariable('qi', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
         else:
-            var_max_size = pyfuncs.print_and_return_varsize(data_vint["ps"], data_vint["u"], data_vint["v"], data_vint["t"], data_vint["q"])
-            netcdf_format = "NETCDF4" if var_max_size >= 1e9 else "NETCDF3_64BIT"
-            compression_opts = {}
-        logging.info(f"netcdf_format: {netcdf_format}")
+            cldliq_nc = nc_file.createVariable('CLDLIQ', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            cldice_nc = nc_file.createVariable('CLDICE', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
-        # Open file
+        # If cldliq_nc and cldice_nc don't exist, pass and warn, otherwise define units
         try:
-            nc_file = nc.Dataset(se_inic, 'w', format=netcdf_format)
-            logging.info(f"Opened: {se_inic}")
-        except Exception as e:
-            raise IOError(f"Failed to create NetCDF file {se_inic}: {e}")
+            cldliq_nc.units = "kg/kg"
+            cldice_nc.units = "kg/kg"
+        except NameError:
+            logging.info(f"cldliq_nc and cldice_nc don't exist even though add_cloud_vars is {add_cloud_vars}, ignoring")
+            pass
 
-        logging.info(f"Creating dimensions...")
-
-        nc_file.createDimension('time', None)  # None makes the dimension unlimited
-
-        time_nc = nc_file.createVariable('time', 'f8', ('time',), **compression_opts)
-        time, time_atts = pyfuncs.create_cf_time(int(yearstr), int(monthstr), int(daystr), int(cyclestr), base_time=cf_base_time)
-        for attr, value in time_atts.items():
-            setattr(time_nc, attr, value)
-        time_nc[:] = time
-
-        nc_file.createDimension('lev', numlevels)
-        nc_file.createDimension('ilev', numlevels + 1)
+    if add_numconc_vars:
         if dycore == "scream":
-            nc_file.createDimension('dim2', 2)
-
-        # Horiz coordinates
-        if dycore == "se" or dycore == "scream" or dycore == "mpas":
-            nc_file.createDimension('ncol', nncol[0])
-            lat_nc = nc_file.createVariable('lat', 'f8', ('ncol',), fill_value=COORD_FILL_VALUE, **compression_opts)
-            lon_nc = nc_file.createVariable('lon', 'f8', ('ncol',), fill_value=COORD_FILL_VALUE, **compression_opts)
-            lat_nc[:] = data_vint['lat']
-            lon_nc[:] = data_vint['lon']
-        elif dycore == "fv":
-            nc_file.createDimension('lat', nfvlat)
-            nc_file.createDimension('lon', nfvlon)
-            lat_nc = nc_file.createVariable('lat', 'f8', ('lat',), fill_value=COORD_FILL_VALUE, **compression_opts)
-            lon_nc = nc_file.createVariable('lon', 'f8', ('lon',), fill_value=COORD_FILL_VALUE, **compression_opts)
-            lat_nc[:] = data_vint['lat']
-            lon_nc[:] = data_vint['lon']
-
-        logging.info(f"... done creating dimensions")
-        logging.info(f"Creating variables...")
-
-        # Create nc variables for state fields
-        # Surface pressure
-        if dycore == "scream":
-            ps_nc = nc_file.createVariable('ps', nc_dtype, ('time', 'ncol'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            numcld_nc = nc_file.createVariable('nc', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            numice_nc = nc_file.createVariable('ni', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            numliq_nc = nc_file.createVariable('nr', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
         else:
-            ps_nc = nc_file.createVariable('PS', nc_dtype, ('time', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        ps_nc.units = 'Pa'
+            numcld_nc = nc_file.createVariable('NUMCLD', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            numice_nc = nc_file.createVariable('NUMICE', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            numliq_nc = nc_file.createVariable('NUMLIQ', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
-        # Horizontal winds
+        # If numcld_nc, numice_nc, numliq_nc don't exist, pass and warn, otherwise define units
+        try:
+            numcld_nc.units = "num/kg"
+            numice_nc.units = "num/kg"
+            numliq_nc.units = "num/kg"
+        except NameError:
+            logging.info(f"numcld_nc and numliq_nc and numice_nc don't exist even though add_numconc_vars is {add_numconc_vars}, ignoring")
+            pass
+
+    if add_chemistry:
         if dycore == "scream":
-            horiz_nc = nc_file.createVariable('horiz_winds', nc_dtype, ('time','ncol','dim2','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            horiz_nc.units = 'm/s'
-        else:
-            u_nc = nc_file.createVariable('U', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            v_nc = nc_file.createVariable('V', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            u_nc.units = 'm/s'
-            v_nc.units = 'm/s'
+            o3_nc = nc_file.createVariable('o3_volume_mix_ratio', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        elif dycore != "mpas":
+            o3_nc = nc_file.createVariable('O3', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        o3_nc.units = "mol/mol"
 
-        # Thermodynamic fields
-        if dycore == "scream":
-            t_nc = nc_file.createVariable('T_mid', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            q_nc = nc_file.createVariable('qv', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        else:
-            t_nc = nc_file.createVariable('T', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            q_nc = nc_file.createVariable('Q', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        t_nc.units = 'K'
-        q_nc.units = 'kg/kg'
-
-        if add_cloud_vars:
-            if dycore == "scream":
-                cldliq_nc = nc_file.createVariable('qc', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                cldice_nc = nc_file.createVariable('qi', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            else:
-                cldliq_nc = nc_file.createVariable('CLDLIQ', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                cldice_nc = nc_file.createVariable('CLDICE', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-
-            # If cldliq_nc and cldice_nc don't exist, pass and warn, otherwise define units
-            try:
-                cldliq_nc.units = "kg/kg"
-                cldice_nc.units = "kg/kg"
-            except NameError:
-                logging.info(f"cldliq_nc and cldice_nc don't exist even though add_cloud_vars is {add_cloud_vars}, ignoring")
-                pass
-
-        if add_numconc_vars:
-            if dycore == "scream":
-                numcld_nc = nc_file.createVariable('nc', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                numice_nc = nc_file.createVariable('ni', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                numliq_nc = nc_file.createVariable('nr', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            else:
-                numcld_nc = nc_file.createVariable('NUMCLD', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                numice_nc = nc_file.createVariable('NUMICE', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-                numliq_nc = nc_file.createVariable('NUMLIQ', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-
-            # If numcld_nc, numice_nc, numliq_nc don't exist, pass and warn, otherwise define units
-            try:
-                numcld_nc.units = "num/kg"
-                numice_nc.units = "num/kg"
-                numliq_nc.units = "num/kg"
-            except NameError:
-                logging.info(f"numcld_nc and numliq_nc and numice_nc don't exist even though add_numconc_vars is {add_numconc_vars}, ignoring")
-                pass
-
-        if add_chemistry:
-            if dycore == "scream":
-                o3_nc = nc_file.createVariable('o3_volume_mix_ratio', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            elif dycore != "mpas":
-                o3_nc = nc_file.createVariable('O3', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        # If o3_nc doesn't exist, pass and warn, otherwise define units
+        try:
             o3_nc.units = "mol/mol"
+        except NameError:
+            logging.info(f"o3_nc doesn't exist even though add_chemistry is {add_chemistry}, ignoring")
+            pass
 
-            # If o3_nc doesn't exist, pass and warn, otherwise define units
-            try:
-                o3_nc.units = "mol/mol"
-            except NameError:
-                logging.info(f"o3_nc doesn't exist even though add_chemistry is {add_chemistry}, ignoring")
-                pass
+    if 'correct_or_not' in data_vint:
+        # This is just a diagnostic (not read by model) so let's just output lower precision here
+        correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "scream" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=CORRECT_OR_NOT_FILL_VALUE, **compression_opts)
 
+    if add_pmid:
+        pmid_nc = nc_file.createVariable('PMID', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+
+    logging.info(f"... done creating variables")
+    logging.info(f"Writing data to fields...")
+
+    # Place data_vint data into var fields
+    if dycore == "fv":
+        ps_nc[0, :, :] = replace_nans_with_fill(data_vint['ps'],fill_value=NC_FLOAT_FILL)
+        u_nc[0, :, :, :] = replace_nans_with_fill(data_vint['u'],fill_value=NC_FLOAT_FILL)
+        v_nc[0, :, :, :] = replace_nans_with_fill(data_vint['v'],fill_value=NC_FLOAT_FILL)
+        t_nc[0, :, :, :] = replace_nans_with_fill(data_vint['t'],fill_value=NC_FLOAT_FILL)
+        q_nc[0, :, :, :] = replace_nans_with_fill(data_vint['q'],fill_value=NC_FLOAT_FILL)
+        if add_cloud_vars:
+            cldliq_nc[0, :, :, :] = replace_nans_with_fill(data_vint['cldliq'],fill_value=NC_FLOAT_FILL)
+            cldice_nc[0, :, :, :] = replace_nans_with_fill(data_vint['cldice'],fill_value=NC_FLOAT_FILL)
+        if add_chemistry:
+            o3_nc[0, :, :, :] = replace_nans_with_fill(data_vint['o3'],fill_value=NC_FLOAT_FILL)
         if 'correct_or_not' in data_vint:
-            # This is just a diagnostic (not read by model) so let's just output lower precision here
-            correct_or_not_nc = nc_file.createVariable('correct_or_not', 'f4', ('time', 'ncol') if dycore == "se" or dycore == "scream" or dycore == "mpas" else ('time', 'lat', 'lon'), fill_value=CORRECT_OR_NOT_FILL_VALUE, **compression_opts)
-
+            correct_or_not_nc[0, :, :] = replace_nans_with_fill(data_vint['correct_or_not'],fill_value=NC_FLOAT_FILL)
+    elif dycore == "se":
+        ps_nc[0, :] = replace_nans_with_fill(data_vint['ps'],fill_value=NC_FLOAT_FILL)
+        u_nc[0, :, :] = replace_nans_with_fill(data_vint['u'],fill_value=NC_FLOAT_FILL)
+        v_nc[0, :, :] = replace_nans_with_fill(data_vint['v'],fill_value=NC_FLOAT_FILL)
+        t_nc[0, :, :] = replace_nans_with_fill(data_vint['t'],fill_value=NC_FLOAT_FILL)
+        q_nc[0, :, :] = replace_nans_with_fill(data_vint['q'],fill_value=NC_FLOAT_FILL)
+        if add_cloud_vars:
+            cldliq_nc[0, :, :] = replace_nans_with_fill(data_vint['cldliq'],fill_value=NC_FLOAT_FILL)
+            cldice_nc[0, :, :] = replace_nans_with_fill(data_vint['cldice'],fill_value=NC_FLOAT_FILL)
+        if add_chemistry:
+            o3_nc[0, :, :] = replace_nans_with_fill(data_vint['o3'],fill_value=NC_FLOAT_FILL)
+        if 'correct_or_not' in data_vint:
+            correct_or_not_nc[0, :] = replace_nans_with_fill(data_vint['correct_or_not'],fill_value=NC_FLOAT_FILL)
+    elif dycore == "scream":
+        # Note, 3D fields needs to be transposed here (.T) because the ordering is ncol, lev while data_vint has lev, ncol
+        ps_nc[0, :] = replace_nans_with_fill(data_vint['ps'],fill_value=NC_FLOAT_FILL)
+        horiz_nc[0, :, 0, :] = replace_nans_with_fill(data_vint['u'].T, fill_value=NC_FLOAT_FILL)
+        horiz_nc[0, :, 1, :] = replace_nans_with_fill(data_vint['v'].T, fill_value=NC_FLOAT_FILL)
+        t_nc[0, :, :] = replace_nans_with_fill(data_vint['t'].T,fill_value=NC_FLOAT_FILL)
+        q_nc[0, :, :] = replace_nans_with_fill(data_vint['q'].T,fill_value=NC_FLOAT_FILL)
+        if add_cloud_vars:
+            cldliq_nc[0, :, :] = replace_nans_with_fill(data_vint['cldliq'].T,fill_value=NC_FLOAT_FILL)
+            cldice_nc[0, :, :] = replace_nans_with_fill(data_vint['cldice'].T,fill_value=NC_FLOAT_FILL)
+        if add_numconc_vars:
+            numcld_nc[0, :, :] = replace_nans_with_fill(data_vint['numcld'].T,fill_value=NC_FLOAT_FILL)
+            numliq_nc[0, :, :] = replace_nans_with_fill(data_vint['numliq'].T,fill_value=NC_FLOAT_FILL)
+            numice_nc[0, :, :] = replace_nans_with_fill(data_vint['numice'].T,fill_value=NC_FLOAT_FILL)
+        if add_chemistry:
+            o3_nc[0, :, :] = replace_nans_with_fill(data_vint['o3'].T,fill_value=NC_FLOAT_FILL)
+        if 'correct_or_not' in data_vint:
+            correct_or_not_nc[0, :] = replace_nans_with_fill(data_vint['correct_or_not'],fill_value=NC_FLOAT_FILL)
+    elif dycore == "mpas":
+        ps_nc[0, :] = replace_nans_with_fill(data_vint['ps'],fill_value=NC_FLOAT_FILL)
+        u_nc[0, :, :] = replace_nans_with_fill(data_vint['u'][::-1, :],fill_value=NC_FLOAT_FILL)
+        v_nc[0, :, :] = replace_nans_with_fill(data_vint['v'][::-1, :],fill_value=NC_FLOAT_FILL)
+        t_nc[0, :, :] = replace_nans_with_fill(data_vint['t'][::-1, :],fill_value=NC_FLOAT_FILL)
+        q_nc[0, :, :] = replace_nans_with_fill(data_vint['q'][::-1, :],fill_value=NC_FLOAT_FILL)
+        if add_cloud_vars:
+            cldliq_nc[0, :, :] = replace_nans_with_fill(data_vint['cldliq'][::-1, :],fill_value=NC_FLOAT_FILL)
+            cldice_nc[0, :, :] = replace_nans_with_fill(data_vint['cldice'][::-1, :],fill_value=NC_FLOAT_FILL)
+        if add_chemistry:
+            o3_nc[0, :, :] = replace_nans_with_fill(data_vint['o3'][::-1, :],fill_value=NC_FLOAT_FILL)
+        if 'correct_or_not' in data_vint:
+            correct_or_not_nc[0, :] = replace_nans_with_fill(data_vint['correct_or_not'],fill_value=NC_FLOAT_FILL)
         if add_pmid:
-            pmid_nc = nc_file.createVariable('PMID', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            pmid_nc[0, :, :] = replace_nans_with_fill(data_vint['pmid'][::-1, :],fill_value=NC_FLOAT_FILL)
 
-        logging.info(f"... done creating variables")
-        logging.info(f"Writing data to fields...")
+    logging.info(f"... done writing variables to fields")
 
-        # Place data_vint data into var fields
-        if dycore == "fv":
-            ps_nc[0, :, :] = replace_nans_with_fill(data_vint['ps'],fill_value=NC_FLOAT_FILL)
-            u_nc[0, :, :, :] = replace_nans_with_fill(data_vint['u'],fill_value=NC_FLOAT_FILL)
-            v_nc[0, :, :, :] = replace_nans_with_fill(data_vint['v'],fill_value=NC_FLOAT_FILL)
-            t_nc[0, :, :, :] = replace_nans_with_fill(data_vint['t'],fill_value=NC_FLOAT_FILL)
-            q_nc[0, :, :, :] = replace_nans_with_fill(data_vint['q'],fill_value=NC_FLOAT_FILL)
-            if add_cloud_vars:
-                cldliq_nc[0, :, :, :] = replace_nans_with_fill(data_vint['cldliq'],fill_value=NC_FLOAT_FILL)
-                cldice_nc[0, :, :, :] = replace_nans_with_fill(data_vint['cldice'],fill_value=NC_FLOAT_FILL)
-            if add_chemistry:
-                o3_nc[0, :, :, :] = replace_nans_with_fill(data_vint['o3'],fill_value=NC_FLOAT_FILL)
-            if 'correct_or_not' in data_vint:
-                correct_or_not_nc[0, :, :] = replace_nans_with_fill(data_vint['correct_or_not'],fill_value=NC_FLOAT_FILL)
-        elif dycore == "se":
-            ps_nc[0, :] = replace_nans_with_fill(data_vint['ps'],fill_value=NC_FLOAT_FILL)
-            u_nc[0, :, :] = replace_nans_with_fill(data_vint['u'],fill_value=NC_FLOAT_FILL)
-            v_nc[0, :, :] = replace_nans_with_fill(data_vint['v'],fill_value=NC_FLOAT_FILL)
-            t_nc[0, :, :] = replace_nans_with_fill(data_vint['t'],fill_value=NC_FLOAT_FILL)
-            q_nc[0, :, :] = replace_nans_with_fill(data_vint['q'],fill_value=NC_FLOAT_FILL)
-            if add_cloud_vars:
-                cldliq_nc[0, :, :] = replace_nans_with_fill(data_vint['cldliq'],fill_value=NC_FLOAT_FILL)
-                cldice_nc[0, :, :] = replace_nans_with_fill(data_vint['cldice'],fill_value=NC_FLOAT_FILL)
-            if add_chemistry:
-                o3_nc[0, :, :] = replace_nans_with_fill(data_vint['o3'],fill_value=NC_FLOAT_FILL)
-            if 'correct_or_not' in data_vint:
-                correct_or_not_nc[0, :] = replace_nans_with_fill(data_vint['correct_or_not'],fill_value=NC_FLOAT_FILL)
-        elif dycore == "scream":
-            # Note, 3D fields needs to be transposed here (.T) because the ordering is ncol, lev while data_vint has lev, ncol
-            ps_nc[0, :] = replace_nans_with_fill(data_vint['ps'],fill_value=NC_FLOAT_FILL)
-            horiz_nc[0, :, 0, :] = replace_nans_with_fill(data_vint['u'].T, fill_value=NC_FLOAT_FILL)
-            horiz_nc[0, :, 1, :] = replace_nans_with_fill(data_vint['v'].T, fill_value=NC_FLOAT_FILL)
-            t_nc[0, :, :] = replace_nans_with_fill(data_vint['t'].T,fill_value=NC_FLOAT_FILL)
-            q_nc[0, :, :] = replace_nans_with_fill(data_vint['q'].T,fill_value=NC_FLOAT_FILL)
-            if add_cloud_vars:
-                cldliq_nc[0, :, :] = replace_nans_with_fill(data_vint['cldliq'].T,fill_value=NC_FLOAT_FILL)
-                cldice_nc[0, :, :] = replace_nans_with_fill(data_vint['cldice'].T,fill_value=NC_FLOAT_FILL)
-            if add_numconc_vars:
-                numcld_nc[0, :, :] = replace_nans_with_fill(data_vint['numcld'].T,fill_value=NC_FLOAT_FILL)
-                numliq_nc[0, :, :] = replace_nans_with_fill(data_vint['numliq'].T,fill_value=NC_FLOAT_FILL)
-                numice_nc[0, :, :] = replace_nans_with_fill(data_vint['numice'].T,fill_value=NC_FLOAT_FILL)
-            if add_chemistry:
-                o3_nc[0, :, :] = replace_nans_with_fill(data_vint['o3'].T,fill_value=NC_FLOAT_FILL)
-            if 'correct_or_not' in data_vint:
-                correct_or_not_nc[0, :] = replace_nans_with_fill(data_vint['correct_or_not'],fill_value=NC_FLOAT_FILL)
-        elif dycore == "mpas":
-            ps_nc[0, :] = replace_nans_with_fill(data_vint['ps'],fill_value=NC_FLOAT_FILL)
-            u_nc[0, :, :] = replace_nans_with_fill(data_vint['u'][::-1, :],fill_value=NC_FLOAT_FILL)
-            v_nc[0, :, :] = replace_nans_with_fill(data_vint['v'][::-1, :],fill_value=NC_FLOAT_FILL)
-            t_nc[0, :, :] = replace_nans_with_fill(data_vint['t'][::-1, :],fill_value=NC_FLOAT_FILL)
-            q_nc[0, :, :] = replace_nans_with_fill(data_vint['q'][::-1, :],fill_value=NC_FLOAT_FILL)
-            if add_cloud_vars:
-                cldliq_nc[0, :, :] = replace_nans_with_fill(data_vint['cldliq'][::-1, :],fill_value=NC_FLOAT_FILL)
-                cldice_nc[0, :, :] = replace_nans_with_fill(data_vint['cldice'][::-1, :],fill_value=NC_FLOAT_FILL)
-            if add_chemistry:
-                o3_nc[0, :, :] = replace_nans_with_fill(data_vint['o3'][::-1, :],fill_value=NC_FLOAT_FILL)
-            if 'correct_or_not' in data_vint:
-                correct_or_not_nc[0, :] = replace_nans_with_fill(data_vint['correct_or_not'],fill_value=NC_FLOAT_FILL)
-            if add_pmid:
-                pmid_nc[0, :, :] = replace_nans_with_fill(data_vint['pmid'][::-1, :],fill_value=NC_FLOAT_FILL)
+    # If the model has a hybrid coordinate, do that here
+    if dycore == "se" or dycore == "scream" or dycore == "fv":
+        hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels, load_xarray=False)
 
-        logging.info(f"... done writing variables to fields")
+        # lev coordinate is special
+        if dycore == "scream":
+            # keep raw lev coordinate for any index-based consumers
+            lev_nc = nc_file.createVariable('lev', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+            lev_nc[:] = lev
+            # SCREAMI mid-level coordinate
+            pref_mid_nc = nc_file.createVariable('pref_mid', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+            pref_mid_nc.long_name = 'mid-level hybrid coordinate parameter'
+            pref_mid_nc.units     = 'Pa'
+            pref_mid_nc[:]        = lev
+        else:
+            lev_nc = nc_file.createVariable('lev', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+            lev_nc[:] = lev
 
-        # If the model has a hybrid coordinate, do that here
-        if dycore == "se" or dycore == "scream" or dycore == "fv":
-            hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels, load_xarray=False)
+        hyam_nc = nc_file.createVariable('hyam', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+        hybm_nc = nc_file.createVariable('hybm', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+        hyai_nc = nc_file.createVariable('hyai', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+        hybi_nc = nc_file.createVariable('hybi', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+        ilev_nc = nc_file.createVariable('ilev', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
 
-            # lev coordinate is special
-            if dycore == "scream":
-                # keep raw lev coordinate for any index-based consumers
-                lev_nc = nc_file.createVariable('lev', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
-                lev_nc[:] = lev
-                # SCREAMI mid-level coordinate
-                pref_mid_nc = nc_file.createVariable('pref_mid', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
-                pref_mid_nc.long_name = 'mid-level hybrid coordinate parameter'
-                pref_mid_nc.units     = 'Pa'
-                pref_mid_nc[:]        = lev
-            else:
-                lev_nc = nc_file.createVariable('lev', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
-                lev_nc[:] = lev
+        # Let's not allow nans here, so no filling
+        hyam_nc[:] = hya
+        hybm_nc[:] = hyb
+        hyai_nc[:] = hyai
+        hybi_nc[:] = hybi
+        ilev_nc[:] = ilev
 
-            hyam_nc = nc_file.createVariable('hyam', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
-            hybm_nc = nc_file.createVariable('hybm', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
-            hyai_nc = nc_file.createVariable('hyai', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
-            hybi_nc = nc_file.createVariable('hybi', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
-            ilev_nc = nc_file.createVariable('ilev', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
+    # If FV, add staggered information
+    if dycore == "fv":
+        nc_file.createDimension('slat', nfvlat - 1)
+        nc_file.createDimension('slon', nfvlon)
 
-            # Let's not allow nans here, so no filling
-            hyam_nc[:] = hya
-            hybm_nc[:] = hyb
-            hyai_nc[:] = hyai
-            hybi_nc[:] = hybi
-            ilev_nc[:] = ilev
+        slat_nc = nc_file.createVariable('slat', 'f8', ('slat',), fill_value=COORD_FILL_VALUE, **compression_opts)
+        slon_nc = nc_file.createVariable('slon', 'f8', ('slon',), fill_value=COORD_FILL_VALUE, **compression_opts)
+        us_nc = nc_file.createVariable('US', nc_dtype, ('time', 'lev', 'slat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+        vs_nc = nc_file.createVariable('VS', nc_dtype, ('time', 'lev', 'lat', 'slon'), fill_value=NC_FLOAT_FILL, **compression_opts)
 
-        # If FV, add staggered information
-        if dycore == "fv":
-            nc_file.createDimension('slat', nfvlat - 1)
-            nc_file.createDimension('slon', nfvlon)
+        slat_nc[:] = data_vint['fvslat']
+        slon_nc[:] = data_vint['fvslon']
+        us_nc[0, :, :, :] = replace_nans_with_fill(data_vint['us'],fill_value=NC_FLOAT_FILL)
+        vs_nc[0, :, :, :] = replace_nans_with_fill(data_vint['vs'],fill_value=NC_FLOAT_FILL)
 
-            slat_nc = nc_file.createVariable('slat', 'f8', ('slat',), fill_value=COORD_FILL_VALUE, **compression_opts)
-            slon_nc = nc_file.createVariable('slon', 'f8', ('slon',), fill_value=COORD_FILL_VALUE, **compression_opts)
-            us_nc = nc_file.createVariable('US', nc_dtype, ('time', 'lev', 'slat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-            vs_nc = nc_file.createVariable('VS', nc_dtype, ('time', 'lev', 'lat', 'slon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+    logging.info(f"Writing attributes...")
 
-            slat_nc[:] = data_vint['fvslat']
-            slon_nc[:] = data_vint['fvslon']
-            us_nc[0, :, :, :] = replace_nans_with_fill(data_vint['us'],fill_value=NC_FLOAT_FILL)
-            vs_nc[0, :, :, :] = replace_nans_with_fill(data_vint['vs'],fill_value=NC_FLOAT_FILL)
+    # Add reference pressure (P0)
+    p0_nc = nc_file.createVariable('P0', 'f8', (), fill_value=NC_FLOAT_FILL, **compression_opts)
+    p0_nc.setncattr('long_name', 'reference pressure')
+    p0_nc.setncattr('units', 'Pa')
+    p0_nc[:] = p0
 
-        logging.info(f"Writing attributes...")
+    # Add global attributes
+    nc_file.title = "Betacast-generated ncdata file"
+    nc_file.source_file = data_filename
+    nc_file.wgt_file = wgt_filename
+    nc_file.init_date = YYYYMMDDHH
+    nc_file.creation_date = str(np.datetime64('now'))
+    nc_file.dycore = dycore
+    nc_file.datasource = datasource
+    nc_file.case_t0 = time_atts["base_timestring"] # This is used by EAMxx, don't see harm in using elsewhere
 
-        # Add reference pressure (P0)
-        p0_nc = nc_file.createVariable('P0', 'f8', (), fill_value=NC_FLOAT_FILL, **compression_opts)
-        p0_nc.setncattr('long_name', 'reference pressure')
-        p0_nc.setncattr('units', 'Pa')
-        p0_nc[:] = p0
+    logging.info(f"... done writing attributes")
 
-        # Add global attributes
-        nc_file.title = "Betacast-generated ncdata file"
-        nc_file.source_file = data_filename
-        nc_file.wgt_file = wgt_filename
-        nc_file.init_date = YYYYMMDDHH
-        nc_file.creation_date = str(np.datetime64('now'))
-        nc_file.dycore = dycore
-        nc_file.datasource = datasource
-        nc_file.case_t0 = time_atts["base_timestring"] # This is used by EAMxx, don't see harm in using elsewhere
+    logging.info(f"Done writing output file: {se_inic}")
+    nc_file.close()     # Close the file
+    logging.info(f"Done closing output file: {se_inic}")
 
-        logging.info(f"... done writing attributes")
+    pyfuncs.log_resource_usage("DONE")
 
-        logging.info(f"Done writing output file: {se_inic}")
-        nc_file.close()     # Close the file
-        logging.info(f"Done closing output file: {se_inic}")
-
-        pyfuncs.log_resource_usage("DONE")
-
-        quit()
-
-#         # SCREAM specific conversion
-#         if dycore == "scream":
-#             import time
-#             from pathlib import Path
-#
-#             if shutil.which("ncks") is not None:
-#                 se_inic = Path(se_inic)
-#                 tmp_file = se_inic.with_suffix(se_inic.suffix + ".cdf5")
-#
-#                 logging.info("Converting to CDF5")
-#                 start = time.perf_counter()
-#                 try:
-#                     subprocess.run(
-#                         ["ncks", "-5", str(se_inic), str(tmp_file)],
-#                         check=True
-#                     )
-#                     elapsed = time.perf_counter() - start
-#                     shutil.move(tmp_file, se_inic)
-#                     logging.info(f"→ converted to CDF5 format in {elapsed:.2f} s")
-#                 except subprocess.CalledProcessError as e:
-#                     logging.info(f"ncks failed (exit {e.returncode}), skipping CDF5 conversion")
-#             else:
-#                 logging.info("ncks not found on PATH; skipping CDF5 conversion")
+    quit()
 
 
 if __name__ == "__main__":
