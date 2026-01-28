@@ -373,6 +373,7 @@ def main():
             pyfuncs.print_debug_file(DEBUGDIR + "/py_era5_before_interp.nc", **debug_vars)
 
         data_vint = vertremap.pres2hyb_all(data_vars, data_vars['ps'], hya, hyb)
+        del data_vars
 
         pyfuncs.log_resource_usage("After vertical interpolation")
 
@@ -429,10 +430,12 @@ def main():
 
         # Set up some dummy arrays since we aren't going to vert interp first
         data_vint = data_vars.copy()
+        del data_vars
 
         pyfuncs.print_min_max_dict(data_vint)
 
     data_horiz = horizremap.remap_all(data_vint, wgt_filename, dycore=dycore)
+    del data_vint
 
     pyfuncs.log_resource_usage("After horizontal remap")
 
