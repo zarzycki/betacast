@@ -355,19 +355,17 @@ def main():
     pyfuncs.log_resource_usage("After TC augmentation")
 
     if write_debug_files:
-        debug_vars = {
-            "ps": (["lat", "lon"], data_vars["ps"]),
-            "t": (["lev_p", "lat", "lon"], data_vars["t"]),
-            "u": (["lev_p", "lat", "lon"], data_vars["u"]),
-            "v": (["lev_p", "lat", "lon"], data_vars["v"]),
-            "q": (["lev_p", "lat", "lon"], data_vars["q"]),
-            "cldliq": (["lev_p", "lat", "lon"], data_vars["cldliq"]),
-            "cldice": (["lev_p", "lat", "lon"], data_vars["cldice"]),
-        }
+        # Analysis grid is always structured lat/lon, so use "fv" for dimension inference
+        varlist = ['ps', 't', 'u', 'v', 'q', 'cldliq', 'cldice']
         if datasource not in ('HRRRml', 'HRRR', 'HWRF', 'RAP'):
-            debug_vars["lat"] = (["lat"], data_vars["lat"])
-            debug_vars["lon"] = (["lon"], data_vars["lon"])
-        pyfuncs.print_debug_file(DEBUGDIR + "/py_era5_before_interp.nc", **debug_vars)
+            varlist.extend(['lat', 'lon'])
+        pyfuncs.print_debug_file_wrapper(
+            DEBUGDIR + "/py_era5_before_interp.nc",
+            data_vars, "fv",
+            varlist=varlist,
+            level_dim="lev_p",
+            level_coord=data_vars.get('lev')
+        )
 
     if dycore == 'mpas':
         # Load the MPAS init file and get the zgrid
@@ -412,28 +410,13 @@ def main():
     pyfuncs.print_min_max_dict(data_horiz)
 
     if write_debug_files:
-        if dycore != "fv":
-            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_after_horizremap.nc",
-                            lat=(["ncol"], data_horiz['lat']),
-                            lon=(["ncol"], data_horiz['lon']),
-                            ps_fv=(["ncol"], data_horiz['ps']),
-                            t_fv=(["level", "ncol"], data_horiz['t']),
-                            u_fv=(["level", "ncol"], data_horiz['u']),
-                            v_fv=(["level", "ncol"], data_horiz['v']),
-                            q_fv=(["level", "ncol"], data_horiz['q']),
-                            cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
-                            cldice_fv=(["level", "ncol"], data_horiz['cldice']))
-        elif dycore == "fv":
-            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_after_horizremap.nc",
-                            lat=(["lat"], data_horiz['lat']),
-                            lon=(["lon"], data_horiz['lon']),
-                            ps_fv=(["lat", "lon"], data_horiz['ps']),
-                            t_fv=(["level", "lat", "lon"], data_horiz['t']),
-                            u_fv=(["level", "lat", "lon"], data_horiz['u']),
-                            v_fv=(["level", "lat", "lon"], data_horiz['v']),
-                            q_fv=(["level", "lat", "lon"], data_horiz['q']),
-                            cldliq_fv=(["level", "lat", "lon"], data_horiz['cldliq']),
-                            cldice_fv=(["level", "lat", "lon"], data_horiz['cldice']))
+        pyfuncs.print_debug_file_wrapper(
+            DEBUGDIR + "/py_era5_after_horizremap.nc",
+            data_horiz, dycore,
+            varlist=['lat', 'lon', 'ps', 't', 'u', 'v', 'q', 'cldliq', 'cldice'],
+            level_dim="lev_p",
+            level_coord=data_horiz.get('lev')
+        )
 
     # ====================================================================================
     # Topographic adjustment
@@ -466,30 +449,13 @@ def main():
         data_horiz = packing.repack_fv(data_horiz, grid_dims)
 
     if write_debug_files:
-        if dycore == "se" or dycore == "scream":
-            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_after_topoadjust.nc",
-                            lat=(["ncol"], data_horiz['lat']),
-                            lon=(["ncol"], data_horiz['lon']),
-                            ps_fv=(["ncol"], data_horiz['ps']),
-                            correct_or_not=(["ncol"], data_horiz['correct_or_not']),
-                            t_fv=(["level", "ncol"], data_horiz['t']),
-                            u_fv=(["level", "ncol"], data_horiz['u']),
-                            v_fv=(["level", "ncol"], data_horiz['v']),
-                            q_fv=(["level", "ncol"], data_horiz['q']),
-                            cldliq_fv=(["level", "ncol"], data_horiz['cldliq']),
-                            cldice_fv=(["level", "ncol"], data_horiz['cldice']))
-        elif dycore == "fv":
-            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_after_topoadjust.nc",
-                            lat=(["lat"], data_horiz['lat']),
-                            lon=(["lon"], data_horiz['lon']),
-                            ps_fv=(["lat", "lon"], data_horiz['ps']),
-                            correct_or_not=(["lat", "lon"], data_horiz['correct_or_not']),
-                            t_fv=(["level", "lat", "lon"], data_horiz['t']),
-                            u_fv=(["level", "lat", "lon"], data_horiz['u']),
-                            v_fv=(["level", "lat", "lon"], data_horiz['v']),
-                            q_fv=(["level", "lat", "lon"], data_horiz['q']),
-                            cldliq_fv=(["level", "lat", "lon"], data_horiz['cldliq']),
-                            cldice_fv=(["level", "lat", "lon"], data_horiz['cldice']))
+        pyfuncs.print_debug_file_wrapper(
+            DEBUGDIR + "/py_era5_after_topoadjust.nc",
+            data_horiz, dycore,
+            varlist=['lat', 'lon', 'ps', 'correct_or_not', 't', 'u', 'v', 'q', 'cldliq', 'cldice'],
+            level_dim="lev_p",
+            level_coord=data_horiz.get('lev')
+        )
 
 
     # ====================================================================================
@@ -508,28 +474,15 @@ def main():
     pyfuncs.print_min_max_dict(data_vint)
 
     if write_debug_files:
-        if dycore == "mpas" or dycore == "se" or dycore == "scream":
-            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_after_vint.nc",
-                            lat=(["ncol"], data_vint['lat']),
-                            lon=(["ncol"], data_vint['lon']),
-                            ps_fv=(["ncol"], data_vint['ps']),
-                            t_fv=(["level", "ncol"], data_vint['t']),
-                            u_fv=(["level", "ncol"], data_vint['u']),
-                            v_fv=(["level", "ncol"], data_vint['v']),
-                            q_fv=(["level", "ncol"], data_vint['q']),
-                            cldliq_fv=(["level", "ncol"], data_vint['cldliq']),
-                            cldice_fv=(["level", "ncol"], data_vint['cldice']))
-        elif dycore == "fv":
-            pyfuncs.print_debug_file(DEBUGDIR+"/"+"py_era5_after_vint.nc",
-                            lat=(["lat"], data_vint['lat']),
-                            lon=(["lon"], data_vint['lon']),
-                            ps_fv=(["lat", "lon"], data_vint['ps']),
-                            t_fv=(["level", "lat", "lon"], data_vint['t']),
-                            u_fv=(["level", "lat", "lon"], data_vint['u']),
-                            v_fv=(["level", "lat", "lon"], data_vint['v']),
-                            q_fv=(["level", "lat", "lon"], data_vint['q']),
-                            cldliq_fv=(["level", "lat", "lon"], data_vint['cldliq']),
-                            cldice_fv=(["level", "lat", "lon"], data_vint['cldice']))
+        # For non-MPAS dycores, lev contains hybrid level coordinate from template
+        vint_level_coord = lev if dycore != 'mpas' else None
+        pyfuncs.print_debug_file_wrapper(
+            DEBUGDIR + "/py_era5_after_vint.nc",
+            data_vint, dycore,
+            varlist=['lat', 'lon', 'ps', 't', 'u', 'v', 'q', 'cldliq', 'cldice'],
+            level_dim="lev",
+            level_coord=vint_level_coord
+        )
 
     # ====================================================================================
     # Finish MPAS

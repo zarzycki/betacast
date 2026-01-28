@@ -504,6 +504,85 @@ def print_debug_file(output_filename, **kwargs):
     ds.to_netcdf(output_filename)
 
 
+def print_debug_file_wrapper(output_filename, data_dict, dycore, varlist=None, grid_dims=None,
+                               level_dim="level", level_coord=None):
+    """
+    Write debug file from a data dictionary, automatically inferring dimensions based on dycore.
+    Invokes print_debug_file to actually print the file (see above function)
+
+    Parameters:
+    - output_filename: Name of the output NetCDF file
+    - data_dict: Dictionary of variable_name -> numpy array
+    - dycore: Dycore type ('se', 'scream', 'mpas', 'fv')
+    - varlist: Optional list of variable names to write. If None, writes all arrays in data_dict
+    - grid_dims: Optional tuple of grid dimensions for FV (nlat, nlon). If None, inferred from 'ps' shape.
+    - level_dim: Name to use for vertical dimension (default: "level"). Use "lev" for hybrid coords,
+                 "lev_p" for pressure levels, etc.
+    - level_coord: Optional 1D array of vertical coordinate values to write as a coordinate variable.
+                   If provided, will be written with dimension name matching level_dim.
+    """
+    # Default variable list if not specified
+    if varlist is None:
+        varlist = [k for k, v in data_dict.items() if isinstance(v, np.ndarray)]
+
+    # Determine if this is an unstructured or structured grid
+    is_unstructured = dycore in ('se', 'scream', 'mpas')
+
+    # Get grid dimensions from ps if not provided
+    if grid_dims is None and 'ps' in data_dict:
+        grid_dims = data_dict['ps'].shape
+
+    # Build kwargs for print_debug_file
+    kwargs = {}
+
+    # Add vertical coordinate if provided
+    if level_coord is not None:
+        kwargs[level_dim] = ([level_dim], level_coord)
+
+    for varname in varlist:
+        if varname not in data_dict:
+            continue
+        arr = data_dict[varname]
+        if not isinstance(arr, np.ndarray):
+            continue
+
+        # Infer dimensions from array shape
+        ndim = arr.ndim
+        if is_unstructured:
+            if ndim == 1:
+                dims = ["ncol"]
+            elif ndim == 2:
+                dims = [level_dim, "ncol"]
+            elif ndim == 3:
+                dims = [level_dim, "ncol", "extra"]  # rare case
+            else:
+                logging.warning(f"Skipping {varname}: unsupported ndim={ndim} for unstructured grid")
+                continue
+        else:  # fv
+            if ndim == 1:
+                # Could be lat or lon - try to infer
+                if grid_dims and len(grid_dims) == 2:
+                    if arr.shape[0] == grid_dims[0]:
+                        dims = ["lat"]
+                    elif arr.shape[0] == grid_dims[1]:
+                        dims = ["lon"]
+                    else:
+                        dims = ["dim0"]
+                else:
+                    dims = ["dim0"]
+            elif ndim == 2:
+                dims = ["lat", "lon"]
+            elif ndim == 3:
+                dims = [level_dim, "lat", "lon"]
+            else:
+                logging.warning(f"Skipping {varname}: unsupported ndim={ndim} for FV grid")
+                continue
+
+        kwargs[varname] = (dims, arr)
+
+    print_debug_file(output_filename, **kwargs)
+
+
 @jit(nopython=True)
 def dsmth9(X, P, Q, LWRAP, XMSG=np.nan):
     """
