@@ -40,7 +40,7 @@ def load_model_orography(dycore, model_topo_file, dim_sePS):
         return var.values
 
 
-def correct_state_variables(data_horiz, correct_or_not, tempadjustflag, dycore):
+def correct_state_variables(data_horiz, correct_or_not, tempadjustflag, dycore, reinterp_vertical=False):
 
     vert_corrs = 0
     tcorriter = 0
@@ -74,20 +74,22 @@ def correct_state_variables(data_horiz, correct_or_not, tempadjustflag, dycore):
             correct_or_not[kk] = 1
 
             if tempadjustflag == "a" and dycore != "fv":
-                nlev = len(data_horiz['hya'])
+                nlev = len(data_horiz['lev'])
                 data_horiz['t'][nlev - 1, kk] += Tsfc_fv - data_horiz['ts'][kk]
 
-            if abs(ps_orig - data_horiz['ps'][kk]) > vert_interp_thresh:
-                pm_orig = data_horiz['hya'] * p0 + data_horiz['hyb'] * ps_orig
-                pm_corr = data_horiz['hya'] * p0 + data_horiz['hyb'] * data_horiz['ps'][kk]
-                linlog = 2 if abs(ps_orig - data_horiz['ps'][kk]) > extrap_threshold else -2
+            # This is legacy code that reinterpolates variables that already live on hybrid surfaces
+            if reinterp_vertical:
+                if abs(ps_orig - data_horiz['ps'][kk]) > vert_interp_thresh:
+                    pm_orig = data_horiz['hya'] * p0 + data_horiz['hyb'] * ps_orig
+                    pm_corr = data_horiz['hya'] * p0 + data_horiz['hyb'] * data_horiz['ps'][kk]
+                    linlog = 2 if abs(ps_orig - data_horiz['ps'][kk]) > extrap_threshold else -2
 
-                allowable_interp_vars = vertremap._VERT_REMAP_VARS
+                    allowable_interp_vars = vertremap._VERT_REMAP_VARS
 
-                for var in data_horiz:
-                    if var in allowable_interp_vars:
-                        interp_result = vertremap.int2p(pm_orig, data_horiz[var][:, kk], pm_corr, linlog)
-                        data_horiz[var][:, kk] = np.where(np.isnan(interp_result), data_horiz[var][:, kk], interp_result)
+                    for var in data_horiz:
+                        if var in allowable_interp_vars:
+                            interp_result = vertremap.int2p(pm_orig, data_horiz[var][:, kk], pm_corr, linlog)
+                            data_horiz[var][:, kk] = np.where(np.isnan(interp_result), data_horiz[var][:, kk], interp_result)
 
                 vert_corrs += 1
 

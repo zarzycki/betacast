@@ -307,57 +307,86 @@ def int2p_n_extrap(pin, xin, pout, linlog, dim=-1, flip_p=False,
 
 
 @jit(nopython=True)
+def _p2hyo_core(p_levels, data_col, hybrid_p_col, pimin, pimax, kflag):
+    """Core interpolation for a single column across all output levels."""
+    nlevi = p_levels.size
+    nlevo = hybrid_p_col.size
+    result = np.full(nlevo, np.nan)
+
+    for ko in range(nlevo):
+        po_log = np.log(hybrid_p_col[ko])
+
+        if po_log < pimin:
+            if kflag == 0:
+                continue
+            elif kflag == 1:
+                result[ko] = data_col[0]
+            else:  # kflag 2 or 3
+                dxdp = (data_col[1] - data_col[0]) / (np.log(p_levels[1]) - pimin)
+                result[ko] = data_col[0] + (po_log - pimin) * dxdp
+
+        elif po_log > pimax:
+            if kflag == 0:
+                continue
+            elif kflag == 1:
+                result[ko] = data_col[-1]
+            else:  # kflag 2 or 3
+                dxdp = (data_col[-1] - data_col[-2]) / (pimax - np.log(p_levels[-2]))
+                result[ko] = data_col[-1] + (po_log - pimax) * dxdp
+
+        else:
+            for ki in range(nlevi - 1):
+                if np.log(p_levels[ki]) <= po_log < np.log(p_levels[ki + 1]):
+                    dxdp = (data_col[ki + 1] - data_col[ki]) / (np.log(p_levels[ki + 1]) - np.log(p_levels[ki]))
+                    result[ko] = data_col[ki] + (po_log - np.log(p_levels[ki])) * dxdp
+                    break
+
+    return result
+
+
+@jit(nopython=True)
 def p2hyo(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag):
     """
-    Python equivalent of the P2HYO Fortran routine from NCL
+    P2HYO for structured grids: (nlev, nlat, nlon)
     """
-    nlevi = p_levels.size
-    nlat, nlon = ps.shape
     nlevo = a_coeff.size
-    data_on_hybrid_levels = np.full((nlevo, nlat, nlon), np.nan)
+    nlat, nlon = ps.shape
 
-    # Compute hybrid pressure levels
-    hybrid_p = np.zeros((nlevo, nlat, nlon))
-    for i in range(nlevo):
-        hybrid_p[i, :, :] = a_coeff[i] * p0 + b_coeff[i] * ps
+    data_on_hybrid_levels = np.full((nlevo, nlat, nlon), np.nan)
 
     pimin = np.log(p_levels[0])
     pimax = np.log(p_levels[-1])
 
     for i in range(nlat):
         for j in range(nlon):
-            for ko in range(nlevo):
-                po_log = np.log(hybrid_p[ko, i, j])
-                if po_log < pimin:
-                    if kflag in [0, 1, 3]:
-                        if kflag == 0:
-                            continue  # Set to missing
-                        elif kflag == 1:
-                            data_on_hybrid_levels[ko, i, j] = data_on_p_levels[0, i, j]
-                        elif kflag == 3:
-                            dxdp = (data_on_p_levels[1, i, j] - data_on_p_levels[0, i, j]) / (np.log(p_levels[1]) - pimin)
-                            data_on_hybrid_levels[ko, i, j] = data_on_p_levels[0, i, j] + (po_log - pimin) * dxdp
-                    else:
-                        dxdp = (data_on_p_levels[1, i, j] - data_on_p_levels[0, i, j]) / (np.log(p_levels[1]) - pimin)
-                        data_on_hybrid_levels[ko, i, j] = data_on_p_levels[0, i, j] + (po_log - pimin) * dxdp
-                elif po_log > pimax:
-                    if kflag in [0, 1, 2]:
-                        if kflag == 0:
-                            continue  # Set to missing
-                        elif kflag == 1:
-                            data_on_hybrid_levels[ko, i, j] = data_on_p_levels[-1, i, j]
-                        elif kflag == 2:
-                            dxdp = (data_on_p_levels[-1, i, j] - data_on_p_levels[-2, i, j]) / (pimax - np.log(p_levels[-2]))
-                            data_on_hybrid_levels[ko, i, j] = data_on_p_levels[-1, i, j] + (po_log - pimax) * dxdp
-                    else:
-                        dxdp = (data_on_p_levels[-1, i, j] - data_on_p_levels[-2, i, j]) / (pimax - np.log(p_levels[-2]))
-                        data_on_hybrid_levels[ko, i, j] = data_on_p_levels[-1, i, j] + (po_log - pimax) * dxdp
-                else:
-                    for ki in range(nlevi - 1):
-                        if np.log(p_levels[ki]) <= po_log < np.log(p_levels[ki + 1]):
-                            dxdp = (data_on_p_levels[ki + 1, i, j] - data_on_p_levels[ki, i, j]) / (np.log(p_levels[ki + 1]) - np.log(p_levels[ki]))
-                            data_on_hybrid_levels[ko, i, j] = data_on_p_levels[ki, i, j] + (po_log - np.log(p_levels[ki])) * dxdp
-                            break
+            # Compute hybrid pressure for this column
+            hybrid_p_col = a_coeff * p0 + b_coeff * ps[i, j]
+            data_on_hybrid_levels[:, i, j] = _p2hyo_core(
+                p_levels, data_on_p_levels[:, i, j], hybrid_p_col, pimin, pimax, kflag
+            )
+
+    return data_on_hybrid_levels
+
+
+@jit(nopython=True)
+def p2hyo_unstructured(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag):
+    """
+    P2HYO for unstructured grids: (nlev, ncol)
+    """
+    nlevo = a_coeff.size
+    ncol = ps.size
+
+    data_on_hybrid_levels = np.full((nlevo, ncol), np.nan)
+
+    pimin = np.log(p_levels[0])
+    pimax = np.log(p_levels[-1])
+
+    for j in range(ncol):
+        # Compute hybrid pressure for this column
+        hybrid_p_col = a_coeff * p0 + b_coeff * ps[j]
+        data_on_hybrid_levels[:, j] = _p2hyo_core(
+            p_levels, data_on_p_levels[:, j], hybrid_p_col, pimin, pimax, kflag
+        )
 
     return data_on_hybrid_levels
 
@@ -385,7 +414,10 @@ def pressure_to_hybrid(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, level_d
             raise ValueError("p_levels must be monotonically increasing. Flipping arrays did not resolve the issue.")
 
     # Call the Python-equivalent Fortran function
-    data_on_hybrid_levels = p2hyo(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag)
+    if ps.ndim == 1:
+        data_on_hybrid_levels = p2hyo_unstructured(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag)
+    else:
+        data_on_hybrid_levels = p2hyo(p_levels, data_on_p_levels, ps, a_coeff, b_coeff, p0, kflag)
 
     # Print elapsed time
     elapsed_time = time.time() - start_time
