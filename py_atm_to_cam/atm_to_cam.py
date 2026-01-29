@@ -157,7 +157,10 @@ def main():
     logging.info(f"Using this remap: {wgt_filename}")
 
     if load_vert_templates:
-        hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels)
+        # Load vertical coordinate information into dict of numpy arrays
+        # includes: hya, hyb, hyai, hybi, lev, ilev
+        vert_template = loaddata.load_cam_levels(TEMPLATESPATH, numlevels)
+        pyfuncs.print_min_max_dict(vert_template)
 
     # IMPORTANT! data_vars should be organized top-to-bottom when loaddata returns
     # (i.e., lowest pressure/highest z at 0 index of lev)
@@ -174,7 +177,7 @@ def main():
         data_vars = loaddata.load_ERA5mlRDA_data(RDADIR, data_filename, VERTCOORDSPATH, yearstr, monthstr, daystr, cyclestr, dycore)
         pyfuncs.log_resource_usage()
     elif datasource == 'CAM':
-        data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=write_debug_files,write_debug_dir=DEBUGDIR)
+        data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=write_debug_files, write_debug_dir=DEBUGDIR)
 
     logging.info("Input Data Level information")
     logging.info(f"Number: {len(data_vars['lev'])}")
@@ -459,7 +462,7 @@ def main():
     if ps_wet_to_dry:
         if output_diag:
             ps_fv_before = np.copy(data_horiz['ps'])
-        data_horiz['ps'], data_horiz['pw'] = meteo.ps_wet_to_dry_conversion(data_horiz['ps'], data_horiz['q'], hyai, hybi, p0, verbose=True)
+        data_horiz['ps'], data_horiz['pw'] = meteo.ps_wet_to_dry_conversion(data_horiz['ps'], data_horiz['q'], vert_template['hyai'], vert_template['hybi'], p0, verbose=True)
 
     # Repack FV
     if dycore == "fv":
@@ -480,9 +483,9 @@ def main():
 
     # Do vertical interpolation here for pressure, sigma, and hybrid targets
     if dycore == 'fv' or dycore == 'se' or dycore == 'scream':
-        data_vint = vertremap.pres2hyb_all(data_horiz, data_horiz['ps'], hya, hyb)
+        data_vint = vertremap.pres2hyb_all(data_horiz, data_horiz['ps'], vert_template['hya'], vert_template['hyb'])
         # Replace any existing lev coordinate with interpolated lev
-        data_vint['lev'] = lev
+        data_vint['lev'] = vert_template['lev']
     elif dycore == 'mpas':
         data_vint = vertremap.interpolate_mpas_columns_wrapper(
             mpas_data, data_horiz
@@ -975,21 +978,20 @@ def main():
 
     # If the model has a hybrid coordinate, do that here
     if dycore == "se" or dycore == "scream" or dycore == "fv":
-        hya, hyb, hyai, hybi, lev, ilev = loaddata.load_cam_levels(TEMPLATESPATH, numlevels, load_xarray=False)
 
         # lev coordinate is special
         if dycore == "scream":
             # keep raw lev coordinate for any index-based consumers
             lev_nc = nc_file.createVariable('lev', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
-            lev_nc[:] = lev
+            lev_nc[:] = vert_template['lev']
             # SCREAMI mid-level coordinate
             pref_mid_nc = nc_file.createVariable('pref_mid', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
             pref_mid_nc.long_name = 'mid-level hybrid coordinate parameter'
             pref_mid_nc.units     = 'Pa'
-            pref_mid_nc[:]        = lev
+            pref_mid_nc[:]        = vert_template['lev']
         else:
             lev_nc = nc_file.createVariable('lev', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
-            lev_nc[:] = lev
+            lev_nc[:] = vert_template['lev']
 
         hyam_nc = nc_file.createVariable('hyam', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
         hybm_nc = nc_file.createVariable('hybm', 'f8', ('lev',), fill_value=NC_FLOAT_FILL, **compression_opts)
@@ -998,11 +1000,11 @@ def main():
         ilev_nc = nc_file.createVariable('ilev', 'f8', ('ilev',), fill_value=NC_FLOAT_FILL, **compression_opts)
 
         # Let's not allow nans here, so no filling
-        hyam_nc[:] = hya
-        hybm_nc[:] = hyb
-        hyai_nc[:] = hyai
-        hybi_nc[:] = hybi
-        ilev_nc[:] = ilev
+        hyam_nc[:] = vert_template['hya']
+        hybm_nc[:] = vert_template['hyb']
+        hyai_nc[:] = vert_template['hyai']
+        hybi_nc[:] = vert_template['hybi']
+        ilev_nc[:] = vert_template['ilev']
 
     # If FV, add staggered information
     if dycore == "fv":
