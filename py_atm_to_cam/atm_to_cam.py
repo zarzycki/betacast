@@ -410,6 +410,14 @@ def main():
             data_vars['w'] = pyfuncs.smooth_with_smth9(data_vars['w'], w_smooth_iter)
 
     # ====================================================================================
+    # Cleanup
+    # ====================================================================================
+
+    # pres was mainly needed for MPAS
+    # We may need to keep in the future to do hybrid to hybrid interpolation
+    del data_vars['pres']
+
+    # ====================================================================================
     # Horizontal remap
     # ====================================================================================
 
@@ -424,7 +432,7 @@ def main():
             data_horiz, dycore,
             varlist=['lat', 'lon', 'ps', 't', 'u', 'v', 'q', 'cldliq', 'cldice'],
             level_dim="lev_p",
-            level_coord=data_horiz.get('lev')
+            level_coord=data_horiz['lev']
         )
 
     # ====================================================================================
@@ -463,7 +471,7 @@ def main():
             data_horiz, dycore,
             varlist=['lat', 'lon', 'ps', 'correct_or_not', 't', 'u', 'v', 'q', 'cldliq', 'cldice'],
             level_dim="lev_p",
-            level_coord=data_horiz.get('lev')
+            level_coord=data_horiz['lev']
         )
 
     # ====================================================================================
@@ -473,23 +481,26 @@ def main():
     # Do vertical interpolation here for pressure, sigma, and hybrid targets
     if dycore == 'fv' or dycore == 'se' or dycore == 'scream':
         data_vint = vertremap.pres2hyb_all(data_horiz, data_horiz['ps'], hya, hyb)
+        # Replace any existing lev coordinate with interpolated lev
+        data_vint['lev'] = lev
     elif dycore == 'mpas':
         data_vint = vertremap.interpolate_mpas_columns_wrapper(
             mpas_data, data_horiz
         )
+        data_vint['lev'] = None   # Set to none for diagnostics
+        del data_vint['z']        # We are done with z, cleanup
+        del data_vint['pint']     # We are done with pint, cleanup
 
     pyfuncs.log_resource_usage("After vertical remap")
     pyfuncs.print_min_max_dict(data_vint)
 
     if write_debug_files:
-        # For non-MPAS dycores, lev contains hybrid level coordinate from template
-        vint_level_coord = lev if dycore != 'mpas' else None
         pyfuncs.print_debug_file_wrapper(
             DEBUGDIR + "/py_era5_after_vint.nc",
             data_vint, dycore,
             varlist=['lat', 'lon', 'ps', 't', 'u', 'v', 'q', 'cldliq', 'cldice'],
             level_dim="lev",
-            level_coord=vint_level_coord
+            level_coord=data_vint['lev']
         )
 
     # ====================================================================================
