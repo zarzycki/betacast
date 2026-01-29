@@ -393,10 +393,6 @@ def main():
         pyfuncs.print_min_max_dict(mpas_data)
 
         # These things we want to do as close to interpolation as possible
-        # Initialize variables
-        data_vars['theta'] = data_vars['t'].copy()
-        data_vars['rho'] = data_vars['t'].copy()
-
         # Calculate potential temperature using full pressure and actual T
         data_vars['theta'] = meteo.pot_temp(data_vars['pres'], data_vars['t'])
 
@@ -425,6 +421,7 @@ def main():
     # ====================================================================================
 
     data_horiz = horizremap.remap_all(data_vars, wgt_filename, dycore=dycore)
+    del data_vars
 
     pyfuncs.log_resource_usage("After horizontal remapping")
     pyfuncs.print_min_max_dict(data_horiz)
@@ -487,6 +484,8 @@ def main():
         data_vint['lev'] = None   # Set to none for diagnostics
         del data_vint['z']        # We are done with z, cleanup
         del data_vint['pint']     # We are done with pint, cleanup
+
+    del data_horiz
 
     pyfuncs.log_resource_usage("After vertical remap")
     pyfuncs.print_min_max_dict(data_vint)
