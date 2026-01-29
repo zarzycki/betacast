@@ -23,7 +23,7 @@ import loaddata
 import meteo
 import py_seedfuncs
 from constants import (
-    p0, dtime_map, ps_wet_to_dry, output_diag, w_smooth_iter, grav,
+    p0, dtime_map, ps_wet_to_dry, w_smooth_iter, grav,
     damp_upper_winds_mpas, MPAS_W_DAMPING_COEF,
     NC_FLOAT_FILL, DEFAULT_FILL_VALUE, COORD_FILL_VALUE, CORRECT_OR_NOT_FILL_VALUE,
     QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH,
@@ -458,12 +458,6 @@ def main():
 
     pyfuncs.log_resource_usage("After topo adjustment")
 
-    # If we want dry PS
-    if ps_wet_to_dry:
-        if output_diag:
-            ps_fv_before = np.copy(data_horiz['ps'])
-        data_horiz['ps'], data_horiz['pw'] = meteo.ps_wet_to_dry_conversion(data_horiz['ps'], data_horiz['q'], vert_template['hyai'], vert_template['hybi'], p0, verbose=True)
-
     # Repack FV
     if dycore == "fv":
         data_horiz = packing.repack_fv(data_horiz, grid_dims)
@@ -505,6 +499,50 @@ def main():
             level_dim="lev",
             level_coord=data_vint['lev']
         )
+
+    # ====================================================================================
+    # Wet-to-dry PS conversion
+    # ====================================================================================
+
+    # This needs to be done *after* vertical remap since PS is used for hybrid interp
+    # Currently this code does *not* support dycores not a hybrid vertical grid
+    # The fix is to calc TPW on any arbitrary vert grid... probably easy enough if needed
+
+    if ps_wet_to_dry and dycore != "mpas": # <--- see above
+
+        # Unpack any dycores to ncol
+        if dycore == "fv":
+            data_vint = packing.unpack_fv(data_vint)
+
+        # Save copy of before PS array for diagnostics if requested
+        if write_debug_files:
+            ps_before = np.copy(data_vint['ps'])
+
+        data_vint['ps'], data_vint['pw'] = meteo.ps_wet_to_dry_conversion(
+            data_vint['ps'],
+            data_vint['q'],
+            vert_template['hyai'],
+            vert_template['hybi'],
+            p0,
+            verbose=True
+        )
+
+        if write_debug_files:
+            pyfuncs.print_debug_file(
+                DEBUGDIR + "/py_after_tpw.nc",
+                ps_before=(["ncol"], ps_before),
+                ps_after=(["ncol"], data_vint['ps']),
+                pw=(["ncol"], data_vint['pw']),
+                lat=(["ncol"], data_vint['lat']),
+                lon=(["ncol"], data_vint['lon'])
+            )  # Note, this can just be ncol format because FV is currently unpacked
+            del ps_before
+
+        # Repack FV
+        if dycore == "fv":
+            data_vint = packing.repack_fv(data_vint, grid_dims)
+
+        pyfuncs.log_resource_usage("After ps wet to dry adjustment")
 
     # ====================================================================================
     # Finish MPAS

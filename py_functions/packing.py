@@ -25,6 +25,40 @@ def flatten_1D_lat_lon(lat, lon):
     return lat_flat, lon_flat
 
 
+def unflatten_1D_lat_lon(lat_flat, lon_flat):
+    """
+    Recover original 1D rectilinear lat/lon arrays from flattened "ncol" format.
+
+    Parameters
+    ----------
+    lat_flat : 1D array
+        Flattened latitude array from flatten_1D_lat_lon.
+    lon_flat : 1D array
+        Flattened longitude array from flatten_1D_lat_lon.
+
+    Returns
+    -------
+    lat : 1D array
+        Original latitude array.
+    lon : 1D array
+        Original longitude array.
+    """
+
+    # return_index=True gives indices of *first* occurrence of each unique value
+    # numpy sorts values first to go smallest -> largest
+    # (e.g., indices could be 2, 1, 0 if lat went 90, 0, -90)
+    _, lat_idx = np.unique(lat_flat, return_index=True)
+    # Sort indices to recover original ordering
+    # Resorting guarantees we have the same order as when we flattened!
+    lat = lat_flat[np.sort(lat_idx)]
+
+    # Same for lon
+    _, lon_idx = np.unique(lon_flat, return_index=True)
+    lon = lon_flat[np.sort(lon_idx)]
+
+    return lat, lon
+
+
 def latlon_to_ncol(var_in):
     """
     Reshape 2D or 3D lat/lon gridded data to "ncol" unstructured format (column-major order).
@@ -117,6 +151,9 @@ def repack_fv(data_horiz, fv_dims):
         if key in data_horiz:
             data_horiz[key] = ncol_to_latlon(data_horiz[key], nlat, nlon)
 
+    # "Unflatten" lat/lon coordinate arrays back to original ones (RLL grid)
+    data_horiz['lat'], data_horiz['lon'] = unflatten_1D_lat_lon(data_horiz['lat'], data_horiz['lon'])
+
     return data_horiz
 
 
@@ -124,11 +161,14 @@ def unpack_fv(data_horiz):
 
     print("Unpacking FV variables...")
 
-    keys_to_unpack = ['ps', 't', 'q', 'u', 'v', 'cldice', 'cldliq', 'ts', 'phis']
+    keys_to_unpack = ['ps', 't', 'q', 'u', 'v', 'cldice', 'cldliq', 'ts', 'phis', 'correct_or_not']
 
     for key in keys_to_unpack:
         if key in data_horiz:
             data_horiz[key] = latlon_to_ncol(data_horiz[key])
+
+    # Flatten lat/lon coordinate arrays to make "ncol-like"
+    data_horiz['lat'], data_horiz['lon'] = flatten_1D_lat_lon(data_horiz['lat'], data_horiz['lon'])
 
     return data_horiz
 
