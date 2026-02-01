@@ -525,11 +525,11 @@ if [ "$debug" = false ] ; then
         sbatch --wait \
           -C cpu \
           -A m2637 \
-          --qos=debug \
-          --time=00:30:00 \
+          --qos=shared \
+          --time=00:45:00 \
           --nodes=1 \
-          --ntasks-per-node=1 \
-          --mem=0 \
+          --ntasks=1 \
+          --mem=80GB \
           --output=${LOGSDIR}/sst_to_cam_%j.out \
           --error=${LOGSDIR}/sst_to_cam_%j.out \
           -J sst_to_cam \
@@ -578,11 +578,10 @@ if [ "$debug" = false ] ; then
       sbatch --wait \
         -C cpu \
         -A m2637 \
-        --qos=debug \
-        --time=00:30:00 \
+        --qos=regular \
+        --time=00:59:00 \
         --nodes=1 \
-        --ntasks-per-node=1 \
-        --mem=0 \
+        --ntasks=1 \
         --output=${LOGSDIR}/atm_to_cam_%j.out \
         --error=${LOGSDIR}/atm_to_cam_%j.out \
         -J atm_to_cam \
@@ -827,8 +826,9 @@ else
   #sstFileIC=$m2m_sstice_data_filename
 fi
 
-if [ "$do_slab" = true ] ; then
-  echo "Appending slab ocean settings"
+if [ "$do_slab" = true ] && [ "$modelSystem" -eq 0 ] ; then
+  echo "Appending slab ocean settings for $atmName"
+  # Note with CESM there must be source mods already made
   if [ -f "user_nl_docn_streams" ]; then
     rm -fv "user_nl_docn_streams"
   fi
@@ -841,6 +841,12 @@ som:year_first=1
 som:year_last=1
 som:year_align=1850
 EOF
+fi
+if [ "$do_slab" = true ] && [[ "$modelSystem" -eq 1 || "$modelSystem" -eq 2 ]] ; then
+  echo "Appending slab ocean settings for $atmName"
+  # With E3SM, Z16 is supported, although to tune need to edit F90
+  # RSO_fixed_MLD causes the mixed layer depth to be read off the file
+  xmlchange_verbose "DOCN_MODE" "rso"
 fi
 
 # Getting GLC coupling to handle forecasts across calendar years
