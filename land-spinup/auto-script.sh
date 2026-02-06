@@ -78,7 +78,8 @@ if [ $modelSystem -eq 0 ]; then
 elif [ $modelSystem -eq 1 ]; then
   echo "Using E3SM"
   EXTRAFLAGS=""
-  COMPSET=IELM
+  #COMPSET=IELM
+  COMPSET="2000_DATM%QIA_ELM%SP_SICE_SOCN_SROF_SGLC_SWAV_SIAC_SESP"
 else
   echo "Unknown modeling system set for modelSystem: $modelSystem"
   exit 1
