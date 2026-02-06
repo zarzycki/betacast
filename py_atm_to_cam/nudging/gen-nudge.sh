@@ -13,12 +13,13 @@
 ################################################################
 #### Casper
 ################################################################
-#>#PBS -N gen_nudge_betacast
-#>#PBS -A P93300042
-#>#PBS -l select=1:ncpus=12:mem=200GB
-#>#PBS -l walltime=23:00:00
-#>#PBS -q casper@casper-pbs
-#>#PBS -j oe
+#PBS -N gen_nudge_betacast
+#PBS -A P93300042
+####PBS -l select=1:ncpus=12:mem=200GB
+#PBS -l select=1:ncpus=12:mem=600GB
+#PBS -l walltime=23:59:00
+#PBS -q casper@casper-pbs
+#PBS -j oe
 ################################################################
 
 ################################################################
@@ -29,11 +30,13 @@
 ################################################################
 #### PMCPU
 ################################################################
-#SBATCH --qos=debug
-#SBATCH --time=00:30:00
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=128
-#SBATCH --constraint=cpu
+#>##SBATCH --qos=regular
+#>##SBATCH --time=12:00:00
+#>#SBATCH --qos=debug
+#>#SBATCH --time=00:30:00
+#>#SBATCH --nodes=1
+#>#SBATCH --ntasks-per-node=128
+#>#SBATCH --constraint=cpu
 ################################################################
 
 ### CMZ NOTES:
@@ -41,6 +44,13 @@
 # Cost penalty is 2x per file for 2 nodes, so double cost for same
 # analysis throughput.
 # Current recommendation is 36 CPUs, 36 GnuP tasks, scale mem as needed w/ gridres
+
+echo "Command used: $0 \"$@\""
+echo "PID       : $$"
+echo "Host      : $(hostname)"
+echo "User      : $(whoami)"
+echo "Start time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+echo "Shell     : $SHELL"
 
 set -e
 
@@ -53,7 +63,7 @@ case "$SERVER_NAME" in
     SERVER_CASE="pm-cpu"
     export BETACAST=/global/homes/c/czarzyck/betacast
     module load conda && conda activate betacast
-    NUMCORES=12
+    NUMCORES=24
     ;;
   *"casper"* | *"crhtc"*)
     echo "Using Casper"
@@ -87,9 +97,11 @@ if [[ $# -gt 2 ]]; then
   INDEX=${3}
 fi
 
-echo "Read in: "
-echo "NLFILE: $NLFILE"
-echo "input_dates_file: $input_dates_file"
+echo "Raw args: $@"
+echo "Parsed:"
+echo "  NLFILE=${NLFILE:-<not set>}"
+echo "  input_dates_file=${input_dates_file:-<not set>}"
+echo "  INDEX=${INDEX:-<not set>}"
 
 if [[ "$NLFILE" != /* ]] && [[ "$NLFILE" != ~* ]]; then NLFILE=${PWD}/${NLFILE}; fi
 echo $NLFILE
