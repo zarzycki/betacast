@@ -27,8 +27,7 @@ fi
 if [ ! -f "${sst_domain_file}" ] || [ ! -f "${sst_scrip_file}" ]; then
   echo "Creating SST domain file for: ${docnres}"
   if [ "${DO_PYTHON}" = true ]; then
-    # TODO: Python equivalent if desired
-    echo "Python SST domain generation not implemented (DO_PYTHON=true)"; exit 1
+    (set -x; python gen-sst-domain.py --inputres "${docnres}")
   else
     set +e
     (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' ) ; exit_status=$?
