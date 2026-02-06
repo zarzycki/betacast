@@ -97,8 +97,8 @@ map_*patc.nc
 forcing-gen.*
 grid_deltas.nc
 grid_se_*.nc
-map_ll_to_se_*.nc
-map_se_*_to_ll.nc
+PET0.*
+map*.nc
 !ERA-Int_SCRIP.nc
 !ERA-Interim_coordvars.nc
 atm_to_cam/getECMWFdata/*.nc
