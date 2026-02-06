@@ -347,22 +347,38 @@ if [ "${add_perturbs}" = true ] ; then
   set +e
 
   sstFileIC_WPERT=${sstFileIC}_PERT.nc
-  (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
-     'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' \
-     'pthi="'${perturb_namelist}'"'
-  ) ; exit_status=$?
-  check_ncl_exit "add_perturbations_to_sst.ncl" $exit_status
+  if [ "${DO_PYTHON}" = true ]; then
+    (set -x; python add_perturbations_to_sst.py \
+       --BEFOREPERTFILE "${sstFileIC}" \
+       --AFTERPERTFILE "${sstFileIC_WPERT}" \
+       --pthi "${perturb_namelist}")
+  else
+    (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
+       'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' \
+       'pthi="'${perturb_namelist}'"'
+    ) ; exit_status=$?
+    check_ncl_exit "add_perturbations_to_sst.ncl" $exit_status
+  fi
   echo "SST perturbations added successfully"
 
   sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
-  (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
-     'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
-     'gridfile = "'${modelgridfile}'"' \
-     'MAPFILEPATH = "'${mapping_files_path}'"' \
-     'pthi="'${perturb_namelist}'"'
-  ) ; exit_status=$?
-  check_ncl_exit "add_perturbations_to_cam.ncl" $exit_status
-  echo "ATM NCL completed successfully"
+  if [ "${DO_PYTHON}" = true ]; then
+    (set -x; python add_perturbations_to_cam.py \
+       --BEFOREPERTFILE "${sePreFilterIC}" \
+       --AFTERPERTFILE "${sePreFilterIC_WPERT}" \
+       --gridfile "${modelgridfile}" \
+       --MAPFILEPATH "${mapping_files_path}" \
+       --pthi "${perturb_namelist}")
+  else
+    (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
+       'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
+       'gridfile = "'${modelgridfile}'"' \
+       'MAPFILEPATH = "'${mapping_files_path}'"' \
+       'pthi="'${perturb_namelist}'"'
+    ) ; exit_status=$?
+    check_ncl_exit "add_perturbations_to_cam.ncl" $exit_status
+  fi
+  echo "ATM perturbations added successfully"
 
   set -e
   mv ${sstFileIC_WPERT} ${sstFileIC}
