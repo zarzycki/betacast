@@ -15,7 +15,7 @@ DETAILS:
  - lat: The name of the latitude coordinate variable in your datafile.
  - lon: The name of the longitude coordinate variable in your datafile.
  - weightsfile: What you want your output file to be named.
- 
+
 You will also likely want to set the nudging window to fit your needs (see below):
 
 '''
@@ -28,11 +28,11 @@ You will also likely want to set the nudging window to fit your needs (see below
 #    create_nudging_weights function for some advanced settings.
 
 Nudge_Hwin_lat0      = 37.2  # latitudinal center of window in degrees.
-Nudge_Hwin_latWidth  = 17.0  # latitudinal width of window in degrees.
-Nudge_Hwin_latDelta  = 1.4   # latitudinal transition length of window in degrees.
+Nudge_Hwin_latWidth  = 0.0  # latitudinal width of window in degrees.
+Nudge_Hwin_latDelta  = 1e-6   # latitudinal transition length of window in degrees.
 Nudge_Hwin_lon0      = 240.6 # longitudinal center of window in degrees.
-Nudge_Hwin_lonWidth  = 17.0  # longitudinal width of window in degrees.
-Nudge_Hwin_lonDelta  = 1.4   # longitudinal transition length of window in degrees.
+Nudge_Hwin_lonWidth  = 0.0  # longitudinal width of window in degrees.
+Nudge_Hwin_lonDelta  = 1e-6   # longitudinal transition length of window in degrees.
 
 # END USER DEFINED SETTINGS
 ########################################################
@@ -51,7 +51,7 @@ def create_nudging_weights(opt):
    lat  = ds[opt.lat]
    lon  = ds[opt.lon]
    nlev = int(opt.nlev)
-   
+
    ncol=len(lat)
    print("Number of levels:", nlev)
    print("Number of columns:", ncol)
@@ -61,13 +61,13 @@ def create_nudging_weights(opt):
    # Default horizontal nudging weights.
    Nudge_Hwin_lo        = 1.0   # LOW Coeffcient for Horizontal Window.
    Nudge_Hwin_hi        = 0.0   # HIGH Coeffcient for Horizontal Window.
-   
+
    # Set nudging weights related to the vertical. Only advance users modify if you want
    #   to apply nudging to specific levels
    Nudge_Vwin_lo          =0.0  # LOW Coeffcient for Vertical Window.
    Nudge_Vwin_hi          =1.0  # HIGH Coeffcient for Vertical Window.
-   Nudge_Vwin_Hindex      =nlev+1# HI model index of transition
-   Nudge_Vwin_Hdelta      =0.1  # HI transition length
+   Nudge_Vwin_Hindex      =92   # HI model index of transition (note, this is one level "down" from ndg midpoint (i.e., if set to 88, you really are nudging to 87
+   Nudge_Vwin_Hdelta      =1.0  # HI transition length
    Nudge_Vwin_Lindex      =0.0  # LO model index of transition
    Nudge_Vwin_Ldelta      =0.1  # LO transition length
 
@@ -77,7 +77,7 @@ def create_nudging_weights(opt):
    Wprof=((1.+np.tanh(lev_lo))/2.)*((1.+np.tanh(lev_hi))/2.)
    Vmax=np.max(Wprof)
    Vmin=np.min(Wprof)
-   if Vmax <= Vmin: 
+   if Vmax <= Vmin:
        Vmax= max(Nudge_Vwin_lo,Nudge_Vwin_hi)
        Wprof[:] = Vmax
    else:
@@ -95,40 +95,40 @@ def create_nudging_weights(opt):
 
    Nudge_Hwin_lonWidthH=Nudge_Hwin_lonWidth/2.
    Nudge_Hwin_latWidthH=Nudge_Hwin_latWidth/2.
-  
+
    lonp= 180.
    lon0=   0.
    lonn=-180.
    latp=  90.-Nudge_Hwin_lat0
    lat0=   0.
    latn= -90.-Nudge_Hwin_lat0
-  
+
    Val1_p=(1.+np.tanh((Nudge_Hwin_lonWidthH+lonp)/Nudge_Hwin_lonDelta))/2.
    Val2_p=(1.+np.tanh((Nudge_Hwin_lonWidthH-lonp)/Nudge_Hwin_lonDelta))/2.
    Val3_p=(1.+np.tanh((Nudge_Hwin_latWidthH+latp)/Nudge_Hwin_latDelta))/2.
    Val4_p=(1.+np.tanh((Nudge_Hwin_latWidthH-latp)/Nudge_Hwin_latDelta))/2.
-  
+
    Val1_0=(1.+np.tanh((Nudge_Hwin_lonWidthH+lon0)/Nudge_Hwin_lonDelta))/2.
    Val2_0=(1.+np.tanh((Nudge_Hwin_lonWidthH-lon0)/Nudge_Hwin_lonDelta))/2.
    Val3_0=(1.+np.tanh((Nudge_Hwin_latWidthH+lat0)/Nudge_Hwin_latDelta))/2.
    Val4_0=(1.+np.tanh((Nudge_Hwin_latWidthH-lat0)/Nudge_Hwin_latDelta))/2.
-  
+
    Val1_n=(1.+np.tanh((Nudge_Hwin_lonWidthH+lonn)/Nudge_Hwin_lonDelta))/2.
    Val2_n=(1.+np.tanh((Nudge_Hwin_lonWidthH-lonn)/Nudge_Hwin_lonDelta))/2.
    Val3_n=(1.+np.tanh((Nudge_Hwin_latWidthH+latn)/Nudge_Hwin_latDelta))/2.
    Val4_n=(1.+np.tanh((Nudge_Hwin_latWidthH-latn)/Nudge_Hwin_latDelta))/2.
-  
+
    Nudge_Hwin_max=     Val1_0*Val2_0*Val3_0*Val4_0
    Nudge_Hwin_min=min((Val1_p*Val2_p*Val3_n*Val4_n),
                       (Val1_p*Val2_p*Val3_p*Val4_p),
                       (Val1_n*Val2_n*Val3_n*Val4_n),
                       (Val1_n*Val2_n*Val3_p*Val4_p))
 
-   phi_s                = Nudge_Hwin_lat0 - Nudge_Hwin_lonWidthH 
-   phi_n                = Nudge_Hwin_lat0 + Nudge_Hwin_lonWidthH 
+   phi_s                = Nudge_Hwin_lat0 - Nudge_Hwin_lonWidthH
+   phi_n                = Nudge_Hwin_lat0 + Nudge_Hwin_lonWidthH
    delta_phi_ns         = Nudge_Hwin_latDelta
-   phi_w                = Nudge_Hwin_lon0 - Nudge_Hwin_lonWidthH  
-   phi_e                = Nudge_Hwin_lon0 + Nudge_Hwin_lonWidthH  
+   phi_w                = Nudge_Hwin_lon0 - Nudge_Hwin_lonWidthH
+   phi_e                = Nudge_Hwin_lon0 + Nudge_Hwin_lonWidthH
    delta_phi_we         = Nudge_Hwin_lonDelta
 
 
@@ -141,12 +141,12 @@ def create_nudging_weights(opt):
    weight_lon_profile  = 0.25*alpha*(1.+phiw_ratio)*(1-phie_ratio)
 
    Hcoef = weight_lat_profile * weight_lon_profile
- 
+
    #---Scale the horizontal window coef for specified range of values.
    Hcoef=(Hcoef-Nudge_Hwin_min)/(Nudge_Hwin_max-Nudge_Hwin_min)
    Hcoef=(1.-Hcoef)*Nudge_Hwin_lo + Hcoef*Nudge_Hwin_hi
    nudging_weights = Wprof_3D * Hcoef
-   
+
    nudging_weights_ = nudging_weights.to_dataset(name='nudging_weights')
    nudging_weights_['lat'] = lat
    nudging_weights_['lon'] = lon
@@ -154,7 +154,7 @@ def create_nudging_weights(opt):
    nudging_weights_.attrs['units']='None'
    nudging_weights_.attrs['long_name']='nudging weights'
    nudging_weights_.to_netcdf(opt.weightsfile)
-   
+
    print("Created nudging weights file:",opt.weightsfile)
 
 def main():
