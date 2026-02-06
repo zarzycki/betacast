@@ -35,25 +35,29 @@ def load_cam_levels(PATHTOHERE, numlevels, load_xarray=False):
 
     # Extract the hybrid coefficients and levels
     if load_xarray:
-        hya = fC["hyam"]
-        hyb = fC["hybm"]
-        hyai = fC["hyai"]
-        hybi = fC["hybi"]
-        lev = fC["lev"]
-        ilev = fC["ilev"]
+        data = {
+            'hya':  fC["hyam"],
+            'hyb':  fC["hybm"],
+            'hyai': fC["hyai"],
+            'hybi': fC["hybi"],
+            'lev':  fC["lev"],
+            'ilev': fC["ilev"],
+        }
     else:
-        hya = fC["hyam"].values
-        hyb = fC["hybm"].values
-        hyai = fC["hyai"].values
-        hybi = fC["hybi"].values
-        lev = fC["lev"].values
-        ilev = fC["ilev"].values
+        data = {
+            'hya':  fC["hyam"].values,
+            'hyb':  fC["hybm"].values,
+            'hyai': fC["hyai"].values,
+            'hybi': fC["hybi"].values,
+            'lev':  fC["lev"].values,
+            'ilev': fC["ilev"].values,
+        }
 
     logging.info("---------------------------------------------------------")
     logging.info("Loading CAM levels")
     logging.info(f"Loading {numlevels} level data")
 
-    return hya, hyb, hyai, hybi, lev, ilev
+    return data
 
 def load_ERA5RDA_variable(varname, the_dir, var_code, yearstr, monthstr, daystr, cyclestr, return_coords=False, return_hycoef=False):
     """
