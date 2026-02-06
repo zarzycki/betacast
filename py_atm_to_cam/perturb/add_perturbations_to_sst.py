@@ -2,7 +2,6 @@ import os
 import sys
 import numpy as np
 import xarray as xr
-import shutil
 import argparse
 from datetime import datetime
 # Betacast modules
@@ -52,10 +51,8 @@ print(f"BEFOREPERTFILE: {args.BEFOREPERTFILE}")
 print(f"AFTERPERTFILE: {args.AFTERPERTFILE}")
 print("****************************************************")
 
-# Copy input to output, then modify in place
-shutil.copy2(args.BEFOREPERTFILE, args.AFTERPERTFILE)
-
-cam_ds = xr.open_dataset(args.AFTERPERTFILE)
+# Read from input file; .values.copy() loads data into memory
+cam_ds = xr.open_dataset(args.BEFOREPERTFILE)
 lat = cam_ds['lat'].values
 lon = cam_ds['lon'].values
 SST = cam_ds['SST_cpl'].values.copy()
@@ -121,8 +118,7 @@ if adjust_ice:
     cam_ds['ice_cov'].values[...] = ice
 
 # Write modified dataset
-cam_ds.to_netcdf(args.AFTERPERTFILE, mode='w')
-cam_ds.close()
+cam_ds.to_netcdf(args.AFTERPERTFILE)
 
 # Diagnostics
 if output_sst_diag:
