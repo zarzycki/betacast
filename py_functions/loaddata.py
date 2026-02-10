@@ -17,7 +17,6 @@ from constants import (
 import logging
 logger = logging.getLogger(__name__)
 
-
 #### Generic
 
 def load_cam_levels(PATHTOHERE, numlevels, load_xarray=False):
@@ -113,13 +112,16 @@ def flip_level_dimension(data_vars, state_dimensions=3):
 
 #### Sample data
 
+# Alias since we are just loading a netcdf file
+load_SAMPLE_file = open_nc_dataset
+
 def load_SAMPLE_data(data_filename, dycore=None):
 
     # Dictionary to store the variables
     data_vars = {}
 
-    # Load the GRIB file
-    grb_file = load_ERA5_file(data_filename)
+    # Load the sample dataset
+    grb_file = load_SAMPLE_file(data_filename)
 
     data_vars['ps'] = grb_file.sp[0,:,:].values
     data_vars['t'] = grb_file.t[0,:,:,:].values
@@ -156,49 +158,6 @@ def load_SAMPLE_data(data_filename, dycore=None):
 
 # Alias since we are just loading a netcdf file
 load_ERA5_file = open_nc_dataset
-
-def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore, get_chemistry=False):
-    # Define directories
-    pl_dir = f"{RDADIR}/e5.oper.an.pl/{yearstr}{monthstr}"
-    sf_dir = f"{RDADIR}/e5.oper.an.sfc/{yearstr}{monthstr}"
-
-#         grblat = rda_file["latitude"].values.astype(float)
-#         grblon = rda_file["longitude"].values.astype(float)
-#         grblev = rda_file["level"].values.astype(float) * 100.0
-
-    # Dictionary to store the variables
-    data_vars = {}
-
-    _, data_vars['lat'], data_vars['lon'], data_vars['lev'] = load_ERA5RDA_variable('T', pl_dir, "e5.oper.an.pl.128_130_t.ll025sc", yearstr, monthstr, daystr, cyclestr, return_coords=True)
-
-    # Load required variables
-    data_vars['ps'] = load_ERA5RDA_variable('SP', sf_dir, "e5.oper.an.sfc.128_134_sp.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['t'] = load_ERA5RDA_variable('T', pl_dir, "e5.oper.an.pl.128_130_t.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['u'] = load_ERA5RDA_variable('U', pl_dir, "e5.oper.an.pl.128_131_u.ll025uv", yearstr, monthstr, daystr, cyclestr)
-    data_vars['v'] = load_ERA5RDA_variable('V', pl_dir, "e5.oper.an.pl.128_132_v.ll025uv", yearstr, monthstr, daystr, cyclestr)
-    data_vars['q'] = load_ERA5RDA_variable('Q', pl_dir, "e5.oper.an.pl.128_133_q.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['cldliq'] = load_ERA5RDA_variable('CLWC', pl_dir, "e5.oper.an.pl.128_246_clwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['cldice'] = load_ERA5RDA_variable('CIWC', pl_dir, "e5.oper.an.pl.128_247_ciwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
-
-    # Create a 3-D pressure field from constant pressure surfaces
-    data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
-
-    if dycore == 'mpas':
-        data_vars['w'] = load_ERA5RDA_variable('W', pl_dir, "e5.oper.an.pl.128_135_w.ll025sc", yearstr, monthstr, daystr, cyclestr)
-        data_vars['w_is_omega'] = True
-        data_vars['z'] = load_ERA5RDA_variable('Z', pl_dir, "e5.oper.an.pl.128_129_z.ll025sc", yearstr, monthstr, daystr, cyclestr)
-        data_vars['z_is_phi'] = True
-
-    if get_chemistry:
-        data_vars['o3'] = load_ERA5RDA_variable('O3', pl_dir, "e5.oper.an.pl.128_203_o3.ll025sc", yearstr, monthstr, daystr, cyclestr)
-
-    data_vars['ts'] = load_ERA5RDA_variable('VAR_2T', sf_dir, "e5.oper.an.sfc.128_167_2t.ll025sc", yearstr, monthstr, daystr, cyclestr)
-
-    ds = load_ERA5_file(data_filename)
-    data_vars['phis'] = ds["Z"].isel(time=0).values
-    ds.close()
-
-    return data_vars
 
 def load_ERA5RDA_variable(varname, the_dir, var_code, yearstr, monthstr, daystr, cyclestr, return_coords=False, return_hycoef=False):
     """
@@ -258,6 +217,49 @@ def load_ERA5RDA_variable(varname, the_dir, var_code, yearstr, monthstr, daystr,
     else:
         rda_file.close()
         return rda_data
+
+def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore, get_chemistry=False):
+    # Define directories
+    pl_dir = f"{RDADIR}/e5.oper.an.pl/{yearstr}{monthstr}"
+    sf_dir = f"{RDADIR}/e5.oper.an.sfc/{yearstr}{monthstr}"
+
+#         grblat = rda_file["latitude"].values.astype(float)
+#         grblon = rda_file["longitude"].values.astype(float)
+#         grblev = rda_file["level"].values.astype(float) * 100.0
+
+    # Dictionary to store the variables
+    data_vars = {}
+
+    _, data_vars['lat'], data_vars['lon'], data_vars['lev'] = load_ERA5RDA_variable('T', pl_dir, "e5.oper.an.pl.128_130_t.ll025sc", yearstr, monthstr, daystr, cyclestr, return_coords=True)
+
+    # Load required variables
+    data_vars['ps'] = load_ERA5RDA_variable('SP', sf_dir, "e5.oper.an.sfc.128_134_sp.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['t'] = load_ERA5RDA_variable('T', pl_dir, "e5.oper.an.pl.128_130_t.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['u'] = load_ERA5RDA_variable('U', pl_dir, "e5.oper.an.pl.128_131_u.ll025uv", yearstr, monthstr, daystr, cyclestr)
+    data_vars['v'] = load_ERA5RDA_variable('V', pl_dir, "e5.oper.an.pl.128_132_v.ll025uv", yearstr, monthstr, daystr, cyclestr)
+    data_vars['q'] = load_ERA5RDA_variable('Q', pl_dir, "e5.oper.an.pl.128_133_q.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['cldliq'] = load_ERA5RDA_variable('CLWC', pl_dir, "e5.oper.an.pl.128_246_clwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['cldice'] = load_ERA5RDA_variable('CIWC', pl_dir, "e5.oper.an.pl.128_247_ciwc.ll025sc", yearstr, monthstr, daystr, cyclestr)
+
+    # Create a 3-D pressure field from constant pressure surfaces
+    data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
+
+    if dycore == 'mpas':
+        data_vars['w'] = load_ERA5RDA_variable('W', pl_dir, "e5.oper.an.pl.128_135_w.ll025sc", yearstr, monthstr, daystr, cyclestr)
+        data_vars['w_is_omega'] = True
+        data_vars['z'] = load_ERA5RDA_variable('Z', pl_dir, "e5.oper.an.pl.128_129_z.ll025sc", yearstr, monthstr, daystr, cyclestr)
+        data_vars['z_is_phi'] = True
+
+    if get_chemistry:
+        data_vars['o3'] = load_ERA5RDA_variable('O3', pl_dir, "e5.oper.an.pl.128_203_o3.ll025sc", yearstr, monthstr, daystr, cyclestr)
+
+    data_vars['ts'] = load_ERA5RDA_variable('VAR_2T', sf_dir, "e5.oper.an.sfc.128_167_2t.ll025sc", yearstr, monthstr, daystr, cyclestr)
+
+    ds = load_ERA5_file(data_filename)
+    data_vars['phis'] = ds["Z"].isel(time=0).values
+    ds.close()
+
+    return data_vars
 
 def load_ERA5mlRDA_data(RDADIR, data_filename, VERT_COORD_PATH, yearstr, monthstr, daystr, cyclestr, dycore):
     # Define directories
@@ -325,6 +327,18 @@ def load_ERA5mlRDA_data(RDADIR, data_filename, VERT_COORD_PATH, yearstr, monthst
 
 #### CFSR
 
+def get_CFSR_levels_for_var(grb_file_name, variable):
+    grb_file = load_CFSR_file(grb_file_name, 'isobaricInhPa', variable)
+    levels = grb_file.coords['isobaricInhPa'].values * 100.0
+    grb_file.close()
+    return levels
+
+def get_CFSR_coords_for_var(grb_file_name, variable, coord, filter_arg='isobaricInhPa'):
+    grb_file = load_CFSR_file(grb_file_name, filter_arg, variable)
+    coords = grb_file.coords[coord].values
+    grb_file.close()
+    return coords
+
 def load_CFSR_file(data_filename,TYPE_OF_LEVEL,VAR_SHORTNAME):
     return xr.open_dataset(
         data_filename,
@@ -343,18 +357,6 @@ def load_CFSR_variable(grb_file, varname):
         return grb_file[varname].values
     else:
         raise KeyError(f"Variable {varname} not found in the GRIB file.")
-
-def get_CFSR_levels_for_var(grb_file_name, variable):
-    grb_file = load_CFSR_file(grb_file_name, 'isobaricInhPa', variable)
-    levels = grb_file.coords['isobaricInhPa'].values * 100.0
-    grb_file.close()
-    return levels
-
-def get_CFSR_coords_for_var(grb_file_name, variable, coord, filter_arg='isobaricInhPa'):
-    grb_file = load_CFSR_file(grb_file_name, filter_arg, variable)
-    coords = grb_file.coords[coord].values
-    grb_file.close()
-    return coords
 
 def load_and_extract_CFSR_variable(grb_file_name, level_type, variable):
     """
