@@ -53,6 +53,8 @@ def load_cam_levels(PATHTOHERE, numlevels, load_xarray=False):
             'ilev': fC["ilev"].values,
         }
 
+    fC.close()
+
     logging.info("---------------------------------------------------------")
     logging.info("Loading CAM levels")
     logging.info(f"Loading {numlevels} level data")
@@ -100,12 +102,22 @@ def load_ERA5RDA_variable(varname, the_dir, var_code, yearstr, monthstr, daystr,
         hybi = rda_file["b_half"].values if "b_half" in rda_file else None
 
         if hyam is None or hybm is None or hyai is None or hybi is None:
+            rda_file.close()
             raise ValueError("All hybrid coefficients not found in the file")
 
-        return rda_data, rda_file["latitude"].values.astype(float), rda_file["longitude"].values.astype(float), rda_file["level"].values.astype(float) * 100.0, hyam, hybm, hyai, hybi
+        latitude = rda_file["latitude"].values.astype(float)
+        longitude = rda_file["longitude"].values.astype(float)
+        level = rda_file["level"].values.astype(float) * 100.0
+        rda_file.close()
+        return rda_data, latitude, longitude, level, hyam, hybm, hyai, hybi
     elif return_coords:
-        return rda_data, rda_file["latitude"].values.astype(float), rda_file["longitude"].values.astype(float), rda_file["level"].values.astype(float) * 100.0
+        latitude = rda_file["latitude"].values.astype(float)
+        longitude = rda_file["longitude"].values.astype(float)
+        level = rda_file["level"].values.astype(float) * 100.0
+        rda_file.close()
+        return rda_data, latitude, longitude, level
     else:
+        rda_file.close()
         return rda_data
 
 
@@ -343,11 +355,11 @@ def load_CFSR_data(grb_file_name, dycore, get_chemistry=False):
     try:
         data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 't')
     except Exception as e_surface:
-        logging.warning(f"Failed to load variable with 'sigma' level: {e_surface}")
+        logging.warning(f"Failed to load variable with 'surface' level: {e_surface}")
         try:
             data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'sigma', 't')
         except Exception as e_sigma:
-            logging.error(f"Failed to load variable with 'surface' level: {e_sigma}")
+            logging.error(f"Failed to load variable with 'sigma' level: {e_sigma}")
             logging.error("Both attempts to load the variable failed. Exiting script.")
             sys.exit(1)
 
@@ -679,6 +691,7 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
     # Load topo data
     mod_in_topo_f = xr.open_dataset(mod_in_topo)
     data_vars['phis'] = mod_in_topo_f["PHIS"].values
+    mod_in_topo_f.close()
     data_vars['ts'] = data_vars['t'][-1,:]
 
     # Horizontal remaps
@@ -689,6 +702,8 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
     hybm = grb_file["hybm"].values
     hyai = grb_file["hyai"].values
     hybi = grb_file["hybi"].values
+    cam_lat_descending = grb_file["lat"][0] > grb_file["lat"][1]
+    grb_file.close()
 
     pyfuncs.print_min_max_dict(data_vars)
 
@@ -696,7 +711,7 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
         # Calculate omega
 
         data_vars['w_is_omega'] = True
-        if grb_file["lat"][0] > grb_file["lat"][1]:
+        if cam_lat_descending:
             logging.info("flipping omega since calc needs to be S->N")
             data_vars['w'] = cam2cam.omega_ccm_driver(p0, data_vars['ps'][::-1, :], data_vars['u'][:, ::-1, :], data_vars['v'][:, ::-1, :], data_vars['lat'][::-1], data_vars['lon'], hyam, hybm, hyai, hybi)
             data_vars['w'] = data_vars['w'][:, ::-1, :]  # flip back
