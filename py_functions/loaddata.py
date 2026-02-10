@@ -187,7 +187,7 @@ def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr
 
     ds = load_ERA5_file(data_filename)
     data_vars['phis'] = ds["Z"].isel(time=0).values
-    ds.close
+    ds.close()
 
     return data_vars
 
@@ -204,17 +204,13 @@ def load_CFSR_file(data_filename,TYPE_OF_LEVEL,VAR_SHORTNAME):
         }
     )
 
-def load_ERA5_file(data_filename):
-    # Load the data file using xarray
-    return xr.open_dataset(
-        data_filename
-    )
+def open_nc_dataset(data_filename):
+    """Open a NetCDF file as an xarray Dataset."""
+    return xr.open_dataset(data_filename)
 
-def load_CAM_file(data_filename):
-    # Load the data file using xarray
-    return xr.open_dataset(
-        data_filename
-    )
+# Aliases for readability at call sites
+load_ERA5_file = open_nc_dataset
+load_CAM_file = open_nc_dataset
 
 
 def inspect_GRIB_file(data_filename):
@@ -347,12 +343,12 @@ def load_CFSR_data(grb_file_name, dycore, get_chemistry=False):
     try:
         data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 't')
     except Exception as e_surface:
-        print(f"Failed to load variable with 'sigma' level: {e_surface}")
+        logging.warning(f"Failed to load variable with 'sigma' level: {e_surface}")
         try:
             data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'sigma', 't')
         except Exception as e_sigma:
-            print(f"Failed to load variable with 'surface' level: {e_sigma}")
-            print("Both attempts to load the variable failed. Exiting script.")
+            logging.error(f"Failed to load variable with 'surface' level: {e_sigma}")
+            logging.error("Both attempts to load the variable failed. Exiting script.")
             sys.exit(1)
 
     pyfuncs.print_min_max_dict(data_vars)
@@ -417,8 +413,8 @@ def load_HRRRml_data(grb_file_name, dycore):
         try:
             z_hybrid = load_and_extract_CFSR_variable(grb_file_name, 'hybrid', 'gh')
             z_is_on_hybrid = True
-        except:
-            print("Geopotential height not found on hybrid levels, trying isobaric...")
+        except Exception:
+            logging.warning("Geopotential height not found on hybrid levels, trying isobaric...")
             z_isobaric = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'gh')
             z_isobaric_levels = get_CFSR_levels_for_var(grb_file_name, 'gh')
             z_is_on_hybrid = False
@@ -426,14 +422,14 @@ def load_HRRRml_data(grb_file_name, dycore):
     # Cloud variables on hybrid levels
     try:
         cldmix_hybrid = load_and_extract_CFSR_variable(grb_file_name, 'hybrid', 'clwmr')
-    except:
-        print("Cloud variables not found on hybrid levels, setting to None")
+    except Exception:
+        logging.warning("Cloud variables not found on hybrid levels, setting to None")
         cldmix_hybrid = None
 
     # Now interpolate all hybrid-level variables to constant pressure levels
-    print("Interpolating variables from hybrid to pressure levels...")
-    print(f"Temperature shape: {t_hybrid.shape}")
-    print(f"Pressure shape: {pres_3d_hybrid.shape}")
+    logging.info("Interpolating variables from hybrid to pressure levels...")
+    logging.debug(f"Temperature shape: {t_hybrid.shape}")
+    logging.debug(f"Pressure shape: {pres_3d_hybrid.shape}")
 
     # Determine level dimension (0 or 1)
     level_dim = 1
@@ -442,7 +438,7 @@ def load_HRRRml_data(grb_file_name, dycore):
     elif len(t_hybrid.shape) == 3:  # (lev, lat, lon)
         level_dim = 0
 
-    print(f"Using level dimension: {level_dim}")
+    logging.debug(f"Using level dimension: {level_dim}")
 
     # Interpolate main atmospheric variables
     data_vars['t'] = vertremap.int2p_n_extrap(
@@ -505,7 +501,7 @@ def load_HRRRml_data(grb_file_name, dycore):
         )
     else:
         # Create dummy cloud mixing ratio if not available
-        print("Cloud mixing ratio not available, creating dummy field")
+        logging.warning("Cloud mixing ratio not available, creating dummy field")
         data_vars['cldmix'] = np.zeros_like(data_vars['t'])
 
     # Clean up cloud data
@@ -520,14 +516,14 @@ def load_HRRRml_data(grb_file_name, dycore):
     try:
         data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 't')
     except Exception as e_surface:
-        print(f"Failed to load surface temperature: {e_surface}")
+        logging.warning(f"Failed to load surface temperature: {e_surface}")
         try:
             # Try 2m temperature as backup
             data_vars['ts'] = load_and_extract_CFSR_variable(grb_file_name, 'heightAboveGround', 't2m')
-            print("Using 2m temperature as surface temperature")
+            logging.info("Using 2m temperature as surface temperature")
         except Exception as e_2m:
-            print(f"Failed to load 2m temperature: {e_2m}")
-            print("Setting surface temperature from lowest atmospheric level")
+            logging.warning(f"Failed to load 2m temperature: {e_2m}")
+            logging.warning("Setting surface temperature from lowest atmospheric level")
             data_vars['ts'] = data_vars['t'][-1, :, :]  # Use lowest pressure level
 
     # Print diagnostics
@@ -538,11 +534,11 @@ def load_HRRRml_data(grb_file_name, dycore):
         del data_vars['cldmix']
 
     # Because GFS is bottom -> top, we have to flip to be top-to-bottom
-    print(data_vars['lev'])
+    logging.debug(f"lev before flip: {data_vars['lev']}")
     data_vars = flip_level_dimension(data_vars)
-    print(data_vars['lev'])
+    logging.debug(f"lev after flip: {data_vars['lev']}")
 
-    print(f"Successfully loaded HRRR data interpolated to {len(data_vars['lev'])} pressure levels")
+    logging.info(f"Successfully loaded HRRR data interpolated to {len(data_vars['lev'])} pressure levels")
 
     return data_vars
 
@@ -607,7 +603,7 @@ def load_ERA5mlRDA_data(RDADIR, data_filename, VERT_COORD_PATH, yearstr, monthst
 
     ds = load_ERA5_file(data_filename)
     data_vars['phis'] = ds["Z"].isel(time=0).values
-    ds.close
+    ds.close()
 
     if dycore == 'mpas':
         data_vars['w_is_omega'] = False
