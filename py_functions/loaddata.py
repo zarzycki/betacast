@@ -863,7 +863,7 @@ def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr,
     # Check, interpolate if the above is true
     if q_lev.shape != data_vars['lev'].shape:
         logging.info(f"Interpolating q from {q_lev.shape[0]} to {data_vars['lev'].shape[0]} levels")
-        data_vars['q'] = vertremap.int2p_n(q_lev, q_raw, data_vars['lev'], linlog=2, dim=0)
+        data_vars['q'] = vertremap.int2p_n(q_lev, q_raw, data_vars['lev'], linlog=-2, dim=0)
     else:
         data_vars['q'] = q_raw
 
@@ -879,7 +879,7 @@ def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr,
 
         if w_lev.shape != data_vars['lev'].shape:
             logging.info(f"Interpolating w from {w_lev.shape[0]} to {data_vars['lev'].shape[0]} levels")
-            data_vars['w'] = vertremap.int2p_n(w_lev, w_raw, data_vars['lev'], linlog=2, dim=0)
+            data_vars['w'] = vertremap.int2p_n(w_lev, w_raw, data_vars['lev'], linlog=-2, dim=0)
         else:
             data_vars['w'] = w_raw
         data_vars['w_is_omega'] = True
