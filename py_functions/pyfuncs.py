@@ -426,7 +426,7 @@ def create_cf_time(year, month, day, hour, base_time="1850-01-01 00:00:00", time
     base_timestring = f"{base_year:04d}-{base_month:02d}-{base_day:02d}-{seconds_of_day_str}"
 
     nptime = cftime.date2num(
-        cftime.DatetimeNoLeap(year, month, day, hour),
+        cftime.DatetimeGregorian(year, month, day, hour),
         units=f"{time_units} {base_time}"
     )
     nptime = np.array([nptime], dtype=np.float64)
