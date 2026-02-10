@@ -178,6 +178,8 @@ def main():
         pyfuncs.log_resource_usage()
     elif datasource == 'CAM':
         data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=write_debug_files, write_debug_dir=DEBUGDIR)
+    elif datasource == 'CR20V3':
+        data_vars = loaddata.load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
 
     logging.info("Input Data Level information")
     logging.info(f"Number: {len(data_vars['lev'])}")

@@ -769,3 +769,146 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
     data_vars['cldliq'] = np.zeros_like(data_vars['t'])
 
     return data_vars
+
+
+#### CR20V3
+
+def load_CR20v3_variable(varname, filepath, yearstr, monthstr, daystr, cyclestr, return_coords=False):
+    """
+    Load a single variable from a CR20v3 RDA NetCDF file, selecting the closest time.
+
+    Parameters:
+    -----------
+    varname : str
+        Variable name in the NetCDF file (e.g., 't', 'u', 'gh', 'q', 'sp').
+    filepath : str
+        Full path to the NetCDF file.
+    yearstr, monthstr, daystr, cyclestr : str
+        Date/time strings for time selection.
+    return_coords : bool, optional (default False)
+        If True, also return latitude, longitude, and level arrays.
+
+    Returns:
+    --------
+    If return_coords is True:
+        data, latitude, longitude, level (level in Pa)
+    Else:
+        data
+    """
+    ds = xr.open_dataset(filepath)
+    rda_time = ds["time"]
+    thistime = pyfuncs.find_closest_time(rda_time, yearstr, monthstr, daystr, cyclestr)
+    data = ds[varname].sel(time=thistime, method='nearest').values
+
+    logging.debug(f"load_CR20v3_variable: Getting {varname} from {filepath}")
+
+    if return_coords:
+        latitude = ds["latitude"].values.astype(float)
+        longitude = ds["longitude"].values.astype(float)
+        if "isobaricInhPa" in ds.dims:
+            level = ds["isobaricInhPa"].values.astype(float) * 100.0  # hPa -> Pa
+        else:
+            level = None
+        ds.close()
+        return data, latitude, longitude, level
+    else:
+        ds.close()
+        return data
+
+def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore):
+    """
+    Load CR20v3 (20th Century Reanalysis V3) isobaric analysis data from the RDA.
+
+    Data at NCAR is stored as one variable per file per year:
+        {RDADIR}/anl/anl_mean_{YYYY}_{VARCODE}_pres.nc  (isobaric)
+        {RDADIR}/anl/anl_mean_{YYYY}_{VARCODE}_sfc.nc   (surface)
+        {RDADIR}/invariants/surface_height.nc            (orography, time-invariant)
+
+    Parameters:
+    -----------
+    RDADIR : str
+        Root path to the CR20v3 RDA collection (e.g., /glade/campaign/collections/rda/data/d131003).
+    data_filename : str
+        Not used for CR20v3 (kept for interface consistency). Surface geopotential is
+        loaded from the invariants directory instead.
+    yearstr, monthstr, daystr, cyclestr : str
+        Date/time strings for time selection.
+    dycore : str
+        Dynamical core identifier.
+
+    Returns:
+    --------
+    data_vars : dict
+        Dictionary of numpy arrays for Betacast pipeline.
+    """
+    anl_dir = f"{RDADIR}/anl"
+
+    # Dictionary to store the variables
+    data_vars = {}
+
+    # 3-D isobaric variables
+    # Get coordinates from first file loaded
+    data_vars['t'], data_vars['lat'], data_vars['lon'], data_vars['lev'] = load_CR20v3_variable(
+        't', f"{anl_dir}/anl_mean_{yearstr}_TMP_pres.nc", yearstr, monthstr, daystr, cyclestr, return_coords=True)
+    data_vars['u'] = load_CR20v3_variable(
+        'u', f"{anl_dir}/anl_mean_{yearstr}_UGRD_pres.nc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['v'] = load_CR20v3_variable(
+        'v', f"{anl_dir}/anl_mean_{yearstr}_VGRD_pres.nc", yearstr, monthstr, daystr, cyclestr)
+
+    # Get Q (may be on different set of levels based on NCAR RDA)
+    q_file = f"{anl_dir}/anl_mean_{yearstr}_SPFH_pres.nc"
+    q_raw, _, _, q_lev = load_CR20v3_variable(
+        'q', q_file, yearstr, monthstr, daystr, cyclestr, return_coords=True)
+
+    # Check, interpolate if the above is true
+    if q_lev.shape != data_vars['lev'].shape:
+        logging.info(f"Interpolating q from {q_lev.shape[0]} to {data_vars['lev'].shape[0]} levels")
+        data_vars['q'] = vertremap.int2p_n(q_lev, q_raw, data_vars['lev'], linlog=2, dim=0)
+    else:
+        data_vars['q'] = q_raw
+
+    # Create a 3-D pressure field from constant pressure surfaces
+    data_vars['pres'] = np.broadcast_to(
+        data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
+
+    # MPAS-specific: omega (VVEL) and geopotential height
+    if dycore == 'mpas':
+        w_file = f"{anl_dir}/anl_mean_{yearstr}_VVEL_pres.nc"
+        w_raw, _, _, w_lev = load_CR20v3_variable(
+            'w', w_file, yearstr, monthstr, daystr, cyclestr, return_coords=True)
+
+        if w_lev.shape != data_vars['lev'].shape:
+            logging.info(f"Interpolating w from {w_lev.shape[0]} to {data_vars['lev'].shape[0]} levels")
+            data_vars['w'] = vertremap.int2p_n(w_lev, w_raw, data_vars['lev'], linlog=2, dim=0)
+        else:
+            data_vars['w'] = w_raw
+        data_vars['w_is_omega'] = True
+
+        data_vars['z'] = load_CR20v3_variable(
+            'gh', f"{anl_dir}/anl_mean_{yearstr}_HGT_pres.nc", yearstr, monthstr, daystr, cyclestr)
+        data_vars['z_is_phi'] = False  # geopotential height in meters, not geopotential
+
+    # No cloud ice/liquid in CR20v3
+    data_vars['cldice'] = np.zeros_like(data_vars['t'])
+    data_vars['cldliq'] = np.zeros_like(data_vars['t'])
+
+    # Surface pressure
+    data_vars['ps'] = load_CR20v3_variable(
+        'sp', f"{anl_dir}/anl_mean_{yearstr}_PRES_sfc.nc", yearstr, monthstr, daystr, cyclestr)
+
+    # Surface temperature
+    data_vars['ts'] = load_CR20v3_variable(
+        't', f"{anl_dir}/anl_mean_{yearstr}_TMP_sfc.nc", yearstr, monthstr, daystr, cyclestr)
+
+    # Surface geopotential from invariants (orography in m -> multiply by g)
+    orog_file = f"{RDADIR}/invariants/surface_height.nc"
+    ds_orog = xr.open_dataset(orog_file)
+    data_vars['phis'] = ds_orog["orog"].values * grav
+    ds_orog.close()
+
+    pyfuncs.print_min_max_dict(data_vars)
+
+    # Levels are stored in descending order (1000 hPa -> 1 hPa), flip to ascending (top-to-bottom)
+    data_vars = flip_level_dimension(data_vars)
+
+    return data_vars
