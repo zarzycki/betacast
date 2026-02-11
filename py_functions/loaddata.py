@@ -772,6 +772,8 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 
 
 #### CR20V3
+# GLOBUS NERSC HPSS
+# /home/projects/incite11/www/20C_Reanalysis_version_3/everymember_anal_netcdf/subdaily/${VAR}/
 
 def load_CR20v3_variable(varname, filepath, yearstr, monthstr, daystr, cyclestr, return_coords=False):
     """
