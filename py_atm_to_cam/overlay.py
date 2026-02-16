@@ -6,6 +6,7 @@ import time
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'py_functions'))
 from pyfuncs import detect_dycore_nc, load_variable_blending, save_variable_blending
+from constants import Re_km
 
 start_time = time.time()
 
@@ -24,9 +25,6 @@ args = parser.parse_args()
 print(f"Base_file is: {args.base_file}")
 print(f"top_file is: {args.top_file}")
 print(f"maxLev is: {args.maxLev}")
-
-# Constants
-R = 6371.0  # Radius of the earth in km
 
 # Load the regional file
 print(f"Loading {args.top_file}")
@@ -68,7 +66,7 @@ tree = BallTree(np.radians(yes_missing_points), metric='haversine')
 dist, _ = tree.query(np.radians(not_missing_points), k=1)  # dist is in radians
 
 # Convert distance from radians to km
-dist_kms = dist * R
+dist_kms = dist * Re_km
 
 # Fill the calculated distances in the appropriate indices
 dists[not_missing_inds] = np.squeeze(dist_kms)

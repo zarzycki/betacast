@@ -2,6 +2,9 @@ import numpy as np
 import numba as nb
 import logging
 logger = logging.getLogger(__name__)
+from constants import (
+    Re_m
+)
 
 def omega_ccm(u, v, div, dpsl, dpsm, pmid, pdel, psfc, hybdif, hybm, nprlev):
     """
@@ -134,9 +137,6 @@ def calculate_gradients(psfc, lat, lon):
     # Calculate the logarithm of surface pressure
     ln_psfc = np.log(psfc)
 
-    # Earth's radius in meters
-    R = 6371000.0
-
     # Calculate the gradient of ln(psfc)
     dln_psfc_dy, dln_psfc_dx = np.gradient(ln_psfc)
 
@@ -147,8 +147,8 @@ def calculate_gradients(psfc, lat, lon):
     #dln_psfc_dy[-1, :] = (ln_psfc[-1, :] - ln_psfc[-2, :]) / (lat_rad[-1] - lat_rad[-2])
 
     # Scale gradients by physical distances
-    dpsl = dln_psfc_dx / (R * np.cos(lat_rad[:, np.newaxis]) * np.gradient(lon_rad))
-    dpsm = dln_psfc_dy / (R * np.gradient(lat_rad)[:, np.newaxis])
+    dpsl = dln_psfc_dx / (Re_m * np.cos(lat_rad[:, np.newaxis]) * np.gradient(lon_rad))
+    dpsm = dln_psfc_dy / (Re_m * np.gradient(lat_rad)[:, np.newaxis])
 
     # Set the top and bottom rows of dpsl to zero
     dpsl[0, :] = 0.0
@@ -189,9 +189,6 @@ def calculate_div_vort(lat, lon, u, v):
     lat_rad = np.deg2rad(lat)
     lon_rad = np.deg2rad(lon)
 
-    # Earth's radius in meters
-    R = 6371000.0
-
     # Calculate gradients along the last two dimensions (lat, lon)
     du_dy = np.gradient(u, axis=-2)
     du_dx = np.gradient(u, axis=-1)
@@ -199,15 +196,15 @@ def calculate_div_vort(lat, lon, u, v):
     dv_dx = np.gradient(v, axis=-1)
 
     # Scale gradients by physical distances
-    du_dx = du_dx / (R * np.cos(lat_rad)[:, np.newaxis] * np.gradient(lon_rad))
-    dv_dy = dv_dy / (R * np.gradient(lat_rad)[:, np.newaxis])
+    du_dx = du_dx / (Re_m * np.cos(lat_rad)[:, np.newaxis] * np.gradient(lon_rad))
+    dv_dy = dv_dy / (Re_m * np.gradient(lat_rad)[:, np.newaxis])
 
     # Divergence: du/dx + dv/dy
     div = du_dx + dv_dy
 
     # Vorticity: dv/dx - du/dy
-    du_dy_scaled = du_dy / (R * np.gradient(lat_rad)[:, np.newaxis])
-    dv_dx_scaled = dv_dx / (R * np.cos(lat_rad)[:, np.newaxis] * np.gradient(lon_rad))
+    du_dy_scaled = du_dy / (Re_m * np.gradient(lat_rad)[:, np.newaxis])
+    dv_dx_scaled = dv_dx / (Re_m * np.cos(lat_rad)[:, np.newaxis] * np.gradient(lon_rad))
     vort = dv_dx_scaled - du_dy_scaled
 
     return div, vort
