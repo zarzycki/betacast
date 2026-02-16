@@ -54,11 +54,11 @@ parser.add_argument("file_a", type=str,
                     help="Base file (modified in place). Dominates below blend level.")
 parser.add_argument("file_b", type=str,
                     help="Upper-atmosphere source (read-only). Dominates above blend level.")
-parser.add_argument("--blendLev", type=float, default=100.0,
-                    help="Pressure level (hPa) at which the blend is centered (default: 100)")
-parser.add_argument("--taperScale", type=float, default=0.5,
+parser.add_argument("--blendLev", type=float, default=200.0,
+                    help="Pressure level (hPa) at which the blend is centered (default: 200)")
+parser.add_argument("--taperScale", type=float, default=0.05,
                     help="Sigmoid scale in log-pressure space. Smaller = sharper transition "
-                         "(default: 0.5)")
+                         "(default: 0.05)")
 parser.add_argument("--vars", type=str, default="T,Q,U,V",
                     help="Comma-separated list of variables to blend (default: T,Q,U,V). "
                          "PS is a surface field and is not blended.")
