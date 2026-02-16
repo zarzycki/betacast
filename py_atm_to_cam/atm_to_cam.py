@@ -180,6 +180,10 @@ def main():
         data_vars = loaddata.load_cam_data(data_filename, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=write_debug_files, write_debug_dir=DEBUGDIR)
     elif datasource == 'CR20V3':
         data_vars = loaddata.load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore)
+    elif datasource.startswith('CR20V3-'):
+        member_str = datasource.split('-')[1]
+        logging.info(f"Loading CR20V3 ensemble member {member_str}")
+        data_vars = loaddata.load_CR20v3_member_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore, member_str)
 
     logging.info("Input Data Level information")
     logging.info(f"Number: {len(data_vars['lev'])}")
@@ -366,7 +370,7 @@ def main():
 
     if write_debug_files:
         # Analysis grid is always structured lat/lon, so use "fv" for dimension inference
-        varlist = ['ps', 't', 'u', 'v', 'q', 'cldliq', 'cldice']
+        varlist = ['ps', 't', 'u', 'v', 'q', 'cldliq', 'cldice', 'phis']
         if datasource not in ('HRRRml', 'HRRR', 'HWRF', 'RAP'):
             varlist.extend(['lat', 'lon'])
         pyfuncs.print_debug_file_wrapper(
@@ -465,7 +469,7 @@ def main():
         pyfuncs.print_debug_file_wrapper(
             DEBUGDIR + "/py_era5_after_topoadjust.nc",
             data_horiz, dycore,
-            varlist=['lat', 'lon', 'ps', 'correct_or_not', 't', 'u', 'v', 'q', 'cldliq', 'cldice'],
+            varlist=['lat', 'lon', 'ps', 'correct_or_not', 'phis_SE', 'phis', 't', 'u', 'v', 'q', 'cldliq', 'cldice'],
             level_dim="lev_p",
             level_coord=data_horiz['lev']
         )

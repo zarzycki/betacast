@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 import glob
+import os
 import sys
 import cfgrib
 
@@ -819,7 +820,7 @@ def load_CR20v3_variable(varname, filepath, yearstr, monthstr, daystr, cyclestr,
 
 def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore):
     """
-    Load CR20v3 (20th Century Reanalysis V3) isobaric analysis data from the RDA.
+    Load CR20v3 (20th Century Reanalysis V3) ensemble mean analysis data.
 
     Data at NCAR is stored as one variable per file per year:
         {RDADIR}/anl/anl_mean_{YYYY}_{VARCODE}_pres.nc  (isobaric)
@@ -843,6 +844,7 @@ def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr,
     data_vars : dict
         Dictionary of numpy arrays for Betacast pipeline.
     """
+    # Update to point to the analyses
     anl_dir = f"{RDADIR}/anl"
 
     # Dictionary to store the variables
@@ -911,6 +913,198 @@ def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr,
     pyfuncs.print_min_max_dict(data_vars)
 
     # Levels are stored in descending order (1000 hPa -> 1 hPa), flip to ascending (top-to-bottom)
+    data_vars = flip_level_dimension(data_vars)
+
+    return data_vars
+
+
+#### CR20V3 individual ensemble members
+# Data from NERSC: /home/projects/incite11/www/20C_Reanalysis_version_3/everymember_anal_netcdf/
+# Each file contains one variable at one pressure level for one ensemble member:
+#   {VAR}{PLEV_hPa}.{YYYY}_mem{NNN}.nc  (3-D isobaric)
+#   {VAR}.{YYYY}_mem{NNN}.nc            (surface)
+# See data acquisition scripts for information about acquiring the data
+
+# Pressure levels available for 3-D fields (hPa)
+# https://portal.nersc.gov/project/20C_Reanalysis/abbrev_v3.html
+CR20V3_MEMBER_PLEVS_HPA = [200, 250, 300, 400, 500, 600, 650, 700, 750, 800, 850, 900, 925, 950, 975, 1000]
+
+def load_CR20v3_member_variable(varname_nc, filepath, yearstr, monthstr, daystr, cyclestr, return_coords=False):
+    """
+    Load a single variable from a CR20v3 per-member, per-level NetCDF file.
+
+    Parameters
+    ----------
+    varname_nc : str
+        Variable name in the NetCDF file (e.g., 'TMP', 'UGRD', 'PRMSL').
+    filepath : str
+        Full path to the NetCDF file.
+    yearstr, monthstr, daystr, cyclestr : str
+        Date/time strings for time selection.
+    return_coords : bool, optional (default False)
+        If True, also return latitude and longitude arrays.
+
+    Returns
+    -------
+    If return_coords is True:
+        data, latitude, longitude
+    Else:
+        data (squeezed to remove singleton plev dimension)
+    """
+    ds = xr.open_dataset(filepath)
+    rda_time = ds["time"]
+    # Get the closest time in CF-compliant format
+    thistime = pyfuncs.find_closest_time(rda_time, yearstr, monthstr, daystr, cyclestr)
+    # squeeze removes any singleton dimensions
+    data = ds[varname_nc].sel(time=thistime, method='nearest').values.squeeze()
+
+    logging.debug(f"load_CR20v3_member_variable: Getting {varname_nc} from {filepath}")
+
+    if return_coords:
+        latitude = ds["lat"].values.astype(float)
+        longitude = ds["lon"].values.astype(float)
+        ds.close()
+        return data, latitude, longitude
+    else:
+        ds.close()
+        return data
+
+
+def load_CR20v3_member_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore, member_str):
+    """
+    Load CR20v3 individual ensemble member data on isobaric surfaces.
+
+    Each variable/level is stored in a separate file:
+        {anl_dir}/{VAR}{PLEV_hPa}.{YYYY}_mem{NNN}.nc
+
+    Parameters
+    ----------
+    RDADIR : str
+        Root directory containing per-member year subdirectories.
+        Files are expected at {RDADIR}/{YYYY}/{VAR}{PLEV}.{YYYY}_mem{NNN}.nc.
+        (same format as pulled from NERSC HPSS single-member archives)
+    data_filename : str
+        Path to the surface geopotential (orography) file (e.g., surface_height.nc).
+    yearstr, monthstr, daystr, cyclestr : str
+        Date/time strings for time selection.
+    dycore : str
+        Dynamical core identifier.
+    member_str : str
+        Three-digit member string, e.g., '001'.
+
+    Returns
+    -------
+    data_vars : dict
+        Dictionary of numpy arrays for Betacast pipeline.
+    """
+
+    # Directory where files are stored is YYYY within special override of RDADIR
+    anl_dir = f"{RDADIR}/{yearstr}"
+
+    # Empty dicts
+    data_vars = {}
+
+    # Variable mapping: Betacast key -> (file prefix, NC variable name)
+    var_3d_map = {
+        't':  ('TMP',  'TMP'),
+        'u':  ('UGRD', 'UGRD'),
+        'v':  ('VGRD', 'VGRD'),
+        'q':  ('SPFH', 'SPFH'),
+    }
+
+    # Determine which pressure levels actually exist on disk
+    # A level is only included if ALL 3-D variables (TMP, UGRD, VGRD, SPFH) have files for it
+    plevs_hpa_requested = sorted(CR20V3_MEMBER_PLEVS_HPA)
+    file_prefixes = [fp for fp, _ in var_3d_map.values()]
+    plevs_hpa = []
+    missing_report = {}
+    for plev_hpa in plevs_hpa_requested:
+        missing = [fp for fp in file_prefixes
+                   if not os.path.isfile(f"{anl_dir}/{fp}{plev_hpa}.{yearstr}_mem{member_str}.nc")]
+        if not missing:
+            plevs_hpa.append(plev_hpa)
+        else:
+            missing_report[plev_hpa] = missing
+
+    # If missing_report is not empty, we have ourselves a problem!
+    if missing_report:
+        msg_lines = [f"  {plev} hPa: missing {', '.join(vars)}" for plev, vars in missing_report.items()]
+        msg = (f"CR20V3 member {member_str}, year {yearstr}: "
+               f"{len(missing_report)}/{len(plevs_hpa_requested)} levels incomplete\n"
+               + "\n".join(msg_lines) + "\n"
+               f"This may be because this pressure level has not been generated for your \n"
+               f"CR20V3 target year. You can comment out this error at your own risk, \n"
+               f"missing interior levels will be interpolated (with increasing error) \n"
+               f"and may give noisy or unstable states.")
+        # KILL SWITCH: comment out the raise to skip missing levels
+        # Only do this as your own risk -- missing 500, 600, 650 mb levels gave very unbalanced states
+        # with lots of gravity wave noise!
+        raise FileNotFoundError(msg)    # KILL SWITCH
+        for plev, vars in missing_report.items():
+            logging.warning(f"CR20V3 member: skipping level {plev} hPa (missing: {', '.join(vars)})")
+
+    # Otherwise, we have the data we need
+    logging.info(f"CR20V3 member: loading {len(plevs_hpa)}/{len(plevs_hpa_requested)} pressure levels")
+    plevs_pa = np.array(plevs_hpa, dtype=np.float64) * 100.0  # Convert to Pascals
+    data_vars['lev'] = plevs_pa
+
+    # Load 3-D isobaric variables level-by-level
+    first_var = True
+    for betacast_key, (file_prefix, nc_var) in var_3d_map.items():
+        # eg: 't', 'TMP', 'TMP'
+        slices = []
+        for plev_hpa in plevs_hpa:
+            fpath = f"{anl_dir}/{file_prefix}{plev_hpa}.{yearstr}_mem{member_str}.nc"
+            # If this is the first thing we load, get the coords, too
+            if first_var and plev_hpa == plevs_hpa[0]:
+                slc, data_vars['lat'], data_vars['lon'] = load_CR20v3_member_variable(
+                    nc_var, fpath, yearstr, monthstr, daystr, cyclestr, return_coords=True)
+            else:
+                slc = load_CR20v3_member_variable(
+                    nc_var, fpath, yearstr, monthstr, daystr, cyclestr)
+            slices.append(slc)
+        # Stack along the level axis
+        data_vars[betacast_key] = np.stack(slices, axis=0)
+        first_var = False
+
+    # Create a 3-D pressure field from constant pressure surfaces (copy t shape)
+    data_vars['pres'] = np.broadcast_to(
+        data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
+
+    # MPAS-specific: geopotential height and omega
+    if dycore == 'mpas':
+        z_slices = []
+        for plev_hpa in plevs_hpa:
+            fpath = f"{anl_dir}/HGT{plev_hpa}.{yearstr}_mem{member_str}.nc"
+            z_slices.append(load_CR20v3_member_variable(
+                'HGT', fpath, yearstr, monthstr, daystr, cyclestr))
+        data_vars['z'] = np.stack(z_slices, axis=0)
+        data_vars['z_is_phi'] = False  # geopotential height in meters
+        data_vars['w'] = np.zeros_like(data_vars['t'])
+        data_vars['w_is_omega'] = True
+
+    # No cloud ice/liquid in CR20v3
+    data_vars['cldice'] = np.zeros_like(data_vars['t'])
+    data_vars['cldliq'] = np.zeros_like(data_vars['t'])
+
+    # Surface pressure
+    fpath_ps = f"{anl_dir}/PRES.{yearstr}_mem{member_str}.nc"
+    data_vars['ps'] = load_CR20v3_member_variable(
+        'PRES', fpath_ps, yearstr, monthstr, daystr, cyclestr)
+
+    # Surface temperature from 2-m temperature
+    fpath_ts = f"{anl_dir}/TMP2m.{yearstr}_mem{member_str}.nc"
+    data_vars['ts'] = load_CR20v3_member_variable(
+        'TMP2m', fpath_ts, yearstr, monthstr, daystr, cyclestr)
+
+    # Surface geopotential from data_filename (orography file path)
+    ds_orog = xr.open_dataset(data_filename)
+    data_vars['phis'] = ds_orog["orog"].values * grav
+    ds_orog.close()
+
+    pyfuncs.print_min_max_dict(data_vars)
+
+    # Levels are already in ascending order (top-to-bottom), but call flip just in case
     data_vars = flip_level_dimension(data_vars)
 
     return data_vars
