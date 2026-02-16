@@ -839,9 +839,63 @@ def load_csv_column(csv_filename, column_name):
     return column_values
 
 
-# Min/max with numpy is super slow for very big meshes
-# (2 min per var for MPAS 3km x 93lev ~6,000,000,000 elements)
-# For now, subsample if > 1 billion, otherwise just do a full min/max for that var as before
+def detect_dycore_nc(dataset):
+    """Detect if a netCDF4 Dataset uses SE or SCREAM variable naming convention."""
+    variables = list(dataset.variables.keys())
+    if 'T_mid' in variables or 'qv' in variables or 'horiz_winds' in variables:
+        return 'scream'
+    elif 'T' in variables or 'Q' in variables or 'U' in variables:
+        return 'se'
+    else:
+        raise ValueError("Cannot determine dycore - no recognizable variable pattern found")
+
+
+def load_variable_blending(dataset, dycore, var_name):
+    """Load a variable from a netCDF4 Dataset, transposing SCREAM dims to (time, lev, ncol)."""
+    if dycore == 'scream':
+        if var_name == 'PS':
+            return dataset.variables['ps'][:]
+        elif var_name == 'T':
+            return np.transpose(dataset.variables['T_mid'][:], (0, 2, 1))
+        elif var_name == 'Q':
+            return np.transpose(dataset.variables['qv'][:], (0, 2, 1))
+        elif var_name == 'U':
+            hw = dataset.variables['horiz_winds'][:]
+            u = hw[:, :, 0, :]
+            del hw
+            return np.transpose(u, (0, 2, 1))
+        elif var_name == 'V':
+            hw = dataset.variables['horiz_winds'][:]
+            v = hw[:, :, 1, :]
+            del hw
+            return np.transpose(v, (0, 2, 1))
+    else:  # SE
+        return dataset.variables[var_name][:]
+
+
+def save_variable_blending(dataset, dycore, var_name, data):
+    """Save a variable to a netCDF4 Dataset, transposing back for SCREAM."""
+    if dycore == 'scream':
+        if var_name == 'PS':
+            dataset.variables['ps'][:] = data
+        elif var_name == 'T':
+            dataset.variables['T_mid'][:] = np.transpose(data, (0, 2, 1))
+        elif var_name == 'Q':
+            dataset.variables['qv'][:] = np.transpose(data, (0, 2, 1))
+        elif var_name == 'U':
+            hw = dataset.variables['horiz_winds'][:]
+            hw[:, :, 0, :] = np.transpose(data, (0, 2, 1))
+            dataset.variables['horiz_winds'][:] = hw
+            del hw
+        elif var_name == 'V':
+            hw = dataset.variables['horiz_winds'][:]
+            hw[:, :, 1, :] = np.transpose(data, (0, 2, 1))
+            dataset.variables['horiz_winds'][:] = hw
+            del hw
+    else:  # SE
+        dataset.variables[var_name][:] = data
+
+
 def print_min_max_dict(data_vars):
     """
     Prints the minimum and maximum values for each key in the data_vars dictionary.

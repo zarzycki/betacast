@@ -3,75 +3,17 @@ from netCDF4 import Dataset
 from sklearn.neighbors import BallTree
 import argparse
 import time
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'py_functions'))
+from pyfuncs import detect_dycore_nc, load_variable_blending, save_variable_blending
 
 start_time = time.time()
 
 ## Sigmoid weighting function to slowly transition from global to background grid
-def sigmoid_weight(distance, threshold=100, scale=10):
+def sigmoid_weight_horiz(distance, threshold=100, scale=10):
     # normalize distance so that the sigmoid transitions around the threshold
     normalized_distance = (distance - threshold) / scale
     return 1 / (1 + np.exp(-normalized_distance))
-
-def detect_dycore(dataset):
-    """Detect if the dataset uses SE or SCREAM variable naming convention"""
-    variables = list(dataset.variables.keys())
-
-    # Check for SCREAM-specific variables
-    if 'T_mid' in variables or 'qv' in variables or 'horiz_winds' in variables:
-        return 'scream'
-    # Check for SE-specific variables
-    elif 'T' in variables or 'Q' in variables or 'U' in variables:
-        return 'se'
-    else:
-        raise ValueError("Cannot determine dycore - no recognizable variable pattern found")
-
-def load_variable(dataset, dycore, var_name):
-    """Load a single variable accounting for dycore differences"""
-    if dycore == 'scream':
-        if var_name == 'PS':
-            return dataset.variables['ps'][:]  # PS is 2D, no transpose needed
-        elif var_name == 'T':
-            return np.transpose(dataset.variables['T_mid'][:], (0, 2, 1))
-        elif var_name == 'Q':
-            return np.transpose(dataset.variables['qv'][:], (0, 2, 1))
-        elif var_name == 'U':
-            horiz_winds = dataset.variables['horiz_winds'][:]
-            u_component = horiz_winds[:, :, 0, :]
-            del horiz_winds  # Free memory immediately
-            return np.transpose(u_component, (0, 2, 1))
-        elif var_name == 'V':
-            horiz_winds = dataset.variables['horiz_winds'][:]
-            v_component = horiz_winds[:, :, 1, :]
-            del horiz_winds  # Free memory immediately
-            return np.transpose(v_component, (0, 2, 1))
-    else:  # SE
-        var_names_se = {'T': 'T', 'Q': 'Q', 'U': 'U', 'V': 'V', 'PS': 'PS'}
-        return dataset.variables[var_names_se[var_name]][:]
-
-def save_variable(dataset, dycore, var_name, data):
-    """Save a single variable accounting for dycore differences"""
-    if dycore == 'scream':
-        if var_name == 'PS':
-            dataset.variables['ps'][:] = data  # PS is 2D, no transpose needed
-        elif var_name == 'T':
-            dataset.variables['T_mid'][:] = np.transpose(data, (0, 2, 1))
-        elif var_name == 'Q':
-            dataset.variables['qv'][:] = np.transpose(data, (0, 2, 1))
-        elif var_name == 'U':
-            # Read existing horiz_winds, update U component, write back
-            horiz_winds = dataset.variables['horiz_winds'][:]
-            horiz_winds[:, :, 0, :] = np.transpose(data, (0, 2, 1))
-            dataset.variables['horiz_winds'][:] = horiz_winds
-            del horiz_winds
-        elif var_name == 'V':
-            # Read existing horiz_winds, update V component, write back
-            horiz_winds = dataset.variables['horiz_winds'][:]
-            horiz_winds[:, :, 1, :] = np.transpose(data, (0, 2, 1))
-            dataset.variables['horiz_winds'][:] = horiz_winds
-            del horiz_winds
-    else:  # SE
-        var_names_se = {'T': 'T', 'Q': 'Q', 'U': 'U', 'V': 'V', 'PS': 'PS'}
-        dataset.variables[var_names_se[var_name]][:] = data
 
 # Argument parser
 parser = argparse.ArgumentParser(description="Process base_file and top_file")
@@ -91,11 +33,11 @@ print(f"Loading {args.top_file}")
 f2 = Dataset(args.top_file, "r")
 
 # Detect dycore and get variable names
-dycore_top = detect_dycore(f2)
+dycore_top = detect_dycore_nc(f2)
 print(f"Detected dycore for top file: {dycore_top}")
 
 # Load PS first to calculate distances (needed for all variables)
-PS_rgm = load_variable(f2, dycore_top, 'PS')
+PS_rgm = load_variable_blending(f2, dycore_top, 'PS')
 
 lat = f2.variables['lat'][:]
 lon = f2.variables['lon'][:]
@@ -141,7 +83,7 @@ print(f"Loading {args.base_file}")
 f1 = Dataset(args.base_file, "r+")
 
 # Detect dycore for base file
-dycore_base = detect_dycore(f1)
+dycore_base = detect_dycore_nc(f1)
 print(f"Detected dycore for base file: {dycore_base}")
 
 # Check if dycores match
@@ -150,8 +92,8 @@ if dycore_top != dycore_base:
 
 print("Tapering data with sigmoid function near boundary")
 # Build weights matrix + expand for 3D and 2D
-weights = 1 - sigmoid_weight(dists,threshold=250, scale=50)
-#weights = 1 - sigmoid_weight(dists,threshold=1, scale=0.0001)
+weights = 1 - sigmoid_weight_horiz(dists,threshold=250, scale=50)
+#weights = 1 - sigmoid_weight_horiz(dists,threshold=1, scale=0.0001)
 weights_2d = weights.reshape(1, -1)
 weights_2d = np.where(PS_rgm.mask,1,weights_2d)
 weights_3d = weights.reshape(1, 1, -1)
@@ -167,10 +109,10 @@ for var_name in variables_to_process:
     print(f"Processing {var_name}...")
 
     # Load regional variable
-    var_rgm = load_variable(f2, dycore_top, var_name)
+    var_rgm = load_variable_blending(f2, dycore_top, var_name)
 
     # Load base variable
-    var_base = load_variable(f1, dycore_base, var_name)
+    var_base = load_variable_blending(f1, dycore_base, var_name)
 
     if var_name == 'PS':
         # 2D variable processing
@@ -192,7 +134,7 @@ for var_name in variables_to_process:
         var_final = np.where(~var_rgm.mask, var_rgm, var_base)
 
     # Save the processed variable
-    save_variable(f1, dycore_base, var_name, var_final)
+    save_variable_blending(f1, dycore_base, var_name, var_final)
 
     f1.sync()  # Force write to disk
 
