@@ -521,7 +521,7 @@ def keyword_values(namelist_file, key, return_type, default=None, verbose=False)
                 if '=' in line:
                     k, v = [x.strip() for x in line.split('=', 1)]  # Strip whitespace around key and value
                     # If we found the key
-                    if k == key:
+                    if k.lower() == key.lower():
                         # Strip quotes before type conversion
                         v = strip_unescaped_quotes(v)
 
