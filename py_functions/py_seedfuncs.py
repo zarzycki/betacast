@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import meteo
 import packing
 from constants import (
-    grav
+    grav, Rd, Re_m, Re_km
 )
 
 logger = logging.getLogger(__name__)
@@ -169,10 +169,10 @@ def gc_latlon(lat1, lon1, lat2, lon2, npts, iu):
         radius = 180 / np.pi  # Degrees
         unit_str = "degrees"
     elif abs(iu) == 3:
-        radius = 6371220.0  # Meters
+        radius = Re_m  # Meters
         unit_str = "meters"
     elif abs(iu) == 4:
-        radius = 6371.220  # Kilometers
+        radius = Re_km  # Kilometers
         unit_str = "kilometers"
     else:
         raise ValueError("Invalid value for 'iu'. Must be 1, 2, 3, or 4.")
@@ -267,9 +267,9 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
         modify_q_mult = 1.0  # Default value
 
     # Constants
-    a = 6371220.  # Earth's Radius (m)
-    Rd = 287.0  # Ideal gas const dry air (J kg^-1 K^1)
-    g = 9.80616  # Gravity (m s^2)
+    a = Re_m  # Earth's Radius (m)
+    #Rd = 287.0  # Ideal gas const dry air (J kg^-1 K^1)
+    g = grav  # Gravity (m s^2)
     omega = 7.292115e-5  # angular velocity 1/s
     convert = 180. / pi  # conversion factor: radians to degrees
     q0 = 0.021  # q at surface from Jordan
@@ -394,9 +394,9 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
 
 def get_rp_from_dp_rmw(cen_lat, dp, target_rmw, debug=False):
     # Constants
-    a = 6371220.  # Earth's Radius (m)
-    Rd = 287.0  # Ideal gas const dry air (J kg^-1 K^1)
-    g = 9.80616  # Gravity (m s^2)
+    a = Re_m  # Earth's Radius (m)
+    #Rd = 287.0  # Ideal gas const dry air (J kg^-1 K^1)
+    g = grav  # Gravity (m s^2)
     omega = 7.292115e-5  # angular velocity 1/s
     convert = 180. / pi  # conversion factor: radians to degrees
     Ts0 = 302.0  # Surface temperature (SST)

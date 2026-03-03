@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 import glob
+import os
 import sys
 import cfgrib
 
@@ -17,6 +18,7 @@ from constants import (
 import logging
 logger = logging.getLogger(__name__)
 
+#### Generic
 
 def load_cam_levels(PATHTOHERE, numlevels, load_xarray=False):
     """
@@ -60,6 +62,103 @@ def load_cam_levels(PATHTOHERE, numlevels, load_xarray=False):
     logging.info(f"Loading {numlevels} level data")
 
     return data
+
+def open_nc_dataset(data_filename):
+    """Open a NetCDF file as an xarray Dataset."""
+    return xr.open_dataset(data_filename)
+
+def inspect_GRIB_file(data_filename):
+    """Safely inspect GRIB file contents by opening all datasets separately"""
+    datasets = cfgrib.open_datasets(data_filename)
+
+    print(f"Found {len(datasets)} separate datasets in the file:")
+    for i, ds in enumerate(datasets):
+        print(f"\nDataset {i}:")
+        print(f"  Variables: {list(ds.data_vars.keys())}")
+        print(f"  Coordinates: {list(ds.coords.keys())}")
+        if 'typeOfLevel' in ds.attrs:
+            print(f"  typeOfLevel: {ds.attrs['typeOfLevel']}")
+        if hasattr(ds, 'level') and 'level' in ds.coords:
+            print(f"  Levels: {ds.coords['level'].values}")
+
+    # Close all datasets
+    for ds in datasets:
+        ds.close()
+
+def flip_level_dimension(data_vars, state_dimensions=3):
+    """
+    Flips the 'lev' dimension and all relevant 3-D arrays in data_vars if 'lev' is in descending order.
+
+    Parameters:
+    data_vars (dict): A dictionary containing arrays, where 'lev' is a key representing the levels and
+                      3-D arrays need to be flipped if 'lev' is descending.
+
+    Returns:
+    dict: An updated version of data_vars with 'lev' and relevant 3-D arrays flipped if needed.
+    """
+    if np.all(np.diff(data_vars['lev']) < 0):
+        logging.info("'lev' is in descending order, flipping all 3-D variables and 'lev' array.")
+
+        # Flip 'lev' array
+        data_vars['lev'] = data_vars['lev'][::-1]
+
+        # Flip all 3-D arrays in data_vars
+        for var_name, var_value in data_vars.items():
+            if isinstance(var_value, np.ndarray) and var_value.ndim == state_dimensions:
+                logging.debug(f"Flipping 3-D array: {var_name}")
+                data_vars[var_name] = var_value[::-1, :, :]
+
+    return data_vars
+
+
+#### Sample data
+
+# Alias since we are just loading a netcdf file
+load_SAMPLE_file = open_nc_dataset
+
+def load_SAMPLE_data(data_filename, dycore=None):
+
+    # Dictionary to store the variables
+    data_vars = {}
+
+    # Load the sample dataset
+    grb_file = load_SAMPLE_file(data_filename)
+
+    data_vars['ps'] = grb_file.sp[0,:,:].values
+    data_vars['t'] = grb_file.t[0,:,:,:].values
+    data_vars['u'] = grb_file.u[0,:,:,:].values
+    data_vars['v'] = grb_file.v[0,:,:,:].values
+    data_vars['q'] = grb_file.q[0,:,:,:].values
+    data_vars['cldice'] = grb_file.ciwc[0,:,:,:].values
+    data_vars['cldliq'] = grb_file.clwc[0,:,:,:].values
+
+    data_vars['lat'] = grb_file.latitude.values.astype(float)
+    data_vars['lon'] = grb_file.longitude.values.astype(float)
+    data_vars['lev'] = grb_file.pressure_level.values.astype(float) * 100.
+
+    data_vars['ts'] = grb_file.t2m[0,:,:].values
+    data_vars['phis'] = grb_file.phis[0,:,:].values
+
+    # Load additional variables for MPAS dycore
+    if dycore == 'mpas':
+        data_vars['w'] = grb_file.w[0,:,:,:].values
+        data_vars['w_is_omega'] = True
+        data_vars['z'] = grb_file.z[0,:,:,:].values
+        data_vars['z_is_phi'] = True
+
+    # Flip ordering of levels to go from bottom to top
+    data_vars = flip_level_dimension(data_vars)
+
+    # Close the file
+    grb_file.close()
+
+    return data_vars
+
+
+#### ERA5
+
+# Alias since we are just loading a netcdf file
+load_ERA5_file = open_nc_dataset
 
 def load_ERA5RDA_variable(varname, the_dir, var_code, yearstr, monthstr, daystr, cyclestr, return_coords=False, return_hycoef=False):
     """
@@ -120,46 +219,6 @@ def load_ERA5RDA_variable(varname, the_dir, var_code, yearstr, monthstr, daystr,
         rda_file.close()
         return rda_data
 
-
-def load_SAMPLE_data(data_filename, dycore=None):
-
-    # Dictionary to store the variables
-    data_vars = {}
-
-    # Load the GRIB file
-    grb_file = load_ERA5_file(data_filename)
-
-    data_vars['ps'] = grb_file.sp[0,:,:].values
-    data_vars['t'] = grb_file.t[0,:,:,:].values
-    data_vars['u'] = grb_file.u[0,:,:,:].values
-    data_vars['v'] = grb_file.v[0,:,:,:].values
-    data_vars['q'] = grb_file.q[0,:,:,:].values
-    data_vars['cldice'] = grb_file.ciwc[0,:,:,:].values
-    data_vars['cldliq'] = grb_file.clwc[0,:,:,:].values
-
-    data_vars['lat'] = grb_file.latitude.values.astype(float)
-    data_vars['lon'] = grb_file.longitude.values.astype(float)
-    data_vars['lev'] = grb_file.pressure_level.values.astype(float) * 100.
-
-    data_vars['ts'] = grb_file.t2m[0,:,:].values
-    data_vars['phis'] = grb_file.phis[0,:,:].values
-
-    # Load additional variables for MPAS dycore
-    if dycore == 'mpas':
-        data_vars['w'] = grb_file.w[0,:,:,:].values
-        data_vars['w_is_omega'] = True
-        data_vars['z'] = grb_file.z[0,:,:,:].values
-        data_vars['z_is_phi'] = True
-
-    # Flip ordering of levels to go from bottom to top
-    data_vars = flip_level_dimension(data_vars)
-
-    # Close the file
-    grb_file.close()
-
-    return data_vars
-
-
 def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore, get_chemistry=False):
     # Define directories
     pl_dir = f"{RDADIR}/e5.oper.an.pl/{yearstr}{monthstr}"
@@ -203,6 +262,83 @@ def load_ERA5RDA_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr
 
     return data_vars
 
+def load_ERA5mlRDA_data(RDADIR, data_filename, VERT_COORD_PATH, yearstr, monthstr, daystr, cyclestr, dycore):
+    # Define directories
+    ml_dir = f"{RDADIR}/e5.oper.an.ml/{yearstr}{monthstr}"
+
+    # Dictionary to store the variables
+    data_vars = {}
+
+    # Get levs data from a CSV file
+    # https://confluence.ecmwf.int/display/UDOC/L137+model+level+definitions
+    data_vars['lev'] = np.array(pyfuncs.load_csv_column(f"{VERT_COORD_PATH}/era5_levs.csv", "pf [hPa]"), dtype=np.float32)
+    data_vars['lev'] = data_vars['lev'] * 100.    # mb to Pa
+    logging.debug(f"ERA5 model level nominal plevs: {data_vars['lev'][:3]} ... {data_vars['lev'][-3:]}")
+
+    _, data_vars['lat'], data_vars['lon'], _, hyam, hybm, hyai, hybi = load_ERA5RDA_variable('T', ml_dir, "e5.oper.an.ml.0_5_0_0_0_t.regn320sc", yearstr, monthstr, daystr, cyclestr, return_hycoef=True)
+
+    # Load required variables
+    data_vars['ps'] = load_ERA5RDA_variable('SP', ml_dir, "e5.oper.an.ml.128_134_sp.regn320sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['t'] = load_ERA5RDA_variable('T', ml_dir, "e5.oper.an.ml.0_5_0_0_0_t.regn320sc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['u'] = load_ERA5RDA_variable('U', ml_dir, "e5.oper.an.ml.0_5_0_2_2_u.regn320uv", yearstr, monthstr, daystr, cyclestr)
+    data_vars['v'] = load_ERA5RDA_variable('V', ml_dir, "e5.oper.an.ml.0_5_0_2_3_v.regn320uv", yearstr, monthstr, daystr, cyclestr)
+    data_vars['q'] = load_ERA5RDA_variable('Q', ml_dir, "e5.oper.an.ml.0_5_0_1_0_q.regn320sc", yearstr, monthstr, daystr, cyclestr)
+
+    if dycore == 'mpas':
+        data_vars['w'] = load_ERA5RDA_variable('W', ml_dir, "e5.oper.an.ml.0_5_0_2_8_w.regn320sc", yearstr, monthstr, daystr, cyclestr)
+        data_vars['w_is_omega'] = True
+
+    # Get lowest model level t for ts
+    data_vars['ts'] = data_vars['t'][-1, :, :]
+
+    ds = load_ERA5_file(data_filename)
+    data_vars['phis'] = ds["Z"].isel(time=0).values
+    ds.close()
+
+    if dycore == 'mpas':
+        data_vars['w_is_omega'] = False
+        tkv = data_vars['t'] * (1. + 0.61 * data_vars['q'])
+        data_vars['z'] = cam2cam.cz2ccm(data_vars['ps'], data_vars['phis'], tkv, p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
+        data_vars['z_is_phi'] = False
+
+    # Convert dry to wet?
+    # data_vars['psdry'], data_vars['pw'] = meteo.ps_wet_to_dry_conversion(data_vars['ps'], data_vars['q'], hyai, hybi, p0, verbose=True)
+
+    # Vertically interpolate the hybrid levels to constant pressure surfaces
+    # We are essentially going to set the p levs to the nominal p levs from ECMWF
+    data_vars = vertremap.interp_hybrid_to_pressure_wrapper(
+        data_vars=data_vars,
+        ps=data_vars['ps'],
+        hyam=hyam,
+        hybm=hybm,
+        new_levels=data_vars['lev']
+        )
+
+    # Create a 3-D pressure field from constant pressure surfaces
+    data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
+
+    # No cloud ice/liq, so set these to zero same shape as interpolated t
+    data_vars['cldice'] = np.zeros_like(data_vars['t'])
+    data_vars['cldliq'] = np.zeros_like(data_vars['t'])
+
+    pyfuncs.print_min_max_dict(data_vars)
+
+    return data_vars
+
+
+#### CFSR
+
+def get_CFSR_levels_for_var(grb_file_name, variable):
+    grb_file = load_CFSR_file(grb_file_name, 'isobaricInhPa', variable)
+    levels = grb_file.coords['isobaricInhPa'].values * 100.0
+    grb_file.close()
+    return levels
+
+def get_CFSR_coords_for_var(grb_file_name, variable, coord, filter_arg='isobaricInhPa'):
+    grb_file = load_CFSR_file(grb_file_name, filter_arg, variable)
+    coords = grb_file.coords[coord].values
+    grb_file.close()
+    return coords
 
 def load_CFSR_file(data_filename,TYPE_OF_LEVEL,VAR_SHORTNAME):
     return xr.open_dataset(
@@ -216,52 +352,12 @@ def load_CFSR_file(data_filename,TYPE_OF_LEVEL,VAR_SHORTNAME):
         }
     )
 
-def open_nc_dataset(data_filename):
-    """Open a NetCDF file as an xarray Dataset."""
-    return xr.open_dataset(data_filename)
-
-# Aliases for readability at call sites
-load_ERA5_file = open_nc_dataset
-load_CAM_file = open_nc_dataset
-
-
-def inspect_GRIB_file(data_filename):
-    """Safely inspect GRIB file contents by opening all datasets separately"""
-    datasets = cfgrib.open_datasets(data_filename)
-
-    print(f"Found {len(datasets)} separate datasets in the file:")
-    for i, ds in enumerate(datasets):
-        print(f"\nDataset {i}:")
-        print(f"  Variables: {list(ds.data_vars.keys())}")
-        print(f"  Coordinates: {list(ds.coords.keys())}")
-        if 'typeOfLevel' in ds.attrs:
-            print(f"  typeOfLevel: {ds.attrs['typeOfLevel']}")
-        if hasattr(ds, 'level') and 'level' in ds.coords:
-            print(f"  Levels: {ds.coords['level'].values}")
-
-    # Close all datasets
-    for ds in datasets:
-        ds.close()
-
-
 def load_CFSR_variable(grb_file, varname):
     """Helper function to load a variable from a CFSR NetCDF file."""
     if varname in grb_file.variables:
         return grb_file[varname].values
     else:
         raise KeyError(f"Variable {varname} not found in the GRIB file.")
-
-def get_CFSR_levels_for_var(grb_file_name, variable):
-    grb_file = load_CFSR_file(grb_file_name, 'isobaricInhPa', variable)
-    levels = grb_file.coords['isobaricInhPa'].values * 100.0
-    grb_file.close()
-    return levels
-
-def get_CFSR_coords_for_var(grb_file_name, variable, coord, filter_arg='isobaricInhPa'):
-    grb_file = load_CFSR_file(grb_file_name, filter_arg, variable)
-    coords = grb_file.coords[coord].values
-    grb_file.close()
-    return coords
 
 def load_and_extract_CFSR_variable(grb_file_name, level_type, variable):
     """
@@ -555,106 +651,10 @@ def load_HRRRml_data(grb_file_name, dycore):
     return data_vars
 
 
+#### CAM/E3SM src data
 
-
-
-def flip_level_dimension(data_vars, state_dimensions=3):
-    """
-    Flips the 'lev' dimension and all relevant 3-D arrays in data_vars if 'lev' is in descending order.
-
-    Parameters:
-    data_vars (dict): A dictionary containing arrays, where 'lev' is a key representing the levels and
-                      3-D arrays need to be flipped if 'lev' is descending.
-
-    Returns:
-    dict: An updated version of data_vars with 'lev' and relevant 3-D arrays flipped if needed.
-    """
-    if np.all(np.diff(data_vars['lev']) < 0):
-        logging.info("'lev' is in descending order, flipping all 3-D variables and 'lev' array.")
-
-        # Flip 'lev' array
-        data_vars['lev'] = data_vars['lev'][::-1]
-
-        # Flip all 3-D arrays in data_vars
-        for var_name, var_value in data_vars.items():
-            if isinstance(var_value, np.ndarray) and var_value.ndim == state_dimensions:
-                logging.debug(f"Flipping 3-D array: {var_name}")
-                data_vars[var_name] = var_value[::-1, :, :]
-
-    return data_vars
-
-
-def load_ERA5mlRDA_data(RDADIR, data_filename, VERT_COORD_PATH, yearstr, monthstr, daystr, cyclestr, dycore):
-    # Define directories
-    ml_dir = f"{RDADIR}/e5.oper.an.ml/{yearstr}{monthstr}"
-
-    # Dictionary to store the variables
-    data_vars = {}
-
-    # Get levs data from a CSV file
-    # https://confluence.ecmwf.int/display/UDOC/L137+model+level+definitions
-    data_vars['lev'] = np.array(pyfuncs.load_csv_column(f"{VERT_COORD_PATH}/era5_levs.csv", "pf [hPa]"), dtype=np.float32)
-    data_vars['lev'] = data_vars['lev'] * 100.    # mb to Pa
-    logging.debug(f"ERA5 model level nominal plevs: {data_vars['lev'][:3]} ... {data_vars['lev'][-3:]}")
-
-    _, data_vars['lat'], data_vars['lon'], _, hyam, hybm, hyai, hybi = load_ERA5RDA_variable('T', ml_dir, "e5.oper.an.ml.0_5_0_0_0_t.regn320sc", yearstr, monthstr, daystr, cyclestr, return_hycoef=True)
-
-    # Load required variables
-    data_vars['ps'] = load_ERA5RDA_variable('SP', ml_dir, "e5.oper.an.ml.128_134_sp.regn320sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['t'] = load_ERA5RDA_variable('T', ml_dir, "e5.oper.an.ml.0_5_0_0_0_t.regn320sc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['u'] = load_ERA5RDA_variable('U', ml_dir, "e5.oper.an.ml.0_5_0_2_2_u.regn320uv", yearstr, monthstr, daystr, cyclestr)
-    data_vars['v'] = load_ERA5RDA_variable('V', ml_dir, "e5.oper.an.ml.0_5_0_2_3_v.regn320uv", yearstr, monthstr, daystr, cyclestr)
-    data_vars['q'] = load_ERA5RDA_variable('Q', ml_dir, "e5.oper.an.ml.0_5_0_1_0_q.regn320sc", yearstr, monthstr, daystr, cyclestr)
-
-    if dycore == 'mpas':
-        data_vars['w'] = load_ERA5RDA_variable('W', ml_dir, "e5.oper.an.ml.0_5_0_2_8_w.regn320sc", yearstr, monthstr, daystr, cyclestr)
-        data_vars['w_is_omega'] = True
-
-    # Get lowest model level t for ts
-    data_vars['ts'] = data_vars['t'][-1, :, :]
-
-    ds = load_ERA5_file(data_filename)
-    data_vars['phis'] = ds["Z"].isel(time=0).values
-    ds.close()
-
-    if dycore == 'mpas':
-        data_vars['w_is_omega'] = False
-        tkv = data_vars['t'] * (1. + 0.61 * data_vars['q'])
-        data_vars['z'] = cam2cam.cz2ccm(data_vars['ps'], data_vars['phis'], tkv, p0, hyam[::-1], hybm[::-1], hyai[::-1], hybi[::-1])
-        data_vars['z_is_phi'] = False
-
-    # Convert dry to wet?
-    # data_vars['psdry'], data_vars['pw'] = meteo.ps_wet_to_dry_conversion(data_vars['ps'], data_vars['q'], hyai, hybi, p0, verbose=True)
-
-    # Vertically interpolate the hybrid levels to constant pressure surfaces
-    # We are essentially going to set the p levs to the nominal p levs from ECMWF
-    data_vars = vertremap.interp_hybrid_to_pressure_wrapper(
-        data_vars=data_vars,
-        ps=data_vars['ps'],
-        hyam=hyam,
-        hybm=hybm,
-        new_levels=data_vars['lev']
-        )
-
-    # Create a 3-D pressure field from constant pressure surfaces
-    data_vars['pres'] = np.broadcast_to(data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
-
-    # No cloud ice/liq, so set these to zero same shape as interpolated t
-    data_vars['cldice'] = np.zeros_like(data_vars['t'])
-    data_vars['cldliq'] = np.zeros_like(data_vars['t'])
-
-    pyfuncs.print_min_max_dict(data_vars)
-
-    return data_vars
-
-
-
-
-
-
-
-
-
+# Alias since we are just loading a netcdf file
+load_CAM_file = open_nc_dataset
 
 def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore, write_debug_files=False, write_debug_dir="./"):
 
@@ -768,5 +768,343 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 
     data_vars['cldice'] = np.zeros_like(data_vars['t'])
     data_vars['cldliq'] = np.zeros_like(data_vars['t'])
+
+    return data_vars
+
+
+#### CR20V3
+# GLOBUS NERSC HPSS
+# /home/projects/incite11/www/20C_Reanalysis_version_3/everymember_anal_netcdf/subdaily/${VAR}/
+
+def load_CR20v3_variable(varname, filepath, yearstr, monthstr, daystr, cyclestr, return_coords=False):
+    """
+    Load a single variable from a CR20v3 RDA NetCDF file, selecting the closest time.
+
+    Parameters:
+    -----------
+    varname : str
+        Variable name in the NetCDF file (e.g., 't', 'u', 'gh', 'q', 'sp').
+    filepath : str
+        Full path to the NetCDF file.
+    yearstr, monthstr, daystr, cyclestr : str
+        Date/time strings for time selection.
+    return_coords : bool, optional (default False)
+        If True, also return latitude, longitude, and level arrays.
+
+    Returns:
+    --------
+    If return_coords is True:
+        data, latitude, longitude, level (level in Pa)
+    Else:
+        data
+    """
+    ds = xr.open_dataset(filepath)
+    rda_time = ds["time"]
+    thistime = pyfuncs.find_closest_time(rda_time, yearstr, monthstr, daystr, cyclestr)
+    data = ds[varname].sel(time=thistime, method='nearest').values
+
+    logging.debug(f"load_CR20v3_variable: Getting {varname} from {filepath}")
+
+    if return_coords:
+        latitude = ds["latitude"].values.astype(float)
+        longitude = ds["longitude"].values.astype(float)
+        if "isobaricInhPa" in ds.dims:
+            level = ds["isobaricInhPa"].values.astype(float) * 100.0  # hPa -> Pa
+        else:
+            level = None
+        ds.close()
+        return data, latitude, longitude, level
+    else:
+        ds.close()
+        return data
+
+def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore):
+    """
+    Load CR20v3 (20th Century Reanalysis V3) ensemble mean analysis data.
+
+    Data at NCAR is stored as one variable per file per year:
+        {RDADIR}/anl/anl_mean_{YYYY}_{VARCODE}_pres.nc  (isobaric)
+        {RDADIR}/anl/anl_mean_{YYYY}_{VARCODE}_sfc.nc   (surface)
+        {RDADIR}/invariants/surface_height.nc            (orography, time-invariant)
+
+    Parameters:
+    -----------
+    RDADIR : str
+        Root path to the CR20v3 RDA collection (e.g., /glade/campaign/collections/rda/data/d131003).
+    data_filename : str
+        Not used for CR20v3 (kept for interface consistency). Surface geopotential is
+        loaded from the invariants directory instead.
+    yearstr, monthstr, daystr, cyclestr : str
+        Date/time strings for time selection.
+    dycore : str
+        Dynamical core identifier.
+
+    Returns:
+    --------
+    data_vars : dict
+        Dictionary of numpy arrays for Betacast pipeline.
+    """
+    # Update to point to the analyses
+    anl_dir = f"{RDADIR}/anl"
+
+    # Dictionary to store the variables
+    data_vars = {}
+
+    # 3-D isobaric variables
+    # Get coordinates from first file loaded
+    data_vars['t'], data_vars['lat'], data_vars['lon'], data_vars['lev'] = load_CR20v3_variable(
+        't', f"{anl_dir}/anl_mean_{yearstr}_TMP_pres.nc", yearstr, monthstr, daystr, cyclestr, return_coords=True)
+    data_vars['u'] = load_CR20v3_variable(
+        'u', f"{anl_dir}/anl_mean_{yearstr}_UGRD_pres.nc", yearstr, monthstr, daystr, cyclestr)
+    data_vars['v'] = load_CR20v3_variable(
+        'v', f"{anl_dir}/anl_mean_{yearstr}_VGRD_pres.nc", yearstr, monthstr, daystr, cyclestr)
+
+    # Get Q (may be on different set of levels based on NCAR RDA)
+    q_file = f"{anl_dir}/anl_mean_{yearstr}_SPFH_pres.nc"
+    q_raw, _, _, q_lev = load_CR20v3_variable(
+        'q', q_file, yearstr, monthstr, daystr, cyclestr, return_coords=True)
+
+    # Check, interpolate if the above is true
+    if q_lev.shape != data_vars['lev'].shape:
+        logging.info(f"Interpolating q from {q_lev.shape[0]} to {data_vars['lev'].shape[0]} levels")
+        data_vars['q'] = vertremap.int2p_n(q_lev, q_raw, data_vars['lev'], linlog=-2, dim=0)
+    else:
+        data_vars['q'] = q_raw
+
+    # Create a 3-D pressure field from constant pressure surfaces
+    data_vars['pres'] = np.broadcast_to(
+        data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
+
+    # MPAS-specific: omega (VVEL) and geopotential height
+    if dycore == 'mpas':
+        w_file = f"{anl_dir}/anl_mean_{yearstr}_VVEL_pres.nc"
+        w_raw, _, _, w_lev = load_CR20v3_variable(
+            'w', w_file, yearstr, monthstr, daystr, cyclestr, return_coords=True)
+
+        if w_lev.shape != data_vars['lev'].shape:
+            logging.info(f"Interpolating w from {w_lev.shape[0]} to {data_vars['lev'].shape[0]} levels")
+            data_vars['w'] = vertremap.int2p_n(w_lev, w_raw, data_vars['lev'], linlog=-2, dim=0)
+        else:
+            data_vars['w'] = w_raw
+        data_vars['w_is_omega'] = True
+
+        data_vars['z'] = load_CR20v3_variable(
+            'gh', f"{anl_dir}/anl_mean_{yearstr}_HGT_pres.nc", yearstr, monthstr, daystr, cyclestr)
+        data_vars['z_is_phi'] = False  # geopotential height in meters, not geopotential
+
+    # No cloud ice/liquid in CR20v3
+    data_vars['cldice'] = np.zeros_like(data_vars['t'])
+    data_vars['cldliq'] = np.zeros_like(data_vars['t'])
+
+    # Surface pressure
+    data_vars['ps'] = load_CR20v3_variable(
+        'sp', f"{anl_dir}/anl_mean_{yearstr}_PRES_sfc.nc", yearstr, monthstr, daystr, cyclestr)
+
+    # Surface temperature
+    data_vars['ts'] = load_CR20v3_variable(
+        't', f"{anl_dir}/anl_mean_{yearstr}_TMP_sfc.nc", yearstr, monthstr, daystr, cyclestr)
+
+    # Surface geopotential from invariants (orography in m -> multiply by g)
+    orog_file = f"{RDADIR}/invariants/surface_height.nc"
+    ds_orog = xr.open_dataset(orog_file)
+    data_vars['phis'] = ds_orog["orog"].values * grav
+    ds_orog.close()
+
+    pyfuncs.print_min_max_dict(data_vars)
+
+    # Levels are stored in descending order (1000 hPa -> 1 hPa), flip to ascending (top-to-bottom)
+    data_vars = flip_level_dimension(data_vars)
+
+    return data_vars
+
+
+#### CR20V3 individual ensemble members
+# Data from NERSC: /home/projects/incite11/www/20C_Reanalysis_version_3/everymember_anal_netcdf/
+# Each file contains one variable at one pressure level for one ensemble member:
+#   {VAR}{PLEV_hPa}.{YYYY}_mem{NNN}.nc  (3-D isobaric)
+#   {VAR}.{YYYY}_mem{NNN}.nc            (surface)
+# See data acquisition scripts for information about acquiring the data
+
+# Pressure levels available for 3-D fields (hPa)
+# https://portal.nersc.gov/project/20C_Reanalysis/abbrev_v3.html
+CR20V3_MEMBER_PLEVS_HPA = [200, 250, 300, 400, 500, 600, 650, 700, 750, 800, 850, 900, 925, 950, 975, 1000]
+
+def load_CR20v3_member_variable(varname_nc, filepath, yearstr, monthstr, daystr, cyclestr, return_coords=False):
+    """
+    Load a single variable from a CR20v3 per-member, per-level NetCDF file.
+
+    Parameters
+    ----------
+    varname_nc : str
+        Variable name in the NetCDF file (e.g., 'TMP', 'UGRD', 'PRMSL').
+    filepath : str
+        Full path to the NetCDF file.
+    yearstr, monthstr, daystr, cyclestr : str
+        Date/time strings for time selection.
+    return_coords : bool, optional (default False)
+        If True, also return latitude and longitude arrays.
+
+    Returns
+    -------
+    If return_coords is True:
+        data, latitude, longitude
+    Else:
+        data (squeezed to remove singleton plev dimension)
+    """
+    ds = xr.open_dataset(filepath)
+    rda_time = ds["time"]
+    # Get the closest time in CF-compliant format
+    thistime = pyfuncs.find_closest_time(rda_time, yearstr, monthstr, daystr, cyclestr)
+    # squeeze removes any singleton dimensions
+    data = ds[varname_nc].sel(time=thistime, method='nearest').values.squeeze()
+
+    logging.debug(f"load_CR20v3_member_variable: Getting {varname_nc} from {filepath}")
+
+    if return_coords:
+        latitude = ds["lat"].values.astype(float)
+        longitude = ds["lon"].values.astype(float)
+        ds.close()
+        return data, latitude, longitude
+    else:
+        ds.close()
+        return data
+
+
+def load_CR20v3_member_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore, member_str):
+    """
+    Load CR20v3 individual ensemble member data on isobaric surfaces.
+
+    Each variable/level is stored in a separate file:
+        {anl_dir}/{VAR}{PLEV_hPa}.{YYYY}_mem{NNN}.nc
+
+    Parameters
+    ----------
+    RDADIR : str
+        Root directory containing per-member year subdirectories.
+        Files are expected at {RDADIR}/{YYYY}/{VAR}{PLEV}.{YYYY}_mem{NNN}.nc.
+        (same format as pulled from NERSC HPSS single-member archives)
+    data_filename : str
+        Path to the surface geopotential (orography) file (e.g., surface_height.nc).
+    yearstr, monthstr, daystr, cyclestr : str
+        Date/time strings for time selection.
+    dycore : str
+        Dynamical core identifier.
+    member_str : str
+        Three-digit member string, e.g., '001'.
+
+    Returns
+    -------
+    data_vars : dict
+        Dictionary of numpy arrays for Betacast pipeline.
+    """
+
+    # Directory where files are stored is YYYY within special override of RDADIR
+    anl_dir = f"{RDADIR}/{yearstr}"
+
+    # Empty dicts
+    data_vars = {}
+
+    # Variable mapping: Betacast key -> (file prefix, NC variable name)
+    var_3d_map = {
+        't':  ('TMP',  'TMP'),
+        'u':  ('UGRD', 'UGRD'),
+        'v':  ('VGRD', 'VGRD'),
+        'q':  ('SPFH', 'SPFH'),
+    }
+
+    # Determine which pressure levels actually exist on disk
+    # A level is only included if ALL 3-D variables (TMP, UGRD, VGRD, SPFH) have files for it
+    plevs_hpa_requested = sorted(CR20V3_MEMBER_PLEVS_HPA)
+    file_prefixes = [fp for fp, _ in var_3d_map.values()]
+    plevs_hpa = []
+    missing_report = {}
+    for plev_hpa in plevs_hpa_requested:
+        missing = [fp for fp in file_prefixes
+                   if not os.path.isfile(f"{anl_dir}/{fp}{plev_hpa}.{yearstr}_mem{member_str}.nc")]
+        if not missing:
+            plevs_hpa.append(plev_hpa)
+        else:
+            missing_report[plev_hpa] = missing
+
+    # If missing_report is not empty, we have ourselves a problem!
+    if missing_report:
+        msg_lines = [f"  {plev} hPa: missing {', '.join(vars)}" for plev, vars in missing_report.items()]
+        msg = (f"CR20V3 member {member_str}, year {yearstr}: "
+               f"{len(missing_report)}/{len(plevs_hpa_requested)} levels incomplete\n"
+               + "\n".join(msg_lines) + "\n"
+               f"This may be because this pressure level has not been generated for your \n"
+               f"CR20V3 target year. You can comment out this error at your own risk, \n"
+               f"missing interior levels will be interpolated (with increasing error) \n"
+               f"and may give noisy or unstable states.")
+        # KILL SWITCH: comment out the raise to skip missing levels
+        # Only do this as your own risk -- missing 500, 600, 650 mb levels gave very unbalanced states
+        # with lots of gravity wave noise!
+        raise FileNotFoundError(msg)    # KILL SWITCH
+        for plev, vars in missing_report.items():
+            logging.warning(f"CR20V3 member: skipping level {plev} hPa (missing: {', '.join(vars)})")
+
+    # Otherwise, we have the data we need
+    logging.info(f"CR20V3 member: loading {len(plevs_hpa)}/{len(plevs_hpa_requested)} pressure levels")
+    plevs_pa = np.array(plevs_hpa, dtype=np.float64) * 100.0  # Convert to Pascals
+    data_vars['lev'] = plevs_pa
+
+    # Load 3-D isobaric variables level-by-level
+    first_var = True
+    for betacast_key, (file_prefix, nc_var) in var_3d_map.items():
+        # eg: 't', 'TMP', 'TMP'
+        slices = []
+        for plev_hpa in plevs_hpa:
+            fpath = f"{anl_dir}/{file_prefix}{plev_hpa}.{yearstr}_mem{member_str}.nc"
+            # If this is the first thing we load, get the coords, too
+            if first_var and plev_hpa == plevs_hpa[0]:
+                slc, data_vars['lat'], data_vars['lon'] = load_CR20v3_member_variable(
+                    nc_var, fpath, yearstr, monthstr, daystr, cyclestr, return_coords=True)
+            else:
+                slc = load_CR20v3_member_variable(
+                    nc_var, fpath, yearstr, monthstr, daystr, cyclestr)
+            slices.append(slc)
+        # Stack along the level axis
+        data_vars[betacast_key] = np.stack(slices, axis=0)
+        first_var = False
+
+    # Create a 3-D pressure field from constant pressure surfaces (copy t shape)
+    data_vars['pres'] = np.broadcast_to(
+        data_vars['lev'][:, np.newaxis, np.newaxis], data_vars['t'].shape)
+
+    # MPAS-specific: geopotential height and omega
+    if dycore == 'mpas':
+        z_slices = []
+        for plev_hpa in plevs_hpa:
+            fpath = f"{anl_dir}/HGT{plev_hpa}.{yearstr}_mem{member_str}.nc"
+            z_slices.append(load_CR20v3_member_variable(
+                'HGT', fpath, yearstr, monthstr, daystr, cyclestr))
+        data_vars['z'] = np.stack(z_slices, axis=0)
+        data_vars['z_is_phi'] = False  # geopotential height in meters
+        data_vars['w'] = np.zeros_like(data_vars['t'])
+        data_vars['w_is_omega'] = True
+
+    # No cloud ice/liquid in CR20v3
+    data_vars['cldice'] = np.zeros_like(data_vars['t'])
+    data_vars['cldliq'] = np.zeros_like(data_vars['t'])
+
+    # Surface pressure
+    fpath_ps = f"{anl_dir}/PRES.{yearstr}_mem{member_str}.nc"
+    data_vars['ps'] = load_CR20v3_member_variable(
+        'PRES', fpath_ps, yearstr, monthstr, daystr, cyclestr)
+
+    # Surface temperature from 2-m temperature
+    fpath_ts = f"{anl_dir}/TMP2m.{yearstr}_mem{member_str}.nc"
+    data_vars['ts'] = load_CR20v3_member_variable(
+        'TMP2m', fpath_ts, yearstr, monthstr, daystr, cyclestr)
+
+    # Surface geopotential from data_filename (orography file path)
+    ds_orog = xr.open_dataset(data_filename)
+    data_vars['phis'] = ds_orog["orog"].values * grav
+    ds_orog.close()
+
+    pyfuncs.print_min_max_dict(data_vars)
+
+    # Levels are already in ascending order (top-to-bottom), but call flip just in case
+    data_vars = flip_level_dimension(data_vars)
 
     return data_vars
