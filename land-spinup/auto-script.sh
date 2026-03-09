@@ -284,29 +284,35 @@ if [ $dataForcing -eq 0 ]; then
   fi
 elif [ $dataForcing -eq 2 ]; then
 
+  # Variable streams
   VARS=("Precip" "Solar" "TPQW")
+
   for VAR in "${VARS[@]}"; do
 
+    # Define output paths
     NEW_STREAM=./user_datm.streams.txt.CLMCRUNCEPv7.${VAR}
     DATMVARFOLDER="${BETACAST_DATM_FORCING_BASE}/${VAR}/"
 
+    # Copy the generic stream over
     cp -v ${BETACAST}/land-spinup/streams/GENERIC/user_datm.streams.txt.CLMCRUNCEPv7.${VAR} ${NEW_STREAM}
 
+    # Define a temporary filelist and store available forcing netCDF files
     TMPFILELIST=${VAR}_filelist.txt
-
     ls -1 "$DATMVARFOLDER" > ${TMPFILELIST}
-    # Temporary files for before and after the placeholder
+
+    # Temporary files for splitting the user_datm stream before and after the placeholder
     BEFORE_TEMP=$(mktemp)
     AFTER_TEMP=$(mktemp)
 
-    # Split the XML file at "FILES_HERE"
+    # Split the user_datm stream file at "FILES_HERE" (now we have two split files)
     awk "/FILES_HERE/{exit} 1" "$NEW_STREAM" > "$BEFORE_TEMP"
     awk "x==1{print} /FILES_HERE/{x=1}" "$NEW_STREAM" > "$AFTER_TEMP"
 
-    # Concatenate: before the placeholder, file list, and after the placeholder
-    cat "$BEFORE_TEMP" > "$NEW_STREAM"
-    cat ${TMPFILELIST} >> "$NEW_STREAM"
-    cat "$AFTER_TEMP" >> "$NEW_STREAM"
+    # Concatenate! Glue three files together in order
+    # BEFORE_TEMP, TMPFILELIST, AFTER_TEMP
+    cat "$BEFORE_TEMP" > "$NEW_STREAM"    # Overwrite
+    cat ${TMPFILELIST} >> "$NEW_STREAM"   # Append
+    cat "$AFTER_TEMP" >> "$NEW_STREAM"    # Append
 
     # Remove any trailing newlines at the end of the file
     sed -i '/^$/d' "$NEW_STREAM"
@@ -314,7 +320,7 @@ elif [ $dataForcing -eq 2 ]; then
     # Clean up temporary files
     rm -v "$BEFORE_TEMP" "$AFTER_TEMP" "$TMPFILELIST"
 
-    #### Other stuff
+    # Replace path placeholders
     sed -i "s?\${BETACAST_STREAMBASE}?${DATMVARFOLDER}?g" "$NEW_STREAM"
     sed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" "$NEW_STREAM"
   done
