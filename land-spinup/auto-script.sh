@@ -33,9 +33,9 @@ NAMELISTFILE=${8}
 
 ### Check if BETACAST_ANOMYEAR is positive integer -- if yes, add deltas, if no, nothing
 if [ $BETACAST_ANOMYEAR -lt 1 ]; then
-  addDeltas=1 ; echo "We are NOT adding deltas..."
+  addDeltas=0 ; echo "We are NOT adding deltas..."
 else
-  addDeltas=0 ; echo "We ARE adding deltas..."
+  addDeltas=1 ; echo "We ARE adding deltas..."
 fi
 
 # Read the namelist
@@ -121,9 +121,9 @@ echo "NMONTHSSPIN: ${NMONTHSSPIN} / NMONTHSSPIN_WITH_CYCLES: ${NMONTHSSPIN_WITH_
 
 ### Print diagnostics
 # This is the actual start date the model sees
-MODEL_STARTDATE=`date -d "${FORECASTYEAR}${FORECASTMON}${FORECASTDAY} - ${NMONTHSSPIN_WITH_CYCLES} months" "+%Y-%m-%d"`
+MODEL_STARTDATE=$(date -d "${FORECASTYEAR}${FORECASTMON}${FORECASTDAY} - ${NMONTHSSPIN_WITH_CYCLES} months" "+%Y-%m-%d")
 # This is the first year of the DATM stream required
-DATM_STARTYEAR=`date -d "${FORECASTYEAR}${FORECASTMON}${FORECASTDAY} - ${NMONTHSSPIN} months" "+%Y"`
+DATM_STARTYEAR=$(date -d "${FORECASTYEAR}${FORECASTMON}${FORECASTDAY} - ${NMONTHSSPIN} months" "+%Y")
 # Some other variables that may be helpful
 FORECASTYEARM1=$((FORECASTYEAR-1))
 FORECASTYEARP1=$((FORECASTYEAR+1))
@@ -137,21 +137,32 @@ if [ $dataForcing -eq 0 ]; then
   DATMMINYR=1980
   DATMMAXYR=2024
   BETACAST_DATMDOMAIN_FILE="era5-domain.nc"
+elif [ $dataForcing -eq 1 ]; then
+  echo "Using CRUNCEP DATM"
+  # Note, these are just dummy years
+  DATMMINYR=1901
+  DATMMAXYR=2016
+  BETACAST_DATMDOMAIN_FILE=""
 elif [ $dataForcing -eq 2 ]; then
   echo "Using Hyperion DATM"
   DATMMINYR=1984
   DATMMAXYR=2014
   BETACAST_DATMDOMAIN_FILE="era5-domain.nc"
 elif [ $dataForcing -eq 3 ]; then
-  echo "Using 20CRV3"
+  echo "Using CR20V3"
   DATMMINYR=1850
   DATMMAXYR=2015
-  BETACAST_DATMDOMAIN_FILE="20crv3-domain.nc"
+  BETACAST_DATMDOMAIN_FILE="cr20v3-domain.nc"
 else
-  echo "Using CRUNCEP DATM"
+  echo "ERROR: Unknown dataForcing value: $dataForcing"
+  exit 1
 fi
 
 if [ $NMONTHSSPIN -eq 0 ]; then
+  if [ -z "${DATMMINYR}" ] || [ -z "${DATMMAXYR}" ]; then
+    echo "ERROR: NMONTHSSPIN=0 requires DATMMINYR and DATMMAXYR to be set, but dataForcing=$dataForcing did not define them."
+    exit 1
+  fi
   echo "NMONTHSSPIN set to 0, we are using entire stream period $DATMMINYR to $DATMMAXYR"
   DATM_STARTYEAR=$DATMMINYR
   FORECASTYEAR=$DATMMAXYR
@@ -178,7 +189,7 @@ elif { [ $dataForcing -eq 0 ] || [ $dataForcing -eq 2 ] || [ $dataForcing -eq 3 
   echo "STOP"
   exit 1
 fi
-if (( addDeltas == 0 && DATM_STARTYEAR < 1920 )); then
+if (( addDeltas == 1 && DATM_STARTYEAR < 1920 )); then
   echo "Anomaly in $DATM_STARTYEAR requested but no anomaly forcing (currently) before 1920."
   echo "Either edit the script or manually add your file:"
   echo "(set BETACAST_ANOMALIGN=1920 to clear this message)"
@@ -189,7 +200,7 @@ fi
 
 ICASENAME=${ICASENAME/RESSTRING/$RESOL}
 ICASENAME=${ICASENAME}_${FORECASTDATE}_$(printf "%03d\n" $NMONTHSSPIN)_$(printf "%02d\n" $NCYCLES)
-if [ $addDeltas -eq 0 ]; then
+if [ $addDeltas -eq 1 ]; then
   ICASENAME=${ICASENAME}_${BETACAST_ANOMYEAR}
 fi
 
@@ -239,7 +250,6 @@ echo "BETACAST_ANOMALIGN: "${BETACAST_ANOMALIGN}
 echo "BETACAST_DATMDOMAIN: "${BETACAST_DATMDOMAIN}
 echo "BETACAST_DATM_FORCING_BASE: "${BETACAST_DATM_FORCING_BASE}
 echo "BETACAST_DATM_ANOMALY_BASE: "${BETACAST_DATM_ANOMALY_BASE}
-echo "CIMEROOT: "${CIMEROOT}
 echo "PATHTOCASE: "${PATHTOCASE}
 echo "ICASENAME: "${ICASENAME}
 echo "PROJECT: "${PROJECT}
@@ -250,7 +260,6 @@ echo "RUNQUEUE: "${RUNQUEUE}
 echo "USER_JOB_PRIORITY: "${USER_JOB_PRIORITY}
 echo "WALLCLOCK: "${WALLCLOCK}
 echo "BUILD_ONLY: "${BUILD_ONLY}
-echo "ICASENAME: "${ICASENAME}
 echo "USER_FSURDAT: "${USER_FSURDAT}
 echo "USER_FINIDAT: "${USER_FINIDAT}
 echo "COMPSET: "${COMPSET}
@@ -284,96 +293,99 @@ xmlchange_verbose "DOUT_S" "FALSE"
 #   echo "NMONTHSSPIN is zero (--> $NMONTHSSPIN), no update to STOP_DATE"
 # fi
 
-if [ "$COUPLER" == "mct" ]; then
-  # Variable streams
-  VARS=("Precip" "Solar" "TPQW")
+# Only do user_datm files if "not supported" by default
+if [ $dataForcing -ne 1 ] ; then
+  # Now we need to do different things for different couplers
+  if [ "$COUPLER" == "mct" ]; then
+    # Variable streams
+    VARS=("Precip" "Solar" "TPQW")
 
-  for VAR in "${VARS[@]}"; do
+    for VAR in "${VARS[@]}"; do
 
-    # Define output paths
-    NEW_STREAM=./user_datm.streams.txt.CLMCRUNCEPv7.${VAR}
-    DATMVARFOLDER="${BETACAST_DATM_FORCING_BASE}/${VAR}/"
+      # Define output paths
+      NEW_STREAM=./user_datm.streams.txt.CLMCRUNCEPv7.${VAR}
+      DATMVARFOLDER="${BETACAST_DATM_FORCING_BASE}/${VAR}/"
 
-    # Copy the generic stream over
-    cp -v ${BETACAST}/land-spinup/streams/GENERIC/user_datm.streams.txt.CLMCRUNCEPv7.${VAR} ${NEW_STREAM}
+      # Copy the generic stream over
+      cp -v ${BETACAST}/land-spinup/streams/GENERIC/user_datm.streams.txt.CLMCRUNCEPv7.${VAR} ${NEW_STREAM}
 
-    # Define a temporary filelist and store available forcing netCDF files
-    TMPFILELIST=${VAR}_filelist.txt
-    shopt -s nullglob
+      # Define a temporary filelist and store available forcing netCDF files
+      TMPFILELIST=${VAR}_filelist.txt
+      shopt -s nullglob
 
-    full_file_list=false
-    if [ "$full_file_list" = "true" ]; then
-      # Include all NetCDF files (old method)
-      files=("$DATMVARFOLDER"/*.nc)
-      #./xmlchange DATM_CLMNCEP_YR_ALIGN=${DATMMINYR}
-    else
-      # Include only files containing YYYY between DATM_STARTYEAR and FORECASTYEAR
-      files=()
-      for ((yr=DATM_STARTYEAR; yr<=FORECASTYEAR; yr++)); do
-        files+=("$DATMVARFOLDER"/*.${yr}-*.nc)
-      done
-    fi
+      full_file_list=false
+      if [ "$full_file_list" = "true" ]; then
+        # Include all NetCDF files (old method)
+        files=("$DATMVARFOLDER"/*.nc)
+      else
+        # Include only files containing YYYY between DATM_STARTYEAR and FORECASTYEAR
+        files=()
+        for ((yr=DATM_STARTYEAR; yr<=FORECASTYEAR; yr++)); do
+          files+=("$DATMVARFOLDER"/*.${yr}-*.nc)
+        done
+      fi
 
-    # Exit if no NetCDF files are found
-    if [ ${#files[@]} -eq 0 ]; then
-      echo "ERROR: No NetCDF forcing files found in $DATMVARFOLDER" >&2
-      exit 1
-    fi
+      # Exit if no NetCDF files are found
+      if [ ${#files[@]} -eq 0 ]; then
+        echo "ERROR: No NetCDF forcing files found in $DATMVARFOLDER" >&2
+        exit 1
+      fi
 
-    # Write filenames (not full paths) to the file list
-    printf "%s\n" "${files[@]##*/}" > "$TMPFILELIST"
+      # Write filenames (not full paths) to the file list
+      printf "%s\n" "${files[@]##*/}" > "$TMPFILELIST"
 
-    # Verify expected number of files (12 per year)
-    expected_files=$(( (FORECASTYEAR - DATM_STARTYEAR + 1) * 12 ))
-    actual_files=${#files[@]}
-    if [ "$actual_files" -ne "$expected_files" ]; then
-      echo "ERROR: Forcing file count mismatch in $DATMVARFOLDER" >&2
-      echo "Expected files : $expected_files  (years ${DATM_STARTYEAR}-${FORECASTYEAR}, 12/month)" >&2
-      echo "Actual files   : $actual_files" >&2
-      exit 1
-    else
-      echo "OK: Forcing file count verified in $DATMVARFOLDER"
-      echo "Files found    : $actual_files"
-      echo "Expected files : $expected_files  (years ${DATM_STARTYEAR}-${FORECASTYEAR}, 12/month)"
-    fi
+      # Verify expected number of files (12 per year)
+      expected_files=$(( (FORECASTYEAR - DATM_STARTYEAR + 1) * 12 ))
+      actual_files=${#files[@]}
+      if [ "$actual_files" -ne "$expected_files" ]; then
+        echo "ERROR: Forcing file count mismatch in $DATMVARFOLDER" >&2
+        echo "Expected files : $expected_files  (years ${DATM_STARTYEAR}-${FORECASTYEAR}, 12/month)" >&2
+        echo "Actual files   : $actual_files" >&2
+        exit 1
+      else
+        echo "OK: Forcing file count verified in $DATMVARFOLDER"
+        echo "Files found    : $actual_files"
+        echo "Expected files : $expected_files  (years ${DATM_STARTYEAR}-${FORECASTYEAR}, 12/month)"
+      fi
 
-    # Temporary files for splitting the user_datm stream before and after the placeholder
-    BEFORE_TEMP=$(mktemp)
-    AFTER_TEMP=$(mktemp)
+      # Temporary files for splitting the user_datm stream before and after the placeholder
+      BEFORE_TEMP=$(mktemp)
+      AFTER_TEMP=$(mktemp)
 
-    # Split the user_datm stream file at "FILES_HERE" (now we have two split files)
-    awk "/FILES_HERE/{exit} 1" "$NEW_STREAM" > "$BEFORE_TEMP"
-    awk "x==1{print} /FILES_HERE/{x=1}" "$NEW_STREAM" > "$AFTER_TEMP"
+      # Split the user_datm stream file at "FILES_HERE" (now we have two split files)
+      awk "/FILES_HERE/{exit} 1" "$NEW_STREAM" > "$BEFORE_TEMP"
+      awk "x==1{print} /FILES_HERE/{x=1}" "$NEW_STREAM" > "$AFTER_TEMP"
 
-    # Concatenate! Glue three files together in order
-    # BEFORE_TEMP, TMPFILELIST, AFTER_TEMP
-    cat "$BEFORE_TEMP" > "$NEW_STREAM"    # Overwrite
-    cat ${TMPFILELIST} >> "$NEW_STREAM"   # Append
-    cat "$AFTER_TEMP" >> "$NEW_STREAM"    # Append
+      # Concatenate! Glue three files together in order
+      # BEFORE_TEMP, TMPFILELIST, AFTER_TEMP
+      cat "$BEFORE_TEMP" > "$NEW_STREAM"    # Overwrite
+      cat ${TMPFILELIST} >> "$NEW_STREAM"   # Append
+      cat "$AFTER_TEMP" >> "$NEW_STREAM"    # Append
 
-    # Remove any trailing newlines at the end of the file
-    vsed -i '/^$/d' "$NEW_STREAM"
+      # Remove any trailing newlines at the end of the file
+      vsed -i '/^$/d' "$NEW_STREAM"
 
-    # Clean up temporary files
-    rm -v "$BEFORE_TEMP" "$AFTER_TEMP" "$TMPFILELIST"
+      # Clean up temporary files
+      rm -v "$BEFORE_TEMP" "$AFTER_TEMP" "$TMPFILELIST"
 
-    # Replace path placeholders
-    vsed -i "s?\${BETACAST_STREAMBASE}?${DATMVARFOLDER}?g" "$NEW_STREAM"
-    vsed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" "$NEW_STREAM"
-    vsed -i "s?\${BETACAST_DATMDOMAIN_FILE}?${BETACAST_DATMDOMAIN_FILE}?g" "$NEW_STREAM"
-  done
+      # Replace path placeholders
+      vsed -i "s?\${BETACAST_STREAMBASE}?${DATMVARFOLDER}?g" "$NEW_STREAM"
+      vsed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" "$NEW_STREAM"
+      vsed -i "s?\${BETACAST_DATMDOMAIN_FILE}?${BETACAST_DATMDOMAIN_FILE}?g" "$NEW_STREAM"
+    done
 
-elif [ "$COUPLER" == "nuopc" ]; then
-  echo "COUPLER is nuopc"
-  cp -v ${BETACAST}/land-spinup/streams/nuopc/user_nl_datm_streams .
-  vsed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_DATM_FORCING_BASE}?g" user_nl_datm_streams
-  vsed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_nl_datm_streams
-else
-  echo "Error: COUPLER must be either 'mct' or 'nuopc'"
-  exit 1
+  elif [ "$COUPLER" == "nuopc" ]; then
+    echo "COUPLER is nuopc"
+    cp -v ${BETACAST}/land-spinup/streams/nuopc/user_nl_datm_streams .
+    vsed -i "s?\${BETACAST_STREAMBASE}?${BETACAST_DATM_FORCING_BASE}?g" user_nl_datm_streams
+    vsed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_nl_datm_streams
+  else
+    echo "Error: COUPLER must be either 'mct' or 'nuopc'"
+    exit 1
+  fi
 fi
 
-if [ $addDeltas -eq 0 ]; then
+if [ $addDeltas -eq 1 ]; then
   echo "Injecting anomaly DATM streams"
   cp ${BETACAST}/land-spinup/streams/user_datm.streams.txt.Anomaly.* .
   #REPLACEDIR
