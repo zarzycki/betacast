@@ -15,7 +15,7 @@
 	  ${BETACAST_DATMDOMAIN}
   </filePath>
   <fileNames>
-     era5-domain.nc
+     ${BETACAST_DATMDOMAIN_FILE}
   </fileNames>
 </domainInfo>
 <fieldInfo>
