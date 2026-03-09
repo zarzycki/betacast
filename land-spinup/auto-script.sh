@@ -66,6 +66,12 @@ if [ -z "${COUPLER+x}" ]; then COUPLER="mct"; fi
 check_bool "BUILD_ONLY" $BUILD_ONLY
 check_bool "FORCE_PURGE" $FORCE_PURGE
 
+# Validate FORCE_PURGE requires RUN_DIR_BASE
+if [ "$FORCE_PURGE" = "true" ] && [ -z "$RUN_DIR_BASE" ]; then
+  echo "ERROR: FORCE_PURGE=true requires RUN_DIR_BASE to be set in the namelist."
+  exit 1
+fi
+
 # Derived settings that should be same between all machines
 BETACAST_DATMDOMAIN=${BETACAST}/land-spinup/gen_datm/gen-datm/
 BETACAST_ANOMALIGN=1920
