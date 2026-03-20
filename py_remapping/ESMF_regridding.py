@@ -676,8 +676,14 @@ def latlon_to_SCRIP(FName, GridType, Opt):
         raise ValueError("latlon_to_SCRIP: The corner longitudes do not meet the criteria of a bounding box.")
 
     if grid_type['type'] == "degree":
-        nlat = int(BoxDiag[0] / dlat + 1)
-        nlon = int(BoxDiag[1] / dlon + 1)
+        tol = 1e-6
+        for dim, diag, d in [("lat", BoxDiag[0], dlat), ("lon", BoxDiag[1], dlon)]:
+            remainder = (diag / d) % 1.0
+            if min(remainder, 1.0 - remainder) > tol:
+                logging.warning(f"latlon_to_SCRIP: {dim} domain extent ({diag}) is not a clean multiple of d{dim} ({d}); "
+                                f"got {diag/d:.6f} intervals. Grid may not align as expected.")
+        nlat = int(round(BoxDiag[0] / dlat) + 1)
+        nlon = int(round(BoxDiag[1] / dlon) + 1)
         lat = np.linspace(0,BoxDiag[0], nlat)
         lon = np.linspace(0,BoxDiag[1], nlon)
     elif grid_type['type'] == "gaussian":
