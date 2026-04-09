@@ -24,16 +24,95 @@ logging.basicConfig(
 
 # Is the Betacast path available to us?
 BETACAST, PATHTOHERE = pyfuncs.get_betacast_path()
-ANLSCRIPPATH = os.path.join(BETACAST, '/grids/anl_scrip/')
+ANLSCRIPPATH = os.path.join(BETACAST, 'grids/anl_scrip/')
 
 # Argument parser
-parser = argparse.ArgumentParser(description="Generate ESMF regrid weights")
-parser.add_argument("--ANLGRID", type=str, default="era5_0.25x0.25", help="Analysis grid (e.g., era5_0.25x0.25)")
-parser.add_argument("--ANLGRIDPATH", type=str, default=ANLSCRIPPATH, help="Path to the analysis grid SCRIP files")
-parser.add_argument("--DSTGRIDNAME", type=str, default="Philadelphia_TC_grid_v2_ne128x8_pg2", help="Destination grid name")
-parser.add_argument("--DSTGRIDFILE", type=str, required=True, help="Full path to the model SCRIP file")
-parser.add_argument("--WGTFILEDIR", type=str, default="./", help="Directory to save the weight file")
-parser.add_argument("--FLIP_MODEL_AND_ANALYSIS", action="store_true", help="Flip model and analysis grid (default: False)")
+parser = argparse.ArgumentParser(
+    description=(
+        "Generate ESMF patch-interpolation weight files that map an analysis/reanalysis grid "
+        "to a model destination grid (or vice versa with --FLIP_MODEL_AND_ANALYSIS). "
+        "The output weight file is written to WGTFILEDIR and optionally compressed with ncks.\n\n"
+        "Supported analysis grids (--ANLGRID):\n"
+        "  Global grids  : era5_0.25x0.25, era5_0.3gaus, era5_2deg,\n"
+        "                  gfs_0.25x0.25, gfs_0.50x0.50\n"
+        "  Regional grids: rap_13km, hrrr_3km, hwrf_storm\n\n"
+        "Supported destination grid file formats (--DSTGRIDFILE):\n"
+        "  SCRIP (.nc)  : variables grid_center_lat / grid_corner_lat\n"
+        "  ESMF mesh    : variables nodeCoords / elementConn\n"
+        "  (Exodus files are NOT supported; convert to a physics-grid SCRIP first)\n\n"
+        "Example model SCRIP files are in betacast/grids/model_scrip/, e.g.:\n"
+        "  ne30pg3_e3sm_scrip.nc, ne30pg2_e3sm_scrip.nc, ne120pg3_e3sm_scrip.nc,\n"
+        "  ne30np4_091226_pentagons.nc, 0.9x1.25_c110307.nc, 1.9x2.5_c110308.nc"
+    ),
+    epilog=(
+        "Examples:\n"
+        "  # ERA5 0.25-deg → ne30pg3 (analysis-to-model, typical use case)\n"
+        "  python gen_analysis_to_model_wgt_file.py \\\n"
+        "      --ANLGRID era5_0.25x0.25 \\\n"
+        "      --DSTGRIDNAME ne30pg3_e3sm \\\n"
+        "      --DSTGRIDFILE /path/to/betacast/grids/model_scrip/ne30pg3_e3sm_scrip.nc \\\n"
+        "      --WGTFILEDIR /scratch/weights/\n\n"
+        "  # GFS 0.25-deg → FV 1-deg (analysis-to-model)\n"
+        "  python gen_analysis_to_model_wgt_file.py \\\n"
+        "      --ANLGRID gfs_0.25x0.25 \\\n"
+        "      --DSTGRIDNAME fv_0.9x1.25 \\\n"
+        "      --DSTGRIDFILE /path/to/betacast/grids/model_scrip/0.9x1.25_c110307.nc \\\n"
+        "      --WGTFILEDIR ./\n\n"
+        "  # ne30pg3 → ERA5 0.25-deg (model-to-analysis, for e.g. bias correction)\n"
+        "  python gen_analysis_to_model_wgt_file.py \\\n"
+        "      --ANLGRID era5_0.25x0.25 \\\n"
+        "      --DSTGRIDNAME ne30pg3_e3sm \\\n"
+        "      --DSTGRIDFILE /path/to/betacast/grids/model_scrip/ne30pg3_e3sm_scrip.nc \\\n"
+        "      --WGTFILEDIR /scratch/weights/ \\\n"
+        "      --FLIP_MODEL_AND_ANALYSIS"
+    ),
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+)
+parser.add_argument(
+    "--ANLGRID", type=str, default="era5_0.25x0.25",
+    help=(
+        "Analysis/reanalysis source grid name. "
+        "Valid options: era5_0.25x0.25, era5_0.3gaus, era5_2deg, "
+        "gfs_0.25x0.25, gfs_0.50x0.50, rap_13km, hrrr_3km, hwrf_storm. "
+        "Regional grids (rap_13km, hrrr_3km, hwrf_storm) automatically set SrcRegional=True. "
+        "Default: era5_0.25x0.25"
+    ),
+)
+parser.add_argument(
+    "--ANLGRIDPATH", type=str, default=ANLSCRIPPATH,
+    help=(
+        "Directory containing the analysis SCRIP files named <ANLGRID>_scrip.nc. "
+        f"Default: {ANLSCRIPPATH}"
+    ),
+)
+parser.add_argument(
+    "--DSTGRIDNAME", type=str, default="Philadelphia_TC_grid_v2_ne128x8_pg2",
+    help=(
+        "Short label for the destination model grid, used in the output weight filename: "
+        "map_<ANLGRID>_TO_<DSTGRIDNAME>_patc.nc. "
+        "Default: Philadelphia_TC_grid_v2_ne128x8_pg2"
+    ),
+)
+parser.add_argument(
+    "--DSTGRIDFILE", type=str, required=True,
+    help=(
+        "Full path to the model destination grid file. "
+        "Accepted formats: SCRIP (grid_center_lat/grid_corner_lat) or ESMF mesh (nodeCoords/elementConn). "
+        "Pre-built SCRIP files for common grids are in betacast/grids/model_scrip/."
+    ),
+)
+parser.add_argument(
+    "--WGTFILEDIR", type=str, default="./",
+    help="Directory where the output weight file will be written. Default: current directory",
+)
+parser.add_argument(
+    "--FLIP_MODEL_AND_ANALYSIS", action="store_true",
+    help=(
+        "Reverse the mapping direction: model → analysis instead of analysis → model. "
+        "Output filename becomes map_<DSTGRIDNAME>_TO_<ANLGRID>_patc.nc. "
+        "Default: False (analysis → model)"
+    ),
+)
 
 args = parser.parse_args()
 
@@ -115,7 +194,10 @@ if dstType in ["model", "esmf"]:
             srcGridName = seGridName
 
 # Run the regrid weight generation
-esmf_regrid_gen_weights(srcGridName, dstGridName, os.path.join(wgtFileDir, wgtFileName), Opt)
+success = esmf_regrid_gen_weights(srcGridName, dstGridName, os.path.join(wgtFileDir, wgtFileName), Opt)
+if success is False:
+    logging.error(f"Weight generation failed. Aborting.")
+    sys.exit(1)
 
 # Cleanup
 if dstType == "model":

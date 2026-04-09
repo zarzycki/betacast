@@ -843,7 +843,7 @@ def esmf_regrid_gen_weights(srcGridFile, dstGridFile, wgtFile, opt):
     # Check if ESMF_RegridWeightGen exists
     if not shutil.which(path_to_esmf):
         logging.error(f"ESMF_regrid_gen_weights: could not find {esmf_exec} executable.")
-        return
+        return False
 
     # Construct the ESMF command
     esmf_cmd = [path_to_esmf, "--source", srcGridFile, "--destination", dstGridFile, "--weight", wgtFile]
@@ -882,7 +882,7 @@ def esmf_regrid_gen_weights(srcGridFile, dstGridFile, wgtFile, opt):
     if result.returncode != 0:
         logging.error(f"ESMF_regrid_gen_weights: failed with output:\n{result.stderr}")
         logging.error(f"ESMF_regrid_gen_weights: NOTE: if error = segfault/cryptic/non-existent, may be OOM issue.")
-        return
+        return False
 
     # Remove files if requested
     if opt.get("RemoveFiles", False) or opt.get("RemoveSrcFile", False):
