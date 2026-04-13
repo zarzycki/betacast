@@ -58,7 +58,7 @@ ps = basFile.variables[var2d][:]
 
 ################## 3D
 # Figure out what 3D var we want to perturb
-potential_3d_vars = ['T', 'THETA', 'U', 'V']
+potential_3d_vars = ['T', 'THETA', 'PT', 'U', 'V']
 var3d = None
 
 for var in potential_3d_vars:
