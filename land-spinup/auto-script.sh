@@ -82,7 +82,7 @@ if [ $modelSystem -eq 0 ]; then
   EXTRAFLAGS="--run-unsupported"
   #COMPSET=I2000Clm50Sp
   #COMPSET=IHistClm60Sp
-  COMPSET="2000_DATM%GSWP3v1_CLM50%SP_SICE_SOCN_MOSART_CISM2%NOEVOLVE_SWAV"
+  COMPSET="2000_DATM%GSWP3v1_CLM50%SP_SICE_SOCN_MOSART_SGLC_SWAV"
 elif [ $modelSystem -eq 1 ]; then
   echo "Using E3SM"
   modelSystemString="elm"
