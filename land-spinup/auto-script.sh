@@ -140,7 +140,7 @@ echo "First year of DATM data (with $NCYCLES cycles) is: "${DATM_STARTYEAR}
 
 if [ $dataForcing -eq 0 ]; then
   echo "Using ERA5 DATM"
-  DATMMINYR=1980
+  DATMMINYR=1950
   DATMMAXYR=2024
   BETACAST_DATMDOMAIN_FILE="era5-domain.nc"
 elif [ $dataForcing -eq 1 ]; then
