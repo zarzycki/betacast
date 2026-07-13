@@ -21,8 +21,8 @@ echo "parallel location: $(which parallel)"
 
 NUMCORES=4
 
-STYR=2023
-ENYR=2024
+STYR=1950
+ENYR=1979
 PATHTORAWERA5=/glade/campaign/cgd/amp/zarzycki/DATM_FORCING/raw-ERA5/
 OUTDIRBASE=/glade/campaign/cgd/amp/zarzycki/DATM_FORCING/ERA5/
 
