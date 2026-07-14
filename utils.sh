@@ -1305,3 +1305,60 @@ process_model_times() {
   fi
   echo "==============================="
 }
+
+
+# vsed: verbose sed wrapper that skips substitution if pattern is not found.
+# Uses -F (fixed-string) grep matching, so patterns are treated as literals —
+# ideal for HPC variable substitutions like s?\${VAR}?value?g.
+#
+# KNOWN EDGE CASES / LIMITATIONS:
+#   - Requires Bash 4+ (negative array indices). macOS ships Bash 3 by default.
+#   - grep -F means regex patterns in sed (e.g. s/foo.*/bar/) will not match
+#     correctly at the grep stage — grep treats them as literal strings.
+#   - Multiple -e expressions are not supported; only the first is used for
+#     the grep check. All expressions are still passed through to sed.
+#   - -i (in-place) is handled correctly and passed through to sed unchanged.
+#   - The file is assumed to be the last argument. Commands that don't follow
+#     the form [flags] expr file will misidentify the file or expression.
+#   - Non-substitution commands (e.g. /pattern/d) fall back to using the full
+#     expression as the grep pattern, which may produce unexpected results.
+vsed() {
+  local args=("$@") file expr pattern i
+
+  # Last argument is always treated as the target file
+  file="${args[-1]}"
+
+  # Walk args (excluding last) to find the sed expression:
+  # skip -i and other flags, grab value after -e, or first non-flag arg
+  for ((i = 0; i < ${#args[@]} - 1; i++)); do
+    if [[ "${args[i]}" == "-e" ]]; then
+      expr="${args[i+1]}"
+      break
+    elif [[ "${args[i]}" != -* ]]; then
+      expr="${args[i]}"
+      break
+    fi
+  done
+
+  # Extract the search pattern from s/pattern/replacement/ (any delimiter);
+  # fall back to the full expression for non-substitution commands.
+  # Note: bash [[ =~ ]] does not support backreferences (\1), so we extract
+  # the delimiter first and then use IFS-split to get the search term.
+  if [[ "$expr" =~ ^s(.) ]]; then
+    local delim="${BASH_REMATCH[1]}"
+    IFS="$delim" read -r _ pattern _ <<< "${expr:1}"
+  else
+    pattern="$expr"
+  fi
+
+  # Use -F (fixed-string) so literal chars like $, {, } aren't treated as regex
+  if grep -qF "$pattern" "$file"; then
+    echo "vsed: replacing '${pattern}' in ${file}"
+    printf "vsed:"
+    printf " %q" sed "${args[@]}"
+    printf "\n"
+    sed "${args[@]}"
+  else
+    echo "vsed: pattern '${pattern}' not found in ${file}, skipping"
+  fi
+}

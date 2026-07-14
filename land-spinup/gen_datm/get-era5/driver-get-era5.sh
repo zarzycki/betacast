@@ -5,11 +5,11 @@
 # conda activate meteo
 
 ## declare an array variable
-#declare -a months=("01" "02" "03" "04" "05" "06" "07" "08" "09" "10" "11" "12")
-declare -a months=("01" "02")
+declare -a months=("01" "02" "03" "04" "05" "06" "07" "08" "09" "10" "11" "12")
+#declare -a months=("01" "02")
 
-STYR=2025
-ENYR=2025
+STYR=1950
+ENYR=1979
 OUTDIR=/glade/campaign/cgd/amp/zarzycki/DATM_FORCING/raw-ERA5/
 #OUTDIR=/glade/derecho/scratch/zarzycki/ERA5-DATM/
 #OUTDIR="/global/homes/c/czarzyck/scratch/ERA5-DATM/"

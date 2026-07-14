@@ -1,0 +1,19 @@
+### CLM on Cheyenne
+### REQUIRED
+CIMEROOT=/glade/u/home/zarzycki/cesm/
+PATHTOCASE=/glade/u/home/zarzycki/I-compsets
+ICASENAME=XML_NEW-spinup
+PROJECT=P93300042
+MACHINE=derecho
+NNODES=6
+RESOL=ne30_g16
+RUNQUEUE=main
+WALLCLOCK="02:00:00"
+USER_JOB_PRIORITY=premium
+### Only required if doERA5 = 0, 2, or 3
+BETACAST=/glade/u/home/zarzycki/betacast
+BETACAST_DATM_FORCING_BASE=/glade/u/home/zarzycki/scratch/CR20V3-DATM/
+BUILD_ONLY=False
+FORCE_PURGE=True
+RUN_DIR_BASE=/glade/derecho/scratch/zarzycki/
+### ./auto-script.sh 0 3 18620601 60 1 -1 -1 nl.landspinup.derecho

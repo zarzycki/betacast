@@ -1,25 +1,16 @@
 ### Special settings that can be added!
-# CAM_TO_CAM=true
+# SOURCE=CAM        # interpolate from existing CAM simulation (default: ERA5)
+# SOURCE=CR20V3     # use 20th Century Reanalysis v3
 # dryrun=true
 # add_scream=true
 
-STYR=2020
-ENYR=2020
+STYR=1999
+ENYR=1999
 HR_RES=6
 STMON="jan"
 STDAY=1
 ENMON="jan"
 ENDAY=20
-
-####### PATHS ETC PER MACHINE
-
-BETACASTDIR=/glade/u/home/zarzycki/betacast/
-OUTDIR=/glade/derecho/scratch/zarzycki/ndg/
-RDADIR=/glade/campaign/collections/rda/data/d633000/
-
-# BETACASTDIR=/global/homes/c/czarzyck/betacast/
-# OUTDIR=/pscratch/sd/c/czarzyck/ndg/
-# RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5/
 
 ####### MODEL CONFIGS
 
@@ -60,7 +51,7 @@ GRIDSTR=mpasa25-92-watl
 BNDTOPO=/glade/u/home/zarzycki/work/CESM_files/ncdata/mpasa25-92-watl_init_L32.nc
 WGTNAME=/glade/work/zarzycki/sewx/mapping/map_era5_0.25x0.25_TO_mpasa25-92-watl_scrip_patc.nc
 NUMLEVS=32
-NDAYS_PER_DATE=5
+# NDAYS_PER_DATE=5
 
 # DYCORE="se"
 # GRIDSTR=ne0np4natlanticref.ne30x4
