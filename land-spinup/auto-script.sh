@@ -7,6 +7,9 @@
 set -e
 source ../utils.sh
 
+# Capture invocation for provenance (written to BETACAST.md in the case dir later)
+BETACAST_INVOKE_CMD="$0 $*"
+
 # Usage:
 #./auto-script.sh MODELSYSTEM DATAFORCING DATE_YYYYMMDD NMONTHS NCYCLES ANOMYEAR NORMYEAR NAMELIST
 # CESM (historical)
@@ -40,6 +43,8 @@ fi
 
 # Read the namelist
 read_bash_nl "${NAMELISTFILE}"
+# Resolve namelist to an absolute path so it can still be read after we cd elsewhere
+NAMELISTFILE_ABS=$(readlink -f "${NAMELISTFILE}")
 
 # Set user things to empty strings or internal defaults if not provided
 if [ -z "${USER_FSURDAT+x}" ]; then USER_FSURDAT=""; fi
@@ -275,6 +280,14 @@ sleep 10  # sleep to hold this on the interactive window for 10 sec
 cd ${CIMEROOT}/cime/scripts
 ./create_newcase --case ${PATHTOCASE}/${ICASENAME} --compset ${COMPSET} --res ${RESOL} --mach ${MACHINE} --project ${PROJECT} ${EXTRAFLAGS}
 cd ${PATHTOCASE}/${ICASENAME}
+
+# Write BETACAST.md for posterity: invocation command as a comment, then a copy of the namelist
+{
+  echo "# ${BETACAST_INVOKE_CMD}"
+  echo ""
+  cat "${NAMELISTFILE_ABS}"
+} > BETACAST.md
+
 xmlchange_verbose "NTASKS" "-${NNODES}"
 xmlchange_verbose "NTASKS_ATM" "-$((NNODES-1))" # NOTE: weird errors on Cheyenne w/ equal nodes for all components, but this works?
 set +e ; xmlchange_verbose "NTASKS_ESP" "1" ; set -e
