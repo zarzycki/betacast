@@ -1,5 +1,5 @@
 invert_vortex=False
-minp=-1.
+minp=-999999.
 target_rmw=-1.
 psminlat =    25.315
 psminlon =    282.831

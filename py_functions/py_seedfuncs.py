@@ -462,6 +462,32 @@ def get_rp_from_dp_rmw(cen_lat, dp, target_rmw, debug=False):
     return rpi
 
 
+def strip_unescaped_quotes(value):
+    """
+    Strips unescaped single and double quotes from a string.
+    Preserves escaped quotes (\' and \").
+    """
+    if not isinstance(value, str):
+        return value
+
+    # Process the string character by character
+    result = []
+    i = 0
+    while i < len(value):
+        # Check for escaped quotes
+        if i < len(value) - 1 and value[i] == '\\' and value[i + 1] in ['"', "'"]:
+            result.append(value[i + 1])  # Keep the quote but drop the escape character
+            i += 2
+        # Skip unescaped quotes
+        elif value[i] in ['"', "'"]:
+            i += 1
+        else:
+            result.append(value[i])
+            i += 1
+
+    return ''.join(result).strip()
+
+
 def keyword_values(namelist_file, key, return_type, default=None, verbose=False):
     """
     Reads a namelist file and extracts the value for the specified key.
@@ -481,31 +507,6 @@ def keyword_values(namelist_file, key, return_type, default=None, verbose=False)
     # Validate return_type
     if return_type not in types:
         raise ValueError(f"Unsupported return_type '{return_type}'. Must be one of {types}.")
-
-    def strip_unescaped_quotes(value):
-        """
-        Strips unescaped single and double quotes from a string.
-        Preserves escaped quotes (\' and \").
-        """
-        if not isinstance(value, str):
-            return value
-
-        # Process the string character by character
-        result = []
-        i = 0
-        while i < len(value):
-            # Check for escaped quotes
-            if i < len(value) - 1 and value[i] == '\\' and value[i + 1] in ['"', "'"]:
-                result.append(value[i + 1])  # Keep the quote but drop the escape character
-                i += 2
-            # Skip unescaped quotes
-            elif value[i] in ['"', "'"]:
-                i += 1
-            else:
-                result.append(value[i])
-                i += 1
-
-        return ''.join(result).strip()
 
     try:
         # Read the namelist file
@@ -713,6 +714,74 @@ def q_for_optim(p, alpha=0.02):
     return A * safe_exp(B * p**alpha)
 
 
+# Default values for all TC seed/unseed settings
+TCSEED_DEFAULTS = {
+    # TC location and basic parameters
+    'invert_vortex': False,
+    'deltaMax': 1.0,
+    'psminlat': 20.0,
+    'psminlon': -40.0,
+    'modify_q': False,
+    'modify_q_mult': 1.0,
+    'gamma_': 0.0065,
+    # Optional: Read existing optimized parameters if available
+    'minp': None,
+    'target_rmw': None,
+    'rp': None,
+    'dp': None,
+    'zp': None,
+    'exppr': None,
+    'degree_adjust': 15.0,
+    # Optimization settings (can be overridden in namelist)
+    'truePS_scan_radius': 0.5,
+    'rad_for_corr': 800.0,
+    'n_p_steps': 32,
+    'n_t_steps': 60,
+    # Optimization ranges (can be customized in namelist)
+    'rp_min': 80000.0,
+    'rp_max': 300000.0,
+    'dp_min': 200.0,
+    'dp_max': 6000.0,
+    'exppr_min': 1.1,
+    'exppr_max': 1.9,
+    'zp_min': 6000.0,
+    'zp_max': 16000.0,
+    # Round 2 refinement factor
+    'mult_factor': 0.52,
+}
+
+# Type mapping for reading TC seed/unseed settings from namelist files
+TCSEED_TYPE_MAPPING = {
+    'invert_vortex': 'bool',
+    'modify_q': 'bool',
+    'deltaMax': 'float',
+    'psminlat': 'float',
+    'psminlon': 'float',
+    'modify_q_mult': 'float',
+    'gamma_': 'float',
+    'minp': 'float',
+    'target_rmw': 'float',
+    'rp': 'float',
+    'dp': 'float',
+    'zp': 'float',
+    'exppr': 'float',
+    'degree_adjust': 'float',
+    'truePS_scan_radius': 'float',
+    'rad_for_corr': 'float',
+    'n_p_steps': 'int',
+    'n_t_steps': 'int',
+    'rp_min': 'float',
+    'rp_max': 'float',
+    'dp_min': 'float',
+    'dp_max': 'float',
+    'exppr_min': 'float',
+    'exppr_max': 'float',
+    'zp_min': 'float',
+    'zp_max': 'float',
+    'mult_factor': 'float',
+}
+
+
 def read_tcseed_settings(vortex_input):
     """
     Read TC settings from namelist file or dictionary and set defaults.
@@ -728,72 +797,8 @@ def read_tcseed_settings(vortex_input):
         Dictionary containing all TC settings and optimization parameters
     """
 
-    # Define all default values
-    defaults = {
-        # TC location and basic parameters
-        'invert_vortex': False,
-        'deltaMax': 1.0,
-        'psminlat': 20.0,
-        'psminlon': -40.0,
-        'modify_q': False,
-        'modify_q_mult': 1.0,
-        'gamma_': 0.0065,
-        # Optional: Read existing optimized parameters if available
-        'minp': None,
-        'target_rmw': None,
-        'rp': None,
-        'dp': None,
-        'zp': None,
-        'exppr': None,
-        'degree_adjust': 15.0,
-        # Optimization settings (can be overridden in namelist)
-        'truePS_scan_radius': 0.5,
-        'rad_for_corr': 800.0,
-        'n_p_steps': 32,
-        'n_t_steps': 60,
-        # Optimization ranges (can be customized in namelist)
-        'rp_min': 80000.0,
-        'rp_max': 300000.0,
-        'dp_min': 200.0,
-        'dp_max': 6000.0,
-        'exppr_min': 1.1,
-        'exppr_max': 1.9,
-        'zp_min': 6000.0,
-        'zp_max': 16000.0,
-        # Round 2 refinement factor
-        'mult_factor': 0.52,
-    }
-
-    # Type mapping for file reading
-    type_mapping = {
-        'invert_vortex': 'bool',
-        'modify_q': 'bool',
-        'deltaMax': 'float',
-        'psminlat': 'float',
-        'psminlon': 'float',
-        'modify_q_mult': 'float',
-        'gamma_': 'float',
-        'minp': 'float',
-        'target_rmw': 'float',
-        'rp': 'float',
-        'dp': 'float',
-        'zp': 'float',
-        'exppr': 'float',
-        'degree_adjust': 'float',
-        'truePS_scan_radius': 'float',
-        'rad_for_corr': 'float',
-        'n_p_steps': 'int',
-        'n_t_steps': 'int',
-        'rp_min': 'float',
-        'rp_max': 'float',
-        'dp_min': 'float',
-        'dp_max': 'float',
-        'exppr_min': 'float',
-        'exppr_max': 'float',
-        'zp_min': 'float',
-        'zp_max': 'float',
-        'mult_factor': 'float',
-    }
+    defaults = TCSEED_DEFAULTS
+    type_mapping = TCSEED_TYPE_MAPPING
 
     if isinstance(vortex_input, str):
         # Read from namelist file
@@ -850,6 +855,81 @@ def read_tcseed_settings(vortex_input):
         logging.info(f"Setting gamma_ to default of {tc_settings['gamma_']}")
 
     return tc_settings
+
+
+def read_vortex_namelist_blocks(namelist_file):
+    """
+    Parse a vortex namelist file into a list of per-TC settings dictionaries.
+
+    TC blocks are separated by lines consisting solely of '---'. A file with
+    no separators yields a single block, preserving legacy single-TC behavior.
+    Each block is self-contained: keys not present in a block fall back to the
+    defaults applied by read_tcseed_settings.
+
+    Parameters:
+    -----------
+    namelist_file : str
+        Path to the vortex namelist file
+
+    Returns:
+    --------
+    blocks : list of dict
+        One dict of typed settings per TC, suitable as dictionary input to
+        read_tcseed_settings (e.g., the file key 'gamma' maps to 'gamma_')
+    """
+
+    with open(namelist_file, 'r') as f:
+        lines = f.readlines()
+
+    # Split file into blocks on '---' separator lines
+    raw_blocks = [[]]
+    for line in lines:
+        stripped = line.strip()
+        if stripped == '---':
+            raw_blocks.append([])
+        else:
+            raw_blocks[-1].append(stripped)
+
+    blocks = []
+    for raw_block in raw_blocks:
+        settings = {}
+        for line in raw_block:
+            # Ignore empty lines and comments
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            k, v = [x.strip() for x in line.split('=', 1)]
+            v = strip_unescaped_quotes(v)
+            key = 'gamma_' if k == 'gamma' else k  # Handle gamma_ special case
+            # First occurrence wins, matching keyword_values behavior
+            if key in settings:
+                logging.warning(f"Duplicate key '{k}' in block {len(blocks) + 1} of {namelist_file}, keeping first value")
+                continue
+            value_type = TCSEED_TYPE_MAPPING.get(key)
+            if value_type == 'int':
+                settings[key] = int(v)
+            elif value_type == 'float':
+                settings[key] = float(v)
+            elif value_type == 'bool':
+                settings[key] = v.lower() in ['true', 't', '1']
+            else:
+                # Unknown keys are passed through; read_tcseed_settings warns and ignores them
+                settings[key] = v
+        # Drop empty blocks (e.g., a trailing '---' at end of file)
+        if settings:
+            # Every TC block must explicitly locate its storm
+            missing = [k for k in ('psminlat', 'psminlon') if k not in settings]
+            if missing:
+                raise ValueError(
+                    f"TC block {len(blocks) + 1} in {namelist_file} is missing "
+                    f"required key(s): {', '.join(missing)}"
+                )
+            blocks.append(settings)
+
+    if not blocks:
+        raise ValueError(f"No TC settings found in vortex namelist: {namelist_file}")
+
+    logging.info(f"Parsed {len(blocks)} TC block(s) from {namelist_file}")
+    return blocks
 
 
 def find_actual_center(guess_lat, guess_lon, lat, lon, pressure, search_radius=5.0, psunits='Pa'):
@@ -1256,8 +1336,8 @@ def apply_tc_seeding(data_vars, tc_params, update_z=False, add_deltas_to_data=Fa
         if minp < -19999.0:
             minp = 995.0
         # If minp is negative, but plausible
-        elif 0.0 < minp <= -19999.0:
-            print("Using negative minp as dp")
+        elif -19999.0 <= minp <= 0.0:
+            logging.info(f"Using negative minp as dp: {-minp} Pa")
 
         # If target_rmw is less than 0, set to 200km
         if target_rmw < 0.0:

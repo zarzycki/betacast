@@ -24,6 +24,14 @@ pthi = args.vortex_namelist
 doplot = False
 deg_bnd = 15.0
 
+# This tool handles a single TC only; keyword_values would silently mix
+# settings from multiple '---'-separated blocks, so reject those files here
+with open(pthi, 'r') as _f:
+    if any(line.strip() == '---' for line in _f):
+        sys.exit(f"ERROR: {pthi} contains '---' TC block separators. "
+                 "py-seed-tc-in-ncdata.py supports single-TC namelists only; "
+                 "use atm_to_cam.py for multi-TC seeding or split the file.")
+
 # Constants
 P0 = 100000.0
 

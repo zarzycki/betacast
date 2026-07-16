@@ -250,7 +250,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | Namelist Variable | Description | Required | Default |
 | --- | --- | --- | --- |
 | standalone_vortex | Use standalone vortex modification (older method) |  | false |
-| vortex_namelist | Path to vortex configuration namelist for TC modification |  | "" |
+| vortex_namelist | Path to vortex configuration namelist for TC modification. May contain multiple TC blocks separated by lines containing only `---`, each seeding or unseeding one storm (multi-TC supported in the main pipeline only, not with standalone_vortex). |  | "" |
 | augment_tcs | Apply TC augmentation during atmospheric processing |  | false |
 | add\_perturbs | Add PGW perturbations for counterfactual runs? Leave at false generally. |  | false |
 | perturb\_namelist | Path to "perturbation" namelist for counterfactual climate simulations | | " " |

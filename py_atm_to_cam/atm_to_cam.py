@@ -253,7 +253,10 @@ def main():
             num_tcs = len(tcs_at_this_time['lats'])
             logging.info(f"augment_tcs: {augment_tcs}; dealing with {num_tcs} TCs.")
         elif vortex_namelist and os.path.isfile(vortex_namelist):
-            num_tcs = 1
+            # Parse "old school" namelist into one or more TC blocks separated by '---' lines
+            # See example files and docs
+            vortex_blocks = py_seedfuncs.read_vortex_namelist_blocks(vortex_namelist)
+            num_tcs = len(vortex_blocks)
             logging.info(f"We have a valid vortex_namelist: {vortex_namelist}; dealing with {num_tcs} TCs.")
         else:
             logging.info("Cannot seed/unseed without {augment_tcs} or {vortex_namelist}")
@@ -288,9 +291,10 @@ def main():
                         'psminlon': float(storm_lon)           # Use longitude from TCVitals
                     }
                 else:
-                    # We are going to just straight up read the namelist
-                    storm_name = "Synth"
-                    input_dict = vortex_namelist
+                    # Use the pre-parsed settings block for this storm
+                    storm_name = f"Synth_{storm_idx + 1}"
+                    input_dict = vortex_blocks[storm_idx]
+                    logging.info(f"Processing storm {storm_idx + 1}/{num_tcs} from {vortex_namelist}")
 
                 # Get TC seeding parameters for this storm
                 tc_seed_params = py_seedfuncs.read_tcseed_settings(input_dict)
