@@ -46,6 +46,11 @@ zp = keyword_values(pthi, "zp", "float", verbose=True)
 exppr = keyword_values(pthi, "exppr", "float", verbose=True)
 restart_file = keyword_values(pthi, "restart_file", "bool", verbose=True)
 adjust_vortex = keyword_values(pthi, "adjust_vortex", "bool", default=False, verbose=True)
+add_pouch = keyword_values(pthi, "add_pouch", "bool", default=False, verbose=True)
+if add_pouch:
+    pouch_rh = keyword_values(pthi, "pouch_rh", "float", default=85.0, verbose=True)
+    pouch_radius = keyword_values(pthi, "pouch_radius", "float", default=700000.0, verbose=True)
+    pouch_exp = keyword_values(pthi, "pouch_exp", "float", default=2.0, verbose=True)
 
 if adjust_vortex:
     print("THEARR: ADJUSTING VORTEX!")
@@ -199,6 +204,18 @@ for ii in range(ncol):
                 t[0, kk, ii] = t[0, kk, ii] + anom_obsv[3] + anom_data[3]
                 if kk == 0:
                     ps[0, ii] = ps[0, ii] + anom_obsv[4] + anom_data[4]
+
+# Build a broad high-TPW moisture envelope ("pouch") around the seed so the
+# vortex spins up inside moist air instead of entraining ambient dry air
+if add_pouch:
+    if restart_file:
+        Q_before_pouch = calc_mass_weighted_integral(q, dp3d, area)
+    q = seed_pouch(q, t, ps, lat, lon, hyam, hybm, hyai, hybi, cen_lat, cen_lon,
+                   pouch_rh=pouch_rh, pouch_radius=pouch_radius, pouch_exp=pouch_exp, p0=P0)
+    if restart_file:
+        # Fold pouch water into the conservation target, otherwise the global
+        # integral fix below would remove it again
+        Q_global_orig += calc_mass_weighted_integral(q, dp3d, area) - Q_before_pouch
 
 # Correct mass
 if restart_file:

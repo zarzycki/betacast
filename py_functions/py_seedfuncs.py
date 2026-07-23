@@ -392,6 +392,121 @@ def tctestcase(cen_lon, cen_lat, dp, rp, zp, exppr, gamma_, lon, lat, p, z, zcoo
     return output
 
 
+def pouch_moisten(q2d, t2d, p2d, gr_m, pouch_rh, pouch_radius, pouch_exp=2.0,
+                  p_zero_bot=100000.0, p_full_bot=85000.0,
+                  p_full_top=50000.0, p_zero_top=30000.0):
+    """
+    Core pouch operator shared by the hybrid-coordinate and pressure-level
+    seeding paths. Blends RH from pouch_rh (percent) at the pouch center down
+    to the local ambient RH with a radial weight exp(-(r/pouch_radius)**pouch_exp)
+    (pouch_exp=2 is Gaussian; larger values flatten the top and sharpen the
+    edge), weighted vertically by a trapezoid in pressure. Moisten-only.
+
+    Parameters:
+    -----------
+    q2d, t2d, p2d : ndarray (nlev, ncol)
+        Specific humidity (kg/kg), temperature (K), pressure (Pa).
+    gr_m : ndarray (ncol,)
+        Great-circle distance from the pouch center (m).
+
+    Returns:
+    --------
+    q2d with the pouch applied.
+    """
+    pouch_rh = min(max(pouch_rh, 0.0), 100.0)
+    if pouch_exp <= 0.0:
+        pouch_exp = 2.0  # Default value
+
+    w_r = np.exp(-(gr_m / pouch_radius) ** pouch_exp)
+
+    # Trapezoidal vertical weight: ramp up p_zero_bot->p_full_bot, ramp down p_full_top->p_zero_top
+    w_z = np.clip((p_zero_bot - p2d) / (p_zero_bot - p_full_bot), 0.0, 1.0) * \
+          np.clip((p2d - p_zero_top) / (p_full_top - p_zero_top), 0.0, 1.0)
+
+    # Zero the radial weight where it drops below ~1e-7 so distant columns are
+    # left bit-identical instead of picking up negligible fp-level increments;
+    # for pouch_exp=2 this reduces to the 4-e-folding-radii cutoff
+    r_cut = pouch_radius * 16.0 ** (1.0 / pouch_exp)
+    w_r = np.where(gr_m <= r_cut, w_r, 0.0)
+
+    # Same Bolton-style saturation form used in tctestcase: rh(%) = 0.263 p q / es_term
+    es_term = np.exp(np.minimum(17.67 * (t2d - 273.15) / (t2d - 29.65), 300.0))
+    rh_amb = 0.263 * p2d * q2d / es_term
+    # Moisten-only increment that blends the RH deficit (pouch_rh - rh_amb) to
+    # zero at large radius; computed as a delta (not a round trip through RH)
+    # so columns outside the pouch stay exactly unchanged
+    dq = np.maximum(w_r[None, :] * w_z * (pouch_rh - rh_amb), 0.0) * es_term / (0.263 * p2d)
+    q_new = q2d + dq
+
+    nmod = np.count_nonzero(np.any(dq > 0.0, axis=0))
+    logging.info(f"[pouch_moisten] pouch_rh: {pouch_rh}%, pouch_radius: {pouch_radius} m, "
+                 f"pouch_exp: {pouch_exp}; "
+                 f"moistened {nmod} of {gr_m.shape[0]} columns; max dq: {np.max(dq):.3e} kg/kg")
+    return q_new
+
+
+def seed_pouch(q, t, ps, lat, lon, hyam, hybm, hyai, hybi, cen_lat, cen_lon,
+               pouch_rh=85.0, pouch_radius=700000.0, pouch_exp=2.0, p0=100000.0,
+               p_zero_bot=100000.0, p_full_bot=85000.0,
+               p_full_top=50000.0, p_zero_top=30000.0):
+    """
+    Moisten a broad envelope ("pouch") of high TPW centered on a seeded vortex.
+
+    Builds a target relative humidity field that equals pouch_rh (percent) at
+    the pouch center in the mid-troposphere and relaxes back toward the local
+    ambient RH as a Gaussian with e-folding radius pouch_radius (m), so the
+    TPW anomaly retains the full Gaussian footprint rather than vanishing
+    where the raw target would fall below ambient. The vertical structure is
+    a trapezoid in pressure: zero at/below p_zero_bot, full weight between
+    p_full_bot and p_full_top, zero at/above p_zero_top, so the moistening is
+    concentrated where dry-air intrusion matters for spinup rather than at the
+    surface or in the stratosphere.
+
+    Columns are only moistened (q = max(q, q_target)); ambient air already
+    wetter than the target is left untouched, so the pouch blends into any
+    preexisting moist envelope instead of drying it.
+
+    Parameters:
+    -----------
+    q, t : ndarray (1, nlev, ncol)
+        Specific humidity (kg/kg) and temperature (K). t should already
+        include the vortex seed so the RH target is computed against the
+        perturbed state.
+    ps : ndarray (1, ncol)
+        Surface pressure (Pa).
+    lat, lon : ndarray (ncol,)
+    hyam, hybm, hyai, hybi : ndarray
+        Hybrid coefficients (midpoints and interfaces).
+    cen_lat, cen_lon : float
+        Pouch center (deg).
+    pouch_rh : float
+        Peak target RH in percent (clamped to [0, 100]).
+    pouch_radius : float
+        Gaussian e-folding radius in meters.
+
+    Returns:
+    --------
+    q with the pouch applied, same shape/dtype as input.
+    """
+    gr, _ = gc_latlon(cen_lat, cen_lon, lat, lon, 2, 3)  # meters
+
+    # Midpoint pressures, (nlev, ncol)
+    p = hyam[:, None] * p0 + hybm[:, None] * ps[0, :]
+
+    q_new = pouch_moisten(q[0], t[0], p, gr, pouch_rh, pouch_radius, pouch_exp=pouch_exp,
+                          p_zero_bot=p_zero_bot, p_full_bot=p_full_bot,
+                          p_full_top=p_full_top, p_zero_top=p_zero_top)
+
+    # Diagnostics: TPW added per column (kg/m2 ~ mm)
+    dp3d = ((hyai[1:, None] - hyai[:-1, None]) * p0) + ((hybi[1:, None] - hybi[:-1, None]) * ps[0, :])
+    dtpw = np.sum((q_new - q[0]) * dp3d, axis=0) / grav
+    logging.info(f"[seed_pouch] max dTPW: {np.max(dtpw):.2f} mm")
+
+    q_out = q.copy()
+    q_out[0] = q_new
+    return q_out
+
+
 def get_rp_from_dp_rmw(cen_lat, dp, target_rmw, debug=False):
     # Constants
     a = Re_m  # Earth's Radius (m)
@@ -724,6 +839,11 @@ TCSEED_DEFAULTS = {
     'modify_q': False,
     'modify_q_mult': 1.0,
     'gamma_': 0.0065,
+    # Moisture pouch (broad high-TPW envelope around the seed)
+    'add_pouch': False,
+    'pouch_rh': 85.0,
+    'pouch_radius': 700000.0,
+    'pouch_exp': 2.0,
     # Optional: Read existing optimized parameters if available
     'minp': None,
     'target_rmw': None,
@@ -759,6 +879,10 @@ TCSEED_TYPE_MAPPING = {
     'psminlon': 'float',
     'modify_q_mult': 'float',
     'gamma_': 'float',
+    'add_pouch': 'bool',
+    'pouch_rh': 'float',
+    'pouch_radius': 'float',
+    'pouch_exp': 'float',
     'minp': 'float',
     'target_rmw': 'float',
     'rp': 'float',
@@ -1451,6 +1575,17 @@ def apply_tc_seeding(data_vars, tc_params, update_z=False, add_deltas_to_data=Fa
                 # Calculate a delta from the estimates and apply that to the input z
                 # Probably safest to do it this way in case the hydro approx isn't perfect
                 z[:,ii] = z[:,ii] + (z_after - z_before)
+
+    # Build a broad high-TPW envelope ("pouch") around the seed so the vortex
+    # spins up inside moist air instead of entraining ambient dry air
+    if tc_params.get('add_pouch', False):
+        gr_m, _ = gc_latlon(cen_lat, cen_lon, lat_work, lon_work, 2, 3)  # meters
+        lev_pa = lev if np.max(lev) > 2000.0 else lev * 100.0
+        p2d = np.broadcast_to(np.asarray(lev_pa)[:, None], q.shape)
+        q = pouch_moisten(q, t, p2d, gr_m,
+                          tc_params.get('pouch_rh', 85.0),
+                          tc_params.get('pouch_radius', 700000.0),
+                          pouch_exp=tc_params.get('pouch_exp', 2.0))
 
     if is_structured:
         # Convert back to lat/lon structure
