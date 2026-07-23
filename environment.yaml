@@ -7,7 +7,7 @@ dependencies:
   - cftime
   - matplotlib
   - netCDF4
-  - cfgrib
+  - cfgrib>=0.9.14.0
   - numba
   - numpy
   - scipy
