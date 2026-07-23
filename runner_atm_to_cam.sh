@@ -313,7 +313,8 @@ if [ "${standalone_vortex}" = true ] ; then
     (set -x; python find-tc-fill-params.py \
         --inic_file "${sePreFilterIC}" \
         --vortex_namelist ${vortex_namelist}
-    )
+    ) ; exit_status=$?
+    check_python_exit "find-tc-fill-params.py" $exit_status
   else
     (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
     check_ncl_exit "find-tc-fill-params.ncl" $exit_status
@@ -322,9 +323,10 @@ if [ "${standalone_vortex}" = true ] ; then
   echo "... seeding or unseeding TC"
   if [ "$DO_PYTHON" = true ]; then
     (set -x; python py-seed-tc-in-ncdata.py \
-        --inic_file "${sePreFilterIC}" \
+        --se_inic "${sePreFilterIC}" \
         --vortex_namelist ${vortex_namelist}
-    )
+    ) ; exit_status=$?
+    check_python_exit "py-seed-tc-in-ncdata.py" $exit_status
   else
     (set -x; ncl -n seed-tc-in-ncdata.ncl 'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
     check_ncl_exit "seed-tc-in-ncdata.ncl" $exit_status
@@ -351,7 +353,8 @@ if [ "${add_perturbs}" = true ] ; then
     (set -x; python add_perturbations_to_sst.py \
        --BEFOREPERTFILE "${sstFileIC}" \
        --AFTERPERTFILE "${sstFileIC_WPERT}" \
-       --pthi "${perturb_namelist}")
+       --pthi "${perturb_namelist}") ; exit_status=$?
+    check_python_exit "add_perturbations_to_sst.py" $exit_status
   else
     (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
        'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' \
@@ -368,7 +371,8 @@ if [ "${add_perturbs}" = true ] ; then
        --AFTERPERTFILE "${sePreFilterIC_WPERT}" \
        --gridfile "${modelgridfile}" \
        --MAPFILEPATH "${mapping_files_path}" \
-       --pthi "${perturb_namelist}")
+       --pthi "${perturb_namelist}") ; exit_status=$?
+    check_python_exit "add_perturbations_to_cam.py" $exit_status
   else
     (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
        'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
