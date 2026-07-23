@@ -251,6 +251,18 @@ function check_ncl_exit() {
 }
 
 
+function check_python_exit() {
+  local py_script_name=$1
+  local py_exit_status=$2
+  if [[ $py_exit_status -ne 0 ]]; then
+    echo "${py_script_name} exited with a non-zero error code: ${py_exit_status}"
+    exit 240
+  else
+    echo "${py_script_name} exited successfully"
+  fi
+}
+
+
 # Usage:
 #   check_bash_dependency <binary_name> <context_string>
 #
