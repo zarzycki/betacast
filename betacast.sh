@@ -1140,7 +1140,7 @@ check_shell_flags
 timer main_archive "$tmparchivecdir" "$atmName" "$lndName" "$rofName"
 
 # Copy betacast configs to archive directory for posterity
-safe_cp_files "$MACHINEFILE" "$NAMELISTFILE" "$OUTPUTSTREAMS" "$perturb_namelist" "$tmparchivecdir/betacast"
+safe_cp_files "$MACHINEFILE" "$NAMELISTFILE" "$OUTPUTSTREAMS" "$perturb_namelist" "$vortex_namelist" "$tmparchivecdir/betacast"
 # Archive shell configuration for debugging
 declare -p | sort > "$tmparchivecdir/betacast/shellvars_$(date +%Y%m%d_%H%M%S).txt"
 
