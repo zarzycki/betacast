@@ -174,26 +174,38 @@ if [ $NMONTHSSPIN -eq 0 ]; then
     echo "ERROR: NMONTHSSPIN=0 requires DATMMINYR and DATMMAXYR to be set, but dataForcing=$dataForcing did not define them."
     exit 1
   fi
-  echo "NMONTHSSPIN set to 0, we are using entire stream period $DATMMINYR to $DATMMAXYR"
-  DATM_STARTYEAR=$DATMMINYR
+  # We can leave DATMMINYR alone here to not load data from before the init of spinup period
+  # This speeds up init but not walking from the beginning of a long datm file list looking for time bnds
+  # Curious? grep for shr_stream_findBounds and the call for shr_stream_readTCoord in mct
+  echo "NMONTHSSPIN set to 0, we are using $DATM_STARTYEAR --> out to end of available data ($DATMMAXYR)"
   FORECASTYEAR=$DATMMAXYR
 fi
 
 ### Error checking
 if [ $dataForcing -eq 1 ] && (( FORECASTYEAR > 2016 )); then
+  echo "EXIT: --------------------------------------------------------------------------"
   echo "No default DATM files beyond 2016"
   echo "Need to either find a different DATM set or spin up when coupled"
   echo "STOP"
   exit 1
 fi
+if [ $NMONTHSSPIN -eq 0 ] && [ $NCYCLES -ne 1 ]; then
+  echo "EXIT: --------------------------------------------------------------------------"
+  echo "NMONTHSSPIN cannot be 0 (is: $NMONTHSSPIN)"
+  echo "... if NCYCLES .ne. 1 (is: $NCYCLES)"
+  echo "STOP"
+  exit 1
+fi
 ### DATM main forcing bounds checking
 if { [ $dataForcing -eq 0 ] || [ $dataForcing -eq 2 ] || [ $dataForcing -eq 3 ]; } && (( DATM_STARTYEAR < ${DATMMINYR} )); then
+  echo "EXIT: --------------------------------------------------------------------------"
   echo "No DATM files for dataset $dataForcing earlier than ${DATMMINYR}"
   echo "You provided $DATM_STARTYEAR for a start year when accounting for spinup"
   echo "Need to either find a different DATM set or spin up when coupled"
   echo "STOP"
   exit 1
 elif { [ $dataForcing -eq 0 ] || [ $dataForcing -eq 2 ] || [ $dataForcing -eq 3 ]; } && (( FORECASTYEAR > ${DATMMAXYR} )); then
+  echo "EXIT: --------------------------------------------------------------------------"
   echo "No DATM files for dataset $dataForcing later than ${DATMMAXYR}"
   echo "You provided $FORECASTYEAR for an end year (forecast)"
   echo "Need to either find a different DATM set or spin up when coupled"
@@ -201,6 +213,7 @@ elif { [ $dataForcing -eq 0 ] || [ $dataForcing -eq 2 ] || [ $dataForcing -eq 3 
   exit 1
 fi
 if (( addDeltas == 1 && DATM_STARTYEAR < 1920 )); then
+  echo "EXIT: --------------------------------------------------------------------------"
   echo "Anomaly in $DATM_STARTYEAR requested but no anomaly forcing (currently) before 1920."
   echo "Either edit the script or manually add your file:"
   echo "(set BETACAST_ANOMALIGN=1920 to clear this message)"
