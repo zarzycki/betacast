@@ -206,6 +206,8 @@ def split_by_lengths(s, lengths):
 
 
 def parse_YYYYMMDDHH(initdate):
+    if len(initdate) != 10 or not initdate.isdigit():
+        raise ValueError(f"initdate must be 10 digits (YYYYMMDDHH), got: '{initdate}'")
     yyyy = int(initdate[:4])
     mm = int(initdate[4:6])
     dd = int(initdate[6:8])
