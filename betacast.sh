@@ -488,7 +488,7 @@ if [ "$debug" = false ] ; then
       ;;
   esac
 
-############################### GET SST / NCL ###############################
+############################### GET SST #####################################
 
   case "$sstDataType" in
     1)
@@ -564,7 +564,7 @@ if [ "$debug" = false ] ; then
 
   fi
 
-  ############################### ATM NCL ###############################
+  ############################### ATM ###################################
 
   echo "Doing atm_to_cam"
   echo "cd'ing to interpolation directory: $atm_to_cam_path"
@@ -961,27 +961,17 @@ if [ "$doFilter" = true ] ; then
     CIMESTATUS=$?
     set -e
 
-    ## Run NCL filter
+    ## Run filter
     echo "Running filter, currently in $PWD"
     cp -v ${sePreFilterIC} ${sePostFilterIC}
     filtfile_name=${casename}.${atmName}.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
 
-    if [ "$DO_PYTHON" = true ]; then
-      (set -x; python $filter_path/lowmemfilter.py \
-          --endhour ${filterHourLength} \
-          --tcut ${filtTcut} \
-          --filtfile_name "${path_to_rundir}/${filtfile_name}" \
-          --writefile_name "${sePostFilterIC}"
-      )
-    else
-      set +e # Turn off error check
-      (set -x; ncl $filter_path/lowmemfilter.ncl \
-       endhour=${filterHourLength} tcut=${filtTcut} \
-      'filtfile_name = "'${path_to_rundir}'/'${filtfile_name}'"' \
-      'writefile_name = "'${sePostFilterIC}'"' ) ; exit_status=$?
-      check_ncl_exit "lowmemfilter.ncl" $exit_status
-      set -e # Turn on error check
-    fi
+    (set -x; python $filter_path/lowmemfilter.py \
+        --endhour ${filterHourLength} \
+        --tcut ${filtTcut} \
+        --filtfile_name "${path_to_rundir}/${filtfile_name}" \
+        --writefile_name "${sePostFilterIC}"
+    )
 
   fi  # debug
 
