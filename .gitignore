@@ -1,9 +1,11 @@
+*.grib2
 py_atm_to_cam/perturb/*.nc
 
 *.log
 
 # Jupyter things
 .ipynb_checkpoints
+*.ipynb
 
 # Grid things
 *.g
