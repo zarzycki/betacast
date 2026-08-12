@@ -83,26 +83,13 @@ if [[ -z "${anl2mdlWeights}" || ! -e "${anl2mdlWeights}" ]]; then
 
   if [ ! -f "${anl2mdlWeights}" ]; then
     echo "Writing anl2mdlWeights --> ${anl2mdlWeights}"
-    if [ "$DO_PYTHON" = true ]; then
-      (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
-        --ANLGRID "${RLLSOURCEGRID}" \
-        --DSTGRIDNAME "${modelgridshortname}" \
-        --DSTGRIDFILE "${modelgridfile}" \
-        --ANLGRIDPATH "../grids/anl_scrip/" \
-        --WGTFILEDIR "${mapping_files_path}"
-      )
-    else
-      set +e
-      (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
-        'ANLGRID="'${RLLSOURCEGRID}'"' \
-        'ANLGRIDPATH="../grids/anl_scrip/"' \
-        'DSTGRIDNAME="'${modelgridshortname}'"' \
-        'DSTGRIDFILE="'${modelgridfile}'"' \
-        'WGTFILEDIR="'${mapping_files_path}'"' \
-      ) ; exit_status=$?
-      check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
-      set -e
-    fi
+    (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
+      --ANLGRID "${RLLSOURCEGRID}" \
+      --DSTGRIDNAME "${modelgridshortname}" \
+      --DSTGRIDFILE "${modelgridfile}" \
+      --ANLGRIDPATH "../grids/anl_scrip/" \
+      --WGTFILEDIR "${mapping_files_path}"
+    )
   else
     echo "Betacast-generated anl2mdlWeights --> ${anl2mdlWeights} already exists, using those!"
   fi
@@ -123,17 +110,14 @@ if [[ "$atmDataType" -eq 9 ]]; then
 
     if [ ! -f "${m2m_remap_file}" ]; then
       echo "Writing m2m_remap_file --> ${m2m_remap_file}"
-      set +e
-      (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
-        'ANLGRID="era5_0.25x0.25"' \
-        'ANLGRIDPATH="../grids/anl_scrip/"' \
-        'DSTGRIDNAME="'${m2mgridshortname}'"' \
-        'DSTGRIDFILE="'${m2m_gridfile}'"' \
-        'WGTFILEDIR="'${mapping_files_path}'"' \
-        FLIP_MODEL_AND_ANALYSIS=True \
-      ) ; exit_status=$?
-      check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
-      set -e
+      (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
+        --ANLGRID "era5_0.25x0.25" \
+        --ANLGRIDPATH "../grids/anl_scrip/" \
+        --DSTGRIDNAME "${m2mgridshortname}" \
+        --DSTGRIDFILE "${m2m_gridfile}" \
+        --WGTFILEDIR "${mapping_files_path}" \
+        --FLIP_MODEL_AND_ANALYSIS
+      )
     else
       echo "Betacast-generated m2m_remap_file --> ${m2m_remap_file} already exists, using those!"
     fi
@@ -145,22 +129,11 @@ fi
 if [[ "$atmDataType" -eq 9 ]]; then
   if [[ -d "$m2m_parent_source" ]]; then
     echo "m2m_parent_source ($m2m_parent_source) is provided as a dir of nc files."
-    if [ "$DO_PYTHON" = true ]; then
-      (set -x; python find-time-file.py \
-        --DIR "${m2m_parent_source}" \
-        --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
-        --UQSTR "${uniqtime}"
-      )
-    else
-      set +e
-      (set -x; ncl find-time-file.ncl \
-        'DIR="'${m2m_parent_source}'"' \
-        YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-        'UQSTR="'${uniqtime}'"' \
-      ) ; exit_status=$?
-      check_ncl_exit "find-time-file.ncl" $exit_status
-      set -e
-    fi
+    (set -x; python find-time-file.py \
+      --DIR "${m2m_parent_source}" \
+      --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
+      --UQSTR "${uniqtime}"
+    )
     while IFS= read -r line || [[ -n "$line" ]]; do
       atm_file_paths["9"]="$line"
       break
@@ -177,43 +150,23 @@ fi
 
 echo "Doing atm_to_cam"
 
-if [ "$DO_PYTHON" = true ]; then
-  (set -x; python atm_to_cam.py \
-    --datasource "${atm_data_sources[$atmDataType]}" \
-    --numlevels ${numLevels} \
-    --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
-    --data_filename "${atm_file_paths[$atmDataType]}" \
-    --wgt_filename "${anl2mdlWeights}" \
-    --dycore "${DYCORE}" \
-    --add_cloud_vars \
-    --add_chemistry \
-    --RDADIR "${RDADIR}" \
-    --adjust_config "${adjust_flags-}" \
-    --model_topo_file "${adjust_topo-}" \
-    --mod_remap_file "${m2m_remap_file-}" \
-    --mod_in_topo "${m2m_topo_in-}" \
-    --se_inic "${sePreFilterIC}" \
-    ${ADDCHEM_STR:+$ADDCHEM_STR} ${AUGMENT_STR:+$AUGMENT_STR} ${VORTEX_STR:+$VORTEX_STR}
-  )
-else
-  set +e
-  (set -x; ncl -n atm_to_cam.ncl \
-      'datasource="'${atm_data_sources[$atmDataType]}'"' \
-      numlevels=${numLevels} \
-      YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-      'dycore="'${DYCORE}'"' \
-      'data_filename="'${atm_file_paths[$atmDataType]}'"' \
-      'RDADIR="'${RDADIR}'"' \
-      'wgt_filename="'${anl2mdlWeights}'"' \
-      'model_topo_file="'${adjust_topo-}'"' \
-      'mod_remap_file="'${m2m_remap_file-}'"' \
-      'mod_in_topo="'${m2m_topo_in-}'"' \
-      'adjust_config="'${adjust_flags-}'"' \
-      'se_inic = "'${sePreFilterIC}'"'
-  ) ; exit_status=$?
-  check_ncl_exit "atm_to_cam.ncl" $exit_status
-  set -e
-fi
+(set -x; python atm_to_cam.py \
+  --datasource "${atm_data_sources[$atmDataType]}" \
+  --numlevels ${numLevels} \
+  --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
+  --data_filename "${atm_file_paths[$atmDataType]}" \
+  --wgt_filename "${anl2mdlWeights}" \
+  --dycore "${DYCORE}" \
+  --add_cloud_vars \
+  --add_chemistry \
+  --RDADIR "${RDADIR}" \
+  --adjust_config "${adjust_flags-}" \
+  --model_topo_file "${adjust_topo-}" \
+  --mod_remap_file "${m2m_remap_file-}" \
+  --mod_in_topo "${m2m_topo_in-}" \
+  --se_inic "${sePreFilterIC}" \
+  ${ADDCHEM_STR:+$ADDCHEM_STR} ${AUGMENT_STR:+$AUGMENT_STR} ${VORTEX_STR:+$VORTEX_STR}
+)
 
 ############################### FRANKENGRID ###############################
 
@@ -294,28 +247,21 @@ if [ "${standalone_vortex}" = true ] ; then
   echo "Adding or removing a TC from initial condition based on ${vortex_namelist}"
 
   echo "... finding fill parameters"
-  if [ "$DO_PYTHON" = true ]; then
-    (set -x; python find-tc-fill-params.py \
-        --inic_file "${sePreFilterIC}" \
-        --vortex_namelist ${vortex_namelist}
-    ) ; exit_status=$?
-    check_python_exit "find-tc-fill-params.py" $exit_status
-  else
-    (set -x; ncl -n find-tc-fill-params.ncl 'inic_file= "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
-    check_ncl_exit "find-tc-fill-params.ncl" $exit_status
-  fi
+
+  (set -x; python find-tc-fill-params.py \
+      --inic_file "${sePreFilterIC}" \
+      --vortex_namelist ${vortex_namelist}
+  ) ; exit_status=$?
+  check_python_exit "find-tc-fill-params.py" $exit_status
 
   echo "... seeding or unseeding TC"
-  if [ "$DO_PYTHON" = true ]; then
-    (set -x; python py-seed-tc-in-ncdata.py \
-        --se_inic "${sePreFilterIC}" \
-        --vortex_namelist ${vortex_namelist}
-    ) ; exit_status=$?
-    check_python_exit "py-seed-tc-in-ncdata.py" $exit_status
-  else
-    (set -x; ncl -n seed-tc-in-ncdata.ncl 'seedfile = "'${sePreFilterIC}'"' 'pthi = "'${vortex_namelist}'"' ) ; exit_status=$?
-    check_ncl_exit "seed-tc-in-ncdata.ncl" $exit_status
-  fi
+
+  (set -x; python py-seed-tc-in-ncdata.py \
+      --se_inic "${sePreFilterIC}" \
+      --vortex_namelist ${vortex_namelist}
+  ) ; exit_status=$?
+  check_python_exit "py-seed-tc-in-ncdata.py" $exit_status
+
   set -e
 fi
 
@@ -323,8 +269,8 @@ if [ "${add_noise}" = true ] ; then
   set +e
   echo "Adding white noise to initial condition"
   cdv "$atm_to_cam_path"
-  (set -x; ncl -n perturb_white_noise.ncl 'basFileName = "'${sePreFilterIC}'"' ) ; exit_status=$?
-  check_ncl_exit "perturb_white_noise.ncl" $exit_status
+  (set -x; python perturb_white_noise.py "${sePreFilterIC}") ; exit_status=$?
+  check_python_exit "perturb_white_noise.py" $exit_status
   set -e
 fi
 
@@ -334,39 +280,25 @@ if [ "${add_perturbs}" = true ] ; then
   set +e
 
   sstFileIC_WPERT=${sstFileIC}_PERT.nc
-  if [ "${DO_PYTHON}" = true ]; then
-    (set -x; python add_perturbations_to_sst.py \
-       --BEFOREPERTFILE "${sstFileIC}" \
-       --AFTERPERTFILE "${sstFileIC_WPERT}" \
-       --pthi "${perturb_namelist}") ; exit_status=$?
-    check_python_exit "add_perturbations_to_sst.py" $exit_status
-  else
-    (set -x; ncl -n add_perturbations_to_sst.ncl 'BEFOREPERTFILE="'${sstFileIC}'"' \
-       'AFTERPERTFILE = "'${sstFileIC_WPERT}'"' \
-       'pthi="'${perturb_namelist}'"'
-    ) ; exit_status=$?
-    check_ncl_exit "add_perturbations_to_sst.ncl" $exit_status
-  fi
+
+  (set -x; python add_perturbations_to_sst.py \
+     --BEFOREPERTFILE "${sstFileIC}" \
+     --AFTERPERTFILE "${sstFileIC_WPERT}" \
+     --pthi "${perturb_namelist}") ; exit_status=$?
+  check_python_exit "add_perturbations_to_sst.py" $exit_status
+
   echo "SST perturbations added successfully"
 
   sePreFilterIC_WPERT=${sePreFilterIC}_PERT.nc
-  if [ "${DO_PYTHON}" = true ]; then
-    (set -x; python add_perturbations_to_cam.py \
-       --BEFOREPERTFILE "${sePreFilterIC}" \
-       --AFTERPERTFILE "${sePreFilterIC_WPERT}" \
-       --gridfile "${modelgridfile}" \
-       --MAPFILEPATH "${mapping_files_path}" \
-       --pthi "${perturb_namelist}") ; exit_status=$?
-    check_python_exit "add_perturbations_to_cam.py" $exit_status
-  else
-    (set -x; ncl -n add_perturbations_to_cam.ncl 'BEFOREPERTFILE="'${sePreFilterIC}'"'  \
-       'AFTERPERTFILE = "'${sePreFilterIC_WPERT}'"' \
-       'gridfile = "'${modelgridfile}'"' \
-       'MAPFILEPATH = "'${mapping_files_path}'"' \
-       'pthi="'${perturb_namelist}'"'
-    ) ; exit_status=$?
-    check_ncl_exit "add_perturbations_to_cam.ncl" $exit_status
-  fi
+
+  (set -x; python add_perturbations_to_cam.py \
+     --BEFOREPERTFILE "${sePreFilterIC}" \
+     --AFTERPERTFILE "${sePreFilterIC_WPERT}" \
+     --gridfile "${modelgridfile}" \
+     --MAPFILEPATH "${mapping_files_path}" \
+     --pthi "${perturb_namelist}") ; exit_status=$?
+  check_python_exit "add_perturbations_to_cam.py" $exit_status
+
   echo "ATM perturbations added successfully"
 
   set -e
