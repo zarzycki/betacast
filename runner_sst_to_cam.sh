@@ -26,14 +26,7 @@ fi
 # Check if domain or SCRIP exist, if one is missing create both domain and scrip
 if [ ! -f "${sst_domain_file}" ] || [ ! -f "${sst_scrip_file}" ]; then
   echo "Creating SST domain file for: ${docnres}"
-  if [ "${DO_PYTHON}" = true ]; then
-    (set -x; python gen-sst-domain.py --inputres "${docnres}")
-  else
-    set +e
-    (set -x; ncl gen-sst-domain.ncl 'inputres="'${docnres}'"' ) ; exit_status=$?
-    check_ncl_exit "gen-sst-domain.ncl" $exit_status
-    set -e
-  fi
+  (set -x; python gen-sst-domain.py --inputres "${docnres}")
   compress_single_file "${sst_scrip_file}"
 fi
 
@@ -45,33 +38,18 @@ if [ "${cime_coupler}" = "nuopc" ] && [ ! -f "${sst_ESMF_file}" ]; then
 fi
 
 # Now generate the SST/ice datastream
-if [ "${DO_PYTHON}" = true ]; then
-  (set -x; python sst_to_cam.py \
-      --initdate "${yearstr}${monthstr}${daystr}${cyclestr}" \
-      --predict_docn "${INT_PREDICT_DOCN}" \
-      --inputres "${docnres}" \
-      --datasource "${SSTTYPE}" \
-      --sstDataFile "${sst_files_path}/${sstFile}" \
-      --iceDataFile "${sst_files_path}/${iceFile}" \
-      --SST_write_file "${sstFileIC}" \
-      --smooth_ice \
-      --smooth_iter 3 \
-      --verbose
-  )
-else
-  set +e
-  (set -x; ncl sst_interp.ncl \
-      'initdate="'${yearstr}${monthstr}${daystr}${cyclestr}'"' \
-      predict_docn=${INT_PREDICT_DOCN} \
-      'inputres="'${docnres}'"' \
-      'datasource="'${SSTTYPE}'"' \
-      'sstDataFile = "'${sst_files_path}/${sstFile}'"' \
-      'iceDataFile = "'${sst_files_path}/${iceFile}'"' \
-      'SST_write_file = "'${sstFileIC}'"' \
-  ) ; exit_status=$?
-  check_ncl_exit "sst_interp.ncl" $exit_status
-  set -e
-fi
+(set -x; python sst_to_cam.py \
+    --initdate "${yearstr}${monthstr}${daystr}${cyclestr}" \
+    --predict_docn "${INT_PREDICT_DOCN}" \
+    --inputres "${docnres}" \
+    --datasource "${SSTTYPE}" \
+    --sstDataFile "${sst_files_path}/${sstFile}" \
+    --iceDataFile "${sst_files_path}/${iceFile}" \
+    --SST_write_file "${sstFileIC}" \
+    --smooth_ice \
+    --smooth_iter 3 \
+    --verbose
+)
 
 if [ "$do_slab" = true ] ; then
   ## Add slab ocean parameters
