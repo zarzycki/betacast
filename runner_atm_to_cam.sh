@@ -179,10 +179,18 @@ if [ "${do_frankengrid}" = true ] ; then
   echo "Doing Frankengrid $regionalName with $regional_src"
 
   case "$regionalName" in
-    hwrf)     regFrankenDataSource="HWRF" ;;
-    hrrr_3km) regFrankenDataSource="HRRR" ;;
-    rap_13km) regFrankenDataSource="RAP"  ;;
+    hwrf)        regFrankenDataSource="HWRF"   ;;
+    hrrr_3km)    regFrankenDataSource="HRRR"   ;;
+    hrrr_3km_ml) regFrankenDataSource="HRRRml" ;;
+    rap_13km)    regFrankenDataSource="RAP"    ;;
     *) echo "Unknown regionalName '${regionalName}' for do_frankengrid, exiting"; exit 1 ;;
+  esac
+
+  # hrrr_3km_ml (native/hybrid levels) shares its horizontal grid with hrrr_3km
+  # (pressure levels), so it reuses the same SCRIP file and weights.
+  case "$regionalName" in
+    hrrr_3km_ml) REG_ANLGRID="hrrr_3km" ;;
+    *)           REG_ANLGRID="${regionalName}" ;;
   esac
 
   if [ "$regionalName" == "hwrf" ]; then
@@ -195,8 +203,7 @@ if [ "${do_frankengrid}" = true ] ; then
     REG_ANLGRID="hwrf_storm"
     REG_ANLGRIDPATH="${mapping_files_path}"
   else
-    TMPWGTFILE="${mapping_files_path}/map_${regionalName}_TO_modelgrid_patc.nc"
-    REG_ANLGRID="${regionalName}"
+    TMPWGTFILE="${mapping_files_path}/map_${REG_ANLGRID}_TO_modelgrid_patc.nc"
     REG_ANLGRIDPATH="../grids/anl_scrip/"
   fi
 
