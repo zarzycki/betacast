@@ -7,7 +7,7 @@
 #        DO_PYTHON DYCORE atmDataType numLevels ERA5RDA \
 #        do_frankengrid standalone_vortex add_noise add_perturbs \
 #        modelSystem sstDataType \
-#        sePreFilterIC sstFileIC perturb_namelist vortex_namelist regional_src \
+#        sePreFilterIC sstFileIC perturb_namelist vortex_namelist regionalName regional_src \
 #        RDADIR gfs_files_path era_files_path \
 #        AUGMENT_STR VORTEX_STR
 
@@ -223,82 +223,67 @@ if [ "${do_frankengrid}" = true ] ; then
   regional_src=${regional_src/DD/$daystr}
   regional_src=${regional_src/HH/$cyclestr}
 
-  echo "Doing Frankengrid with $regional_src"
+  echo "Doing Frankengrid $regionalName with $regional_src"
 
-  TMPWGTFILE="./map_hwrf_storm_TO_modelgrid_patc.nc"
+  case "$regionalName" in
+    hwrf)     regFrankenDataSource="HWRF" ;;
+    hrrr_3km) regFrankenDataSource="HRRR" ;;
+    rap_13km) regFrankenDataSource="RAP"  ;;
+    *) echo "Unknown regionalName '${regionalName}' for do_frankengrid, exiting"; exit 1 ;;
+  esac
 
-  if [ "$DO_PYTHON" = true ]; then
-    (set -x; python ../py_remapping/gen_reglatlon_SCRIP.py \
-      --dstGridName "hwrf_storm_scrip.nc" \
-      --dstDir "./" \
-      --srcfilename "${regional_src}"
+  if [ "$regionalName" == "hwrf" ]; then
+    (set -x; time python ../py_remapping/gen_reglatlon_SCRIP.py \
+        --dstGridName "hwrf_storm_scrip.nc" \
+        --dstDir "${mapping_files_path}" \
+        --srcfilename "${regional_src}"
     )
+    TMPWGTFILE="${mapping_files_path}/map_hwrf_storm_TO_modelgrid_patc.nc"
+    REG_ANLGRID="hwrf_storm"
+    REG_ANLGRIDPATH="${mapping_files_path}"
   else
-    set +e
-    echo "Generating a temporary SCRIP file for HWRF"
-    (set -x; ncl ../remapping/gen_reglatlon_SCRIP.ncl \
-      'DSTGRIDNAME="hwrf_storm_scrip.nc"' \
-      'DSTDIR="./"' \
-      'SRCFILENAME="'${regional_src}'"'
-    ) ; exit_status=$?
-    check_ncl_exit "gen_reglatlon_SCRIP.ncl" $exit_status
+    TMPWGTFILE="${mapping_files_path}/map_${regionalName}_TO_modelgrid_patc.nc"
+    REG_ANLGRID="${regionalName}"
+    REG_ANLGRIDPATH="../grids/anl_scrip/"
   fi
 
-  if [ "$DO_PYTHON" = true ]; then
-    (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
-      --ANLGRID "hwrf_storm" \
+  (set -x; time python ../py_remapping/gen_analysis_to_model_wgt_file.py \
+      --ANLGRID "${REG_ANLGRID}" \
       --DSTGRIDNAME "modelgrid" \
-      --DSTGRIDFILE "${model_scrip}" \
-      --ANLGRIDPATH "./" \
-      --WGTFILEDIR "./"
-    )
-  else
-    echo "Generating a temporary map file for HWRF"
-    (set -x; ncl ../remapping/gen_analysis_to_model_wgt_file.ncl \
-      'ANLGRID="hwrf_storm"' \
-      'DSTGRIDNAME="modelgrid"' \
-      'ANLGRIDPATH="./"' \
-      'WGTFILEDIR="./"' \
-      'DSTGRIDFILE="'${model_scrip}'"'
-    ) ; exit_status=$?
-    check_ncl_exit "gen_analysis_to_model_wgt_file.ncl" $exit_status
-  fi
+      --DSTGRIDFILE "${modelgridfile}" \
+      --ANLGRIDPATH "${REG_ANLGRIDPATH}" \
+      --WGTFILEDIR "${mapping_files_path}"
+  )
 
-  if [ "$DO_PYTHON" = true ]; then
-    (set -x; python atm_to_cam.py \
-      --datasource "HWRF" \
+  (set -x; time python atm_to_cam.py \
+      --datasource "${regFrankenDataSource}" \
       --numlevels ${numLevels} \
       --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
       --data_filename "${regional_src}" \
       --wgt_filename "${TMPWGTFILE}" \
       --dycore "${DYCORE}" \
+      --compress_file \
+      --write_floats \
       --add_cloud_vars \
-      --adjust_config "" \
+      --adjust_config "${adjust_flags-}" \
+      --model_topo_file "${adjust_topo-}" \
       --se_inic "${sePreFilterIC}_reg.nc"
-    )
-  else
-    echo "Generating regional Frankengrid for HWRF"
-    (set -x; ncl -n atm_to_cam.ncl 'datasource="HWRF"' \
-      'dycore="'${DYCORE}'"' \
-      numlevels=${numLevels} \
-      YYYYMMDDHH=${yearstr}${monthstr}${daystr}${cyclestr} \
-      'data_filename = "'${regional_src}'"' \
-      'wgt_filename="'${TMPWGTFILE}'"' \
-      'adjust_config=""' \
-      'se_inic = "'${sePreFilterIC}_reg.nc'"'
-    ) ; exit_status=$?
-    check_ncl_exit "atm_to_cam.ncl" $exit_status
-    set -e
-  fi
+  )
 
   echo "Overlay regional file on top of basefile"
+  # Make a copy to archive
   cp -v ${sePreFilterIC} ${sePreFilterIC}_base.nc
-  (set -x; python overlay.py "${sePreFilterIC}" "${sePreFilterIC}_reg.nc" --maxLev 80. )
+  # Overlay the reg file to the OG base file
+  (set -x; time python overlay.py \
+      "${sePreFilterIC}" \
+      "${sePreFilterIC}_reg.nc" \
+      --maxLev 80.
+  )
 
   echo "Cleaning up temporary ESMF files"
-  rm -v "$TMPWGTFILE"
-  rm -v hwrf_storm_scrip.nc
-  rm -v ${sePreFilterIC}_reg.nc
+  rm -fv "$TMPWGTFILE"
+  rm -fv "${mapping_files_path}/hwrf_storm_scrip.nc"
+  rm -fv ${sePreFilterIC}_reg.nc
 fi
 
 ############################### VORTEX / NOISE / PERTURBS ###############################
