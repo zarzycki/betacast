@@ -302,9 +302,9 @@ if [ "$save_nudging_files" = true ] && [ "$modelSystem" -eq 2 ] ; then
   exit 1
 fi
 
-# ncl is only needed for sendplots right now
-if [ "$sendplots" = true ]; then
-  check_bash_dependency ncl "sendplots"
+# ncl is only needed for sendplots (weatherplot.ncl) and dotracking (model-to-atcf.ncl, plot_ATCF.ncl) right now
+if [ "$sendplots" = true ] || [ "$dotracking" = true ]; then
+  check_bash_dependency ncl "sendplots or dotracking"
 fi
 
 # Check if ncks exists for compression
