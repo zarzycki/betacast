@@ -62,4 +62,4 @@ qsub create-mean-casper.sh
 
 Computes the ensemble mean of all members for each variable/time using `ncea`. Output files are named `*_mem999.nc` (mem999 = ensemble mean).
 
-This is just for debugging if you want to evaluate whether Betacast using the ensemble mean of the individual members matches the ensemble mean provided by NOAA (or in RDA).
+This is just for debugging if you want to evaluate whether Betacast using the ensemble mean of the individual members matches the ensemble mean provided by NOAA (or in RDA). You should *not* use this mean in a true workflow as the primary benefit of applying the 20CRV3 mean is to have more data at higher altitudes.
