@@ -28,6 +28,8 @@ def parse_args():
                         help="Forecast hour, 0-48 (default: 0)")
     parser.add_argument("--region", type=str, default="conus",
                         help="HRRR region/domain, e.g. conus or alaska (default: conus)")
+    parser.add_argument("--skip-existing", action="store_true",
+                        help="Skip downloading if the destination file already exists (default: overwrite)")
     return parser.parse_args()
 
 
@@ -74,6 +76,10 @@ def main():
     for product in products:
         url, filename = build_url(yyyy, mm, dd, hh, args.region, product, args.fxx)
         dest_path = os.path.join(args.outdir, filename)
+
+        if args.skip_existing and os.path.exists(dest_path):
+            print(f"Skipping {dest_path} (already exists)")
+            continue
 
         print(f"Downloading {url}")
         download_file(url, dest_path)
