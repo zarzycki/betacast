@@ -4,7 +4,7 @@
 #        modelgridfile m2m_gridfile model_scrip m2m_parent_source \
 #        anl2mdlWeights m2m_remap_file adjust_topo m2m_topo_in adjust_flags \
 #        yearstr monthstr daystr cyclestr uniqtime \
-#        DO_PYTHON DYCORE atmDataType numLevels ERA5RDA \
+#        DYCORE atmDataType numLevels ERA5RDA \
 #        do_frankengrid standalone_vortex add_noise add_perturbs \
 #        modelSystem sstDataType \
 #        sePreFilterIC sstFileIC perturb_namelist vortex_namelist regionalName regional_src \
