@@ -7,7 +7,7 @@
 #        DYCORE atmDataType numLevels ERA5RDA \
 #        do_frankengrid standalone_vortex add_noise add_perturbs \
 #        modelSystem sstDataType \
-#        sePreFilterIC sstFileIC perturb_namelist vortex_namelist regionalName regional_src \
+#        sePreFilterIC sstFileIC perturb_namelist vortex_namelist regional_name regional_src \
 #        RDADIR gfs_files_path era_files_path \
 #        AUGMENT_STR VORTEX_STR
 
@@ -176,24 +176,24 @@ if [ "${do_frankengrid}" = true ] ; then
   regional_src=${regional_src/DD/$daystr}
   regional_src=${regional_src/HH/$cyclestr}
 
-  echo "Doing Frankengrid $regionalName with $regional_src"
+  echo "Doing Frankengrid $regional_name with $regional_src"
 
-  case "$regionalName" in
+  case "$regional_name" in
     hwrf)        regFrankenDataSource="HWRF"   ;;
     hrrr_3km)    regFrankenDataSource="HRRR"   ;;
     hrrr_3km_ml) regFrankenDataSource="HRRRml" ;;
     rap_13km)    regFrankenDataSource="RAP"    ;;
-    *) echo "Unknown regionalName '${regionalName}' for do_frankengrid, exiting"; exit 1 ;;
+    *) echo "Unknown regional_name '${regional_name}' for do_frankengrid, exiting"; exit 1 ;;
   esac
 
   # hrrr_3km_ml (native/hybrid levels) shares its horizontal grid with hrrr_3km
   # (pressure levels), so it reuses the same SCRIP file and weights.
-  case "$regionalName" in
+  case "$regional_name" in
     hrrr_3km_ml) REG_ANLGRID="hrrr_3km" ;;
-    *)           REG_ANLGRID="${regionalName}" ;;
+    *)           REG_ANLGRID="${regional_name}" ;;
   esac
 
-  if [ "$regionalName" == "hwrf" ]; then
+  if [ "$regional_name" == "hwrf" ]; then
     (set -x; time python ../py_remapping/gen_reglatlon_SCRIP.py \
         --dstGridName "hwrf_storm_scrip.nc" \
         --dstDir "${mapping_files_path}" \

@@ -35,6 +35,9 @@ from constants import (
 nc.default_fillvals['f4'] = NC_FLOAT_FILL
 nc.default_fillvals['f8'] = float(NC_FLOAT_FILL)
 
+# Define regional data sources
+regional_datasources = {'HRRR', 'HRRRml', 'HWRF'}
+
 args = pyfuncs.parse_args()
 
 pyfuncs.configure_logging(args.verbose)
@@ -141,6 +144,23 @@ def main():
     if dycore == "scream" and not add_chemistry:
         logging.info(f"Dycore is {dycore} and add_chemistry is {add_chemistry}. Toggling to true!")
         add_chemistry = True
+
+    # Turn off non-state vars if using regional, these come from the global background
+    if (add_cloud_vars or add_numconc_vars or add_chemistry) and datasource in regional_datasources:
+        logging.info(
+            f"Regional datasource {datasource}: "
+            f"add_cloud_vars={add_cloud_vars}, "
+            f"add_numconc_vars={add_numconc_vars}, "
+            f"add_chemistry={add_chemistry}."
+        )
+        logging.info(
+            "Regional models do not add non-state vars; "
+            "they are inherited from the parent during overlay; "
+            "setting to False."
+        )
+        add_cloud_vars = False
+        add_numconc_vars = False
+        add_chemistry = False
 
     # Toggle whether the output streams will be floats or doubles
     write_type = "float" if write_floats else "double"

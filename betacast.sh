@@ -226,12 +226,12 @@ fi
 # Are we running with frankengrid?
 do_frankengrid=false
 if [ -n "${regional_src+x}" ]; then do_frankengrid=true ; fi
-if [ -n "${regional_src+x}" ] && [ -z "${regionalName+x}" ]; then
-  echo "ERROR: regional_src is set in the namelist but regionalName is not; both are required for do_frankengrid" >&2
+if [ -n "${regional_src+x}" ] && [ -z "${regional_name+x}" ]; then
+  echo "ERROR: regional_src is set in the namelist but regional_name is not; both are required for do_frankengrid" >&2
   exit 1
 fi
-if [ -z "${regional_src+x}" ] && [ -n "${regionalName+x}" ]; then
-  echo "ERROR: regionalName is set in the namelist but regional_src is not; both are required for do_frankengrid" >&2
+if [ -z "${regional_src+x}" ] && [ -n "${regional_name+x}" ]; then
+  echo "ERROR: regional_name is set in the namelist but regional_src is not; both are required for do_frankengrid" >&2
   exit 1
 fi
 echo "do_frankengrid set to: $do_frankengrid"
@@ -571,7 +571,7 @@ if [ "$debug" = false ] ; then
 
   export BETACAST atm_to_cam_path mapping_files_path \
          modelgridfile m2m_gridfile m2m_parent_source m2m_remap_file \
-         uniqtime sePreFilterIC sstFileIC regional_src regionalName \
+         uniqtime sePreFilterIC sstFileIC regional_src regional_name \
          atmDataType numLevels yearstr monthstr daystr cyclestr \
          RDADIR anl2mdlWeights DYCORE \
          do_frankengrid model_scrip standalone_vortex add_noise add_perturbs \
@@ -585,7 +585,7 @@ if [ "$debug" = false ] ; then
       sbatch --wait \
         -C cpu \
         -A m2637 \
-        --qos=regular \
+        --qos=premium \
         --time=00:59:00 \
         --nodes=1 \
         --ntasks=1 \
