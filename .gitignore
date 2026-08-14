@@ -11,6 +11,12 @@ py_atm_to_cam/perturb/*.nc
 *.g
 *_stereo.png
 refine_map.dat
+grids/model_scrip/ne120*.nc
+grids/model_scrip/ne60*.nc
+
+# Compressed files
+*.xz
+*.tar.gz
 
 ## DOCN stuff
 domain.ocn.*.nc
