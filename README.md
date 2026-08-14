@@ -309,6 +309,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | sendplots | Are we going to send live output to some external server? (generally false unless you are CMZ) | | false |
 | nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) | | "NULL" |
 | regional_src | Path template to regional data source for Frankengrid (supports YYYY/MM/DD/HH placeholders) |  | |
+| regional_fail_if_missing | If true, exit if regional_src file doesn't exist; if false, skip Frankengrid and continue |  | true |
 
 <font size="2">
 *Betacast offers two methods for handling weight files used in remapping. It is up to the user to choose.

@@ -274,7 +274,7 @@ bools_to_check=("islive" "debug" "doFilter" "filterOnly"
     "compress_history_nc" "override_rest_check" "batch_atm_gen" "batch_sst_gen"
     "standalone_vortex" "augment_tcs" "tararchivedir" "save_nudging_files"
     "add_noise" "runmodel" "add_perturbs" "land_spinup"
-    "sendplots" "dotracking" "do_slab")
+    "sendplots" "dotracking" "do_slab" "regional_fail_if_missing")
 for bool_to_check in ${bools_to_check[@]}; do
   check_bool "$bool_to_check" ${!bool_to_check}
 done
