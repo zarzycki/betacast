@@ -137,6 +137,7 @@ if [ -z "${vortex_namelist+x}" ]; then vortex_namelist=""; fi
 if [ -z "${augment_tcs+x}" ]; then augment_tcs=false; fi
 if [ -z "${save_nudging_files+x}" ]; then save_nudging_files=false; fi
 if [ -z "${override_rest_check+x}" ]; then override_rest_check=false; fi
+if [ -z "${regional_fail_if_missing+x}" ]; then regional_fail_if_missing=true; fi
 if [ -z "${tararchivedir+x}" ]; then tararchivedir=true; fi
 if [ -z "${docnres+x}" ]; then docnres="180x360"; fi
 if [ -z "${modelgridfile+x}" ]; then modelgridfile=""; fi
@@ -571,7 +572,7 @@ if [ "$debug" = false ] ; then
 
   export BETACAST atm_to_cam_path mapping_files_path \
          modelgridfile m2m_gridfile m2m_parent_source m2m_remap_file \
-         uniqtime sePreFilterIC sstFileIC regional_src regional_name \
+         uniqtime sePreFilterIC sstFileIC regional_src regional_name regional_fail_if_missing \
          atmDataType numLevels yearstr monthstr daystr cyclestr \
          RDADIR anl2mdlWeights DYCORE \
          do_frankengrid model_scrip standalone_vortex add_noise add_perturbs \

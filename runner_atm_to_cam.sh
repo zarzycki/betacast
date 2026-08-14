@@ -7,7 +7,7 @@
 #        DYCORE atmDataType numLevels ERA5RDA \
 #        do_frankengrid standalone_vortex add_noise add_perturbs \
 #        modelSystem sstDataType \
-#        sePreFilterIC sstFileIC perturb_namelist vortex_namelist regional_name regional_src \
+#        sePreFilterIC sstFileIC perturb_namelist vortex_namelist regional_name regional_src regional_fail_if_missing \
 #        RDADIR gfs_files_path era_files_path \
 #        AUGMENT_STR VORTEX_STR
 
@@ -178,72 +178,82 @@ if [ "${do_frankengrid}" = true ] ; then
 
   echo "Doing Frankengrid $regional_name with $regional_src"
 
-  case "$regional_name" in
-    hwrf)        regFrankenDataSource="HWRF"   ;;
-    hrrr_3km)    regFrankenDataSource="HRRR"   ;;
-    hrrr_3km_ml) regFrankenDataSource="HRRRml" ;;
-    rap_13km)    regFrankenDataSource="RAP"    ;;
-    *) echo "Unknown regional_name '${regional_name}' for do_frankengrid, exiting"; exit 1 ;;
-  esac
-
-  # hrrr_3km_ml (native/hybrid levels) shares its horizontal grid with hrrr_3km
-  # (pressure levels), so it reuses the same SCRIP file and weights.
-  case "$regional_name" in
-    hrrr_3km_ml) REG_ANLGRID="hrrr_3km" ;;
-    *)           REG_ANLGRID="${regional_name}" ;;
-  esac
-
-  if [ "$regional_name" == "hwrf" ]; then
-    (set -x; time python ../py_remapping/gen_reglatlon_SCRIP.py \
-        --dstGridName "hwrf_storm_scrip.nc" \
-        --dstDir "${mapping_files_path}" \
-        --srcfilename "${regional_src}"
-    )
-    TMPWGTFILE="${mapping_files_path}/map_hwrf_storm_TO_modelgrid_patc.nc"
-    REG_ANLGRID="hwrf_storm"
-    REG_ANLGRIDPATH="${mapping_files_path}"
+  # Check to see if regional file exists and decide what to do if it doesn't.
+  if [ ! -f "${regional_src}" ]; then
+    if [ "${regional_fail_if_missing}" = true ]; then
+      echo "!!! ERROR: regional_src file '${regional_src}' does not exist and regional_fail_if_missing=true, exiting !!!" >&2
+      exit 1
+    else
+      echo "!!! WARNING: regional_src file '${regional_src}' does not exist and regional_fail_if_missing=false, skipping Frankengrid !!!" >&2
+    fi
   else
-    TMPWGTFILE="${mapping_files_path}/map_${REG_ANLGRID}_TO_modelgrid_patc.nc"
-    REG_ANLGRIDPATH="../grids/anl_scrip/"
+    case "$regional_name" in
+      hwrf)        regFrankenDataSource="HWRF"   ;;
+      hrrr_3km)    regFrankenDataSource="HRRR"   ;;
+      hrrr_3km_ml) regFrankenDataSource="HRRRml" ;;
+      rap_13km)    regFrankenDataSource="RAP"    ;;
+      *) echo "Unknown regional_name '${regional_name}' for do_frankengrid, exiting"; exit 1 ;;
+    esac
+
+    # hrrr_3km_ml (native/hybrid levels) shares its horizontal grid with hrrr_3km
+    # (pressure levels), so it reuses the same SCRIP file and weights.
+    case "$regional_name" in
+      hrrr_3km_ml) REG_ANLGRID="hrrr_3km" ;;
+      *)           REG_ANLGRID="${regional_name}" ;;
+    esac
+
+    if [ "$regional_name" == "hwrf" ]; then
+      (set -x; time python ../py_remapping/gen_reglatlon_SCRIP.py \
+          --dstGridName "hwrf_storm_scrip.nc" \
+          --dstDir "${mapping_files_path}" \
+          --srcfilename "${regional_src}"
+      )
+      TMPWGTFILE="${mapping_files_path}/map_hwrf_storm_TO_modelgrid_patc.nc"
+      REG_ANLGRID="hwrf_storm"
+      REG_ANLGRIDPATH="${mapping_files_path}"
+    else
+      TMPWGTFILE="${mapping_files_path}/map_${REG_ANLGRID}_TO_modelgrid_patc.nc"
+      REG_ANLGRIDPATH="../grids/anl_scrip/"
+    fi
+
+    (set -x; time python ../py_remapping/gen_analysis_to_model_wgt_file.py \
+        --ANLGRID "${REG_ANLGRID}" \
+        --DSTGRIDNAME "modelgrid" \
+        --DSTGRIDFILE "${modelgridfile}" \
+        --ANLGRIDPATH "${REG_ANLGRIDPATH}" \
+        --WGTFILEDIR "${mapping_files_path}"
+    )
+
+    (set -x; time python atm_to_cam.py \
+        --datasource "${regFrankenDataSource}" \
+        --numlevels ${numLevels} \
+        --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
+        --data_filename "${regional_src}" \
+        --wgt_filename "${TMPWGTFILE}" \
+        --dycore "${DYCORE}" \
+        --compress_file \
+        --write_floats \
+        --add_cloud_vars \
+        --adjust_config "${adjust_flags-}" \
+        --model_topo_file "${adjust_topo-}" \
+        --se_inic "${sePreFilterIC}_reg.nc"
+    )
+
+    echo "Overlay regional file on top of basefile"
+    # Make a copy to archive
+    cp -v ${sePreFilterIC} ${sePreFilterIC}_base.nc
+    # Overlay the reg file to the OG base file
+    (set -x; time python overlay.py \
+        "${sePreFilterIC}" \
+        "${sePreFilterIC}_reg.nc" \
+        --maxLev 80.
+    )
+
+    echo "Cleaning up temporary ESMF files"
+    rm -fv "$TMPWGTFILE"
+    rm -fv "${mapping_files_path}/hwrf_storm_scrip.nc"
+    rm -fv ${sePreFilterIC}_reg.nc
   fi
-
-  (set -x; time python ../py_remapping/gen_analysis_to_model_wgt_file.py \
-      --ANLGRID "${REG_ANLGRID}" \
-      --DSTGRIDNAME "modelgrid" \
-      --DSTGRIDFILE "${modelgridfile}" \
-      --ANLGRIDPATH "${REG_ANLGRIDPATH}" \
-      --WGTFILEDIR "${mapping_files_path}"
-  )
-
-  (set -x; time python atm_to_cam.py \
-      --datasource "${regFrankenDataSource}" \
-      --numlevels ${numLevels} \
-      --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
-      --data_filename "${regional_src}" \
-      --wgt_filename "${TMPWGTFILE}" \
-      --dycore "${DYCORE}" \
-      --compress_file \
-      --write_floats \
-      --add_cloud_vars \
-      --adjust_config "${adjust_flags-}" \
-      --model_topo_file "${adjust_topo-}" \
-      --se_inic "${sePreFilterIC}_reg.nc"
-  )
-
-  echo "Overlay regional file on top of basefile"
-  # Make a copy to archive
-  cp -v ${sePreFilterIC} ${sePreFilterIC}_base.nc
-  # Overlay the reg file to the OG base file
-  (set -x; time python overlay.py \
-      "${sePreFilterIC}" \
-      "${sePreFilterIC}_reg.nc" \
-      --maxLev 80.
-  )
-
-  echo "Cleaning up temporary ESMF files"
-  rm -fv "$TMPWGTFILE"
-  rm -fv "${mapping_files_path}/hwrf_storm_scrip.nc"
-  rm -fv ${sePreFilterIC}_reg.nc
 fi
 
 ############################### VORTEX / NOISE / PERTURBS ###############################
