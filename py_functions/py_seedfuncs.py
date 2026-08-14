@@ -462,9 +462,10 @@ def seed_pouch(q, t, ps, lat, lon, hyam, hybm, hyai, hybi, cen_lat, cen_lon,
     concentrated where dry-air intrusion matters for spinup rather than at the
     surface or in the stratosphere.
 
-    Columns are only moistened (q = max(q, q_target)); ambient air already
-    wetter than the target is left untouched, so the pouch blends into any
-    preexisting moist envelope instead of drying it.
+    Columns are only moistened (q += max(dq, 0), derived from the RH deficit
+    against the target); ambient air already wetter than the target is left
+    untouched, so the pouch blends into any preexisting moist envelope
+    instead of drying it.
 
     Parameters:
     -----------
