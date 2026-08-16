@@ -65,7 +65,7 @@ modify_q=True
 modify_q_mult=2.5
 ```
 
-`find-tc-fill-params.ncl` will attempt to find the correct vortex shape/settings to optimally remove the vortex from the analysis. It will append these settings to the namelist without user intervention and then run the seeding code with the invert_vortex flag specified as True.
+`find-tc-fill-params.py` will attempt to find the correct vortex shape/settings to optimally remove the vortex from the analysis. It will append these settings to the namelist without user intervention and then run the seeding code with the invert_vortex flag specified as True.
 
 ### Seeding/unseeding multiple TCs
 
@@ -94,4 +94,4 @@ modify_q_mult=2.5
 
 Each block is self-contained and follows the same rules as a single-TC namelist above (blocks may mix seeding and unseeding); keys not set in a block fall back to their defaults, except `psminlat` and `psminlon`, which are required in every block (the parser exits with an error if either is missing). A file with no `---` separators behaves exactly as a single-TC namelist. See `namelists/seed-unseed.multi.example.nl` for a working example.
 
-Note: multi-TC namelists are only supported by the main Python pipeline (`atm_to_cam.py`, i.e., `standalone_vortex = false`). The standalone tools (`py_atm_to_cam/tcseed/py-seed-tc-in-ncdata.py` and the legacy NCL `seed-tc-in-ncdata.ncl`) handle single-TC namelists only; the Python standalone tool will exit with an error if given a file containing `---` separators.
+Note: multi-TC namelists are only supported by the main Python pipeline (`atm_to_cam.py`, i.e., `standalone_vortex = false`). The standalone tool `py_atm_to_cam/tcseed/py-seed-tc-in-ncdata.py` handles single-TC namelists only and will exit with an error if given a file containing `---` separators.
