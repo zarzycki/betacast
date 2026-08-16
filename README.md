@@ -406,21 +406,7 @@ Workflow when `islive` is false is:
 
 Pre-staging the data consists of pulling the atmospheric data from an external server, renaming it, doing some basic file concatenation, variable arrangment, etc. and placing it into the relevant betacast folder. Doing so minimizes issues with attempting to download data from external servers at run-time, which can lead to crashes due to invalid credentials and other issues.
 
-An example of pre-staging data is shown using ERA5. The pre-stage code in this case requires python3 and cdsapi (plus a token from ECMWF in `.cdsapirc`).
-
-```
-# Example on Cheyenne of loading python + cdsapi (part of NCAR suite)
-module load python
-ncar_pylib
-
-# Navigate to ECMWF data acquisition folder
-cd ~/betacast/atm_to_cam/getECMWFdata
-
-# Run prestage shell script. Two command line inputs are:
-#   $1 = output directory for staged file
-#   $2 = requested data in YYYYMMDDHH format.
-./prestage-ERA5.sh /glade/work/${LOGNAME}/sewx/ECMWF/ 2011082512
-```
+If you have direct filesystem access to an RDA-style archive (e.g., NCAR's `/glade/campaign/collections/rda/data/ds633.0/` for ERA5), no pre-staging is needed -- pass the archive path directly via `RDADIR` and `atm_to_cam.py` will read from it at run-time (see `datasource="ERA5RDA"` below). Pre-staging tooling for pulling ERA5 from the Copernicus CDS API (for sites without direct RDA access) is not currently bundled with Betacast; see `acquire-data/` for other supported data-acquisition workflows (e.g., HRRR, 20CRv3).
 
 ### 5. Land initialization specification
 
@@ -451,10 +437,10 @@ This tool takes a 3-D analysis field from supported reanalysis products (CFSR, E
 1. Generate a `wgt_filename` (see below) to provide information regarding how to map the analysis grid to the target (model) grid.
 2. (Optional) If using an unsupported vertical grid, add new level template file.
 3. (Optional) Pre-stage data if not on Cheyenne.
-4. Set up command line options for atm_to_cam.ncl
-5. Using the below examples as a template, run `atm_to_cam.ncl`.
+4. Set up command line options for atm_to_cam.py
+5. Using the below examples as a template, run `atm_to_cam.py`.
 
-### Command line options for atm\_to\_cam.ncl
+### Command line options for atm\_to\_cam.py
 
 | Namelist Variable | Type | Description | Default | Required? |
 | --- | --- | --- | --- | --- |
@@ -466,7 +452,7 @@ This tool takes a 3-D analysis field from supported reanalysis products (CFSR, E
 | data\_filename | Str | Full path to file containing initial information | | Y |
 | wgt\_filename | Str | Full path to ESMF weight file from ANL -> MOD | | Y |
 | mpas\_as\_cam | Bool | If true, write MPAS in CAM physics output (ncol, for nudging), if false write MPAS in MPAS-A format (nCells, for init) | false | N |
-| compress\_file | Bool | If true, will attempt NetCDF "chunking" compression within NCL | false | N |
+| compress\_file | Bool | If true, will attempt NetCDF "chunking" compression | false | N |
 | write\_floats | Bool | If true, write outputs as single instead of double precision | false | N |
 | add\_cloud\_vars | Bool | If true, add CLDICE and CLDLIQ to output file | true | N |
 | adjust\_config | String | String defining how to perform hydro adjustment: if string is not empty, will do config. If "a" also try and correct TBOT in addition to PS | "" | N |
@@ -480,19 +466,19 @@ This tool takes a 3-D analysis field from supported reanalysis products (CFSR, E
 #### Regridding ERA5 Cheyenne RDA --> SE ne30
 
 ```
-ncl -n atm_to_cam.ncl 'datasource="ERA5RDA"' \
-  numlevels=32 \
-  YYYYMMDDHH=2019120100 \
-  'dycore="se"' \
-  'data_filename="/glade/campaign/collections/rda/data/ds633.0/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"' \
-  'wgt_filename="/glade/u/home/$LOGNAME/betacast/remapping/map_gfs_0.25x0.25_TO_ne30_patc.nc"' \
-  'RDADIR="/glade/campaign/collections/rda/data/ds633.0/"' \
-  'model_topo_file="/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc"' \
-  'adjust_config=""' \
-  compress_file=False \
-  write_floats=True \
-  add_cloud_vars=True \
-  'se_inic="/glade/scratch/$LOGNAME/my_se_initial_condition_file.nc"'
+python atm_to_cam.py \
+  --datasource "ERA5RDA" \
+  --numlevels 32 \
+  --YYYYMMDDHH 2019120100 \
+  --dycore "se" \
+  --data_filename "/glade/campaign/collections/rda/data/ds633.0/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc" \
+  --wgt_filename "/glade/u/home/$LOGNAME/betacast/grids/map_gfs_0.25x0.25_TO_ne30_patc.nc" \
+  --RDADIR "/glade/campaign/collections/rda/data/ds633.0/" \
+  --model_topo_file "/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30np4_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171020.nc" \
+  --adjust_config "" \
+  --write_floats \
+  --add_cloud_vars \
+  --se_inic "/glade/scratch/$LOGNAME/my_se_initial_condition_file.nc"
 ```
 
 ### Specific notes and settings:
@@ -501,7 +487,7 @@ ncl -n atm_to_cam.ncl 'datasource="ERA5RDA"' \
 
 `wgt_filename` contains an ESMF file that provides mapping weights to go from the analysis grid to the model grid. An example would be to go from ERA5 0.25x0.25deg to CAM-SE ne30np4.
 
-This file can be generated by using the NCL regridding scripts inside `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`. Here, you must have a SCRIP grid descriptor for your target mesh. A series of included grids are found in `${BETACAST}/remapping/anl_scrip` for common analyses.
+This file can be generated using `${BETACAST}/py_remapping/gen_analysis_to_model_wgt_file.py`. Here, you must have a SCRIP grid descriptor for your target mesh. A series of included grids are found in `${BETACAST}/grids/anl_scrip` for common analyses.
 
 #### Downscaling CAM data
 
@@ -659,7 +645,7 @@ rename ${ICASENAME} ${CASENAME} *.nc
 
 Betacast needs a file (ESMF format) that provides high-order weights to take the analysis data (e.g., ERA5, GFS) and horizontally remap it to the target grid (e.g., CAM, EAM).
 
-This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`. This script requires **four** inputs that are directly modified in the script body.
+This can be done with `${BETACAST}/py_remapping/gen_analysis_to_model_wgt_file.py`. This script requires **four** inputs that are directly modified in the script body.
 
 - `dstGridName` a shortname describing the model grid (for naming purposes only).
 - `dstGridFile` a full path to a file defining the destination model grid.
@@ -668,7 +654,7 @@ This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.ncl`
 
 `dstGridFile` can be one of *three* formats. It can be a **SCRIP grid file** (contains variables like grid_corner_lat), an **ESMF grid file** (contains variables like nodeCoords), or an **SE/HOMME model output file** (contains dimension ncol). The script will automatically attempt to determine the type of file and create remapping weights accordingly.
 
-Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS 2017-). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/remapping/anl_scrip/`.
+Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS 2017-). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/grids/anl_scrip/`.
 
 🔴 **IMPORTANT NOTE**: The CAM weight file needs to be the model grid read during initialization. This is particularly important to note for grids like FV (which has staggered winds) and SE/HOMME (which has dual grids for the dynamics and physics). In the case of SE/HOMME runs, the destination grid is defined by the *physics* grid.
 
@@ -711,7 +697,7 @@ perturb_namelist = /global/homes/c/czarzyck/betacast/namelists/perturb.sample.nl
 | update\_pressure | bool | Update PS based on PS deltas (generally **False**) |
 | update\_winds | bool | Update winds based on some wind deltas or thermal wind (generally **False**) |
 | do\_ps\_corr | bool | Apply simple linear PS correction to attempt to minimize geostrophic shock? (generally **True**) |
-| esmf\_remap | bool | Use ESMF remapping instead of NCL internal (generally **True**) |
+| esmf\_remap | bool | Use ESMF remapping (generally **True**) |
 | keep\_esmf | bool | Keep the ESMF files between calls to add\_perturbations to CAM? (generally **True**) |
 | smooth\_deltas | bool | Smooth deltas using a 9-point smoother? (generally **False** unless big resolution mismatch) |
 | smooth\_delta\_iter | int | If *smooth\_deltas=True*, how many iterations to apply? (higher numbers mean more smoothing) |
