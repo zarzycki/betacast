@@ -74,7 +74,7 @@ cd ${MODELROOT}/cime/scripts
 ./create_newcase --case ${CASESDIR}/${CASENAME} --compset F2000climo --res ne30_g16 --mach derecho --project ${PROJECTID} --run-unsupported
 cd ${CASESDIR}/${CASENAME}
 ./case.setup
-${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} nuopc clm
+${BETACAST}/tools/patch/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} nuopc clm
 ./xmlchange DOUT_S=False
 ./case.build
 ./case.submit
@@ -98,7 +98,7 @@ cd ${MODELROOT}/cime/scripts
 cd ${CASESDIR}/${CASENAME}
 ./xmlchange NTASKS=-8,NTASKS_ESP=1,NTASKS_IAC=1
 ./case.setup
-${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} mct elm
+${BETACAST}/tools/patch/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} mct elm
 ./case.build
 ./case.submit
 ```
@@ -129,15 +129,15 @@ cd ${CASESDIR}/${CASENAME}
 # SCREAM specific build settings
 ./xmlchange SCREAM_CMAKE_OPTIONS="SCREAM_NP 4 SCREAM_NUM_VERTICAL_LEV 128 SCREAM_NUM_TRACERS 10"
 ./case.setup
-${BETACAST}/tools/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} mct elm
+${BETACAST}/tools/patch/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} mct elm
 ./case.build
 ./case.submit
 ```
 
 Some notes:
 
-1. In the "patch-sfc-mods" step, a small modification is made to the land model to enforce restart files to be printed every 12 hours. This is done since the land model is initialized via nudging with the atmosphere in this framework. A shell script `${BETACAST}/tools/patch-sfc-mods.sh` has been created to ease this application, which takes the Betacast directory, top-level model directory, driver (mct or nuopc) and model component (e.g., elm, clm, mosart, rtm) as inputs. These patches can be manually applied by copying CESM or E3SM's `lnd_comp_mct.F90` (from the land model source code) into `$CASEDIR/SourceMods/src.clm` (or equivalent) and running
-`$ patch lnd_comp_mct.F90 < ${BETACAST}/patches/lnd_comp_mct.patch`
+1. In the "patch-sfc-mods" step, a small modification is made to the land model to enforce restart files to be printed every 12 hours. This is done since the land model is initialized via nudging with the atmosphere in this framework. A shell script `${BETACAST}/tools/patch/patch-sfc-mods.sh` has been created to ease this application, which takes the Betacast directory, top-level model directory, driver (mct or nuopc) and model component (e.g., elm, clm, mosart, rtm) as inputs. These patches can be manually applied by copying CESM or E3SM's `lnd_comp_mct.F90` (from the land model source code) into `$CASEDIR/SourceMods/src.clm` (or equivalent) and running
+`$ patch lnd_comp_mct.F90 < ${BETACAST}/tools/patch/lnd_comp_mct.patch`
 over the top of the file, which injects the correct logic. A similar procedure is used if you want runoff model restart files using `rof_comp_mct.patch`. **This needs to be done before the `./case.build` step.**
 2. For E3SM, current suggested compsets are: F2010C5-CMIP6-HR (ne120, VR) and F2010C5-CMIP6-LR (ne30). For SCREAM, these are FSCREAM-LR and FSCREAM-HR, respectively.
 3. E3SMv2/3 (tags from approximately October 2020 onward) are only officially supported. E3SMv1 is effectively supported by choosing modelSystem = 0, although continual updates to support the evolution of EAM and ELM seperately from CAM and CLM/CTSM may eventually break this backwards compatibility.

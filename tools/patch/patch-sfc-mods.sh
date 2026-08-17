@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Usage:
-#~/betacast/tools/patch-sfc-mods.sh ~/betacast/ /glade/u/home/zarzycki/work/cam_20230623/ nuopc clm
+#~/betacast/tools/patch/patch-sfc-mods.sh ~/betacast/ /glade/u/home/zarzycki/work/cam_20230623/ nuopc clm
 
 # Check to see if dumdum me passed in four args!
 if [[ $# -ne 4 ]]; then
@@ -88,4 +88,4 @@ echo "Component: $COMPONENT_NAME"
 
 filename="${component_type}_comp_$COUPLER.F90"
 cp -v $comp_restart_file ./SourceMods/src.$clean_component_name
-patch -F 3 --ignore-whitespace ./SourceMods/src.$clean_component_name/$filename < ${BETACAST}/patches/${filename%.F90}${special_string}.patch
+patch -F 3 --ignore-whitespace ./SourceMods/src.$clean_component_name/$filename < ${BETACAST}/tools/patch/${filename%.F90}${special_string}.patch
