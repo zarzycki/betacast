@@ -15,10 +15,10 @@ Before running, you need:
 
 2. **A submit wrapper with your paths** — (i.e., "the submit wrapper") Copy the appropriate wrapper from `submit/` and update `BETACAST`, `OUTDIR`, `RDADIR`, and `NUMCORES` for your environment.
 
-3. **An ESMF weight file (`WGTNAME`)** — This maps the source analysis grid to your target model grid. Generate one using `py_remapping/gen_analysis_to_model_wgt_file.py` if you don't already have one. Example for ERA5 → ne30np4:
+3. **An ESMF weight file (`WGTNAME`)** — This maps the source analysis grid to your target model grid. Generate one using `remapping/gen_analysis_to_model_wgt_file.py` if you don't already have one. Example for ERA5 → ne30np4:
 
    ```bash
-   python py_remapping/gen_analysis_to_model_wgt_file.py \
+   python remapping/gen_analysis_to_model_wgt_file.py \
      --ANLGRID era5_0.25x0.25 \
      --DSTGRIDNAME ne30np4 \
      --DSTGRIDFILE /path/to/grids/model_scrip/ne30np4_091226_pentagons.nc \
@@ -119,7 +119,7 @@ NOTE: All dates are inclusive.
 | `GRIDSTR` | Target grid identifier (e.g., "ne30pg3", "f09") |
 | `NUMLEVS` | Number of vertical levels in target model |
 | `BNDTOPO` | Path to target model topography file (or ncdata file for MPAS) |
-| `WGTNAME` | Path to ESMF weight file for regridding (src->target); generate with `py_remapping/gen_analysis_to_model_wgt_file.py` |
+| `WGTNAME` | Path to ESMF weight file for regridding (src->target); generate with `remapping/gen_analysis_to_model_wgt_file.py` |
 | `DESCSTR` | Description string for source data |
 
 ### Optional Options (fun! in "the namelist")
@@ -266,7 +266,7 @@ python SCREAMv1_create_nudging_weights.py -datafile /global/cfs/cdirs/e3sm/input
 
 ```
 INDEX=004
-python py_remapping/gen_analysis_to_model_wgt_file.py --ANLGRID era5_0.25x0.25 --DSTGRIDNAME TClandfall-${INDEX}_ne192x8_np4_scrip --DSTGRIDFILE /global/cfs/cdirs/m2637/E3SM_SCREAM_files/grids/scrip/TClandfall-${INDEX}_ne192x8_np4_scrip.nc --ANLGRIDPATH ../grids/anl_scrip/ --WGTFILEDIR /global/cfs/cdirs/m2637/betacast/sewx/mapping/
+python remapping/gen_analysis_to_model_wgt_file.py --ANLGRID era5_0.25x0.25 --DSTGRIDNAME TClandfall-${INDEX}_ne192x8_np4_scrip --DSTGRIDFILE /global/cfs/cdirs/m2637/E3SM_SCREAM_files/grids/scrip/TClandfall-${INDEX}_ne192x8_np4_scrip.nc --ANLGRIDPATH ../grids/anl_scrip/ --WGTFILEDIR /global/cfs/cdirs/m2637/betacast/sewx/mapping/
 ```
 
 The datafile needs to contain the target physics grid (where the nudging is applied). For an npXpgY configuration, the topography file contains both meshes and is a logical choice.

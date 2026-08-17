@@ -69,13 +69,13 @@ python atm_to_cam.py \
   --model_topo_file "${MODEL_TOPO}"
 
 echo "Generating a temporary SCRIP file for HWRF"
-python ../py_remapping/gen_reglatlon_SCRIP.py \
+python ../remapping/gen_reglatlon_SCRIP.py \
   --dstGridName "hwrf_storm_scrip.nc" \
   --dstDir "./" \
   --srcfilename "${HWRF_SRC}"
 
 echo "Generating a temporary map file for HWRF"
-python ../py_remapping/gen_analysis_to_model_wgt_file.py \
+python ../remapping/gen_analysis_to_model_wgt_file.py \
   --ANLGRID "hwrf_storm" \
   --DSTGRIDNAME "modelgrid" \
   --ANLGRIDPATH "./" \

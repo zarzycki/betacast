@@ -487,7 +487,7 @@ python atm_to_cam.py \
 
 `wgt_filename` contains an ESMF file that provides mapping weights to go from the analysis grid to the model grid. An example would be to go from ERA5 0.25x0.25deg to CAM-SE ne30np4.
 
-This file can be generated using `${BETACAST}/py_remapping/gen_analysis_to_model_wgt_file.py`. Here, you must have a SCRIP grid descriptor for your target mesh. A series of included grids are found in `${BETACAST}/grids/anl_scrip` for common analyses.
+This file can be generated using `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.py`. Here, you must have a SCRIP grid descriptor for your target mesh. A series of included grids are found in `${BETACAST}/grids/anl_scrip` for common analyses.
 
 #### Downscaling CAM data
 
@@ -645,7 +645,7 @@ rename ${ICASENAME} ${CASENAME} *.nc
 
 Betacast needs a file (ESMF format) that provides high-order weights to take the analysis data (e.g., ERA5, GFS) and horizontally remap it to the target grid (e.g., CAM, EAM).
 
-This can be done with `${BETACAST}/py_remapping/gen_analysis_to_model_wgt_file.py`. This script requires **four** inputs that are directly modified in the script body.
+This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.py`. This script requires **four** inputs that are directly modified in the script body.
 
 - `dstGridName` a shortname describing the model grid (for naming purposes only).
 - `dstGridFile` a full path to a file defining the destination model grid.
