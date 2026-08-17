@@ -13,7 +13,7 @@ export OUTDIR=/glade/derecho/scratch/zarzycki/ndg
 export RDADIR=/glade/campaign/collections/rda/data/d633000
 export NUMCORES=12
 
-SCRIPTDIR="${BETACAST}/py_atm_to_cam/nudging"
+SCRIPTDIR="${BETACAST}/atm_to_cam/nudging"
 
 # When run interactively, use positional args; via qsub, use -v env vars
 # e.g., qsub -v NLFILE="ndg.era5.nl",input_dates_file="dates.txt",INDEX="001" submit/casper.sh

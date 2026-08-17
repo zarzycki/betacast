@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # Get BETACAST path
 BETACAST, PATHTOHERE = pyfuncs.get_betacast_path()
-DOMAINSPATH = os.path.join(BETACAST, 'py_atm_to_cam/filter/')
+DOMAINSPATH = os.path.join(BETACAST, 'atm_to_cam/filter/')
 
 # Define fill value constant to match NCL
 NC_FLOAT_FILL = 9.96921e+36

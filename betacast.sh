@@ -145,7 +145,6 @@ if [ -z "${anl2mdlWeights+x}" ]; then anl2mdlWeights=""; fi
 if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=1; fi
 if [ -z "${add_noise+x}" ]; then add_noise=false; fi
 if [ -z "${runmodel+x}" ]; then runmodel=true; fi
-if [ -z "${DO_PYTHON+x}" ]; then DO_PYTHON=true; fi
 if [ -z "${LOGSDIR+x}" ]; then LOGSDIR="${BETACAST}/logs/"; fi
 if [ -z "${do_slab+x}" ]; then do_slab=false; fi
 ### Some defaults infrequently set
@@ -180,15 +179,6 @@ if [ -z "${batch_atm_gen+x}" ]; then batch_atm_gen=false; fi
 ### CREATE DIRECTORIES ############################################################
 mkdir -p ${LOGSDIR}
 ###################################################################################
-
-echo "DO_PYTHON set to $DO_PYTHON"
-if [ "$DO_PYTHON" = true ]; then
-  # Update default paths to point to python folders
-  atm_to_cam_path=${BETACAST}/py_atm_to_cam
-  sst_to_cam_path=${BETACAST}/py_sst_to_cam
-  # Update paths that relied on atm_to_cam_path or sst_to_cam_path
-  filter_path=${atm_to_cam_path}/filter
-fi
 
 ### Set correct model split
 if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi

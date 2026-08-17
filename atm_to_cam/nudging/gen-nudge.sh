@@ -22,7 +22,7 @@ if [ -z "${BETACAST+x}" ]; then
 fi
 
 if [ -n "${BETACAST:-}" ]; then
-  THISDIR="${BETACAST}/py_atm_to_cam/nudging"
+  THISDIR="${BETACAST}/atm_to_cam/nudging"
 else
   THISDIR=$PWD
 fi
@@ -281,7 +281,7 @@ for f in "${DATES_ARRAY[@]}"; do
     for INFILE in $BINLIST; do
       echo $INFILE
 
-      TXTCOMMAND="python ${BETACAST}/py_atm_to_cam/atm_to_cam.py
+      TXTCOMMAND="python ${BETACAST}/atm_to_cam/atm_to_cam.py
           --datasource CAM \
           --numlevels ${NUMLEVS} \
           --YYYYMMDDHH ${f} \
@@ -308,7 +308,7 @@ for f in "${DATES_ARRAY[@]}"; do
     echo "Running ERA5 -> CAM options"
     INFILE=${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc
 
-    TXTCOMMAND="python ${BETACAST}/py_atm_to_cam/atm_to_cam.py
+    TXTCOMMAND="python ${BETACAST}/atm_to_cam/atm_to_cam.py
         --datasource ERA5RDA \
         --numlevels ${NUMLEVS} \
         --YYYYMMDDHH ${f} \
@@ -333,7 +333,7 @@ for f in "${DATES_ARRAY[@]}"; do
     echo "Running CR20V3 -> CAM options"
     INFILE="NULL"  # not used by CR20V3 loader; RDADIR provides all paths
 
-    TXTCOMMAND="python ${BETACAST}/py_atm_to_cam/atm_to_cam.py
+    TXTCOMMAND="python ${BETACAST}/atm_to_cam/atm_to_cam.py
         --datasource CR20V3 \
         --numlevels ${NUMLEVS} \
         --YYYYMMDDHH ${f} \
