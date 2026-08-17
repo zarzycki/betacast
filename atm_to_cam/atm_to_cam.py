@@ -267,7 +267,7 @@ def main():
         if augment_tcs:
             # From the TC vitals file, figure out what we need
             tcs_at_this_time = py_seedfuncs.parse_tcvitals(
-                os.path.join(BETACAST, 'cyclone-tracking/fin-tcvitals/combined/ALL_combined_tcvitals.dat.gz'),
+                os.path.join(BETACAST, 'postprocess/cyclone-tracking/fin-tcvitals/combined/ALL_combined_tcvitals.dat.gz'),
                 YYYYMMDDHH
                 )
             num_tcs = len(tcs_at_this_time['lats'])

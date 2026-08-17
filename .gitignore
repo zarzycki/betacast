@@ -74,13 +74,13 @@ BAK/
 ## HTML/viz code
 index.html
 index.HOLD
-upload_ncl.sh.*
+postprocess/upload_ncl.sh.*
 ncl.output
-html_for_upload/20*
+postprocess/html_for_upload/20*
 *.png
 
 ## Tracking stuff
-cyclone-tracking/fin-atcf/
+postprocess/cyclone-tracking/fin-atcf/
 cyclones_tempest*
 *.tcst
 trajectories.txt.*

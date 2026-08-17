@@ -1202,7 +1202,7 @@ if [ "$dotracking" = true ] ; then
   echo "BETACAST_USER: requesting cyclones to be tracked."
 
   # Go to cyclone tracking folder...
-  pushd "${BETACAST}/cyclone-tracking/" > /dev/null
+  pushd "${BETACAST}/postprocess/cyclone-tracking/" > /dev/null
 
   # Set a few things that are hardcoded
   TCVITFOLDER="./fin-tcvitals/"
@@ -1245,7 +1245,7 @@ fi
 
 if [ "$sendplots" = true ]; then
   echo "BETACAST_USER: Sending plots to remote server!"
-  upload_ncl_script="${BETACAST}/upload_ncl.sh"
+  upload_ncl_script="${BETACAST}/postprocess/upload_ncl.sh"
   temp_upload_script="${upload_ncl_script}.${uniqtime}.ncl"
   cp "${upload_ncl_script}" "${temp_upload_script}"
   sed -i -e "s?.*yearstr=.*?yearstr='${yearstr}'?" \
@@ -1257,7 +1257,7 @@ if [ "$sendplots" = true ]; then
   # Call script to create plots and push to remove server
   (
     set -x
-    /bin/bash "${temp_upload_script}" "${nclPlotWeights}" "${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}" "${BETACAST}"
+    /bin/bash "${temp_upload_script}" "${nclPlotWeights}" "${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}" "${BETACAST}/postprocess"
   )
   # Cleanup
   rm -f "${temp_upload_script}"
