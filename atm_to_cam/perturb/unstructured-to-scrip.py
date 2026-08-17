@@ -2,7 +2,7 @@ import xarray as xr
 import os
 import sys
 
-module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..', 'py_remapping'))
+module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..', 'remapping'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 from ESMF_regridding import *

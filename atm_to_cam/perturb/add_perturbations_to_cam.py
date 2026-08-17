@@ -8,7 +8,7 @@ import argparse
 # Betacast modules
 module_paths = [
     ('functions_path', ['../..', 'py_functions']),
-    ('functions_path', ['../..', 'py_remapping'])
+    ('functions_path', ['../..', 'remapping'])
 ]
 for path_name, path_parts in module_paths:
     path = os.path.abspath(os.path.join(os.path.dirname(__file__), *path_parts))

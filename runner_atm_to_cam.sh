@@ -83,7 +83,7 @@ if [[ -z "${anl2mdlWeights}" || ! -e "${anl2mdlWeights}" ]]; then
 
   if [ ! -f "${anl2mdlWeights}" ]; then
     echo "Writing anl2mdlWeights --> ${anl2mdlWeights}"
-    (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
+    (set -x; python ../remapping/gen_analysis_to_model_wgt_file.py \
       --ANLGRID "${RLLSOURCEGRID}" \
       --DSTGRIDNAME "${modelgridshortname}" \
       --DSTGRIDFILE "${modelgridfile}" \
@@ -110,7 +110,7 @@ if [[ "$atmDataType" -eq 9 ]]; then
 
     if [ ! -f "${m2m_remap_file}" ]; then
       echo "Writing m2m_remap_file --> ${m2m_remap_file}"
-      (set -x; python ../py_remapping/gen_analysis_to_model_wgt_file.py \
+      (set -x; python ../remapping/gen_analysis_to_model_wgt_file.py \
         --ANLGRID "era5_0.25x0.25" \
         --ANLGRIDPATH "../grids/anl_scrip/" \
         --DSTGRIDNAME "${m2mgridshortname}" \
@@ -203,7 +203,7 @@ if [ "${do_frankengrid}" = true ] ; then
     esac
 
     if [ "$regional_name" == "hwrf" ]; then
-      (set -x; time python ../py_remapping/gen_reglatlon_SCRIP.py \
+      (set -x; time python ../remapping/gen_reglatlon_SCRIP.py \
           --dstGridName "hwrf_storm_scrip.nc" \
           --dstDir "${mapping_files_path}" \
           --srcfilename "${regional_src}"
@@ -216,7 +216,7 @@ if [ "${do_frankengrid}" = true ] ; then
       REG_ANLGRIDPATH="../grids/anl_scrip/"
     fi
 
-    (set -x; time python ../py_remapping/gen_analysis_to_model_wgt_file.py \
+    (set -x; time python ../remapping/gen_analysis_to_model_wgt_file.py \
         --ANLGRID "${REG_ANLGRID}" \
         --DSTGRIDNAME "modelgrid" \
         --DSTGRIDFILE "${modelgridfile}" \
