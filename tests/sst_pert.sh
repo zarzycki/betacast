@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Test: add_perturbations_to_sst Python vs NCL
+# Test: add_perturbations_to_sst
 # Self-contained test that generates synthetic delta SST data,
 # creates an SST file via NOAAOI, then applies PGW SST perturbations.
 
@@ -84,10 +84,10 @@ NLEOF
     cat "${PERTURB_NAMELIST}"
 }
 
-# Generate SST IC file (shared input for both Python and NCL perturbation runs)
+# Generate SST IC file (input for the perturbation run)
 generate_sst_input() {
     echo "Generating SST input file for perturbation test..."
-    python ${BETACAST}/py_sst_to_cam/sst_to_cam.py \
+    python ${BETACAST}/sst_to_cam/sst_to_cam.py \
         --initdate ${DATE} \
         --predict_docn 0 \
         --inputres ${RES} \
@@ -105,37 +105,15 @@ run_python_test() {
     generate_test_data
     generate_sst_input
 
-    python ${BETACAST}/py_atm_to_cam/perturb/add_perturbations_to_sst.py \
+    python ${BETACAST}/atm_to_cam/perturb/add_perturbations_to_sst.py \
         --BEFOREPERTFILE "${DEBUG_FILE_DIR}/sst_pert_input.nc" \
         --AFTERPERTFILE "${DEBUG_FILE_DIR}/sst_pert_python.nc" \
         --pthi "${PERTURB_NAMELIST}"
-}
-
-# Function to run NCL test
-run_ncl_test() {
-    # NCL script uses relative load paths — must run from atm_to_cam/perturb/
-    pushd ${BETACAST}/atm_to_cam/perturb > /dev/null
-    ncl -n add_perturbations_to_sst.ncl \
-        'BEFOREPERTFILE="'${DEBUG_FILE_DIR}'/sst_pert_input.nc"' \
-        'AFTERPERTFILE="'${DEBUG_FILE_DIR}'/sst_pert_ncl.nc"' \
-        'pthi="'${PERTURB_NAMELIST}'"'
-    local ncl_status=$?
-    popd > /dev/null
-    return ${ncl_status}
-}
-
-# Function to validate results
-run_validation() {
-    python ${BETACAST}/py_testing/check_same.py \
-        ${DEBUG_FILE_DIR}/sst_pert_python.nc \
-        ${DEBUG_FILE_DIR}/sst_pert_ncl.nc
 }
 
 # Optional cleanup function
 cleanup() {
     rm -f ${DEBUG_FILE_DIR}/sst_pert_input.nc
     rm -f ${DEBUG_FILE_DIR}/sst_pert_python.nc
-    rm -f ${DEBUG_FILE_DIR}/sst_pert_ncl.nc
     rm -rf ${SYNTH_BASEDIR}
-    rm -f deltas_sst.nc
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Betacast Test Runner
 #
-# This script runs comparison tests between Python and NCL implementations
+# This script runs smoke tests against the Python implementation
 # of the BetaCast weather model initialization system with timing measurements.
 
 # Environment setup
@@ -89,6 +89,10 @@ run_test() {
     echo -e "${BLUE}Running test: ${test_name}${NC}"
     echo -e "${BLUE}=====================================${NC}\n"
 
+    # Unset functions from any previously sourced test so optional hooks
+    # (run_validation, cleanup) don't leak across tests that don't define them
+    unset -f run_python_test run_validation cleanup
+
     # Source the test file to get the environment variables and functions
     source "$test_file"
 
@@ -103,28 +107,18 @@ run_test() {
     end_timing "python_${test_name}"
     echo -e "${GREEN}Python test completed${NC}"
 
-    # Run the NCL version
-    echo -e "\n${BLUE}Running NCL version...${NC}"
-    start_timing "ncl_${test_name}"
-    run_ncl_test
-    ncl_status=$?
-    end_timing "ncl_${test_name}"
-    if [ "$ncl_status" -ne 9 ]; then
-        TEST_FAILURE_REASONS[$test_name]="NCL test failed (exit code: $ncl_status)"
-        return 1
-    fi
-    echo -e "${GREEN}NCL test completed${NC}"
-
-    # Run validation
-    echo -e "\n${BLUE}Validating results...${NC}"
-    start_timing "validation_${test_name}"
-    if ! run_validation; then
+    # Run validation if defined
+    if type run_validation >/dev/null 2>&1; then
+        echo -e "\n${BLUE}Validating results...${NC}"
+        start_timing "validation_${test_name}"
+        if ! run_validation; then
+            end_timing "validation_${test_name}"
+            TEST_FAILURE_REASONS[$test_name]="Validation failed"
+            return 1
+        fi
         end_timing "validation_${test_name}"
-        TEST_FAILURE_REASONS[$test_name]="Validation failed"
-        return 1
+        echo -e "${GREEN}Validation passed${NC}"
     fi
-    end_timing "validation_${test_name}"
-    echo -e "${GREEN}Validation passed${NC}"
 
     # Run cleanup if defined
     if type cleanup >/dev/null 2>&1; then
@@ -226,7 +220,6 @@ main() {
         for test in "${PASSED_TESTS[@]}"; do
             echo -e "${GREEN}✓ $test${NC} (Total time: $(format_time ${TEST_TOTAL_TIMES[$test]}))"
             echo -e "  Python: $(format_time ${TEST_TIMINGS["python_${test}_duration"]})"
-            echo -e "  NCL: $(format_time ${TEST_TIMINGS["ncl_${test}_duration"]})"
             echo -e "  Validation: $(format_time ${TEST_TIMINGS["validation_${test}_duration"]})"
         done
     fi
