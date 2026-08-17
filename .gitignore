@@ -1,5 +1,5 @@
 *.grib2
-py_atm_to_cam/perturb/*.nc
+atm_to_cam/perturb/*.nc
 
 *.log
 
