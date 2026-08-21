@@ -5,6 +5,8 @@
 #        anl2mdlWeights m2m_remap_file adjust_topo m2m_topo_in adjust_flags \
 #        yearstr monthstr daystr cyclestr uniqtime \
 #        DYCORE atmDataType numLevels ERA5RDA \
+#        cr20v3_mean_dir cr20v3_member cr20v3_member_dir cr20v3_orog_file \
+#        cr20v3_blend cr20v3_blend_lev cr20v3_blend_taper \
 #        do_frankengrid standalone_vortex add_noise add_perturbs \
 #        modelSystem sstDataType \
 #        sePreFilterIC sstFileIC perturb_namelist vortex_namelist regional_name regional_src regional_fail_if_missing \
@@ -31,6 +33,7 @@ declare -A atm_data_sources=(
   ["2"]="ERAI"
   ["3"]="CFSR"
   ["4"]="ERA5"
+  ["5"]="CR20V3"
   ["9"]="CAM"
 )
 declare -A atm_data_glob_anl=(
@@ -38,6 +41,7 @@ declare -A atm_data_glob_anl=(
   ["2"]=""
   ["3"]="gfs_0.50x0.50"
   ["4"]="era5_0.25x0.25"
+  ["5"]="cr20v3_0.70x0.70"
   ["9"]=""
 )
 declare -A atm_file_paths=(
@@ -45,6 +49,7 @@ declare -A atm_file_paths=(
   ["2"]="${era_files_path}/ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
   ["3"]="${gfs_files_path}/cfsr_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
   ["4"]="${era_files_path}/ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
+  ["5"]="${cr20v3_orog_file}"
   ["9"]=""
 )
 
@@ -52,6 +57,34 @@ declare -A atm_file_paths=(
 if [ "$ERA5RDA" -eq 1 ] ; then
   atm_data_sources["4"]="ERA5RDA"
   atm_file_paths["4"]="${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
+fi
+
+# Most datasources read their RDA-style data out of RDADIR as-is. CR20V3 is the
+# exception: the mean and the per-member data live in separate archives, so point
+# RDADIR at whichever one we are initializing from. The blend below goes back to
+# cr20v3_mean_dir directly when it needs the mean.
+if [[ "$atmDataType" -eq 5 ]]; then
+  if [ -n "${cr20v3_member}" ] ; then
+    # We are requesting member code (mean to come later if blended)
+    RDADIR="${cr20v3_member_dir}"
+    atm_data_sources["5"]="CR20V3-${cr20v3_member}"
+    if [[ -z "${cr20v3_orog_file}" || ! -f "${cr20v3_orog_file}" ]]; then
+      # Orography ships with the mean data, but fall back to the member archive
+      # in case the user keeps everything under one root
+      if [[ -f "${cr20v3_mean_dir}/invariants/surface_height.nc" ]]; then
+        atm_file_paths["5"]="${cr20v3_mean_dir}/invariants/surface_height.nc"
+      else
+        atm_file_paths["5"]="${cr20v3_member_dir}/invariants/surface_height.nc"
+      fi
+    fi
+  else
+    # We are requesting mean only
+    RDADIR="${cr20v3_mean_dir}"
+  fi
+  if [[ ! -f "${atm_file_paths[5]}" ]]; then
+    echo "Orography file for CR20V3 (${atm_file_paths[5]}) doesn't exist, exiting!"
+    exit 1
+  fi
 fi
 
 ############################### FLAGS ###############################
@@ -167,6 +200,45 @@ echo "Doing atm_to_cam"
   --se_inic "${sePreFilterIC}" \
   ${ADDCHEM_STR:+$ADDCHEM_STR} ${AUGMENT_STR:+$AUGMENT_STR} ${VORTEX_STR:+$VORTEX_STR}
 )
+
+##################################### VERTICAL BLEND ###############################
+
+# CR20V3 per-member files stop at 200hPa, so extrapolating above that is unreliable.
+# Instead, build a second IC from the ensemble mean (which has full upper-level data)
+# and splice its upper levels onto the member file. Conceptually the same idea as
+# Frankengrid, but blending in the vertical rather than overlaying in the horizontal.
+if [[ "$atmDataType" -eq 5 && -n "${cr20v3_member}" && "${cr20v3_blend}" = true ]] ; then
+
+  echo "Blending CR20V3 mean above ${cr20v3_blend_lev} hPa onto member ${cr20v3_member}"
+
+  CR20MEANFILE="${sePreFilterIC}_${yearstr}${monthstr}${daystr}${cyclestr}_cr20mean.nc"
+
+  # Mean is on the same 0.70x0.70 grid as the members, so anl2mdlWeights is reused
+  (set -x; time python atm_to_cam.py \
+    --datasource "CR20V3" \
+    --numlevels ${numLevels} \
+    --YYYYMMDDHH ${yearstr}${monthstr}${daystr}${cyclestr} \
+    --data_filename "${atm_file_paths[5]}" \
+    --wgt_filename "${anl2mdlWeights}" \
+    --dycore "${DYCORE}" \
+    --add_cloud_vars \
+    --RDADIR "${cr20v3_mean_dir}" \
+    --adjust_config "${adjust_flags-}" \
+    --model_topo_file "${adjust_topo-}" \
+    --se_inic "${CR20MEANFILE}"
+  )
+
+  # Updates sePreFilterIC in place with mean conditions aloft, CR20MEANFILE is read-only
+  (set -x; time python vertical_blend.py \
+      "${sePreFilterIC}" \
+      "${CR20MEANFILE}" \
+      --blendLev ${cr20v3_blend_lev} \
+      --taperScale ${cr20v3_blend_taper}
+  )
+
+  echo "Cleaning up temporary CR20V3 mean file"
+  rm -fv "${CR20MEANFILE}"
+fi
 
 ############################### FRANKENGRID ###############################
 

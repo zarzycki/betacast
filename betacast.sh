@@ -170,6 +170,13 @@ if [ -z "${nclPlotWeights+x}" ]; then nclPlotWeights="NULL"; fi
 if [ -z "${landrawdir+x}" ]; then landrawdir="NULL"; fi
 if [ -z "${sendplots+x}" ]; then sendplots=false; fi
 if [ -z "${dotracking+x}" ]; then dotracking=false; fi
+if [ -z "${cr20v3_mean_dir+x}" ]; then cr20v3_mean_dir=""; fi
+if [ -z "${cr20v3_member+x}" ]; then cr20v3_member=""; fi
+if [ -z "${cr20v3_member_dir+x}" ]; then cr20v3_member_dir=""; fi
+if [ -z "${cr20v3_orog_file+x}" ]; then cr20v3_orog_file=""; fi
+if [ -z "${cr20v3_blend+x}" ]; then cr20v3_blend=true; fi
+if [ -z "${cr20v3_blend_lev+x}" ]; then cr20v3_blend_lev=200.; fi
+if [ -z "${cr20v3_blend_taper+x}" ]; then cr20v3_blend_taper=0.05; fi
 if [ -z "${m2m_gridfile+x}" ]; then m2m_gridfile=""; fi
 if [ -z "${m2m_remap_file+x}" ]; then m2m_remap_file=""; fi
 ### Runner code
@@ -469,6 +476,9 @@ if [ "$debug" = false ] ; then
     4)
       get_era5_atm
       ;;
+    5)
+      get_cr20v3_atm
+      ;;
     9)
       echo "User has specified a CESM/E3SM data file"
       ;;
@@ -568,6 +578,8 @@ if [ "$debug" = false ] ; then
          do_frankengrid model_scrip standalone_vortex add_noise add_perturbs \
          perturb_namelist vortex_namelist modelSystem sstDataType \
          gfs_files_path era_files_path ERA5RDA adjust_topo \
+         cr20v3_mean_dir cr20v3_member cr20v3_member_dir cr20v3_orog_file \
+         cr20v3_blend cr20v3_blend_lev cr20v3_blend_taper \
          m2m_topo_in adjust_flags AUGMENT_STR VORTEX_STR
 
   if [ "$batch_atm_gen" = true ]; then

@@ -198,7 +198,7 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 
 | Namelist Variable | Description | Required | Default |
 | --- | --- | --- | --- |
-| atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5, 9 = CESM/E3SM | Y | |
+| atmDataType | What ATM data we want to use? 1 = GFS ANL, 2 = ERA-I, 3 = CFSR, 4 = ERA5, 5 = CR20v3, 9 = CESM/E3SM | Y | |
 | sstDataType | What SST data we want to use? 1 = GDAS, 2 = ERA, 3 = NOAAOI, 9 = CESM/E3SM | Y | |
 | numLevels | 128 -> SCREAM, 72 -> E3SM, 58 -> CAM7, 32 -> CAM6, 30 -> CAM5, 26 -> CAM4 | Y | |
 | numdays | How long for forecast to run (in days) | Y | |
@@ -206,6 +206,36 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | anl2mdlWeights | Full path name of weights file for analysis -> model regridding |  | " " |
 | docnres | Ocean resolution for SST/ice data streams |  | "180x360" |
 | predict\_docn | 0 = persist t=0 SST/ice fields for duration of simulation, 1 = superimpose initialization anomalies on time-varying climatology |  | false |
+
+#### Analysis-Specific Settings
+
+These only apply when the corresponding analysis is selected via `atmDataType` (or when Frankengrid is enabled) and are otherwise ignored.
+
+##### 20th Century Reanalysis V3 (`atmDataType = 5`)
+
+Betacast can initialize from either the 80-member ensemble mean or a single ensemble member. Leaving `cr20v3_member` empty gives the mean. Setting it to a three-digit member key (e.g., `001`) uses that member instead, which requires a separate `cr20v3_member_dir` since the per-member data is archived apart from the mean.
+
+Member data only extends up to 200hPa, so by default Betacast also builds an initial condition from the mean and splices its upper levels onto the member file (see `cr20v3_blend*` below). That means a blended member run needs *both* archives; set `cr20v3_blend = false` if you only have the member data and accept extrapolation aloft. See `atm_to_cam/docs/CR20V3.md` for details on the two datasets and how to stage them.
+
+| Namelist Variable | Description | Required | Default |
+| --- | --- | --- | --- |
+| cr20v3\_mean\_dir | Root of the CR20v3 ensemble mean collection (expects `anl/` and `invariants/` subfolders) | Y, unless running an unblended member | "" (`d131003` on derecho) |
+| cr20v3\_member | Three-digit CR20v3 ensemble member (e.g., 001). Empty = ensemble mean |  | "" |
+| cr20v3\_member\_dir | Root of the per-member CR20v3 archive (expects YYYY subfolders) | Y, if cr20v3\_member | "" |
+| cr20v3\_orog\_file | Path to CR20v3 surface\_height.nc. If unset, Betacast looks in `cr20v3_mean_dir/invariants/` and then `cr20v3_member_dir/invariants/` |  | "" |
+| cr20v3\_blend | Blend ensemble mean upper levels onto the member IC. Ignored unless cr20v3\_member is set |  | true |
+| cr20v3\_blend\_lev | Pressure (hPa) above which the CR20v3 ensemble mean is used |  | 200. |
+| cr20v3\_blend\_taper | Taper scale for the CR20v3 vertical blend |  | 0.05 |
+
+##### Frankengrid (regional analysis overlay)
+
+Overlays a high-resolution regional analysis on top of the global initial condition. There is no on/off switch; Frankengrid is enabled by setting `regional_src` and `regional_name`, and both must be set together.
+
+| Namelist Variable | Description | Required | Default |
+| --- | --- | --- | --- |
+| regional\_name | Which regional analysis to overlay: hwrf, hrrr\_3km, hrrr\_3km\_ml, or rap\_13km | Y, if regional\_src | |
+| regional\_src | Path template to regional data source (supports YYYY/MM/DD/HH placeholders). Setting this turns Frankengrid on. |  | |
+| regional\_fail\_if\_missing | If true, exit if regional\_src file doesn't exist; if false, skip Frankengrid and continue |  | true |
 
 #### Model Execution & Timestep Control
 
@@ -308,8 +338,6 @@ In `${BETACAST}/namelist_files` there are sample files that define the forecast 
 | --- | --- | --- | --- |
 | sendplots | Are we going to send live output to some external server? (generally false unless you are CMZ) | | false |
 | nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) | | "NULL" |
-| regional_src | Path template to regional data source for Frankengrid (supports YYYY/MM/DD/HH placeholders) |  | |
-| regional_fail_if_missing | If true, exit if regional_src file doesn't exist; if false, skip Frankengrid and continue |  | true |
 
 <font size="2">
 *Betacast offers two methods for handling weight files used in remapping. It is up to the user to choose.

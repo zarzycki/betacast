@@ -178,6 +178,51 @@ get_era5_atm() {
 }
 
 
+get_cr20v3_atm() {
+  echo "Using CR20v3 (20th Century Reanalysis V3) ICs"
+  # Nothing to download -- CR20v3 is read directly out of an RDA-style collection,
+  # so all we do here is work out where the pieces live and sanity check them.
+
+  # Where the ensemble mean (and the time-invariant orography) lives
+  if [ -z "$cr20v3_mean_dir" ] && [[ "$MACHINEFILE" == *derecho* ]]; then
+    echo "We are on derecho, defaulting to the RDA copy of CR20v3 (d131003)"
+    cr20v3_mean_dir="/glade/campaign/collections/rda/data/d131003"
+  fi
+
+  # Orography is time-invariant and is only archived alongside the mean data
+  if [ -z "$cr20v3_orog_file" ] && [ -n "$cr20v3_mean_dir" ]; then
+    cr20v3_orog_file="${cr20v3_mean_dir}/invariants/surface_height.nc"
+  fi
+
+  if [ -n "$cr20v3_member" ]; then
+    echo "Using CR20v3 ensemble member ${cr20v3_member}"
+    if [ ! -d "$cr20v3_member_dir" ]; then
+      echo "cr20v3_member is set, so cr20v3_member_dir must point at the per-member archive root"
+      echo "cr20v3_member_dir --> ${cr20v3_member_dir} is not a directory, exiting"
+      exit 1
+    fi
+    # Member files stop at 200hPa, so by default we blend the mean in aloft
+    if [ "$cr20v3_blend" = true ] && [ ! -d "$cr20v3_mean_dir" ]; then
+      echo "cr20v3_blend=true needs the ensemble mean for the upper levels"
+      echo "either set cr20v3_mean_dir or set cr20v3_blend=false, exiting"
+      exit 1
+    fi
+  else
+    if [ ! -d "$cr20v3_mean_dir" ]; then
+      echo "CR20v3 mean data --> ${cr20v3_mean_dir} does not exist"
+      echo "set cr20v3_mean_dir in the namelist, exiting"
+      exit 1
+    fi
+  fi
+
+  # NOTE: RDADIR is set by runner_atm_to_cam.sh, which picks the mean or the member
+  # archive depending on what we are initializing from.
+  echo "CR20v3 mean data --> ${cr20v3_mean_dir}"
+  echo "CR20v3 orography --> ${cr20v3_orog_file}"
+  echo "... done with get_cr20v3_atm"
+}
+
+
 # Function to get GDAS SST data
 get_gdas_sst() {
   SSTTYPE=GDAS

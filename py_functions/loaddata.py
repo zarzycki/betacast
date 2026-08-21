@@ -776,7 +776,7 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 # GLOBUS NERSC HPSS
 # /home/projects/incite11/www/20C_Reanalysis_version_3/everymember_anal_netcdf/subdaily/${VAR}/
 
-def load_CR20v3_variable(varname, filepath, yearstr, monthstr, daystr, cyclestr, return_coords=False):
+def load_CR20v3_mean_variable(varname, filepath, yearstr, monthstr, daystr, cyclestr, return_coords=False):
     """
     Load a single variable from a CR20v3 RDA NetCDF file, selecting the closest time.
 
@@ -803,7 +803,7 @@ def load_CR20v3_variable(varname, filepath, yearstr, monthstr, daystr, cyclestr,
     thistime = pyfuncs.find_closest_time(rda_time, yearstr, monthstr, daystr, cyclestr)
     data = ds[varname].sel(time=thistime, method='nearest').values
 
-    logging.debug(f"load_CR20v3_variable: Getting {varname} from {filepath}")
+    logging.debug(f"load_CR20v3_mean_variable: Getting {varname} from {filepath}")
 
     if return_coords:
         latitude = ds["latitude"].values.astype(float)
@@ -818,11 +818,11 @@ def load_CR20v3_variable(varname, filepath, yearstr, monthstr, daystr, cyclestr,
         ds.close()
         return data
 
-def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore):
+def load_CR20v3_mean_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore):
     """
     Load CR20v3 (20th Century Reanalysis V3) ensemble mean analysis data.
 
-    Data at NCAR is stored as one variable per file per year:
+    Data must be stored as one variable per file per year:
         {RDADIR}/anl/anl_mean_{YYYY}_{VARCODE}_pres.nc  (isobaric)
         {RDADIR}/anl/anl_mean_{YYYY}_{VARCODE}_sfc.nc   (surface)
         {RDADIR}/invariants/surface_height.nc            (orography, time-invariant)
@@ -852,16 +852,16 @@ def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr,
 
     # 3-D isobaric variables
     # Get coordinates from first file loaded
-    data_vars['t'], data_vars['lat'], data_vars['lon'], data_vars['lev'] = load_CR20v3_variable(
+    data_vars['t'], data_vars['lat'], data_vars['lon'], data_vars['lev'] = load_CR20v3_mean_variable(
         't', f"{anl_dir}/anl_mean_{yearstr}_TMP_pres.nc", yearstr, monthstr, daystr, cyclestr, return_coords=True)
-    data_vars['u'] = load_CR20v3_variable(
+    data_vars['u'] = load_CR20v3_mean_variable(
         'u', f"{anl_dir}/anl_mean_{yearstr}_UGRD_pres.nc", yearstr, monthstr, daystr, cyclestr)
-    data_vars['v'] = load_CR20v3_variable(
+    data_vars['v'] = load_CR20v3_mean_variable(
         'v', f"{anl_dir}/anl_mean_{yearstr}_VGRD_pres.nc", yearstr, monthstr, daystr, cyclestr)
 
     # Get Q (may be on different set of levels based on NCAR RDA)
     q_file = f"{anl_dir}/anl_mean_{yearstr}_SPFH_pres.nc"
-    q_raw, _, _, q_lev = load_CR20v3_variable(
+    q_raw, _, _, q_lev = load_CR20v3_mean_variable(
         'q', q_file, yearstr, monthstr, daystr, cyclestr, return_coords=True)
 
     # Check, interpolate if the above is true
@@ -878,7 +878,7 @@ def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr,
     # MPAS-specific: omega (VVEL) and geopotential height
     if dycore == 'mpas':
         w_file = f"{anl_dir}/anl_mean_{yearstr}_VVEL_pres.nc"
-        w_raw, _, _, w_lev = load_CR20v3_variable(
+        w_raw, _, _, w_lev = load_CR20v3_mean_variable(
             'w', w_file, yearstr, monthstr, daystr, cyclestr, return_coords=True)
 
         if w_lev.shape != data_vars['lev'].shape:
@@ -888,7 +888,7 @@ def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr,
             data_vars['w'] = w_raw
         data_vars['w_is_omega'] = True
 
-        data_vars['z'] = load_CR20v3_variable(
+        data_vars['z'] = load_CR20v3_mean_variable(
             'gh', f"{anl_dir}/anl_mean_{yearstr}_HGT_pres.nc", yearstr, monthstr, daystr, cyclestr)
         data_vars['z_is_phi'] = False  # geopotential height in meters, not geopotential
 
@@ -897,11 +897,11 @@ def load_CR20v3_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr,
     data_vars['cldliq'] = np.zeros_like(data_vars['t'])
 
     # Surface pressure
-    data_vars['ps'] = load_CR20v3_variable(
+    data_vars['ps'] = load_CR20v3_mean_variable(
         'sp', f"{anl_dir}/anl_mean_{yearstr}_PRES_sfc.nc", yearstr, monthstr, daystr, cyclestr)
 
     # Surface temperature
-    data_vars['ts'] = load_CR20v3_variable(
+    data_vars['ts'] = load_CR20v3_mean_variable(
         't', f"{anl_dir}/anl_mean_{yearstr}_TMP_sfc.nc", yearstr, monthstr, daystr, cyclestr)
 
     # Surface geopotential from invariants (orography in m -> multiply by g)
