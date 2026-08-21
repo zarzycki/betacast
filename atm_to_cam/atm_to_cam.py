@@ -622,6 +622,20 @@ def main():
                     logging.debug(f"... copying global attr {attr_name}")
                     new_file.setncattr(attr_name, src_file.getncattr(attr_name))
 
+                # Provenance: record the command + code version that generated this file,
+                # appending to any history already carried over from the source MPAS file
+                src_history = src_file.getncattr('history') if 'history' in src_file.ncattrs() else None
+                prov_atts = pyfuncs.get_provenance_atts(betacast_path=BETACAST, existing_history=src_history)
+                prov_atts.update({
+                    "betacast_source_file": data_filename,
+                    "betacast_wgt_file": wgt_filename,
+                    "betacast_init_date": YYYYMMDDHH,
+                    "betacast_datasource": datasource,
+                    "betacast_mpas_template": mpasfile,
+                })
+                for attr_name, attr_value in prov_atts.items():
+                    new_file.setncattr(attr_name, attr_value)
+
                 # Create dimensions - all with fixed size (no unlimited for init conditions)
                 for dim_name, dim in src_file.dimensions.items():
                     dim_size = len(dim)
@@ -1105,6 +1119,10 @@ def main():
     nc_file.dycore = dycore
     nc_file.datasource = datasource
     nc_file.case_t0 = time_atts["base_timestring"] # This is used by EAMxx, don't see harm in using elsewhere
+
+    # Provenance: record the command + code version that generated this file
+    for attr_name, attr_value in pyfuncs.get_provenance_atts(betacast_path=BETACAST).items():
+        nc_file.setncattr(attr_name, attr_value)
 
     logging.info(f"... done writing attributes")
 

@@ -161,5 +161,16 @@ out_ds = xr.Dataset(
 out_ds['time'].attrs['units'] = 'days since 0001-01-01 00:00:00'
 out_ds['time'].attrs['calendar'] = '365_day'
 
+# Add global attributes, including provenance (command + code version)
+out_ds.attrs['title'] = "Betacast-generated SST/ice file"
+out_ds.attrs['sst_source_file'] = sstDataFile
+out_ds.attrs['ice_source_file'] = iceDataFile
+out_ds.attrs['init_date'] = initdate
+out_ds.attrs['inputres'] = inputres
+out_ds.attrs['datasource'] = datasource
+out_ds.attrs['predict_docn'] = int(predict_docn)
+out_ds.attrs['creation_date'] = str(np.datetime64('now'))
+out_ds.attrs.update(pyfuncs.get_provenance_atts(betacast_path=BETACAST))
+
 out_ds.to_netcdf(SST_write_file)
 logging.info(f"Data written to {SST_write_file}")

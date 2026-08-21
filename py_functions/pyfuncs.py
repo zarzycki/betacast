@@ -8,6 +8,9 @@ import os
 import sys
 import csv
 import cftime
+import shlex
+import platform
+import datetime
 from scipy.ndimage import gaussian_filter
 from numba import jit
 import logging
@@ -72,6 +75,57 @@ def get_betacast_path():
     logging.info(f"PATHTOHERE is set to {PATHTOHERE}")
 
     return BETACAST, PATHTOHERE
+
+
+def get_git_describe(repo_path):
+    """Return a short git description (tag/hash, +dirty flag) of repo_path, or None."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", repo_path, "describe", "--always", "--dirty", "--tags"],
+            capture_output=True, text=True, timeout=10)
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+        logging.debug(f"git describe failed in {repo_path}: {result.stderr.strip()}")
+    except Exception as e:
+        logging.debug(f"Could not run git describe in {repo_path}: {e}")
+    return None
+
+
+def get_provenance_atts(betacast_path=None, existing_history=None):
+    """Build a dict of global attributes documenting how this file was generated.
+
+    Includes a CF-style 'history' line holding the full generation command, which is
+    appended to existing_history if the caller is modifying/copying an upstream file.
+    """
+    try:
+        command_line = shlex.join([sys.executable] + sys.argv)
+    except AttributeError:  # shlex.join is Python 3.8+
+        command_line = " ".join([sys.executable] + sys.argv)
+
+    timestamp = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+    history_line = f"{timestamp}: {command_line}"
+    if existing_history:
+        history = f"{existing_history.rstrip()}\n{history_line}"
+    else:
+        history = history_line
+
+    atts = {
+        "history": history,
+        "command_line": command_line,
+        "invoked_from": os.getcwd(),
+        "betacast_script": os.path.abspath(sys.argv[0]),
+        "created_by": os.environ.get("USER", os.environ.get("LOGNAME", "unknown")),
+        "created_on": platform.node(),
+        "python_version": platform.python_version(),
+    }
+
+    if betacast_path:
+        atts["betacast_path"] = betacast_path
+        git_hash = get_git_describe(betacast_path)
+        if git_hash:
+            atts["betacast_version"] = git_hash
+
+    return atts
 
 
 def parse_args():
