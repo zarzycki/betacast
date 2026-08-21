@@ -12,7 +12,8 @@ import sys
 import requests
 
 BASE_URL = "https://noaa-hrrr-bdp-pds.s3.amazonaws.com"
-VALID_PRODUCTS = ("wrfnat", "wrfprs")
+VALID_PRODUCTS = ("wrfnat", "wrfprs", "wrfsfc")
+BOTH_PRODUCTS = ("wrfnat", "wrfprs")
 
 
 def parse_args():
@@ -21,9 +22,10 @@ def parse_args():
                         help="Cycle date/time in YYYYMMDDHH format (10 characters), e.g. 2024010100")
     parser.add_argument("--outdir", type=str, required=True,
                         help="Directory to write the downloaded GRIB2 file to")
-    parser.add_argument("--product", type=str, choices=VALID_PRODUCTS + ("both",), default="both",
+    parser.add_argument("--product", type=str, choices=VALID_PRODUCTS + ("both", "all"), default="both",
                         help="HRRR product: wrfnat (native levels), wrfprs (pressure levels), "
-                             "or both (default: both)")
+                             "wrfsfc (surface, incl. APCP precip accumulation), "
+                             "both (wrfnat+wrfprs, default), or all (wrfnat+wrfprs+wrfsfc)")
     parser.add_argument("--fxx", type=int, default=0,
                         help="Forecast hour, 0-48 (default: 0)")
     parser.add_argument("--region", type=str, default="conus",
@@ -71,7 +73,12 @@ def main():
 
     os.makedirs(args.outdir, exist_ok=True)
 
-    products = VALID_PRODUCTS if args.product == "both" else (args.product,)
+    if args.product == "all":
+        products = VALID_PRODUCTS
+    elif args.product == "both":
+        products = BOTH_PRODUCTS
+    else:
+        products = (args.product,)
 
     for product in products:
         url, filename = build_url(yyyy, mm, dd, hh, args.region, product, args.fxx)

@@ -15,10 +15,20 @@ python get-hrrr.py --date YYYYMMDDHH --outdir OUTDIR [options]
 
 #### Optional arguments
 
-- `--product` — `wrfnat` (native/hybrid levels), `wrfprs` (pressure levels), or `both` (default: `both`).
+- `--product` — `wrfnat` (native/hybrid levels), `wrfprs` (pressure levels), `wrfsfc` (surface fields, incl. `APCP` precip accumulation), `both` (wrfnat+wrfprs, default), or `all` (wrfnat+wrfprs+wrfsfc).
 - `--fxx` — forecast hour, `0`-`48` (default: `0`). For analyses this should always be `0`.
 - `--region` — HRRR domain, e.g. `conus` or `alaska` (default: `conus`).
 - `--skip-existing` — skip downloading a file if it already exists at the destination path (default: overwrite).
+
+### Note on precipitation accumulation
+
+`APCP` in `wrfsfc` is accumulated *since the cycle's forecast start*, so it is
+~0 at `--fxx 0` (analysis). To get a nonzero precip accumulation you need
+`--fxx` >= 1. Building a 6-hour accumulated precip field (as needed for
+`difftc`) requires deciding how to compose that from HRRR's hourly cycles —
+this is not yet settled (see `difftc/docs/proposal_context.md` §21) and this
+script does not do that composition; it only fetches individual raw GRIB2
+files per cycle/forecast-hour.
 
 ### Example
 
