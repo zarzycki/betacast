@@ -718,7 +718,9 @@ if [ "$modelSystem" -eq 0 ]; then   # CLM/CTSM
   echo "check_finidat_pct_consistency = .false." >> user_nl_${lndName}
   echo "check_finidat_year_consistency = .false." >> user_nl_${lndName}
 elif [ "$modelSystem" -eq 1 ] || [ "$modelSystem" -eq 2 ]; then   # ELM
+  sed -i '/check_finidat_pct_consistency/d' user_nl_${lndName}
   sed -i '/check_finidat_fsurdat_consistency/d' user_nl_${lndName}
+  echo "check_finidat_pct_consistency = .false." >> user_nl_${lndName}
   echo "check_finidat_fsurdat_consistency = .false." >> user_nl_${lndName}
   # 2/25/24 CMZ added since ELM doesn't have use_init_interp support for rawlandrestartfile
   if [ -n "${rawlandrestartfile-}" ]; then # if rawlandrestartfile is SET *and* not empty...
