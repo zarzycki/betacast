@@ -191,7 +191,6 @@ echo "Doing atm_to_cam"
   --wgt_filename "${anl2mdlWeights}" \
   --dycore "${DYCORE}" \
   --add_cloud_vars \
-  --add_chemistry \
   --RDADIR "${RDADIR}" \
   --adjust_config "${adjust_flags-}" \
   --model_topo_file "${adjust_topo-}" \
@@ -403,13 +402,13 @@ if [ "${modelSystem}" -eq 1 ]; then
   # Set Linoz chem variables for E3SMv3
   # H2OLNZ is just mass mixing ratio of water, ~Q
   # CH4LNZ assumes 1.8 ppm in free trop converted to MMR
-  # N2OLNZ assumes 300 ppbv in free trop converted to MMR
+  # N2OLNZ assumes 300 ppbv in free trop converted to MMR using EAM N2OLNZ adv_mass
   # NOYLNZ was "derived" from an existing input file with different values below and above 50mb
   # Note, other vars use Q*0 to create var shape/dims
   ncap2 -O \
     -s 'H2OLNZ=Q' \
     -s 'CH4LNZ=(Q*0)+1e-6' \
-    -s 'N2OLNZ=(Q*0)+4.5e-7' \
+    -s 'N2OLNZ=(Q*0)+2.9e-7' \
     -s 'NOYLNZ=(Q*0)+6.0e-11' \
     -s 'where(lev<50) NOYLNZ=5.0e-09' \
     "${sePreFilterIC}" "${sePreFilterIC}_LINOZ.nc"

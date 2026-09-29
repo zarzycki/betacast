@@ -26,7 +26,7 @@ from constants import (
     p0, dtime_map, ps_wet_to_dry, w_smooth_iter, grav,
     damp_upper_winds_mpas, MPAS_W_DAMPING_COEF,
     NC_FLOAT_FILL, DEFAULT_FILL_VALUE, COORD_FILL_VALUE, CORRECT_OR_NOT_FILL_VALUE,
-    QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH,
+    QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH, O3_MMR_TO_VMR,
     NUMCLDMAXTHRESH, NUMICEMAXTHRESH, NUMLIQMAXTHRESH,
     cf_base_time
 )
@@ -835,7 +835,7 @@ def main():
         data_vint['numice'] = pyfuncs.clip_and_count(data_vint['numice'], min_thresh=0, max_thresh=NUMICEMAXTHRESH, round_to_int=True, var_name="NUMICE")
         data_vint['numliq'] = pyfuncs.clip_and_count(data_vint['numliq'], min_thresh=0, max_thresh=NUMLIQMAXTHRESH, round_to_int=True, var_name="NUMLIQ")
     if add_chemistry:
-        data_vint['o3'] = pyfuncs.clip_and_count(data_vint['o3'], min_thresh=QMINTHRESH, max_thresh=QMAXTHRESH, var_name="O3")
+        data_vint['o3'] = pyfuncs.clip_and_count(data_vint['o3'], min_thresh=O3MINTHRESH, max_thresh=O3MAXTHRESH, var_name="O3")
 
     add_pmid = False
     if add_pmid:
@@ -973,16 +973,13 @@ def main():
     if add_chemistry:
         if dycore == "scream":
             o3_nc = nc_file.createVariable('o3_volume_mix_ratio', nc_dtype, ('time','ncol','lev'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        elif dycore != "mpas":
-            o3_nc = nc_file.createVariable('O3', nc_dtype, ('time', 'lev', 'ncol') if dycore == "se" or dycore == "mpas" else ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
-        o3_nc.units = "mol/mol"
-
-        # If o3_nc doesn't exist, pass and warn, otherwise define units
-        try:
             o3_nc.units = "mol/mol"
-        except NameError:
-            logging.info(f"o3_nc doesn't exist even though add_chemistry is {add_chemistry}, ignoring")
-            pass
+        else:
+            if dycore == "se" or dycore == "mpas":
+                o3_nc = nc_file.createVariable('O3', nc_dtype, ('time', 'lev', 'ncol'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            else:
+                o3_nc = nc_file.createVariable('O3', nc_dtype, ('time', 'lev', 'lat', 'lon'), fill_value=NC_FLOAT_FILL, **compression_opts)
+            o3_nc.units = "kg/kg"
 
     if 'correct_or_not' in data_vint:
         # This is just a diagnostic (not read by model) so let's just output lower precision here
@@ -1036,7 +1033,8 @@ def main():
             numliq_nc[0, :, :] = replace_nans_with_fill(data_vint['numliq'].T,fill_value=NC_FLOAT_FILL)
             numice_nc[0, :, :] = replace_nans_with_fill(data_vint['numice'].T,fill_value=NC_FLOAT_FILL)
         if add_chemistry:
-            o3_nc[0, :, :] = replace_nans_with_fill(data_vint['o3'].T,fill_value=NC_FLOAT_FILL)
+            # SCREAM wants volume mixing ratio, convert from mass mixing ratio
+            o3_nc[0, :, :] = replace_nans_with_fill(data_vint['o3'].T * O3_MMR_TO_VMR,fill_value=NC_FLOAT_FILL)
         if 'correct_or_not' in data_vint:
             correct_or_not_nc[0, :] = replace_nans_with_fill(data_vint['correct_or_not'],fill_value=NC_FLOAT_FILL)
     elif dycore == "mpas":
