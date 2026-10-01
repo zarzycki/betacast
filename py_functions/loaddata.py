@@ -674,8 +674,6 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
 
     cam_time = grb_file["time"]
 
-    cam_thistime_ix = pyfuncs.find_closest_time(cam_time.values, yearstr, monthstr, daystr, cyclestr, return_isel=True)
-    logging.info(f"Closest time: {cam_thistime_ix}")
     cam_thistime = pyfuncs.find_closest_time(cam_time, yearstr, monthstr, daystr, cyclestr)
     logging.info(f"Closest time: {cam_thistime}")
 

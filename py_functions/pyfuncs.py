@@ -275,8 +275,8 @@ def find_closest_time(times, yearstr, monthstr, daystr, cyclestr, return_isel=Fa
         datetime_str = f"{yearstr}-{monthstr.zfill(2)}-{daystr.zfill(2)}T00:00:00"
         datetime_base = np.datetime64(datetime_str)
 
-        # Add the number of seconds from cyclestr to get the exact datetime
-        datetime_target = datetime_base + np.timedelta64(int(cyclestr), 's')
+        # Add the number of hours from cyclestr (HH) to get the exact datetime
+        datetime_target = datetime_base + np.timedelta64(int(cyclestr), 'h')
         logging.info(f"Target datetime: {datetime_target}")
 
         closest_index = np.argmin(np.abs(times - datetime_target))
