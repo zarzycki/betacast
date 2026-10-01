@@ -640,22 +640,33 @@ def print_debug_file_wrapper(output_filename, data_dict, dycore, varlist=None, g
 
 
 @jit(nopython=True)
+def _smth9_is_msg(val, xmsg):
+    """True if val is missing (NaN, or equal to a non-NaN xmsg)."""
+    return np.isnan(val) or val == xmsg
+
+
+@jit(nopython=True)
 def dsmth9(X, P, Q, LWRAP, XMSG=np.nan):
     """
-    Perform 9-point smoothing on a 2D array X.
+    Perform 9-point smoothing on a 2D array X, matching NCL's smth9.
 
     Parameters:
-    - X: 2D input/output array (numpy array)
+    - X: 2D input/output array (numpy array), shape (NJ, NI), e.g. (nlat, nlon)
     - P: First weight (suggested value 0.50)
     - Q: Second weight (suggested value 0.25)
-    - XMSG: Value of missing points
-    - LWRAP: Boolean flag to include wraparound points in smoothing
+    - LWRAP: If True, treat the rightmost dimension (I, e.g. lon) as cyclic
+    - XMSG: Value of missing points (NaN is always treated as missing)
 
     Returns:
     - X: Smoothed 2D array
-    - IER: Error code (0 for success, 1 if NI or NJ is less than 3)
+
+    Notes:
+    - Port of NCL's Fortran DSMTH9 where X(NI,NJ) is column-major, so Fortran's
+      fastest-varying (cyclic) I index is numpy's rightmost axis here.
+    - Edges are not smoothed, except the left/right (I) edges when LWRAP is True.
+    - A point is not smoothed if it or any of its 8 neighbors is missing.
     """
-    NI, NJ = X.shape
+    NJ, NI = X.shape
 
     if NI < 3 or NJ < 3:
         print(f"Too few points in smth9: error {NI} {NJ}")
@@ -668,7 +679,7 @@ def dsmth9(X, P, Q, LWRAP, XMSG=np.nan):
     # Initialize the work array WRK
     WRK = np.full_like(X, XMSG)
 
-    # Set the loop bounds depending on the wraparound flag
+    # Set the loop bounds depending on the wraparound flag (cyclic in I only)
     if LWRAP:
         NIB = 0
         NIE = NI
@@ -687,18 +698,20 @@ def dsmth9(X, P, Q, LWRAP, XMSG=np.nan):
             IP1 = I + 1 if I < NI - 1 else 0
 
             if (
-                X[I, J] == XMSG or X[IM1, JP1] == XMSG or X[IM1, J] == XMSG or
-                X[IM1, JM1] == XMSG or X[I, JM1] == XMSG or X[IP1, JM1] == XMSG or
-                X[IP1, J] == XMSG or X[IP1, JP1] == XMSG or X[I, JP1] == XMSG
+                _smth9_is_msg(X[J, I], XMSG) or _smth9_is_msg(X[JP1, IM1], XMSG) or
+                _smth9_is_msg(X[J, IM1], XMSG) or _smth9_is_msg(X[JM1, IM1], XMSG) or
+                _smth9_is_msg(X[JM1, I], XMSG) or _smth9_is_msg(X[JM1, IP1], XMSG) or
+                _smth9_is_msg(X[J, IP1], XMSG) or _smth9_is_msg(X[JP1, IP1], XMSG) or
+                _smth9_is_msg(X[JP1, I], XMSG)
             ):
-                WRK[I, J] = X[I, J]
+                WRK[J, I] = X[J, I]
             else:
-                TERM1 = PO4 * (X[IM1, J] + X[I, JM1] + X[IP1, J] + X[I, JP1] - 4.0 * X[I, J])
-                TERM2 = QO4 * (X[IM1, JP1] + X[IM1, JM1] + X[IP1, JM1] + X[IP1, JP1] - 4.0 * X[I, J])
-                WRK[I, J] = X[I, J] + TERM1 + TERM2
+                TERM1 = PO4 * (X[J, IM1] + X[JM1, I] + X[J, IP1] + X[JP1, I] - 4.0 * X[J, I])
+                TERM2 = QO4 * (X[JP1, IM1] + X[JM1, IM1] + X[JM1, IP1] + X[JP1, IP1] - 4.0 * X[J, I])
+                WRK[J, I] = X[J, I] + TERM1 + TERM2
 
     # Transfer back to original array
-    X[NIB:NIE, NJB:NJE] = WRK[NIB:NIE, NJB:NJE]
+    X[NJB:NJE, NIB:NIE] = WRK[NJB:NJE, NIB:NIE]
 
     return X
 
