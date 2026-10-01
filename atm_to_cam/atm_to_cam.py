@@ -185,7 +185,7 @@ def main():
     # IMPORTANT! data_vars should be organized top-to-bottom when loaddata returns
     # (i.e., lowest pressure/highest z at 0 index of lev)
     # I attempt to account for this elsewhere in the code with flips, but make no promises
-    if datasource == 'GFS' or datasource == 'HWRF' or datasource == 'HRRR':   # NCEP pressure level data
+    if datasource in ('GFS', 'CFSR', 'HWRF', 'HRRR'):   # NCEP pressure level data
         data_vars = loaddata.load_CFSR_data(data_filename, dycore, get_chemistry=add_chemistry)
     elif datasource == 'HRRRml':   # HRRR model level data
         data_vars = loaddata.load_HRRRml_data(data_filename, dycore)
@@ -204,6 +204,16 @@ def main():
         member_str = datasource.split('-')[1]
         logging.info(f"Loading CR20V3 ensemble member {member_str}")
         data_vars = loaddata.load_CR20v3_member_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore, member_str)
+    elif datasource == 'ERA5':
+        logging.error("Datasource ERA5 (local ERA5_YYYYMMDDHH.nc file) has no Python loader.")
+        logging.error("Use ERA5 from RDA instead (ERA5RDA=1 in the namelist, datasource ERA5RDA), exiting...")
+        sys.exit(1)
+    elif datasource == 'ERAI':
+        logging.error("Datasource ERAI (ERA-Interim) is no longer supported, exiting...")
+        sys.exit(1)
+    else:
+        logging.error(f"Unknown datasource: {datasource}, exiting...")
+        sys.exit(1)
 
     # If we need any variables but the source doesn't have it, fall back to Betacast climatology files here
     # Future vars can be added as long as they are 12 x nlev x nlat x nlon netcdf files
