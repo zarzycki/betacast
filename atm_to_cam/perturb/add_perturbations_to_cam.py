@@ -390,8 +390,7 @@ if do_ps_corr:
             if np.isnan(Tsign[ii]):
                 thisLat = lat[ii]
                 thisLon = lon[ii]
-                # Need to implement gc_latlon equivalent
-                gcdist = gc_latlon(thisLat, thisLon, lat, lon, 2, 2)
+                gcdist, _ = gc_latlon(thisLat, thisLon, lat, lon, 2, 2)
                 gcdist = np.where(np.isnan(Tsignorig), 999999., gcdist)
                 Tsign[ii] = Tsign[np.argmin(gcdist)]
                 print(f"Replacing Tsign at {ii} with {np.argmin(gcdist)}")

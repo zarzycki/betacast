@@ -74,21 +74,6 @@ def calc_inverse_mass_weighted_field(target_integral, pdel, area, gravit=grav):
     return result
 
 
-def convert_lon(tmplon, jcode):
-    """
-    Convert longitude based on jcode.
-    jcode >= 0 --> lon: 0 to 360
-    jcode <  0 --> lon: -180 to 180
-    """
-    tmplon = np.asarray(tmplon)
-    if jcode >= 0:
-        tmplon[tmplon < 0] += 360
-    else:
-        tmplon[tmplon < -180] += 360
-        tmplon[tmplon > 180] -= 360
-    return tmplon
-
-
 def replace_or_add_variable(file_path, variable, value):
     """
     Replace or add a variable assignment in a text file.
