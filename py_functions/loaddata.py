@@ -632,7 +632,8 @@ def load_HRRRml_data(grb_file_name, dycore):
         except Exception as e_2m:
             logging.warning(f"Failed to load 2m temperature: {e_2m}")
             logging.warning("Setting surface temperature from lowest atmospheric level")
-            data_vars['ts'] = data_vars['t'][-1, :, :]  # Use lowest pressure level
+            # lev is still bottom-to-top here (flip happens below), so index 0 is the near-surface level
+            data_vars['ts'] = data_vars['t'][0, :, :]
 
     # Print diagnostics
     pyfuncs.print_min_max_dict(data_vars)
