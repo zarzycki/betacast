@@ -362,7 +362,10 @@ def main():
 
             logging.info(f"Finished processing all {num_tcs} storms")
 
-            if write_debug_files:
+            # *_vx deltas only exist if at least one storm actually modified the data
+            if write_debug_files and 'ps_vx' not in data_vars:
+                logging.info("No storms modified the data, skipping py_era5_after_tcseed.nc debug file")
+            elif write_debug_files:
                 pyfuncs.print_debug_file(
                     DEBUGDIR + "/py_era5_after_tcseed.nc",
                     ps_cam=(["lat", "lon"], data_vars['ps']),
