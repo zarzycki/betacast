@@ -1108,3 +1108,105 @@ def load_CR20v3_member_data(RDADIR, data_filename, yearstr, monthstr, daystr, cy
     data_vars = flip_level_dimension(data_vars)
 
     return data_vars
+
+#### Internal Betacast climatology fallback
+
+def load_internal_climo(climo_file, varname, target_lat, target_lon, target_lev, monthstr, daystr, cyclestr):
+    """
+    Fallback field from an internal Betacast monthly climatology. Interpolates...
+    linearly in time, then using int2p in the vertical, then nearest neighbor in horiz.
+
+    Expected climo file format:
+      varname(time, level, latitude, longitude) with 12 mid-month times
+      time      : days since Jan 1 of a non-leap year (e.g., 15.5, 45., ...)
+      level     : pressure levels (mb/hPa)
+      latitude  : 1-D (degN)
+      longitude : 1-D (degE)
+
+    Returns (target_lev, target_lat, target_lon) to match "data_vars" analysis structure
+    """
+
+    # Load data following the below prescribed format.
+    ds = xr.open_dataset(climo_file, decode_times=False)
+    climo_data = ds[varname].values
+    climo_lev = ds["level"].values * 100.    # convert hPa -> Pa
+    climo_lat = ds["latitude"].values
+    climo_lon = ds["longitude"].values
+    climo_day = ds["time"].values
+    ds.close()
+
+    # Day of (non-leap) year for this time
+    month = int(monthstr)
+    day = int(daystr)
+    hour = int(cyclestr)
+    # Leap year trap
+    if month == 2 and day == 29:
+        day = 28
+    days_before_month = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+    # What is our day of year?
+    thisdoy = days_before_month[month - 1] + (day - 1) + hour / 24.
+
+    # Find the two mid-month times that bracket this day, wrapping Dec <-> Jan
+    nmonths = len(climo_day)
+    if thisdoy < climo_day[0]:
+        # E.g., Jan 2, before mid-Jan, between last year's Dec and Jan
+        m0 = nmonths - 1
+        m1 = 0
+        day0 = climo_day[m0] - 365.
+        day1 = climo_day[m1]
+    elif thisdoy >= climo_day[-1]:
+        # E.g., Dec 29, after mid-Dec, between Dec and next year's Jan
+        m0 = nmonths - 1
+        m1 = 0
+        day0 = climo_day[m0]
+        day1 = climo_day[m1] + 365.
+    else:
+        # Otherwise we are between two linear months in the time series
+        m1 = np.searchsorted(climo_day, thisdoy, side='right')
+        m0 = m1 - 1
+        day0 = climo_day[m0]
+        day1 = climo_day[m1]
+
+    # Linear interpolation in time
+    wgt = (thisdoy - day0) / (day1 - day0)
+    data = (1. - wgt) * climo_data[m0] + wgt * climo_data[m1]
+    logging.info(f"load_internal_climo: {varname} from {climo_file}, day {thisdoy:.2f}, months {m0 + 1} and {m1 + 1}, wgt {wgt:.3f}")
+
+    # Interpolate to the source pressure levels (log-p, extrapolate beyond climo levels)
+    data = vertremap.int2p_n(climo_lev, data, target_lev, linlog=-2, dim=0)
+
+    # Nearest neighbor to the source lat/lon
+    data = nearest_neighbor_struct_to_struct(climo_lat, climo_lon, data, target_lat, target_lon)
+
+    return data
+
+def nearest_neighbor_struct_to_struct(lat, lon, field, lat_new, lon_new):
+    """
+    Nearest neighbor remap between structured (1-D lat, 1-D lon) grids.
+    field has lat, lon as its last two dims, any leading dims (e.g., lev) are kept.
+    Lon is treated as periodic, so 0->360 and -180->180 grids can be mixed.
+
+    lat, lon         : 1-D source grid coordinates (deg)
+    field            : source data, shape (..., len(lat), len(lon))
+    lat_new, lon_new : 1-D target grid coordinates (deg)
+
+    Returns field on (..., len(lat_new), len(lon_new)).
+    """
+
+    # For each new lat, find index of closest source lat
+    jlat = np.zeros(len(lat_new), dtype=int)
+    for j in range(len(lat_new)):
+        jlat[j] = np.argmin(np.abs(lat - lat_new[j]))
+
+    # For each new lon, find index of closest source lon
+    # Distance is wrapped to [-180, 180) so 0->360 and -180->180 grids can be mixed
+    ilon = np.zeros(len(lon_new), dtype=int)
+    for i in range(len(lon_new)):
+        dlon = (lon - lon_new[i] + 180.) % 360. - 180.
+        ilon[i] = np.argmin(np.abs(dlon))
+
+    # Pull out the closest lats, then the closest lons (leading dims like lev are kept)
+    field_new = field[..., jlat, :]
+    field_new = field_new[..., ilon]
+
+    return field_new

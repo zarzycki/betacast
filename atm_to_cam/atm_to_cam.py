@@ -23,12 +23,12 @@ import loaddata
 import meteo
 import py_seedfuncs
 from constants import (
-    p0, dtime_map, ps_wet_to_dry, w_smooth_iter, grav,
+    p0, dtime_map, ps_wet_to_dry, w_smooth_iter, grav, cf_base_time,
     damp_upper_winds_mpas, MPAS_W_DAMPING_COEF,
     NC_FLOAT_FILL, DEFAULT_FILL_VALUE, COORD_FILL_VALUE, CORRECT_OR_NOT_FILL_VALUE,
     QMINTHRESH, QMAXTHRESH, CLDMINTHRESH, O3MINTHRESH, O3MAXTHRESH, O3_MMR_TO_VMR,
     NUMCLDMAXTHRESH, NUMICEMAXTHRESH, NUMLIQMAXTHRESH,
-    cf_base_time
+    CLIMOFILE_O3
 )
 
 # Set nc fill values
@@ -204,6 +204,14 @@ def main():
         member_str = datasource.split('-')[1]
         logging.info(f"Loading CR20V3 ensemble member {member_str}")
         data_vars = loaddata.load_CR20v3_member_data(RDADIR, data_filename, yearstr, monthstr, daystr, cyclestr, dycore, member_str)
+
+    # If we need any variables but the source doesn't have it, fall back to Betacast climatology files here
+    # Future vars can be added as long as they are 12 x nlev x nlat x nlon netcdf files
+    if add_chemistry and 'o3' not in data_vars:
+        logging.info(f"No O3 in {datasource} data, using internal Betacast O3 climatology")
+        # Read O3CLIMO file from defaults
+        O3CLIMOFILE = os.path.join(BETACAST, CLIMOFILE_O3)
+        data_vars['o3'] = loaddata.load_internal_climo(O3CLIMOFILE, 'O3', data_vars['lat'], data_vars['lon'], data_vars['lev'], monthstr, daystr, cyclestr)
 
     logging.info("Input Data Level information")
     logging.info(f"Number: {len(data_vars['lev'])}")

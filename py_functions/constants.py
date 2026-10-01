@@ -50,3 +50,6 @@ w_smooth_iter = 5
 
 t_freeze_K = 273.15
 
+# Fallback internal files for initialization as needed
+CLIMOFILE_O3 = "atm_to_cam/init_data/era5_o3_monthly_clim_2000-2020_4deg.nc"
+
