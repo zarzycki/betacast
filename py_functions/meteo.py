@@ -469,12 +469,13 @@ def damp_upper_level_winds(u, v, nlev, damping_coeffs=None):
         damping_coeffs = mpas_uv_damping_coeffs
 
     logging.info(f"Damping upper level MPAS winds with coefficients: {damping_coeffs}")
-    u[:, nlev - 1] *= damping_coeffs[0]
-    u[:, nlev - 2] *= damping_coeffs[1]
-    u[:, nlev - 3] *= damping_coeffs[2]
-    v[:, nlev - 1] *= damping_coeffs[0]
-    v[:, nlev - 2] *= damping_coeffs[1]
-    v[:, nlev - 3] *= damping_coeffs[2]
+    # u, v are (nlev, ncol) with MPAS ordering (index 0 = surface), so top levels are nlev-1, nlev-2, nlev-3
+    u[nlev - 1, :] *= damping_coeffs[0]
+    u[nlev - 2, :] *= damping_coeffs[1]
+    u[nlev - 3, :] *= damping_coeffs[2]
+    v[nlev - 1, :] *= damping_coeffs[0]
+    v[nlev - 2, :] *= damping_coeffs[1]
+    v[nlev - 3, :] *= damping_coeffs[2]
     logging.info("... done damping upper level MPAS winds")
 
     return u, v
@@ -482,7 +483,8 @@ def damp_upper_level_winds(u, v, nlev, damping_coeffs=None):
 
 def noflux_boundary_condition(w, nlev):
     logging.info("Setting lower BC for W so flow can't go through surface...")
-    w[:, 0] = 0.0
+    # w is (nlevi, ncol) with MPAS ordering (index 0 = surface interface)
+    w[0, :] = 0.0
     logging.info("... done setting lower BC for W so flow can't go through surface")
 
     return w
