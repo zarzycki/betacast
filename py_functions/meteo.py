@@ -111,7 +111,7 @@ def compute_pmid(t, rho):
     return pmid
 
 
-def mixhum_ptrh(p, tk, rh, iswit=2):
+def mixhum_ptrh(p, tk, rh, iswit=2, es_max_frac=0.5):
     """
     Computes the specific humidity or mixing ratio from pressure, temperature, and relative humidity.
 
@@ -126,7 +126,12 @@ def mixhum_ptrh(p, tk, rh, iswit=2):
     iswit : int
         - If iswit=1, the output will be the mixing ratio.
         - If iswit=2, the output will be the specific humidity.
-        - If iswit is negative, the units will be kg/kg; otherwise, g/kg.
+        - If iswit is negative, the units will be g/kg; otherwise, kg/kg.
+    es_max_frac : float or None
+        Cap saturation vapor pressure at es_max_frac * p. Near the stratopause (~1-5 hPa)
+        es can exceed p, making the saturation mixing ratio negative or blow up.
+        es/p is < ~0.1 in the troposphere, so this only affects the upper stratosphere.
+        Set to None to disable (pure NCL behavior).
 
     Returns:
     --------
@@ -145,6 +150,10 @@ def mixhum_ptrh(p, tk, rh, iswit=2):
     # Calculate the saturation vapor pressure (EST)
     est = ES0 * np.exp((A * (tk - T0)) / (tk - B))
 
+    # Cap EST so the QST denominator below stays positive at very low pressures
+    if es_max_frac is not None:
+        est = np.minimum(est, es_max_frac * p)
+
     # Calculate the saturation mixing ratio (QST)
     qst = (EP * est) / (p - ONEMEP * est)
 
@@ -155,7 +164,7 @@ def mixhum_ptrh(p, tk, rh, iswit=2):
     if abs(iswit) == 2:
         qw = qw / (1.0 + qw)
 
-    # Convert to kg/kg if iswit is negative
+    # Convert to g/kg if iswit is negative
     if iswit < 0:
         qw = qw * 1000.0
 
