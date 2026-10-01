@@ -123,10 +123,10 @@ def topo_adjustment(data_horiz, dycore, model_topo_file, adjust_config):
         logging.info("Empty model topo file entered, not performing hydro adjustment")
         logging.info("continuing...")
     elif model_topo_file and not os.path.exists(model_topo_file):
-        logging.info("model_topo_file passed in but cannot find file on Unix system")
-        logging.info("if you do not want adjustment, specify NULL in the namelist")
-        logging.info("exiting...")
-        return
+        logging.error(f"model_topo_file {model_topo_file} passed in but cannot find file on Unix system")
+        logging.error("if you do not want adjustment, specify NULL in the namelist")
+        logging.error("exiting...")
+        raise FileNotFoundError(f"model_topo_file not found: {model_topo_file}")
     else:
         logging.info("No model topo file passed into script, not performing hydro adjustment")
         logging.info("continuing...")
