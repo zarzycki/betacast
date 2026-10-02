@@ -112,6 +112,9 @@ elif [ "$SOURCE" = "ERA5" ] || [ "$SOURCE" = "CR20V3" ]; then
   if [ "$SOURCE" = "CR20V3" ] && [ -z "${_NL_RDADIR_SET}" ]; then
     echo "ERROR: SOURCE=CR20V3 requires RDADIR to be set in the namelist (default RDADIR points to ERA5 data)"; exit 1
   fi
+  if [ -z "${RDADIR:-}" ]; then
+    echo "ERROR: SOURCE=${SOURCE} requires RDADIR (via environment or namelist)"; exit 1
+  fi
   echo "Doing reanalysis (${SOURCE}), writing default input if not passed in via $NLFILE"
   if [ -z "${STDAY+x}" ]; then STDAY=1; fi
   if [ -z "${ENDAY+x}" ]; then ENDAY=31; fi
@@ -133,6 +136,9 @@ echo "DESCSTR: "$DESCSTR"  DYCORE: "$DYCORE"  GRIDSTR: "$GRIDSTR"  NUMLEVS: "$NU
 echo "BNDTOPO: "$BNDTOPO
 echo "WGTNAME: "$WGTNAME
 set +u
+
+# Empty BNDTOPO would leave --model_topo_file without an arg; NULL = skip topo adjustment
+if [ -z "${BNDTOPO}" ]; then BNDTOPO="NULL"; fi
 
 # Special block of code to handle Hyperion data
 if [[ -v SUBNAME ]] ; then
@@ -175,6 +181,10 @@ TIME_INCREMENT=$((3600*HR_RES))
 if [ -n "$input_dates_file" ] && [ -f "$input_dates_file" ]; then
 
   echo "Found input dates file: $input_dates_file"
+
+  if [ -z "${NDAYS_PER_DATE:-}" ]; then
+    echo "ERROR: NDAYS_PER_DATE must be set in the namelist when using an input dates file (0 = only listed dates)"; exit 1
+  fi
 
   # Read the original dates from file
   ORIGINAL_DATES=($(cat "$input_dates_file"))
