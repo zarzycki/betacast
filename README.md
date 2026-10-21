@@ -1,6 +1,6 @@
 # Betacast
 
-**Betacast** (originally a portmanteau of "beta" and "forecast") is a software package designed to easily initialize CIME-ized modeling systems in "numerical weather prediction" mode. The code is capable of running in realtime or hindcast mode and possesses tools for generating balanced initial conditions and configuring the model appropriately. **Please cite both the below manuscript and this repository if you use Betacast in your research.**
+**Betacast** (originally a portmanteau of "beta" and "forecast") is a software package designed to easily initialize CIME-ized modeling systems (e.g., CESM, E3SM, SCREAM) in "numerical weather prediction" mode. The code is capable of running in real-time or hindcast mode and possesses tools for generating balanced initial conditions and configuring the model appropriately. Tools are also available to generate specific forcing files such as nudging and prescribed anomalies. **Please cite both the below manuscript and this repository if you use Betacast in your research.**
 
 [![DOI](https://zenodo.org/badge/31787694.svg)](https://zenodo.org/badge/latestdoi/31787694)
 
@@ -19,7 +19,7 @@ Reference: C. M. Zarzycki and C. Jablonowski. Experimental tropical cyclone fore
 
 ### Dependencies
 
-Betacast primarily depends on standard scientific and meteorology / climate science Python libraries. On machines at NCAR and NERSC, using environments like `npl` or `e3sm_unified` generally suffice. However, you may also install your own Betacast environment by following one of the below commands. `conda` is more standard, but I find `mamba` to be faster and deal with conflicts more gracefully.
+Betacast primarily depends on standard scientific and meteorology / climate science Python libraries. On machines at NCAR and NERSC, using environments like `npl` or `e3sm_unified` generally suffices. However, you may also install your own Betacast environment by following one of the below commands. `conda` is more standard, but I find `mamba` to be faster and deal with conflicts more gracefully.
 
 ```
 conda env create -f environment.yaml
@@ -33,7 +33,7 @@ mamba env create -f environment.yaml
 
 1. Create a case directory with either a supported or new grid configuration and verify that it is stable/runs given arbitrary inputs.
 2. Set up namelist files.
-    1. Edit/create machine file for your particular system.
+    1. Edit/create the machine file for your particular system.
     2. Create namelist file for your particular use case.
     3. Edit/create output streams file.
 3. Set up Betacast data folder structure.
@@ -42,7 +42,7 @@ mamba env create -f environment.yaml
 5. Decide how to handle land initialization.
 6. Run Betacast.
 
-The first step is to create a functional F compset. Broadly, this is **active atmosphere, active land, active runoff (optional) and data ocean/ice**. Other configurations may work (e.g., active wave, glacier models) but have not been tested. B compsets (fully coupled) should work, but betacast does not initialize the ocean model at this time, so it would rely on the namelist default provided by the modeling system.
+The first step is to create a functional F compset. Broadly, this is **active atmosphere, active land, active runoff (optional), and data ocean/ice**. Other configurations may work (e.g., active wave, glacier models) but have not been tested. B compsets (fully coupled) should work, but betacast does not initialize the ocean model at this time, so it would rely on the namelist default provided by the modeling system.
 
 ### 1. Create case directory and test stability.
 
@@ -57,7 +57,7 @@ PROJECTID <-- Project charging ID
 CASESDIR <-- Directory to store cases in
 ```
 
-🔴 **IMPORTANT NOTE**: The resolution defined in this step *must* be the resolution you are using for your experiments since both CESM and E3SM determine atmospheric resolution at build time. For example, if you set up 1deg CESM configuration and then use 0.25deg grids/initial conditions the model will crash! See the `--res` flag and associated CESM documentation for more information about supported resolutions.
+🔴 **IMPORTANT NOTE**: The resolution defined in this step *must* be the resolution you are using for your experiments since both CESM and E3SM determine atmospheric resolution at build time. For example, if you set up 1deg CESM configuration and then use 0.25deg grids/initial conditions, the model will crash! See the `--res` flag and associated CESM documentation for more information about supported resolutions.
 
 **CESM example:**
 
@@ -136,11 +136,11 @@ ${BETACAST}/tools/patch/patch-sfc-mods.sh ${BETACAST} ${MODELROOT} mct elm
 
 Some notes:
 
-1. In the "patch-sfc-mods" step, a small modification is made to the land model to enforce restart files to be printed every 12 hours. This is done since the land model is initialized via nudging with the atmosphere in this framework. A shell script `${BETACAST}/tools/patch/patch-sfc-mods.sh` has been created to ease this application, which takes the Betacast directory, top-level model directory, driver (mct or nuopc) and model component (e.g., elm, clm, mosart, rtm) as inputs. These patches can be manually applied by copying CESM or E3SM's `lnd_comp_mct.F90` (from the land model source code) into `$CASEDIR/SourceMods/src.clm` (or equivalent) and running
+1. In the "patch-sfc-mods" step, a small modification is made to the land model to enforce restart files to be printed every 12 hours. This is done since the land model is initialized via nudging with the atmosphere in this framework. A shell script `${BETACAST}/tools/patch/patch-sfc-mods.sh` has been created to ease this application, which takes the Betacast directory, top-level model directory, driver (mct or nuopc), and model component (e.g., elm, clm, mosart, rtm) as inputs. These patches can be manually applied by copying CESM or E3SM's `lnd_comp_mct.F90` (from the land model source code) into `$CASEDIR/SourceMods/src.clm` (or equivalent) and running
 `$ patch lnd_comp_mct.F90 < ${BETACAST}/tools/patch/lnd_comp_mct.patch`
 over the top of the file, which injects the correct logic. A similar procedure is used if you want runoff model restart files using `rof_comp_mct.patch`. **This needs to be done before the `./case.build` step.**
 2. For E3SM, current suggested compsets are: F2010C5-CMIP6-HR (ne120, VR) and F2010C5-CMIP6-LR (ne30). For SCREAM, these are FSCREAM-LR and FSCREAM-HR, respectively.
-3. E3SMv2/3 (tags from approximately October 2020 onward) are only officially supported. E3SMv1 is effectively supported by choosing modelSystem = 0, although continual updates to support the evolution of EAM and ELM seperately from CAM and CLM/CTSM may eventually break this backwards compatibility.
+3. E3SMv2/3 (tags from approximately October 2020 onward) are only officially supported. E3SMv1 is effectively supported by choosing modelSystem = 0, although continual updates to support the evolution of EAM and ELM separately from CAM and CLM/CTSM may eventually break this backwards compatibility.
 4. For running with the runoff turned on, it may be necessary to create a new compset with MOSART (or other runoff model like RTM) instead of SROF (stub runoff). An example for E3SMv2 is:
 
 	    <compset>
@@ -152,7 +152,7 @@ over the top of the file, which injects the correct logic. A similar procedure i
 
 ### 2. Edit namelists
 
-There is a rudimentary namelist capability betacast uses via Bash. Ideally, this would be in Python or something else but for now this is sufficent.
+There is a rudimentary namelist capability Betacast uses via Bash.
 
 A bash namelist for this codebase consists of a text file and variables of the format
 
@@ -168,7 +168,7 @@ Each VALUE line is read in, splitting on ` = `.
 
 ### 2.1 Edit machine file for your particular system
 
-In `${BETACAST}/machine_files` there are sample files that define where folders and data files will be stored for your system. There are suggested configurations for NCAR Derecho and NERSC Perlmutter, but you may edit these for your workflow or copy/paste for a different system (i.e., university cluster).
+In `${BETACAST}/machine_files` there are sample files that define where folders and data files will be stored for your system. There are suggested configurations for NCAR Derecho and NERSC Perlmutter, but you may edit these for your workflow or copy/paste for a different system (i.e., a university cluster).
 
 | Namelist Variable | Description |
 | --- | --- |
@@ -408,9 +408,9 @@ from the top-level directory of Betacast. **This only needs to be done once per 
 
 ### 4. Dates file
 
-If not running in real-time, dates to be simulated are passed into the script via a text file in `${BETACAST}/dates/` in a file named `dates.${CASENAME}.txt`. Currently only 00Z and 12Z cycles are fully supported in order to minimize disk writes associated with restart files at intermediate cycles.
+If not running in real-time, dates to be simulated are passed into the script via a text file in `${BETACAST}/dates/` in a file named `dates.${CASENAME}.txt`. Currently, only 00Z and 12Z cycles are fully supported in order to minimize disk writes associated with restart files at intermediate cycles.
 
-For example, let's say we are running ne30np4 forecasts with a casename of MY_NE30_BETACAST and want to run a simulation on 00Z August 1, 2nd, and 3rd, 2018. In the `${BETACAST}/dates/` directory we would add a text file named `dates.MY_NE30_BETACAST.txt` and add the following lines to the top of the file:
+For example, let's say we are running ne30np4 forecasts with a casename of MY_NE30_BETACAST and want to run a simulation on 00Z August 1, 2nd, and 3rd, 2018. In the `${BETACAST}/dates/` directory, we would add a text file named `dates.MY_NE30_BETACAST.txt` and add the following lines to the top of the file:
 
 ```
 2018080100
@@ -419,9 +419,9 @@ For example, let's say we are running ne30np4 forecasts with a casename of MY_NE
 2018080312
 ```
 
-... when `islive` is equal to 0 in the namelist, the code will extract the YYYY, MM, DD, and HH from the 1st line of this text file. NOTE: this line will only be deleted upon successful forecast completion. If the code crashes mid-run, then the interrupted forecast remains at the head of the dates file.
+... when `islive` is equal to 0 in the namelist, the code will extract the YYYY, MM, DD, and HH from the 1st line of this text file. NOTE: This line will only be deleted upon successful forecast completion. If the code crashes mid-run, then the interrupted forecast remains at the head of the dates file.
 
-**NOTE**: There is backwards compatibility such that the "dates" file can live in `${BETACAST}` root. This is not recommended because the root directory can get quite messy with multiple cases and/or ensembles. If `datestemplate` is specified in the namelist *AND* there is no existing dates file for a particular case, Betacast will copy the template file to `dates.${CASENAME}.txt`. This is useful for running an ensemble of simulations -- you would create one template file of all relevant dates and then each case would copy that file over as a starting point (and each subsuquent model run would use the case-specific file).
+**NOTE**: There is backwards compatibility such that the "dates" file can live in `${BETACAST}` root. This is not recommended because the root directory can get quite messy with multiple cases and/or ensembles. If `datestemplate` is specified in the namelist *AND* there is no existing dates file for a particular case, Betacast will copy the template file to `dates.${CASENAME}.txt`. This is useful for running an ensemble of simulations -- you would create one template file of all relevant dates, and then each case would copy that file over as a starting point (and each subsequent model run would use the case-specific file).
 
 Workflow when `islive` is false is:
 
@@ -432,7 +432,7 @@ Workflow when `islive` is false is:
 
 ### 4.1. Pre-stage atmospheric analysis data (optional)
 
-Pre-staging the data consists of pulling the atmospheric data from an external server, renaming it, doing some basic file concatenation, variable arrangment, etc. and placing it into the relevant betacast folder. Doing so minimizes issues with attempting to download data from external servers at run-time, which can lead to crashes due to invalid credentials and other issues.
+Pre-staging the data consists of pulling the atmospheric data from an external server, renaming it, doing some basic file concatenation, variable arrangement, etc., and placing it into the relevant betacast folder. Doing so minimizes issues with attempting to download data from external servers at runtime, which can lead to crashes due to invalid credentials and other issues.
 
 If you have direct filesystem access to an RDA-style archive (e.g., NCAR's `/glade/campaign/collections/rda/data/ds633.0/` for ERA5), no pre-staging is needed -- pass the archive path directly via `RDADIR` and `atm_to_cam.py` will read from it at run-time (see `datasource="ERA5RDA"` below). Pre-staging tooling for pulling ERA5 from the Copernicus CDS API (for sites without direct RDA access) is not currently bundled with Betacast; see `acquire-data/` for other supported data-acquisition workflows (e.g., HRRR, 20CRv3).
 
@@ -534,11 +534,11 @@ For MPAS data, the input variable `model_topo_file` actually contains the full i
 
 #### Hydrostatic adjustment
 
-Currently the hydrostatic adjustment is only available when `dycore` is set to SE. The code is activated if a valid `model_topo_file` containing `PHIS` is passed in and `adjust_config` is not an empty string. If `adjust_config=a` that applies a special case where both PS and TBOT are adjusted. Otherwise, only PS is adjusted. All state fields are then reinterpolated based on the new hybrid pressure levels associated with the updated PS.
+Currently, the hydrostatic adjustment is only available when `dycore` is set to SE. The code is activated if a valid `model_topo_file` containing `PHIS` is passed in and `adjust_config` is not an empty string. If `adjust_config=a` that applies a special case where both PS and TBOT are adjusted. Otherwise, only PS is adjusted. All state fields are then reinterpolated based on the new hybrid pressure levels associated with the updated PS.
 
 #### Using RDA data
 
-On Cheyenne (and when mirrored on other systems) Betacast can go directly to RDA to get ERA5 data. To do this, point `RDADIR` to the datasets top-level directory (e.g., /glade/campaign/collections/rda/data/ds633.0/). In this case, this file will be used if the hydrostatic adjustment code is active where `data_filename` is the invariant field containing the surface Z field (e.g., `${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc)`.
+On Derecho (and when mirrored on other systems) Betacast can go directly to RDA to get ERA5 data. To do this, point `RDADIR` to the datasets top-level directory (e.g., /glade/campaign/collections/rda/data/ds633.0/). In this case, this file will be used if the hydrostatic adjustment code is active, where `data_filename` is the invariant field containing the surface Z field (e.g., `${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc)`.
 
 --
 
@@ -556,7 +556,7 @@ cd $BETACAST/land-spinup
 ./auto-script.sh $MODELSYSTEM $DOERA5 $DATEYYYYMMDD $NMONTHS $NCYCLES $ANOMYEAR $REFYEAR $MACHNAMELIST
 ```
 
-where `auto-script` takes in eight command line inputs:
+where `auto-script` takes in eight command-line inputs:
 
 | Namelist Variable | Description |
 | --- | --- |
@@ -575,7 +575,7 @@ An example would be:
 ./auto-script.sh 1 0 19960113 12 3 2080 1996 nl.landspinup.cori
 ```
 
-This would spinup ELM/E3SM (1) using ERA5 DATM (0) for a Betacast initialization on Jan 13 1996 (19960113) using 12 months of spinup and 3 cycles. The deltas are taken from the year 2080 and corrected relative to the year 1996 and the namelist settings are specified in `nl.landspinup.cori`.
+This would spin up ELM/E3SM (1) using ERA5 DATM (0) for a Betacast initialization on Jan 13 1996 (19960113) using 12 months of spinup and 3 cycles. The deltas are taken from the year 2080 and corrected relative to the year 1996 and the namelist settings are specified in `nl.landspinup.cori`.
 
 Another example for CESM (on Derecho) for a historical reforecast is:
 
@@ -583,7 +583,7 @@ Another example for CESM (on Derecho) for a historical reforecast is:
 ./auto-script.sh 0 0 20050828 24 1 -1 -1 nl.landspinup.derecho
 ```
 
-which uses ERA5 to spinup up CLM for two years prior to Hurricane Katrina simulations to be initialized on August 28th, 2005. No anomalies/deltas are applied (denoted by the two `-1` values for `ANOMYEAR` and `REFYEAR`).
+which uses ERA5 to spin up CLM for two years prior to Hurricane Katrina simulations to be initialized on August 28th, 2005. No anomalies/deltas are applied (denoted by the two `-1` values for `ANOMYEAR` and `REFYEAR`).
 
 **NOTE**: `NMONTHS` corresponds to the number of "linear" months prior to `DATEYYYYMMDD`. `NCYCLES` controls the number of loops over those `NMONTHS`. So if one wanted an initial condition on January 1st, 2000 and set `NMONTHS` to 24 and `NCYCLES` to 2, the model would essentially run 48 months of spinup, cycling over 1998 and 1999 once, then using the result from that and cycling 1998 and 1999 a final time before producing a restart file on January 1st, 2000.
 
@@ -613,8 +613,8 @@ The namelist (ex: `nl.landspinup.cori`) includes the following settings, which a
 A few notes/tips/tricks:
 
 - `ICASENAME` can include a substring RESSTRING that will be replaced by `RESOL` inside the script. For example, `ICASENAME=Philly128x8-ICLM45-RESSTRING-101` will expand to: `Philly128x8-ICLM45-philly128x8pg2_philly128x8pg2-101_YYYYMMDD_SPINMON_ANOMYR/` where `RESOL=philly128x8pg2_philly128x8pg2`. This allows you to have multiple resolutions easily with the same base configuration.
-- `BETACAST_DATM_FORCING_BASE` refers to the top level directory where the DATM files are stored for either ERA5 or another dataset (e.g., CESM/E3SM forcing). Within this directory should be three folders entitled `Solar`, `Precip`, and `TPQW`, which contain data streams for FSDS, PRECIPmms, and all other variables.
-- Likewise, `BETACAST_DATM_ANOMALY_BASE` refers to the top level directory where the anomaly files are stored. Inside that directory are four files. Currently, only supported are ensemble mean anomalies from CESM1 LENS, but users can use these four files as templates for other model runs.
+- `BETACAST_DATM_FORCING_BASE` refers to the top-level directory where the DATM files are stored for either ERA5 or another dataset (e.g., CESM/E3SM forcing). Within this directory should be three folders entitled `Solar`, `Precip`, and `TPQW`, which contain data streams for FSDS, PRECIPmms, and all other variables.
+- Likewise, `BETACAST_DATM_ANOMALY_BASE` refers to the top-level directory where the anomaly files are stored. Inside that directory are four files. Currently, only supported are ensemble mean anomalies from CESM1 LENS, but users can use these four files as templates for other model runs.
 
 ```
 ens_FLDS_anom.nc
@@ -640,7 +640,7 @@ So the general workflow is:
 
 1. Ensure CLM/ELM is able to run (ex: do you have an `fsurdat` for the grid?).
 2. Edit `$MACHNAMELIST` as needed.
-3. (optional) Ensure [ERA5 DATM files](#era5_data_files) and/or anomaly files are available on your machine and the path is specified in `$MACHNAMELIST`. NOTE: ERA5 DATM files are currently staged on Derecho/Glade and Perlmutter, ask Colin for locations.
+3. (optional) Ensure [ERA5 DATM files](#era5_data_files) and/or anomaly files are available on your machine and the path is specified in `$MACHNAMELIST`. NOTE: ERA5 DATM files are currently staged on Derecho/Glade and Perlmutter; ask Colin for locations.
 4. Run `./auto-script.sh` specifying the above command line options. Wait for model to configure, build, and submit.
 5. Pending successful completion of `./auto-script`, stage initial files in `$CASENAME/landstart` for Betacast.
 
@@ -669,7 +669,7 @@ rename ${ICASENAME} ${CASENAME} *.nc
 
 ## Generate an analysis/reanalysis to CAM weight file
 
-**As of 1/2025, Betacast will automatically generate an analysis -> reanalysis weight file if using a supported analysis dataset (e.g., ERA5, GFS, CFSR, etc.). To leverage this funcationality, you must pass in `modelgridfile` via the namelist which points to a SCRIP grid that defines the 2-D target mesh. If you are using an unsupported grid *or* you want to use a different interpolation procedure, you may generate a file using the below instructions and pass in the actual weight file via `anl2mdlWeights` -- Betacast will bypass the internal weight generation and just use `anl2mdlWeights` for the remapping.** The original instructions for this are reproduced below.
+**As of 1/2025, Betacast will automatically generate an analysis -> reanalysis weight file if using a supported analysis dataset (e.g., ERA5, GFS, CFSR, etc.). To leverage this functionality, you must pass in `modelgridfile` via the namelist, which points to a SCRIP grid that defines the 2-D target mesh. If you are using an unsupported grid *or* you want to use a different interpolation procedure, you may generate a file using the below instructions and pass in the actual weight file via `anl2mdlWeights` -- Betacast will bypass the internal weight generation and just use `anl2mdlWeights` for the remapping.** The original instructions for this are reproduced below.
 
 Betacast needs a file (ESMF format) that provides high-order weights to take the analysis data (e.g., ERA5, GFS) and horizontally remap it to the target grid (e.g., CAM, EAM).
 
@@ -677,19 +677,19 @@ This can be done with `${BETACAST}/remapping/gen_analysis_to_model_wgt_file.py`.
 
 - `dstGridName` a shortname describing the model grid (for naming purposes only).
 - `dstGridFile` a full path to a file defining the destination model grid.
-- `anlgrid` is the type of analysis and corresponding grid resolution (*three* are supported, see below).
+- `anlgrid` is the type of analysis and corresponding grid resolution (*three* are supported; see below).
 - `wgtFileDir` is the directory where the weight file should be saved after being generated (this will dictate the path + file used in `anl2mdlWeights` in the next section.
 
 `dstGridFile` can be one of *three* formats. It can be a **SCRIP grid file** (contains variables like grid_corner_lat), an **ESMF grid file** (contains variables like nodeCoords), or an **SE/HOMME model output file** (contains dimension ncol). The script will automatically attempt to determine the type of file and create remapping weights accordingly.
 
-Historically there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses, 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS 2017-). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/grids/anl_scrip/`.
+Historically, there have been two analysis grid sizes associated with publicly disseminated GFS/CFS/CFSR analyses: 0.5deg (CFSR and GFS pre-2017) and 0.25deg (GFS 2017-). ERA5 data from CDS is on a 0.25deg grid. The SCRIP files for these grids are located in `${BETACAST}/grids/anl_scrip/`.
 
 🔴 **IMPORTANT NOTE**: The CAM weight file needs to be the model grid read during initialization. This is particularly important to note for grids like FV (which has staggered winds) and SE/HOMME (which has dual grids for the dynamics and physics). In the case of SE/HOMME runs, the destination grid is defined by the *physics* grid.
 
 
 ## Running with the climate change 'deltas' code
 
-Thermodynamic deltas (e.g., warming signal, climate change fingerprints, pseudo-global warming forcing) that are derived from long-term climate integrations can be applied over the top of a Betacast analysis to simulate how a particular event would conditionally evolve under a different climate. Mechanistically, Betacast treats this as if it was just a regular forecast, except after generating the initial conditions two seperate scripts are run to overlay these fingerprints over the top of the atmospheric and ocean initial conditions in a consistent fashion.
+Thermodynamic deltas (e.g., warming signal, climate change fingerprints, pseudo-global warming forcing) that are derived from long-term climate integrations can be applied over the top of a Betacast analysis to simulate how a particular event would conditionally evolve under a different climate. Mechanistically, Betacast treats this as if it were just a regular forecast, except after generating the initial conditions two separate scripts are run to overlay these fingerprints over the top of the atmospheric and ocean initial conditions in a consistent fashion.
 
 Some relevant reading:
 
@@ -704,13 +704,13 @@ To activate this code, the following bool must be selected in the primary nameli
 add_perturbs = true
 ```
 
-and a seperate namelist containing information about how to apply the deltas must be generated and the full path to this secondary file be specified in the primary namelist:
+and a separate namelist containing information about how to apply the deltas must be generated, and the full path to this secondary file must be specified in the primary namelist:
 
 ```
 perturb_namelist = /global/homes/c/czarzyck/betacast/namelists/perturb.sample.nl
 ```
 
-`perturb_namelist` is a text file that is read by a routine that runs after atm_to_cam and sst_to_cam which contains the following variables (all are required, even if **False** or empty strings).
+`perturb_namelist` is a text file that is read by a routine that runs after atm_to_cam and sst_to_cam, which contains the following variables (all are required, even if **False** or empty strings).
 
 | Namelist Variable | Type | Description |
 | --- | --- | --- |
@@ -734,7 +734,7 @@ perturb_namelist = /global/homes/c/czarzyck/betacast/namelists/perturb.sample.nl
 | adjust\_ice | bool | Adjust ice fraction based on deltas + freezing/melting? (generally **True**) |
 | output\_sst\_diag | bool | Output a separate diagnostics file with deltas and other info? |
 
-A template namelist is in the repo under `$BETACAST/namelists/perturb.sample.nl`. It is strongly suggested to just copy this file and edit individual keys as desired to ensure all required variables are present on the file. Betacast should print information in the output stream regarding the deltas (and their successful application) -- this should be verified by the user at run time.
+A template namelist is in the repo under `$BETACAST/namelists/perturb.sample.nl`. It is strongly suggested to just copy this file and edit individual keys as desired to ensure all required variables are present in the file. Betacast should print information in the output stream regarding the deltas (and their successful application) -- this should be verified by the user at runtime.
 
 ---
 
@@ -772,9 +772,9 @@ qsubcasper driver-gen-datm.sh
 
 #### 3. (optional) add climate deltas
 
-🔴 **IMPORTANT NOTE**: This has been superceded by the ability to maintain a single deck of ERA5 files and then create seperate `anomaly' streams that are overlaid on ERA5. This code will remain (and is scientifically valid) but requires more disk space than the other method.
+🔴 **IMPORTANT NOTE**: This has been superseded by the ability to maintain a single deck of ERA5 files and then create separate `anomaly' streams that are overlaid on ERA5. This code will remain (and is scientifically valid) but requires more disk space than the other method.
 
-NOTE: This code will create a duplicate directory of the DATM stream and add perturbations to every file! It would be smart to first set up a control DATM folder with the only forcing files needed (e.g., two years instead of twenty).
+NOTE: This code will create a duplicate directory of the DATM stream and add perturbations to every file! It would be smart to first set up a control DATM folder with only the forcing files needed (e.g., two years instead of twenty).
 
 ```
 cd ${BETACAST}/land-spinup/gen_datm/add-perturbs
@@ -814,7 +814,7 @@ Put all of these files (and only these files) in their own folder (`$MODEL_DATAS
 
 Edit `${BETACAST}/land-spinup/datm-from-model/single-file-to-datm.sh` as needed. Particular attention should be paid to the `MAPFILE` and `OUTDIRBASE` variables, although one should also check things like latitude ordering (always should be S->N, but ERA5 data and maps are N->S and need to be flipped using nco).
 
-Edit `${BETACAST}/land-spinup/datm-from-model/batch-model-to-datm.sh` as needed. Will need to be set up for specific machines if one takes advantage of GNU parallel (preferred). Particularly relevant file is `MODEL_DATASTREAM_DIR` which points to the directory holding all the raw model data as noted above. The script will spawn a set of commands which convert each single file to DATM-supported stream.
+Edit `${BETACAST}/land-spinup/datm-from-model/batch-model-to-datm.sh` as needed. Will need to be set up for specific machines if one takes advantage of GNU parallel (preferred). The particularly relevant file is `MODEL_DATASTREAM_DIR` which points to the directory holding all the raw model data as noted above. The script will spawn a set of commands that convert every single file to a DATM-supported stream.
 
 When one invokes the land spinup code, the user should note that the dataset is "2" (from model) and pass in the `OUTDIRBASE` as `BETACAST_DATM_FORCING_BASE`. Example invocation:
 
@@ -827,11 +827,11 @@ When one invokes the land spinup code, the user should note that the dataset is 
 
 For `coszen` it seems like ERA5 likes -10800s for an offset. This number matches the diurnal SWdown solar cycle when comparing a DATM run to an F compset run for an equivalent calendar day.
 
-An example is shown below. This is 12Z averaged over past 6 hours (SWdown:A) on Jan 16th. Left is from an ne30 F compset run, right is from an I compset f09 run. Moving to higher negative offsets shifts the bullseye to the left (west) at a given time. Zero offset would shift the I compset SWdown to the right by 45deg.
+An example is shown below. This is 12Z averaged over the past 6 hours (SWdown:A) on Jan 16th. Left is from an ne30 F compset run; right is from an I compset f09 run. Moving to higher negative offsets shifts the bullseye to the left (west) at a given time. Zero offset would shift the I compset SWdown to the right by 45deg.
 
 /Screen Shot 2021-05-13 at 5.59.57 PM.png
 
-For `linear`, the offset seems best to be 0. This creates a "centering" of the state variables (e.g., T, etc.) on the instantaneous synoptic field produced by ERA5. When doing an ncdiff of the model produced TS and comparing to ERA5, there is very little red/blue shift noted in the diff field compared to other offsets.
+For `linear`, the offset seems best to be 0. This creates a "centering" of the state variables (e.g., T, etc.) on the instantaneous synoptic field produced by ERA5. When doing an ncdiff of the model-produced TS and comparing to ERA5, there is very little red/blue shift noted in the diff field compared to other offsets.
 
 Some code:
 
@@ -850,18 +850,18 @@ ncdiff tmp_date.nc ~/scratch/RoS-ICLM45-f09/run/RoS-ICLM45-f09.clm2.h0.1992-08-0
 
 ##### offset (in the stream file)
 
-offset is the time offset in seconds to give to each stream of data. Normally it is NOT used because the time-stamps for data is set correctly for each stream of data. Note, the offset may NEED to be adjusted depending on the taxmode described above, or it may need to be adjusted to account for data that is time-stamped at the END of an interval rather than the middle or beginning of interval. The offset can is set in the stream file rather than on the stream namelist. For data with a taxmode method of coszen the time-stamp needs to be for the beginning of the interval, while for other data it should be the midpoint. The offset can be used to adjust the time-stamps to get the data to line up correctly.
+offset is the time offset in seconds to give to each stream of data. Normally it is NOT used because the time-stamps for data are set correctly for each stream of data. Note, the offset may NEED to be adjusted depending on the taxmode described above, or it may need to be adjusted to account for data that is time-stamped at the END of an interval rather than the middle or beginning of the interval. The offset can be set in the stream file rather than on the stream namelist. For data with a taxmode method of coszen the time-stamp needs to be for the beginning of the interval, while for other data it should be the midpoint. The offset can be used to adjust the time-stamps to get the data to line up correctly.
 
 ##### tintalgo
 
 tintalgo is the time interpolation algorithm. For CLM we usually use one of three modes: coszen, nearest, or linear. We use coszen for solar data, nearest for precipitation data, and linear for everything else. If your data is half-hourly or hourly, nearest will work fine for everything. The coszen scaling is useful for longer periods (three hours or more) to try to get the solar to match the cosine of the solar zenith angle over that longer period of time. If you use linear for longer intervals, the solar will cut out at night-time anyway, and the straight line will be a poor approximation of the cosine of the solar zenith angle of actual solar data. nearest likewise would be bad for longer periods where it would be much higher than the actual values.
 
-- Note: For coszen the time-stamps of the data should correspond to the beginning of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it.
-- Note: For nearest and linear the time-stamps of the data should correspond to the middle of the interval the data is measured for. Either make sure the time-stamps on the datafiles is set this way, or use the offset described above to set it.
+- Note: For coszen the time-stamps of the data should correspond to the beginning of the interval the data is measured for. Either make sure the time-stamps on the data files are set this way, or use the offset described above to set it.
+- Note: For nearest and linear, the time-stamps of the data should correspond to the middle of the interval the data is measured for. Either make sure the time-stamps on the data files are set this way, or use the offset described above to set it.
 
 ### Compression
 
-Betacast employs two types of compression. One is NetCDF "deflation" through NCO. In my expierience this can reduce file sizes by approximately 60\% in a lossless fashion. I have noticed two downsides. The file I/O seems a bit slower (e.g., ncview, ncl, python) although not overly so with a low compression level. Also, models seem to have hit/miss support reading these files as input or boundary data. Therefore, the most useful place to use this deflation is in output data or other things like map weight files that are not used by the model (but used by Betacast).
+Betacast employs two types of compression. One is NetCDF "deflation" through NCO. In my experience, this can reduce file sizes by approximately 60\% in a lossless fashion. I have noticed two downsides. The file I/O seems a bit slower (e.g., ncview, ncl, python), although not overly so with a low compression level. Also, models seem to have hit/miss support reading these files as input or boundary data. Therefore, the most useful place to use this deflation is in output data or other things like map weight files that are not used by the model (but used by Betacast).
 
 For initial/boundary condition files, it seems safest to use more traditional (e.g., gzip, etc.) compression. There are some functions in `utils.sh` that will compress a file using a specific CLI binary. Some basic timing stats of compressing and uncompressing a large ELM restart file in February 2024 are:
 
@@ -923,4 +923,4 @@ pigz -d "$file"
 xz -d -q "$file"
 ```
 
-Therefore, I found `xz` to provide the best overall compression for warm/cold archival (e.g., initial conditions archived for reproducibility) but `zstd` was fastest (by approximately 2x compressing and 4x uncompressing) and therefore most useful for compressing files that had a high liklihood of being uncompressed soon after (e.g., landstart files). I have not found linear speedups with `zstd` with thread count, although `xy` does seem to speed up. However, decompression appears single-threaded for all tools currently. I have also had jobs killed with high thread counts, so keeping them sub-10 seems like a safe strategy.
+Therefore, I found `xz` to provide the best overall compression for warm/cold archival (e.g., initial conditions archived for reproducibility), but `zstd` was fastest (by approximately 2x compressing and 4x uncompressing) and therefore most useful for compressing files that had a high likelihood of being uncompressed soon after (e.g., landstart files). I have not found linear speedups with `zstd` with thread count, although `xy` does seem to speed up. However, decompression appears single-threaded for all tools currently. I have also had jobs killed with high thread counts, so keeping them sub-10 seems like a safe strategy.
