@@ -779,7 +779,7 @@ NOTE: This code will create a duplicate directory of the DATM stream and add per
 ```
 cd ${BETACAST}/land-spinup/gen_datm/add-perturbs
 ## Edit driver-perturb-datm.sh
-## Edit add_perturbations_to_DATM.ncl
+## Edit add_perturbations_to_datm.py defaults (or pass flags in the driver)
 qsubcasper driver-perturb-datm.sh
 ```
 

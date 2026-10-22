@@ -211,7 +211,7 @@ ens_QBOT_anom.nc
 ens_TBOT_anom.nc
 ```
 
-These are currently derived from CESM1 LENS ensemble mean anomalies but can be replaced with any equivalent files. When `REFYEAR > 0`, `normalize-datm-deltas.ncl` is called to normalize the anomalies relative to a specific reference year before applying them.
+These are currently derived from CESM1 LENS ensemble mean anomalies but can be replaced with any equivalent files. When `REFYEAR > 0`, `normalize-datm-deltas.py` is called to normalize the anomalies relative to a specific reference year before applying them.
 
 Set `ANOMYEAR` to the target future year and `REFYEAR` to the historical reference year:
 
