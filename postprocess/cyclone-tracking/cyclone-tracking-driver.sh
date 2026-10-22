@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Driver script to search for cyclones in unstructured CAM-SE data
-# After finding trajectories, uses model-to-atcf.ncl to collocate
+# After finding trajectories, uses model-to-atcf.py to collocate
 # found storms with tcvitals, writes ATCF format which can be used
 # by met-tools for track stats, etc.
 #
@@ -79,7 +79,7 @@ if [ -f ${TCVITFILE} ]; then
   export TCVITFILE="${TCVITFILE}"
   export ATCFFILE="${ATCFFILE}"
   export ATCFTECH="${ATCFTECH}"
-  ncl model-to-atcf.ncl
+  python model-to-atcf.py
   export YYYYMMDDHH="${ATCFFILE:(-10)}"
   export ATCFFILEMERGE="./fin-atcf/atcf.tempest.${YYYYMMDDHH}"
   if [ "$OVERWRITE_ATCF" = true ]; then
@@ -94,7 +94,7 @@ if [ -f ${TCVITFILE} ]; then
     cat ${ATCFFILE} >> ${ATCFFILEMERGE}
   fi
   echo "cyclone-tracking-driver: plotting ATCF"
-  ncl plot_ATCF.ncl
+  python plot_ATCF.py
   if [ "$SENDHTML" = true ]; then
     echo "cyclone-tracking-driver: SSHings..."
     ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${YYYYMMDDHH} "

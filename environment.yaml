@@ -6,6 +6,7 @@ dependencies:
   - python=3.11
   - cftime
   - matplotlib
+  - cartopy
   - netCDF4
   - cfgrib>=0.9.14.0
   - numba
