@@ -15,7 +15,8 @@ TIMESTAMP=`date +%s%N`
 COMMANDFILE=commands.${TIMESTAMP}.txt
 
 module load parallel
-module load ncl
+module load conda
+conda activate npl
 
 echo "Cleaning up old perturb files..."
 rm -rfv ${PERTURBPATH}
@@ -35,7 +36,7 @@ do
   #ls ${Precf}
   #ls ${Solarf}
   
-  LINECOMMAND="ncl ${DIRTOSCRIPTS}/add_perturbations_to_datm.ncl 'datm_file_name=\"'${TPQWLf}'\"' 'datm2_file_name=\"'${Precf}'\"' 'datm3_file_name=\"'${Solarf}'\"'    "
+  LINECOMMAND="python ${DIRTOSCRIPTS}/add_perturbations_to_datm.py --datm_file_name=\"${TPQWLf}\" --datm2_file_name=\"${Precf}\" --datm3_file_name=\"${Solarf}\""
   echo ${LINECOMMAND} >> ${COMMANDFILE}
 done
 
