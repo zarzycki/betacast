@@ -431,9 +431,9 @@ if [ $addDeltas -eq 1 ]; then
   vsed -i "s?\${BETACAST_DATMDOMAIN}?${BETACAST_DATMDOMAIN}?g" user_datm.streams.txt.Anomaly.Forcing.Precip
 
   if [ $BETACAST_REFYEAR -gt 0 ]; then
-    # Run NCL to normalize things
+    # Normalize deltas to the reference year
     echo "Running with normalized deltas"
-    set -x ; ncl ${BETACAST}/land-spinup/normalize-datm-deltas.ncl 'current_year='${BETACAST_REFYEAR}'' 'bavsedir="'${BETACAST_DATM_ANOMALY_BASE}'"' ; set +x
+    set -x ; python ${BETACAST}/land-spinup/normalize-datm-deltas.py --current_year ${BETACAST_REFYEAR} --basedir "${BETACAST_DATM_ANOMALY_BASE}" ; set +x
     # Replace default anomalies in the namelists with normalized ones
     vsed -i "s?ens_QBOT_anom.nc?ens_QBOT_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Humidity
     vsed -i "s?ens_TBOT_anom.nc?ens_TBOT_${BETACAST_REFYEAR}ref_anom.nc?g"   user_datm.streams.txt.Anomaly.Forcing.Temperature
