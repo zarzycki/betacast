@@ -18,3 +18,5 @@ dependencies:
   - ncl
   - esmf=8.4.2=mpi_mpich_*
   - nco
+  - zstd
+  - xz
