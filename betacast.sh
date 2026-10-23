@@ -166,7 +166,6 @@ if [ -z "${RUNPRIORITY+x}" ]; then RUNPRIORITY=""; fi
 if [ -z "${BATCH_SCHEDULER+x}" ]; then BATCH_SCHEDULER=""; fi
 if [ -z "${use_nsplit+x}" ]; then use_nsplit="true"; fi
 if [ -z "${cime_coupler+x}" ]; then cime_coupler="mct"; fi
-if [ -z "${nclPlotWeights+x}" ]; then nclPlotWeights="NULL"; fi
 if [ -z "${landrawdir+x}" ]; then landrawdir="NULL"; fi
 if [ -z "${sendplots+x}" ]; then sendplots=false; fi
 if [ -z "${dotracking+x}" ]; then dotracking=false; fi
@@ -294,6 +293,12 @@ if [ -z "${anl2mdlWeights+x}" ] && [ -n "${gfs2seWeights+x}" ] ; then
   echo "WARNING: This is deprecated and will be removed in the future! To fix, change 'gfs2seWeights' to 'anl2mdlWeights' in ${NAMELISTFILE}"
   anl2mdlWeights="$gfs2seWeights"
 fi
+if [ -z "${plotWeights+x}" ] && [ -n "${nclPlotWeights+x}" ] ; then
+  echo "WARNING: Setting plotWeights to ${nclPlotWeights}"
+  echo "WARNING: This is deprecated and will be removed in the future! To fix, change 'nclPlotWeights' to 'plotWeights' in ${NAMELISTFILE}"
+  plotWeights="$nclPlotWeights"
+fi
+if [ -z "${plotWeights+x}" ]; then plotWeights="NULL"; fi
 
 if [ "$save_nudging_files" = true ] && [ "$modelSystem" -eq 2 ] ; then
   echo "ERROR: save_nudging_files cannot be true with SCREAM model (2) set"
@@ -1266,7 +1271,7 @@ if [ "$sendplots" = true ]; then
   # Call script to create plots and push to remove server
   (
     set -x
-    /bin/bash "${temp_upload_script}" "${nclPlotWeights}" "${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}" "${BETACAST}/postprocess"
+    /bin/bash "${temp_upload_script}" "${plotWeights}" "${outputdir}/${yearstr}${monthstr}${daystr}${cyclestr}" "${BETACAST}/postprocess"
   )
   # Cleanup
   rm -f "${temp_upload_script}"

@@ -65,5 +65,5 @@
 #SSSS
   dotracking = false
 
-# File for plotting in NCL (native grid to some sort of RLL)
-  nclPlotWeights = ~/work/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc
+# File for plotting (native grid to some sort of RLL)
+  plotWeights = ~/work/maps/forecast_plot_maps/map_ne0np4nhemitc.ne30x4_to_0.25x0.25_patch.nc

@@ -53,4 +53,4 @@ track_sendhtml = true
 track_ATCFTECH = "CAM5"
 
 sendplots = true
-nclPlotWeights = /storage/home/cmz5202/work/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc
+plotWeights = /storage/home/cmz5202/work/maps/forecast_plot_maps/conus_30_x8_to_0.125x0.125_patch.nc

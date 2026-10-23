@@ -337,7 +337,7 @@ Overlays a high-resolution regional analysis on top of the global initial condit
 | Namelist Variable | Description | Required | Default |
 | --- | --- | --- | --- |
 | sendplots | Are we going to send live output to some external server? (generally false unless you are CMZ) | | false |
-| nclPlotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) | | "NULL" |
+| plotWeights | Weights to go from unstructured -> lat/lon grid for plotting (generally false unless you are CMZ) | | "NULL" |
 
 <font size="2">
 *Betacast offers two methods for handling weight files used in remapping. It is up to the user to choose.

@@ -64,8 +64,8 @@
   sendplots = false
   dotracking = false
 
-# File for plotting in NCL (native grid to some sort of RLL)
-  nclPlotWeights = NULL
+# File for plotting (native grid to some sort of RLL)
+  plotWeights = NULL
 
 ### ----- Archival settings
 
