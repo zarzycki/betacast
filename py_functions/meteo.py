@@ -198,7 +198,7 @@ def prcwater_dp(Q, DP, QMSG=np.nan, DPMSG=np.nan):
     return prcwat
 
 
-def deswskewt(t):
+def deswskewt(t, method="wobus"):
     """
     Python implementation of DESWSKEWT function from NCL.
     Calculates saturation vapor pressure over water.
@@ -207,6 +207,9 @@ def deswskewt(t):
     -----------
     t : float or numpy.ndarray
         Temperature in Celsius
+    method : str
+        - "wobus" (default): Herman Wobus polynomial, matches NCL's DESWSKEWT.
+        - "bolton": Bolton (1980) exponential formula.
 
     Returns:
     --------
@@ -214,11 +217,24 @@ def deswskewt(t):
         Saturation vapor pressure in mb (hPa)
     """
 
-    # Standard formula for saturation vapor pressure (mb)
-    return 6.112 * np.exp(17.67 * t / (t + 243.5))
+    if method == "wobus":
+        # Wobus polynomial (stolen from NCL DESWSKEWT): es = ES0 / pol**8
+        ES0 = 6.1078
+        c = (0.99999683, -0.90826951e-02, 0.78736169e-04, -0.61117958e-06,
+             0.43884187e-08, -0.29883885e-10, 0.21874425e-12, -0.17892321e-14,
+             0.11112018e-16, -0.30994571e-19)
+        pol = c[9]
+        for ck in c[8::-1]:
+            pol = ck + t * pol
+        return ES0 / pol**8
+    elif method == "bolton":
+        # Bolton (1980) formula for saturation vapor pressure (mb)
+        return 6.112 * np.exp(17.67 * t / (t + 243.5))
+    else:
+        raise ValueError(f"Unsupported method '{method}'. Must be 'wobus' or 'bolton'.")
 
 
-def mixhum_ptd(p, tdk, iswit=1):
+def mixhum_ptd(p, tdk, iswit=1, es_method="wobus"):
     """
     Calculates the mixing ratio or specific humidity given pressure and dew point temperature.
     Attempt to match NCL's mixhum_ptd function.
@@ -233,6 +249,9 @@ def mixhum_ptd(p, tdk, iswit=1):
         - If iswit=1, the output will be the mixing ratio (kg/kg).
         - If iswit=2, the output will be the specific humidity (kg/kg).
         - If iswit is negative, the units will be g/kg.
+    es_method : str
+        Saturation vapor pressure formula passed to deswskewt.
+        "wobus" (default) matches NCL; "bolton" is also available.
 
     Returns:
     --------
@@ -251,7 +270,7 @@ def mixhum_ptd(p, tdk, iswit=1):
     # Implement NCL's DWMRSKEWT calculation
     x = 0.02 * (td_c - 12.5 + 7500.0 / p_mb)
     wfw = 1.0 + 4.5e-6 * p_mb + 1.4e-3 * x * x
-    fwesw = wfw * deswskewt(td_c)
+    fwesw = wfw * deswskewt(td_c, method=es_method)
     r = EPS * fwesw / (p_mb - fwesw)
 
     # Convert r to g/kg
