@@ -55,7 +55,7 @@ do
   GenerateVolumetricMesh --in ${GRIDNAME}.g --out ${GRIDNAME}_pg${PHYSGRID}.g --np ${PHYSGRID} --uniform
   ConvertMeshToSCRIP --in ${GRIDNAME}_pg${PHYSGRID}.g --out ${GRIDNAME}_pg${PHYSGRID}_scrip.nc
 
-  ncl gridplot.ncl 'gridfile="'${GRIDNAME}'.g"'
+  python gridplot.py ${GRIDNAME}.g
 
   # Clear REFINE_RECT_STR
   unset REFINE_RECT_STR
