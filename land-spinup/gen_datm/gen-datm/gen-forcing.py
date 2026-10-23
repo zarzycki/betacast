@@ -41,6 +41,7 @@ parser.add_argument("--year", required=True, help="Year (YYYY)")
 parser.add_argument("--month", required=True, help="Month (MM)")
 parser.add_argument("--newgrid", action="store_true", help="Regrid to new grid")
 parser.add_argument("--wgt_filename", default="", help="Path to ESMF weight file")
+parser.add_argument("--domain_file", default="", help="DATM domain file for the output grid (default: era5-domain.nc)")
 parser.add_argument("--do_q", action="store_true", help="Calculate specific humidity")
 parser.add_argument("--do_flds", action="store_true", help="Include longwave downward radiation")
 parser.add_argument("--outdirbase", required=True, help="Base output directory")
@@ -55,6 +56,7 @@ YYYY = args.year
 MM = args.month
 newgrid = args.newgrid
 wgt_filename = args.wgt_filename
+domain_file = args.domain_file
 do_q = args.do_q
 do_flds = args.do_flds
 outdirbase = args.outdirbase
@@ -63,13 +65,45 @@ greg_to_noleap = args.greg_to_noleap
 convert_nc3 = args.convert_nc3
 
 # Open the domain file
-domain_file_name = f"{DOMAINSPATH}/era5-domain.nc"
+domain_file_name = domain_file if domain_file else f"{DOMAINSPATH}/era5-domain.nc"
 try:
     logger.info(f"Opening domain file: {domain_file_name}")
     d = xr.open_dataset(domain_file_name)
 except Exception as e:
     logger.error(f"Error opening domain file: {e}")
     sys.exit(1)
+
+# If regridding with ESMF weights, the domain file must describe the weight file's destination
+# grid since LONGXY/LATIXY (and DATM itself) use the domain grid. Check now before loading ERA5.
+if newgrid and wgt_filename:
+    if not domain_file:
+        logger.warning("--newgrid with --wgt_filename but no --domain_file given; defaulting to "
+                       "era5-domain.nc, which is only correct if the target grid is the ERA5 grid")
+    with xr.open_dataset(wgt_filename) as xwgt:
+        dst_grid_dims = xwgt['dst_grid_dims'].values
+        yc_b = xwgt['yc_b'].values
+        xc_b = xwgt['xc_b'].values
+    nlat_dom, nlon_dom = d.yc.shape
+    logger.info(f"Domain file grid: {nlat_dom} lat x {nlon_dom} lon")
+    logger.info(f"Weight file dst_grid_dims: {dst_grid_dims}")
+    if dst_grid_dims.size != 2:
+        logger.error("Weight file destination grid is unstructured; DATM output requires a regular lat/lon grid!")
+        sys.exit(1)
+    dst_nlon, dst_nlat = dst_grid_dims  # SCRIP/ESMF order is (nlon, nlat)
+    logger.info(f"Weight file target grid: {dst_nlat} lat x {dst_nlon} lon")
+    if (dst_nlat, dst_nlon) != (nlat_dom, nlon_dom):
+        logger.error(f"Domain file grid ({nlat_dom}x{nlon_dom}) does not match weight file target grid "
+                     f"({dst_nlat}x{dst_nlon})! Use --domain_file with a domain for the target grid "
+                     f"(see generate-datm-domain.py)")
+        sys.exit(1)
+    # Sizes match; also report how closely the coordinates agree
+    dst_lat = np.reshape(yc_b, dst_grid_dims, order="F")[0, :]
+    dst_lon = np.reshape(xc_b, dst_grid_dims, order="F")[:, 0]
+    dlat = np.max(np.abs(dst_lat - d.yc.values[:, 0]))
+    dlon = np.max(np.abs(dst_lon - d.xc.values[0, :]))
+    logger.info(f"Domain vs weight file target coords: max |dlat|={dlat:.2e}  max |dlon|={dlon:.2e}")
+    if dlat > 1.0e-3 or dlon > 1.0e-3:
+        logger.warning("Domain file and weight file target grid have the same size but different coordinates!")
 
 # Determine if it's a leap month
 is_leap_month = False
@@ -188,17 +222,45 @@ if do_q:
 if newgrid:
     if wgt_filename:
         logger.info("Using ESMF mapping")
-        tbot_datm, lat_datm, lon_datm = horizremap.remap_with_weights_wrapper(tbot_era5, wgt_filename)
-        if do_q:
-            qbot_datm, _, _ = horizremap.remap_with_weights_wrapper(qbot_era5, wgt_filename)
+
+        # ESMF weights index the flattened source grid in the order the grid had when the
+        # weights were generated. Our ERA5 arrays are S->N at this point (flipped on read),
+        # so check the source lat order in the weight file and flip back if it expects N->S.
+        with xr.open_dataset(wgt_filename) as xwgt:
+            src_grid_dims = xwgt['src_grid_dims'].values
+            yc_a = xwgt['yc_a'].values
+        nlat_data, nlon_data = tbot_era5.shape[-2], tbot_era5.shape[-1]
+        logger.info(f"Weight file src_grid_dims: {src_grid_dims}, n_a: {yc_a.size}")
+        logger.info(f"ERA5 data grid: {nlat_data} lat x {nlon_data} lon ({nlat_data*nlon_data} points), "
+                    f"lat {lat_era5[0]:.4f} -> {lat_era5[-1]:.4f} (S->N)")
+        if yc_a.size != nlat_data * nlon_data:
+            logger.error(f"Weight file has {yc_a.size} source points but ERA5 data has "
+                         f"{nlat_data*nlon_data}; this weight file does not match the input grid!")
+            sys.exit(1)
+        logger.info(f"Weight file source lat: first={yc_a[0]:.4f}  last={yc_a[-1]:.4f}")
+        flip_src_lat = yc_a[0] > yc_a[-1]
+        if flip_src_lat:
+            logger.warning("Weight file expects N->S source latitudes but ERA5 data is S->N; "
+                           "flipping latitude of each field before regridding")
         else:
-            qbot_datm, _, _ = horizremap.remap_with_weights_wrapper(tdew_era5, wgt_filename)
-        wind_datm, _, _ = horizremap.remap_with_weights_wrapper(wind_era5, wgt_filename)
-        psrf_datm, _, _ = horizremap.remap_with_weights_wrapper(psrf_era5, wgt_filename)
-        prec_datm, _, _ = horizremap.remap_with_weights_wrapper(prec_era5, wgt_filename)
-        fsds_datm, _, _ = horizremap.remap_with_weights_wrapper(fsds_era5, wgt_filename)
+            logger.info("Weight file expects S->N source latitudes; matches ERA5 data, no flip needed")
+
+        def esmf_regrid(field):
+            if flip_src_lat:
+                field = field[..., ::-1, :]
+            return horizremap.remap_with_weights_wrapper(field, wgt_filename)
+
+        tbot_datm, lat_datm, lon_datm = esmf_regrid(tbot_era5)
+        if do_q:
+            qbot_datm, _, _ = esmf_regrid(qbot_era5)
+        else:
+            qbot_datm, _, _ = esmf_regrid(tdew_era5)
+        wind_datm, _, _ = esmf_regrid(wind_era5)
+        psrf_datm, _, _ = esmf_regrid(psrf_era5)
+        prec_datm, _, _ = esmf_regrid(prec_era5)
+        fsds_datm, _, _ = esmf_regrid(fsds_era5)
         if do_flds:
-            flds_datm, _, _ = horizremap.remap_with_weights_wrapper(flds_era5, wgt_filename)
+            flds_datm, _, _ = esmf_regrid(flds_era5)
     else:
         logger.info("Bilinear interpolation")
         tbot_datm = horizremap.linint2(lon_era5, lat_era5, tbot_era5, True, lon_datm, lat_datm)
