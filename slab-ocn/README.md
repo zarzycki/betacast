@@ -40,7 +40,7 @@ To generate:
 2. Run an F simulation (>= 1 year, used 10 years in Z16) with the slab ocean turned on (i.e., SLAB) (with qdp set to 0.0).
 3. (optional) if being lazy and using linear interp'ed files, clean up the SST field for reasonableness with `ncap2 -O -s where(SST < 271.34 && SST > 0.0001) SST=271.34`
 4. Create a monthly climatology of the difference `BIAS = SLAB - FIXEDSST`.
-5. Add the monthly climatology to the SOM stream as "qdp" with `add-sst-correction-to-slab.py`, which expects files `diff01.nc` ... `diff12.nc` (variable `SST`) in `--bias_dir`, bilinearly interpolates them to the slab file grid (`xc`, `yc`), and overwrites `qdp` in place (months without a file are set to 0).
+5. Add the monthly climatology to the SOM stream as "qdp" with `add-sst-correction-to-slab.py`, which expects files `diff01.nc` ... `diff12.nc` (variable `SST`) in `--bias_dir`, bilinearly interpolates them to the slab file grid (`lat`/`lon`, or `yc`/`xc`), and overwrites `qdp` in place. Each `diffMM.nc` is applied to every time in calendar month MM (so multi-year files get the same correction each year), and months without a file are set to 0.
 
 ```
 python add-sst-correction-to-slab.py --slab_file climo_1x1_slab.nc --bias_dir /path/to/bias_files/
