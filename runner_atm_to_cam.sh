@@ -93,7 +93,7 @@ if [ "${modelSystem}" -eq 1 ]; then
   ADDCHEM_STR="--add_chemistry"
 fi
 
-############################### ATM NCL / PYTHON ###############################
+############################### ATM PYTHON ###############################
 
 echo "cd'ing to interpolation directory: $atm_to_cam_path"
 cdv "$atm_to_cam_path"

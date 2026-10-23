@@ -597,7 +597,7 @@ def curvilinear_to_SCRIP(FName, lat2d, lon2d, Opt):
 
         # Define the global attributes
         ds.attrs['date_created'] = datetime.now().strftime("%a %b %d %H:%M:%S %Z %Y")
-        ds.attrs['Createdby'] = "ESMF_regridding.ncl"
+        ds.attrs['Createdby'] = "ESMF_regridding.py"
         ds.attrs['Conventions'] = "SCRIP"
         ds.attrs['title'] = FTitle
 

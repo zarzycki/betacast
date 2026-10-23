@@ -16,7 +16,7 @@ echo "SST runner start time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
 
 ############################### SST TO CAM ###############################
 
-# Switch bash bool to int for NCL / Python input
+# Switch bash bool to int for Python input
 if [ "${predict_docn}" = true ]; then
   INT_PREDICT_DOCN=1
 else
