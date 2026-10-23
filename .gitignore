@@ -75,6 +75,7 @@ BAK/
 index.html
 index.HOLD
 postprocess/upload_plot.*
+plot.output
 ncl.output
 postprocess/html_for_upload/20*
 *.png

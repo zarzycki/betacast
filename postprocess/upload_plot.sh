@@ -7,7 +7,7 @@ daystr=05
 cyclestr=00
 cyclestrsec=00000
 ###############################################################################
-nclweightfile=$1
+plotweightfile=$1
 runDir=$2
 betacastPath=$3
 path_to_plot=${betacastPath}/plotting/
@@ -76,7 +76,7 @@ for f in $newfiles; do
     --inimon $monthstr \
     --iniyear $yearstr \
     --filename ${f} \
-    --wgt_file ${nclweightfile} > ncl.output 2>&1 )
+    --wgt_file ${plotweightfile} > plot.output 2>&1 )
   if [ $? -ne 0 ]; then
     sleep 5
     echo "UPLOAD_PLOT: Found an error, try again"
@@ -85,9 +85,9 @@ for f in $newfiles; do
       --inimon $monthstr \
       --iniyear $yearstr \
       --filename ${f} \
-      --wgt_file ${nclweightfile} )
+      --wgt_file ${plotweightfile} )
   fi
-  #rm ncl.output
+  #rm plot.output
 done
 
 ## Trim whitespace around pngs
