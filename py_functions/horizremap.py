@@ -3,7 +3,6 @@ import xarray as xr
 import time
 import scipy.sparse as sp
 import logging
-from scipy.interpolate import RegularGridInterpolator
 logger = logging.getLogger(__name__)
 
 _HORIZ_REMAP_VARS = [
@@ -319,43 +318,70 @@ def uv_cell_to_edge(uZonal, uMerid, nlev, lonEdge, latEdge, lonCell, latCell, ed
     return uNormal
 
 
+def _linint1(xi, fi, xo):
+    """
+    1D linear interpolation along the last axis of fi, following NCL's linint1/linint2.
+    An output point that exactly matches an input point takes that value (even if a
+    neighbor is missing). Otherwise both bracketing points must be valid or the result
+    is NaN. Points outside [xi[0], xi[-1]] are NaN. xi must be increasing; xo can be
+    in any order.
+    """
+    nxi = xi.size
+    j = np.searchsorted(xi, xo, side='left')   # xi[j-1] < xo <= xi[j]
+    jc = np.minimum(j, nxi - 1)
+    exact = (j < nxi) & (xi[jc] == xo)
+    inside = (j > 0) & (j < nxi) & ~exact
+
+    fo = np.full(fi.shape[:-1] + (xo.size,), np.nan)
+    fo[..., exact] = fi[..., jc[exact]]
+
+    j1 = j[inside]
+    j0 = j1 - 1
+    slp = (fi[..., j1] - fi[..., j0]) / (xi[j1] - xi[j0])
+    fo[..., inside] = fi[..., j0] + slp * (xo[inside] - xi[j0])
+    return fo
+
+
 def linint2(xi, yi, fi, fiCyclicX, xo, yo):
     """
-    Bilinear interpolation from one rectilinear grid to another.
+    Bilinear interpolation from one rectilinear grid to another (NCL linint2 equivalent).
+
+    Interpolates in x (rightmost dim) first, then y, in double precision, with NCL's
+    missing value handling (an output point exactly on an input point keeps that value
+    even if a neighbor is missing). If fiCyclicX, x is padded with one point at each end
+    by wrapping 360 degrees.
 
     Parameters:
-    - xi: 1D or 2D array of X coordinates of the input data.
-    - yi: 1D or 2D array of Y coordinates of the input data.
-    - fi: 2D or 3D array of input data to be interpolated.
-    - fiCyclicX: Boolean indicating if the X dimension is cyclic.
-    - xo: 1D array of X coordinates of the output data.
-    - yo: 1D array of Y coordinates of the output data.
+    - xi, yi: 1D strictly monotonic input coordinates.
+    - fi: input array (..., ny, nx) with NaN for missing values.
+    - fiCyclicX: Boolean indicating if the x dimension is cyclic (no cyclic point in xi).
+    - xo, yo: 1D output coordinates.
 
     Returns:
-    - Interpolated array of the same dimensions as fi, except the last two dimensions.
+    - float64 array (..., nyo, nxo) with NaN where missing or out of range.
     """
+    xi = np.asarray(xi, dtype=np.float64)
+    yi = np.asarray(yi, dtype=np.float64)
+    xo = np.asarray(xo, dtype=np.float64)
+    yo = np.asarray(yo, dtype=np.float64)
+    fi = np.asarray(fi, dtype=np.float64)
 
-    # Handle cyclic conditions
+    # Accept monotonically decreasing input coordinates by flipping to increasing
+    if xi.size > 1 and xi[0] > xi[-1]:
+        xi = xi[::-1]
+        fi = fi[..., ::-1]
+    if yi.size > 1 and yi[0] > yi[-1]:
+        yi = yi[::-1]
+        fi = fi[..., ::-1, :]
+    for name, c in (('xi', xi), ('yi', yi)):
+        if c.size > 1 and np.any(np.diff(c) <= 0):
+            raise ValueError(f"linint2: {name} must be strictly monotonic")
+
     if fiCyclicX:
-        # Extend the fi array and xi array for cyclic boundary
-        xi_extended = np.concatenate((xi, xi[:1] + 360.0), axis=-1)
-        fi_extended = np.concatenate((fi, fi[..., :1]), axis=-1)
-        xi = xi_extended
-        fi = fi_extended
+        xi = np.concatenate(([xi[-1] - 360.0], xi, [xi[0] + 360.0]))
+        fi = np.concatenate((fi[..., -1:], fi, fi[..., :1]), axis=-1)
 
-    # Create the interpolator object
-    interpolator = RegularGridInterpolator((yi, xi), fi, method='linear', bounds_error=False, fill_value=np.nan)
+    # x first, then y
+    fx = _linint1(xi, fi, xo)
+    return np.moveaxis(_linint1(yi, np.moveaxis(fx, -1, -2), yo), -1, -2)
 
-    # Create a meshgrid for target coordinates
-    xo_mesh, yo_mesh = np.meshgrid(xo, yo, indexing='xy')
-
-    # Prepare the points for interpolation
-    target_points = np.vstack((yo_mesh.ravel(), xo_mesh.ravel())).T
-
-    # Perform the interpolation
-    interpolated_data = interpolator(target_points)
-
-    # Reshape the interpolated data to match the target grid shape
-    interpolated_data = interpolated_data.reshape(yo_mesh.shape)
-
-    return interpolated_data

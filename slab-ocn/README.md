@@ -18,7 +18,17 @@ To modify the slab ocean configuration (see Zarzycki 2016), you need to edit the
 
 ### Generate SST datafile
 
-The NCL script `add-h-qdp-to-sst.ncl` will add the hblt and qdp fields from Z16 to an SST-only file specified by the user. If the SST is transient (i.e., AMIP) it will just add the vars as a repeating monthly climatology.
+`h-qdp.py` will add the hblt (GODAS or Z16) and qdp (Z16 or zero) fields to an SST-only file specified by the user. If the SST is transient (i.e., AMIP) it will just add the vars as a repeating monthly climatology. This is called automatically by Betacast when `do_slab = true`.
+
+```
+python h-qdp.py --sst_file sst.nc --output_file sst_slab.nc [--which_h GODAS|Z16] [--which_q Z16|NONE]
+```
+
+If starting from an external monthly SST/ice dataset (variables `sst` and `icec`), `external-to-docn.py` will fill missing values and add `date`/`datesec` at the midpoint of each month (see `batch-alcf-docn.sh` for an example workflow through `bcgen`).
+
+```
+python external-to-docn.py --infile sst_cice.mon.mean.nc [--output_file out.nc]
+```
 
 ### Creating bias correction fields
 
@@ -30,7 +40,11 @@ To generate:
 2. Run an F simulation (>= 1 year, used 10 years in Z16) with the slab ocean turned on (i.e., SLAB) (with qdp set to 0.0).
 3. (optional) if being lazy and using linear interp'ed files, clean up the SST field for reasonableness with `ncap2 -O -s where(SST < 271.34 && SST > 0.0001) SST=271.34`
 4. Create a monthly climatology of the difference `BIAS = SLAB - FIXEDSST`.
-5. Add the monthly climatology to the SOM stream as "qdp".
+5. Add the monthly climatology to the SOM stream as "qdp" with `add-sst-correction-to-slab.py`, which expects files `diff01.nc` ... `diff12.nc` (variable `SST`) in `--bias_dir`, bilinearly interpolates them to the slab file grid (`xc`, `yc`), and overwrites `qdp` in place (months without a file are set to 0).
+
+```
+python add-sst-correction-to-slab.py --slab_file climo_1x1_slab.nc --bias_dir /path/to/bias_files/
+```
 
 ## Troubleshooting
 

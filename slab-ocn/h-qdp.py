@@ -1,5 +1,6 @@
 import numpy as np
 import xarray as xr
+import cftime
 import logging
 import argparse
 import sys
@@ -56,10 +57,8 @@ copy_ice_cov_if_avail = args.copy_ice
 nc_files_dir = args.nc_files_dir
 
 # Set default nc_files_dir based on BETACAST if not provided
-if args.nc_files_dir is None:
+if nc_files_dir is None:
     nc_files_dir = os.path.join(BETACAST, 'slab-ocn', 'nc_files')
-else:
-    nc_files_dir = args.nc_files_dir
 
 logging.info(f"Input SST file: {sfile}")
 logging.info(f"Output file: {output_file}")
@@ -72,10 +71,7 @@ logging.info(f"copy_ice_cov_if_avail: {copy_ice_cov_if_avail}")
 logging.info(f"Opening SST file: {sfile}")
 s = xr.open_dataset(sfile, decode_times=False)
 SST_cpl = s['SST_cpl'].values
-SST_cpl_dims = SST_cpl.shape
-ntim = SST_cpl_dims[0]
-nlat = SST_cpl_dims[1]
-nlon = SST_cpl_dims[2]
+ntim, nlat, nlon = SST_cpl.shape
 lat = s['lat'].values
 lon = s['lon'].values
 
@@ -108,12 +104,7 @@ elif WHICH_H == "GODAS":
 
     # Interpolate to SST grid (12 months)
     logging.info("Interpolating GODAS hblt to SST grid")
-    nmonths = hblt_o.shape[0]
-    hblt = np.empty((nmonths, nlat, nlon), dtype=np.float64)
-    for m in range(nmonths):
-        hblt[m, :, :] = horizremap.linint2(
-            hblt_o_lon, hblt_o_lat, hblt_o[m, :, :], True, lon, lat
-        )
+    hblt = horizremap.linint2(hblt_o_lon, hblt_o_lat, hblt_o, True, lon, lat)
 
 else:
     logging.error(f"Unsupported WHICH_H: {WHICH_H}")
@@ -135,23 +126,24 @@ else:
     logging.error(f"Unsupported WHICH_Q: {WHICH_Q}")
     sys.exit(1)
 
-# Expand hblt and qdp to full time dimension by tiling monthly climatology
-nyears = ntim // 12
-logging.info(f"Tiling {nyears} years of monthly climatology")
+# Expand hblt and qdp to full time dimension using the month of each SST_cpl time
+time_in = s['time']
+try:
+    dates = cftime.num2date(time_in.values, time_in.attrs['units'],
+                            calendar=time_in.attrs.get('calendar', 'standard'))
+except Exception as e:
+    logging.error(f"Could not decode time in {sfile} (needs CF units/calendar): {e!r}")
+    sys.exit(1)
+logging.info(f"Filling {ntim} times of monthly climatology, {dates[0]} to {dates[-1]}")
 
-hblt_full = np.empty((ntim, nlat, nlon), dtype=np.float64)
-qdp_full = np.empty((ntim, nlat, nlon), dtype=np.float64)
-
-for ii in range(nyears):
-    ix = ii * 12
-    hblt_full[ix:ix+12, :, :] = hblt
-    qdp_full[ix:ix+12, :, :] = qdp
+imon = np.array([d.month for d in dates]) - 1
+hblt_full = hblt[imon].astype(np.float64)
+qdp_full = qdp[imon].astype(np.float64)
 
 # Fill missing values along longitude (dim 2) then latitude (dim 1)
 logging.info("Filling missing values in hblt")
 hblt_full = pyfuncs.linmsg_n(hblt_full, -1, 2)
 hblt_full = pyfuncs.linmsg_n(hblt_full, -1, 1)
-#hblt_full = np.where(np.isnan(hblt_full), 40.0, hblt_full)
 
 # Clamp hblt minimum to 5.0 and maximum to 2500.0
 hblt_full = np.where(hblt_full <    5.0,    5.0, hblt_full)
@@ -191,9 +183,10 @@ out_ds = xr.Dataset(
     }
 )
 
-# Set time attributes (use input attrs, fallback to defaults)
-out_ds['time'].attrs['units'] = time_attrs.get('units', 'days since 0001-01-01 00:00:00')
-out_ds['time'].attrs['calendar'] = time_attrs.get('calendar', '365_day')
+# Set time attributes from input
+out_ds['time'].attrs['units'] = time_attrs['units']
+if 'calendar' in time_attrs:
+    out_ds['time'].attrs['calendar'] = time_attrs['calendar']
 
 # Add global attributes
 out_ds.attrs['title'] = "SST file with hblt and qdp added"
