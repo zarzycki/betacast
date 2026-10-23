@@ -240,10 +240,6 @@ get_gdas_sst() {
     sstFile="gfs_sst_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
     mv -v "${sstFTPFile}" "${sstFile}"
 
-    # Hack to convert grb2 to nc because ncl routines not working
-    #sstFile="gfs_sst_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
-    #cdo -f nc copy "${sstFTPFile}" "${sstFile}" ; rm "${sstFTPFile}"
-
     iceFile="" # Do not need ice file since ice is stored in the SST file
   else
     echo "NCEP broke support for historical GDAS, use NOAAOI instead."

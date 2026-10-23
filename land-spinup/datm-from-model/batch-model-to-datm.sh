@@ -21,8 +21,6 @@ echo $SERVER_NAME
 
 if [[ $SERVER_NAME == *"perlmutter"* ]] || [[ $SERVER_NAME == *"nid0"* ]]; then
   echo "Using pm-cpu"
-  export NCARG_ROOT=/global/homes/c/czarzyck/.conda/pkgs/ncl-6.6.2-h3fdc804_41/
-  PATHTONCL=/global/homes/c/czarzyck/.conda/envs/e3sm_unified_1.8.1_nompi/bin/
   source /global/common/software/e3sm/anaconda_envs/load_latest_e3sm_unified_pm-cpu.sh
   #source /global/common/software/e3sm/anaconda_envs/load_e3sm_unified_1.9.3_pm-cpu.sh
   module load parallel
