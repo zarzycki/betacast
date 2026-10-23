@@ -12,16 +12,63 @@
 #        sePreFilterIC sstFileIC perturb_namelist vortex_namelist regional_name regional_src regional_fail_if_missing \
 #        RDADIR gfs_files_path era_files_path \
 #        AUGMENT_STR VORTEX_STR
+#
+# Optional (not exported by betacast.sh, used by tools/gen-nc-only.sh):
+#        ATM_TO_CAM_EXTRA_ARGS keep_regional_file
 
 set -euo pipefail
 
-if [ -z "${BETACAST}" ]; then
+if [ -z "${BETACAST-}" ]; then
   echo "BETACAST must be set in environment" >&2
   exit 1
 fi
 
 source "${BETACAST}/utils.sh"
 source "${BETACAST}/datahelpers.sh"
+
+############################### DEFAULTS ###############################
+
+# betacast.sh exports everything below, so these only matter when the runner
+# is called standalone (e.g., tools/gen-nc-only.sh)
+check_required_vars mapping_files_path sePreFilterIC \
+  atmDataType numLevels yearstr monthstr daystr cyclestr
+
+if [ -z "${atm_to_cam_path+x}" ]; then atm_to_cam_path="${BETACAST}/atm_to_cam"; fi
+if [ -z "${uniqtime+x}" ]; then uniqtime=$(date +"%s%N"); fi
+if [ -z "${DYCORE+x}" ]; then DYCORE="se"; fi
+if [ -z "${modelSystem+x}" ]; then modelSystem=0; fi
+if [ -z "${sstDataType+x}" ]; then sstDataType=0; fi
+if [ -z "${sstFileIC+x}" ]; then sstFileIC=""; fi
+if [ -z "${anl2mdlWeights+x}" ]; then anl2mdlWeights=""; fi
+if [ -z "${modelgridfile+x}" ]; then modelgridfile=""; fi
+if [ -z "${ERA5RDA+x}" ]; then ERA5RDA=0; fi
+if [ -z "${RDADIR+x}" ]; then RDADIR=""; fi
+if [ -z "${gfs_files_path+x}" ]; then gfs_files_path=""; fi
+if [ -z "${era_files_path+x}" ]; then era_files_path=""; fi
+if [ -z "${cr20v3_mean_dir+x}" ]; then cr20v3_mean_dir=""; fi
+if [ -z "${cr20v3_member+x}" ]; then cr20v3_member=""; fi
+if [ -z "${cr20v3_member_dir+x}" ]; then cr20v3_member_dir=""; fi
+if [ -z "${cr20v3_orog_file+x}" ]; then cr20v3_orog_file=""; fi
+if [ -z "${cr20v3_blend+x}" ]; then cr20v3_blend=true; fi
+if [ -z "${cr20v3_blend_lev+x}" ]; then cr20v3_blend_lev=200.; fi
+if [ -z "${cr20v3_blend_taper+x}" ]; then cr20v3_blend_taper=0.05; fi
+if [ -z "${m2m_gridfile+x}" ]; then m2m_gridfile=""; fi
+if [ -z "${m2m_remap_file+x}" ]; then m2m_remap_file=""; fi
+if [ -z "${m2m_parent_source+x}" ]; then m2m_parent_source=""; fi
+if [ -z "${do_frankengrid+x}" ]; then do_frankengrid=false; fi
+if [ -z "${regional_name+x}" ]; then regional_name=""; fi
+if [ -z "${regional_src+x}" ]; then regional_src=""; fi
+if [ -z "${regional_fail_if_missing+x}" ]; then regional_fail_if_missing=true; fi
+if [ -z "${keep_regional_file+x}" ]; then keep_regional_file=false; fi
+if [ -z "${standalone_vortex+x}" ]; then standalone_vortex=false; fi
+if [ -z "${vortex_namelist+x}" ]; then vortex_namelist=""; fi
+if [ -z "${add_noise+x}" ]; then add_noise=false; fi
+if [ -z "${add_perturbs+x}" ]; then add_perturbs=false; fi
+if [ -z "${perturb_namelist+x}" ]; then perturb_namelist=""; fi
+if [ -z "${AUGMENT_STR+x}" ]; then AUGMENT_STR=""; fi
+if [ -z "${VORTEX_STR+x}" ]; then VORTEX_STR=""; fi
+# Extra flags appended to every atm_to_cam.py call (e.g., "--compress_file --write_floats --verbose")
+if [ -z "${ATM_TO_CAM_EXTRA_ARGS+x}" ]; then ATM_TO_CAM_EXTRA_ARGS=""; fi
 
 echo "ATM runner host: $(hostname)"
 echo "ATM runner start time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
@@ -197,7 +244,8 @@ echo "Doing atm_to_cam"
   --mod_remap_file "${m2m_remap_file-}" \
   --mod_in_topo "${m2m_topo_in-}" \
   --se_inic "${sePreFilterIC}" \
-  ${ADDCHEM_STR:+$ADDCHEM_STR} ${AUGMENT_STR:+$AUGMENT_STR} ${VORTEX_STR:+$VORTEX_STR}
+  ${ADDCHEM_STR:+$ADDCHEM_STR} ${AUGMENT_STR:+$AUGMENT_STR} ${VORTEX_STR:+$VORTEX_STR} \
+  ${ATM_TO_CAM_EXTRA_ARGS}
 )
 
 ##################################### VERTICAL BLEND ###############################
@@ -224,7 +272,8 @@ if [[ "$atmDataType" -eq 5 && -n "${cr20v3_member}" && "${cr20v3_blend}" = true 
     --RDADIR "${cr20v3_mean_dir}" \
     --adjust_config "${adjust_flags-}" \
     --model_topo_file "${adjust_topo-}" \
-    --se_inic "${CR20MEANFILE}"
+    --se_inic "${CR20MEANFILE}" \
+    ${ATM_TO_CAM_EXTRA_ARGS}
   )
 
   # Updates sePreFilterIC in place with mean conditions aloft, CR20MEANFILE is read-only
@@ -307,7 +356,8 @@ if [ "${do_frankengrid}" = true ] ; then
         --add_cloud_vars \
         --adjust_config "${adjust_flags-}" \
         --model_topo_file "${adjust_topo-}" \
-        --se_inic "${sePreFilterIC}_reg.nc"
+        --se_inic "${sePreFilterIC}_reg.nc" \
+        ${ATM_TO_CAM_EXTRA_ARGS}
     )
 
     echo "Overlay regional file on top of basefile"
@@ -323,7 +373,9 @@ if [ "${do_frankengrid}" = true ] ; then
     echo "Cleaning up temporary ESMF files"
     rm -fv "$TMPWGTFILE"
     rm -fv "${mapping_files_path}/hwrf_storm_scrip.nc"
-    rm -fv ${sePreFilterIC}_reg.nc
+    if [ "${keep_regional_file}" != true ]; then
+      rm -fv "${sePreFilterIC}_reg.nc"
+    fi
   fi
 fi
 
@@ -421,7 +473,7 @@ fi
 if [ "${modelSystem}" -eq 2 ]; then
   echo "SCREAM, converting to CDF5"
   check_bash_dependency nccopy "SCREAM CDF5 conversion"
-  if [[ "${sstDataType}" -ne 9 ]]; then
+  if [[ "${sstDataType}" -ne 9 && -n "${sstFileIC}" ]]; then
     timer nccopy_convert 5 "${sstFileIC}"
   fi
   timer nccopy_convert 5 "${sePreFilterIC}"

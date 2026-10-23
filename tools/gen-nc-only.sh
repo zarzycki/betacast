@@ -1,173 +1,83 @@
 #!/bin/bash
 
 # Environment variables
-export BETACAST=/glade/u/home/zarzycki/betacast/
+#export BETACAST=/glade/u/home/zarzycki/betacast/
+export BETACAST=/global/homes/c/czarzyck/betacast/
 mapping_files_path=$PWD
-
-# For CESM, np is the gridfile and topofile
-# For E3SM, np is the gridfile, pg is the topofile
-modelgridfile="/glade/u/home/zarzycki/work/grids/scrip/ne0np4natlanticref.ne30x4.g_scrip.nc"
-MODEL_TOPO_FILE="/glade/work/zarzycki/CESM_files/topo/ne0np4natlanticref.ne30x4_np4_gmted2010_modis_bedmachine_nc3000_Laplace0100_noleak_20250515.nc"
-SE_INIC="/glade/work/zarzycki/FG_ne0np4natlanticref.ne30x4_np4_L32_inic.nc"
-NUM_LEVELS=32
+cleanup_new_weights=false  # delete any map_*.nc this script generates in mapping_files_path
 
 # Model configuration
 DYCORE="se"
-ADJUST_CONFIG="a"
-YYYYMMDDHH=2017010700
+modelSystem=1   # 0 = CESM, 1 = E3SM (adds Linoz chem), 2 = SCREAM (CDF5 conversion)
+adjust_flags="-"
+YYYYMMDDHH=1979010100
+
+# For CESM, np is the gridfile and topofile
+# For E3SM, np is the gridfile, pg is the topofile
+modelgridfile="/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/grids/scrip/ne0np4alcc.ne30x4_np4_scrip.nc"
+adjust_topo="/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/topo/USGS-gtopo30_ne0np4alcc.ne30x4np4pg2_x6t.nc"
+sePreFilterIC="/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/ncdata/IC_ERA5_ne0np4alcc.ne30x4np4pg2_eam_${YYYYMMDDHH}.nc"
+numLevels=80
+#anl2mdlWeights=""   # optional, generated from modelgridfile if empty
 
 # Source data configuration
-# DATASOURCE="SAMPLE"
-# RLLSOURCEGRID="era5_2deg"
-# RDA_DIR=""
-# DATA_FILENAME="${BETACAST}/grids/samples/ERA5_2deg_L21_sample.nc"
-DATASOURCE="ERA5RDA"
-RLLSOURCEGRID="era5_0.25x0.25"
-RDA_DIR="/glade/u/home/zarzycki/rda/ds633.0/"
-#RDA_DIR="/global/cfs/projectdirs/m3522/cmip6/ERA5/"
-DATA_FILENAME="${RDA_DIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc"
+# atmDataType: 1 = GFS, 2 = ERAI, 3 = CFSR, 4 = ERA5, 5 = CR20V3, 9 = CAM (m2m)
+# Local files are read from gfs_files_path/era_files_path, ERA5 with ERA5RDA=1 from RDADIR
+atmDataType=4
+ERA5RDA=1
+#RDADIR="/glade/u/home/zarzycki/rda/ds633.0/"
+RDADIR="/global/cfs/projectdirs/m3522/cmip6/ERA5/"
+#gfs_files_path=""
+#era_files_path=""
 
-do_frankengrid=true
-REGDATASRC="HRRR"
-regionalName="hrrr_3km"
-regional_src="/glade/u/home/zarzycki/work/regional/HRRR_wrfprs_f00_2017010700.grib2"
-DEBUG_FILE_DIR="/glade/work/zarzycki/"
+# Frankengrid (regional_name: hrrr_3km, hrrr_3km_ml, rap_13km, hwrf)
+do_frankengrid=false
+regional_name="hrrr_3km"
+regional_src="/global/homes/c/czarzyck/m2637/betacast/sewx/HRRR/HRRR_wrfprs_f00_YYYYMMDDHH.grib2"
+regional_fail_if_missing=true
+keep_regional_file=true
 
+# Flags appended to every atm_to_cam.py call
+ATM_TO_CAM_EXTRA_ARGS="--compress_file --write_floats --verbose"
+#ATM_TO_CAM_EXTRA_ARGS+=" --mpas_as_cam"
+#ATM_TO_CAM_EXTRA_ARGS+=" --write_debug_files --write_debug_dir /pscratch/sd/c/czarzyck/"
+
+# Anything else runner_atm_to_cam.sh understands (cr20v3_*, m2m_*, standalone_vortex,
+# vortex_namelist, add_noise, add_perturbs, AUGMENT_STR, VORTEX_STR, ...) can be set here too
+
+# EDIT ABOVE HERE!
 #----------------------------------------------------------------------------------------
 
-# Python paths and directories
-PY_REMAPPING_PATH=${BETACAST}/py_remapping
-GRIDS_PATH=${BETACAST}/grids/anl_scrip
-ATM_TO_CAM_PATH=${BETACAST}/py_atm_to_cam
+set -e
 
-# Change to working directory
-cd $ATM_TO_CAM_PATH
-echo "cd'ing to interpolation directory: $ATM_TO_CAM_PATH"
+yearstr=${YYYYMMDDHH:0:4}
+monthstr=${YYYYMMDDHH:4:2}
+daystr=${YYYYMMDDHH:6:2}
+cyclestr=${YYYYMMDDHH:8:2}
 
-# Use existing weights file if valid, otherwise generate from modelgridfile
+# Export everything set above (and any extra runner options) to the runner
+export BETACAST mapping_files_path DYCORE modelSystem adjust_flags adjust_topo \
+       modelgridfile sePreFilterIC numLevels anl2mdlWeights \
+       atmDataType ERA5RDA RDADIR gfs_files_path era_files_path \
+       do_frankengrid regional_name regional_src regional_fail_if_missing keep_regional_file \
+       ATM_TO_CAM_EXTRA_ARGS yearstr monthstr daystr cyclestr \
+       cr20v3_mean_dir cr20v3_member cr20v3_member_dir cr20v3_orog_file \
+       cr20v3_blend cr20v3_blend_lev cr20v3_blend_taper \
+       m2m_gridfile m2m_remap_file m2m_parent_source m2m_topo_in \
+       standalone_vortex vortex_namelist add_noise add_perturbs perturb_namelist \
+       sstFileIC sstDataType AUGMENT_STR VORTEX_STR
 
-if [[ -n "${anl2mdlWeights}" && -e "${anl2mdlWeights}" ]]; then
-  echo "User has provided anl2mdlWeights --> ${anl2mdlWeights}, using those!"
-  write_weights="false"
-else
-  echo "User did not explicitly specify anl2mdlWeights, trying to generate from SCRIP grid"
+shopt -s nullglob
+weights_before=("${mapping_files_path}"/map_*.nc)
 
-  # Ensure modelgridfile is defined and exists
-  if [[ -z "${modelgridfile}" || ! -f "${modelgridfile}" ]]; then
-    echo "modelgridfile is not defined or file --> ${modelgridfile} does not exist, exiting"
-    echo "specify this as a SCRIP file in the namelist or anl2mdlWeights"
-    exit 19
-  fi
+bash "${BETACAST}/runner_atm_to_cam.sh"
 
-  # Prepare for weight file generation
-  modelgridshortname=$(basename "${modelgridfile%.*}")
-  anl2mdlWeights=${mapping_files_path}/map_${RLLSOURCEGRID}_TO_${modelgridshortname}_patc.nc
-
-  if [ ! -f ${anl2mdlWeights} ]; then
-    echo "Writing anl2mdlWeights --> ${anl2mdlWeights}"
-    write_weights="true"
-    python ${PY_REMAPPING_PATH}/gen_analysis_to_model_wgt_file.py \
-        --ANLGRID "${RLLSOURCEGRID}" \
-        --DSTGRIDNAME "${modelgridshortname}" \
-        --DSTGRIDFILE "${modelgridfile}" \
-        --ANLGRIDPATH "${GRIDS_PATH}" \
-        --WGTFILEDIR "${mapping_files_path}"
-  else
-    echo "Betacast-generated anl2mdlWeights --> ${anl2mdlWeights} already exists, using those!"
-    write_weights="false"
-  fi
+if [ "$cleanup_new_weights" = true ]; then
+  for f in "${mapping_files_path}"/map_*.nc; do
+    if [[ ! " ${weights_before[*]} " == *" ${f} "* ]]; then
+      rm -fv "$f"
+    fi
+  done
 fi
 
-# Run main processing with Python
-time python ${ATM_TO_CAM_PATH}/atm_to_cam.py \
-    --datasource "${DATASOURCE}" \
-    --numlevels ${NUM_LEVELS} \
-    --YYYYMMDDHH ${YYYYMMDDHH} \
-    --data_filename "${DATA_FILENAME}" \
-    --wgt_filename "${anl2mdlWeights}" \
-    --dycore "${DYCORE}" \
-    --RDADIR "${RDA_DIR}" \
-    --mpas_as_cam \
-    --compress_file \
-    --write_floats \
-    --add_cloud_vars \
-    --adjust_config "${ADJUST_CONFIG}" \
-    --model_topo_file "${MODEL_TOPO_FILE}" \
-    --se_inic "${SE_INIC}" \
-    --verbose
-
-if [ "$write_weights" = "true" ]; then
-  echo "Removing temporary weights..."
-  rm -fv "$anl2mdlWeights"
-fi
-
-echo "Done with primary generation of: ${SE_INIC}"
-
-if [ "$do_frankengrid" = true ] ; then
-
-  if [ "$REGDATASRC" == "HRRR" ]; then
-    regionalName="hrrr_3km"
-  elif [ "$REGDATASRC" == "HWRF" ]; then
-    regionalName="hwrf"
-  elif [ "$REGDATASRC" == "RAP" ]; then
-    regionalName="rap_13km"
-  else
-    echo "Error: Unknown REGDATASRC value '$REGDATASRC'" >&2
-    exit 1
-  fi
-
-  echo "Doing Frankengrid $REGDATASRC/$regionalName with $regional_src"
-
-  if [ "$REGDATASRC" == "HWRF" ]; then
-    (set -x ; time python ${PY_REMAPPING_PATH}/py_remapping/gen_reglatlon_SCRIP.py \
-        --dstGridName "${regionalName}_storm_scrip.nc" \
-        --dstDir "${mapping_files_path}" \
-        --srcfilename "${regional_src}"
-    )
-    TMPWGTFILE="${mapping_files_path}/map_hwrf_storm_TO_modelgrid_patc.nc"
-  else
-    TMPWGTFILE="${mapping_files_path}/map_${regionalName}_TO_modelgrid_patc.nc"
-  fi
-
-  (set -x ; time python ${PY_REMAPPING_PATH}/gen_analysis_to_model_wgt_file.py \
-      --ANLGRID "${regionalName}" \
-      --DSTGRIDNAME "modelgrid" \
-      --DSTGRIDFILE "${modelgridfile}" \
-      --ANLGRIDPATH "${GRIDS_PATH}" \
-      --WGTFILEDIR "${mapping_files_path}"
-  )
-
-  (set -x ; time python ${ATM_TO_CAM_PATH}/atm_to_cam.py \
-      --datasource "${REGDATASRC}" \
-      --numlevels ${NUM_LEVELS} \
-      --YYYYMMDDHH ${YYYYMMDDHH} \
-      --data_filename "${regional_src}" \
-      --wgt_filename "${TMPWGTFILE}" \
-      --dycore "${DYCORE}" \
-      --compress_file \
-      --write_floats \
-      --add_cloud_vars \
-      --adjust_config "${ADJUST_CONFIG}" \
-      --model_topo_file "${MODEL_TOPO_FILE}" \
-      --se_inic "${SE_INIC}_reg.nc" \
-      --verbose \
-      --write_debug_files \
-      --write_debug_dir "${DEBUG_FILE_DIR}"
-  )
-
-  echo "Overlay regional file on top of basefile"
-  # Make a copy to archive
-  cp -v ${SE_INIC} ${SE_INIC}_base.nc
-  # Overlay the reg file to the OG base file
-  (set -x ; time python ${ATM_TO_CAM_PATH}/overlay.py \
-      "${SE_INIC}" \
-      "${SE_INIC}_reg.nc" \
-      --maxLev 80.
-  )
-
-  echo "Cleaning up temporary ESMF files"
-  rm -fv "$TMPWGTFILE"
-  rm -fv hwrf_storm_scrip.nc
-  rm -fv ${SE_INIC}_reg.nc
-
-fi
+echo "Done with generation of: ${sePreFilterIC}"
