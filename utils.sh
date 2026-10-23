@@ -199,6 +199,8 @@ function read_bash_nl() {
       # Expand references (e.g., $INDEX) in value
       # Note, $INDEX must be defined higher in the namelist
       val=$(eval echo "\"$val\"")
+      # Expand leading ~ to $HOME (this isn't done by eval since val is quoted so "~" is literal)
+      if [[ "$val" == "~" || "$val" == "~/"* ]]; then val="${HOME}${val:1}"; fi
       echo "NAMELIST: setting ${var} to ${val}"
       declare -g "$var=$val"
     else

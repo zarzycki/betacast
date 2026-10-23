@@ -142,6 +142,7 @@ if [ -z "${tararchivedir+x}" ]; then tararchivedir=true; fi
 if [ -z "${docnres+x}" ]; then docnres="180x360"; fi
 if [ -z "${modelgridfile+x}" ]; then modelgridfile=""; fi
 if [ -z "${anl2mdlWeights+x}" ]; then anl2mdlWeights=""; fi
+if [ -z "${plotWeights+x}" ]; then plotWeights="NULL"; fi
 if [ -z "${CIMEMAXTRIES+x}" ]; then CIMEMAXTRIES=1; fi
 if [ -z "${add_noise+x}" ]; then add_noise=false; fi
 if [ -z "${runmodel+x}" ]; then runmodel=true; fi
@@ -293,12 +294,25 @@ if [ -z "${anl2mdlWeights+x}" ] && [ -n "${gfs2seWeights+x}" ] ; then
   echo "WARNING: This is deprecated and will be removed in the future! To fix, change 'gfs2seWeights' to 'anl2mdlWeights' in ${NAMELISTFILE}"
   anl2mdlWeights="$gfs2seWeights"
 fi
-if [ -z "${plotWeights+x}" ] && [ -n "${nclPlotWeights+x}" ] ; then
-  echo "WARNING: Setting plotWeights to ${nclPlotWeights}"
-  echo "WARNING: This is deprecated and will be removed in the future! To fix, change 'nclPlotWeights' to 'plotWeights' in ${NAMELISTFILE}"
-  plotWeights="$nclPlotWeights"
+if [ "${nclPlotWeights:-}" = "NULL" ]; then  # nclPlotWeights is NULL, so just ignore it
+  echo "WARNING: nclPlotWeights is deprecated and will be removed in the future! Ignoring since it is NULL. To fix, delete 'nclPlotWeights' from ${NAMELISTFILE}"
+  unset nclPlotWeights
 fi
-if [ -z "${plotWeights+x}" ]; then plotWeights="NULL"; fi
+if [ -n "${nclPlotWeights:-}" ]; then  # Is nclPlotWeights set and non empty?
+  if [ "${plotWeights:-}" = "NULL" ]; then  # is plotWeights still set to default (meaning user didn't give it)
+    echo "WARNING: Setting plotWeights to ${nclPlotWeights}"
+    echo "WARNING: This is deprecated and will be removed in the future! To fix, change 'nclPlotWeights' to 'plotWeights' in ${NAMELISTFILE}"
+    plotWeights="$nclPlotWeights"
+  else
+    echo "ERROR: plotWeights and nclPlotWeights are set. Delete nclPlotWeights."
+    exit 1
+  fi
+fi
+
+# Check that files exist if needed (this needs to be built out, Colin)
+if [ "$plotWeights" != "NULL" ]; then
+  exit_file_no_exist "$plotWeights"
+fi
 
 if [ "$save_nudging_files" = true ] && [ "$modelSystem" -eq 2 ] ; then
   echo "ERROR: save_nudging_files cannot be true with SCREAM model (2) set"
