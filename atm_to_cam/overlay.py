@@ -44,7 +44,7 @@ ncol = lat.size
 print(f"Number of missing values in top_file is: {PS_rgm.mask.sum()}")
 
 # Find distances in "valid" regional cells to nearest missing cell
-# in other words, how many km are we from an edge
+# in other words, how many km are we from the edge of a regional domain...
 
 print("Finding distances for valid cells -> missing cells... ")
 
@@ -71,6 +71,7 @@ def latlon_to_xyz(latlon_deg):
     z = np.sin(lat)
     return np.column_stack((x, y, z))
 
+# from scipy
 tree = cKDTree(latlon_to_xyz(yes_missing_points))
 
 # For each valid point, find the straight-line distance (a "chord" cutting through
@@ -131,7 +132,8 @@ for var_name in variables_to_process:
 
     if var_name == 'PS':
         # 2D variable processing
-        # For valid rgm cells, taper the values by weighting them towards global background
+        # For valid rgm cells close to missing cells
+        # taper the values by weighting them towards global background
         var_rgm = var_base * weights_2d + var_rgm * (1 - weights_2d)
         # Fully overwrite any masked values in the regional data with global data
         var_final = np.where(~var_rgm.mask, var_rgm, var_base)
@@ -143,7 +145,8 @@ for var_name in variables_to_process:
         # Create weights for this variable
         weights_3d_var = np.where(var_rgm.mask, 1, weights_3d)
 
-        # For valid rgm cells, taper the values by weighting them towards global background
+        # For valid rgm cells close to missing cells
+        # taper the values by weighting them towards global background
         var_rgm = var_base * weights_3d_var + var_rgm * (1 - weights_3d_var)
         # Fully overwrite any masked values in the regional data with global data
         var_final = np.where(~var_rgm.mask, var_rgm, var_base)
