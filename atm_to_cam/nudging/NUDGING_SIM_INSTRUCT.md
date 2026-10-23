@@ -177,7 +177,7 @@ Then setup the case, build the model, and run:
 Some notes:
 
 - A full description of the nudging namelist options is [HERE](https://ncar.github.io/CAM/doc/build/html/users_guide/physics-modifications-via-the-namelist.html)
-- `Nudge_Vwin_Hindex` tells you the level index at which the nudging "stops" when counting from the top. However, `Nudge_Vwin_Hdelta` greater than 0.001 tapers the nudging a bit. Set to 1.0 for example, tapers the nudging across approximately 5 levels (centered on `Nudge_Vwin_Hindex`). Experiment with the NCL script described below.
+- `Nudge_Vwin_Hindex` tells you the level index at which the nudging "stops" when counting from the top. However, `Nudge_Vwin_Hdelta` greater than 0.001 tapers the nudging a bit. Set to 1.0 for example, tapers the nudging across approximately 5 levels (centered on `Nudge_Vwin_Hindex`). Experiment with the Python script described below.
 - `Model_Times_Per_Day` can just be set to some absurdly large number (86400), which will tell the nudging code to use one second model timesteps. Internally the code will fall back to dtime, which is desirable. Alternatively, this should be set to `ATM_NCPL` from `env_run.xml`.
 - `Nudge_Times_Per_Day` should be set to 24 (hourly), 8 (3-hourly), 4 (6-hourly), 2 (12-hourly) or 1 (daily). Chris Kruse found that nudging throughout the atmosphere all the way to the surface with 24-hourly caused problems near orography. Nudging to a certain level seems less problematic, although if 3-hourly data works, that would seem to be preferred.
 - `Nudge_?prof` should always be set to `2` unless you want nudging off (`0`) or just want nudging everywhere (`1`).
@@ -286,12 +286,12 @@ Model_Times_Per_Day = 86400       ! Set to large number to force dtime model ste
 
 ## Generating and evaluating the nudging profile
 
-You can evaluate the nudging profile by using an NCL tool. You can modify the `user_nl_cam` file iteratively and then place back in the case directory.
+You can evaluate the nudging profile by using a Python tool (`Lookat_NudgeWindow.py`, which writes `Wcoef.png`). You can modify the `user_nl_cam` file iteratively and then place back in the case directory.
 
 ```
 cd $BETACAST/atm_to_cam/nudging
 cp ~/PATHTOCASEDIR/user_nl_cam .
-ncl Lookat_NudgeWindow.ncl NLEV=58
+python Lookat_NudgeWindow.py --NLEV 58
 ```
 
 ## Generating nudging target files
