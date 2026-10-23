@@ -10,10 +10,10 @@ cyclestrsec=00000
 nclweightfile=$1
 runDir=$2
 betacastPath=$3
-path_to_ncl=${betacastPath}/plotting/
+path_to_plot=${betacastPath}/plotting/
 htmlFolder=${betacastPath}/html_for_upload/
 
-echo "UPLOAD_NCL: SSHings..."
+echo "UPLOAD_PLOT: SSHings..."
 ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${yearstr}${monthstr}${daystr}${cyclestr} ; \
   cd /home/colinzar/www/www/current2/ ; \
   cp *cfg *html ${yearstr}${monthstr}${daystr}${cyclestr} ; \
@@ -23,13 +23,13 @@ ssh colinzar@colinzarzycki.com "mkdir -p /home/colinzar/www/www/current2/${years
 cd ${htmlFolder}
 if [ ! -f index.html ]; then
   if [ ! -f index.HOLD ]; then
-    echo "UPLOAD_NCL: downloading index from server"
+    echo "UPLOAD_PLOT: downloading index from server"
     scp colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/index.html index.html
   else
-    echo "UPLOAD_NCL: copying index from HOLD"
+    echo "UPLOAD_PLOT: copying index from HOLD"
     cp -v index.HOLD index.html
   fi
-  echo "UPLOAD_NCL: sedding in this date"
+  echo "UPLOAD_PLOT: sedding in this date"
   sed '/<!--FORECASTHEAD-->/ r htmltemplate.html' index.html > _index1.html
   sed -e "s/YYYYMMDDHH/${yearstr}${monthstr}${daystr}${cyclestr}/" _index1.html > _index3.html
   mv _index3.html index.html
@@ -61,7 +61,7 @@ for i in `seq 1 ${numfiles}`; do
 done
 
 sleep 5
-echo "UPLOAD_NCL: Found at least one file"
+echo "UPLOAD_PLOT: Found at least one file"
 echo $filenames
 
 cd ${runDir}
@@ -70,8 +70,8 @@ for i in *h0*.nc; do mv $i _$i; done
 cd ${htmlFolder}
 newfiles=`ls ${runDir}/_*h0*-00000.nc ${runDir}/_*h0*-21600.nc ${runDir}/_*h0*-43200.nc ${runDir}/_*h0*-64800.nc`
 for f in $newfiles; do
-  echo "UPLOAD_NCL: Processing $f"
-  (set -x; env PATH_TO_NCL=$path_to_ncl python ${path_to_ncl}/weatherplot.py --inisec $cyclestrsec \
+  echo "UPLOAD_PLOT: Processing $f"
+  (set -x; env PATH_TO_PLOT=$path_to_plot python ${path_to_plot}/weatherplot.py --inisec $cyclestrsec \
     --iniday $daystr \
     --inimon $monthstr \
     --iniyear $yearstr \
@@ -79,8 +79,8 @@ for f in $newfiles; do
     --wgt_file ${nclweightfile} > ncl.output 2>&1 )
   if [ $? -ne 0 ]; then
     sleep 5
-    echo "UPLOAD_NCL: Found an error, try again"
-    (set -x; env PATH_TO_NCL=$path_to_ncl python ${path_to_ncl}/weatherplot.py --inisec $cyclestrsec \
+    echo "UPLOAD_PLOT: Found an error, try again"
+    (set -x; env PATH_TO_PLOT=$path_to_plot python ${path_to_plot}/weatherplot.py --inisec $cyclestrsec \
       --iniday $daystr \
       --inimon $monthstr \
       --iniyear $yearstr \
@@ -109,7 +109,7 @@ do
   do
     #printf "   %s\n" $item
     if [ ! -f ${item}_${basin}_files.txt ]; then
-      echo "UPLOAD_NCL: File not found!"
+      echo "UPLOAD_PLOT: File not found!"
       ls -1 ${item}_${basin}*png > ${item}_${basin}_files_nopath.txt
     else
       mv -v ${item}_${basin}_files_nopath.txt orig_${item}_${basin}_files.txt
@@ -130,7 +130,7 @@ cp -v ${betacastPath}/cyclone-tracking/fin-atcf/atcf.tempest.${yearstr}${monthst
 ## Move files to server
 ## Google create remote directory if not existant
 ## use rysnc?
-echo "UPLOAD_NCL: Moving files to remote server"
+echo "UPLOAD_PLOT: Moving files to remote server"
 scp *.png *.txt atcf.tempest* colinzar@colinzarzycki.com:/home/colinzar/www/www/current2/${yearstr}${monthstr}${daystr}${cyclestr}
 #mv $newfiles $procdir
 

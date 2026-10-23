@@ -1254,9 +1254,9 @@ fi
 
 if [ "$sendplots" = true ]; then
   echo "BETACAST_USER: Sending plots to remote server!"
-  upload_ncl_script="${BETACAST}/postprocess/upload_ncl.sh"
-  temp_upload_script="${upload_ncl_script%.sh}.${uniqtime}.sh"
-  cp "${upload_ncl_script}" "${temp_upload_script}"
+  upload_plot_script="${BETACAST}/postprocess/upload_plot.sh"
+  temp_upload_script="${upload_plot_script%.sh}.${uniqtime}.sh"
+  cp "${upload_plot_script}" "${temp_upload_script}"
   sed -i -e "s?.*yearstr=.*?yearstr='${yearstr}'?" \
          -e "s?.*monthstr=.*?monthstr='${monthstr}'?" \
          -e "s?.*daystr=.*?daystr='${daystr}'?" \

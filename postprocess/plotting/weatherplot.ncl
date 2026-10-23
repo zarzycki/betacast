@@ -5,7 +5,7 @@
 ; inisec (24000)
 ; filename
 
-load "$PATH_TO_NCL/functions/rainratetodbz.ncl"
+load "$PATH_TO_PLOT/functions/rainratetodbz.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/esmf/ESMF_regridding.ncl"
 
 begin
@@ -234,7 +234,7 @@ ptype = where(prect_mmday .lt. 0.1,ptype@_FillValue,ptype)
 ;*****************************************************
 
 print("doing anoms")
-f_anom=addfile("$PATH_TO_NCL/climo-files/TS-1980-2009-NCEP.nc","r")
+f_anom=addfile("$PATH_TO_PLOT/climo-files/TS-1980-2009-NCEP.nc","r")
 ANOMTIME=f_anom->time
 ANOMDATE=cd_inv_calendar(2000,toint(monstr),toint(daystr),toint(hourstr),0,0,ANOMTIME@units,0)
 TSANOM=f_anom->TS({ANOMDATE},:,:)
@@ -635,7 +635,7 @@ print("Plotting accumulated snow...")
 wks = gsn_open_wks(out_type,"sumsnow_"+plotname+"_"+yearstr+monstr+daystr+hourstr)
 res_sumsnow   = res
 
-cmap = read_colormap_file("$PATH_TO_NCL/colormaps/wxbell_snow.rgb")
+cmap = read_colormap_file("$PATH_TO_PLOT/colormaps/wxbell_snow.rgb")
 res_sumsnow@cnFillPalette = cmap(::-1,:)       ; reverse color map
 res_sumsnow@cnFillOpacityF = 0.75
 

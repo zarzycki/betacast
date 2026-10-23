@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from horizremap import remap_with_weights_wrapper, linint2
 from pyfuncs import poisson_grid_fill
 
-PATH_TO_NCL = os.environ.get("PATH_TO_NCL", os.path.dirname(os.path.abspath(__file__)))
+PATH_TO_PLOT = os.environ.get("PATH_TO_PLOT", os.path.dirname(os.path.abspath(__file__)))
 
 def rainratetodbz(rainrate, units):
     #========================================================
@@ -412,7 +412,7 @@ ptype = np.where(prect_mmday < 0.1, np.nan, ptype)
 #*****************************************************
 
 print("doing anoms")
-f_anom = xr.open_dataset(os.path.join(PATH_TO_NCL, "climo-files", "TS-1980-2009-NCEP.nc"), decode_times=False)
+f_anom = xr.open_dataset(os.path.join(PATH_TO_PLOT, "climo-files", "TS-1980-2009-NCEP.nc"), decode_times=False)
 ANOMTIME = f_anom["time"]
 ANOMDATE = cftime.date2num(cftime.datetime(2000, int(monstr), int(daystr), int(hourstr), calendar="standard"), ANOMTIME.attrs["units"])
 TSANOM = f_anom["TS"].sel(time=ANOMDATE, method="nearest")
@@ -595,7 +595,7 @@ for plotindex in range(3):
 
     #;;; RAIN, SIMULATED RADAR
     # res_rain = dict(res)
-    # res_rain["cnFillPalette"] = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "rainsnowradar.rgb"))
+    # res_rain["cnFillPalette"] = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "rainsnowradar.rgb"))
     # res_rain["gsnRightString"] = "Simulated Reflectivity (dBZ)"
     # res_rain["cnLevels"] = np.array([0,5,10,15,20,25,30,35,40,45,50,55,60,65,70])
     # res_rain["lbLabelStride"] = 2
@@ -604,7 +604,7 @@ for plotindex in range(3):
 
     #;;; RAIN, MM/DAY
     res_rain = dict(res)
-    cmap = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "prcp_1.rgb"))
+    cmap = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "prcp_1.rgb"))
     ncolors, npairs = cmap.shape
     nnewcolors = 200
     cmap_interp = np.zeros((nnewcolors, npairs))
@@ -636,7 +636,7 @@ for plotindex in range(3):
 
     #;;; ptype, MM/DAY
     res_rainptype = dict(res)
-    cmap = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "MPL_Greys.rgb"))
+    cmap = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "MPL_Greys.rgb"))
     res_rainptype["cnFillPalette"] = cmap
 
     res_rainptype["cnLevels"] = np.array([0.1,0.15,0.25,0.5,0.75,1.0,2.0,3.0,4.0,5.0,6.0,8.0,10.0,15.0])   # set levels
@@ -667,7 +667,7 @@ for plotindex in range(3):
     print("Plotting accumulated precip...")
     res_sumprecip = dict(res)
 
-    cmap = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "prcp_1.rgb"))
+    cmap = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "prcp_1.rgb"))
     ncolors, npairs = cmap.shape
     nnewcolors = 200
     cmap_interp = np.zeros((nnewcolors, npairs))
@@ -697,7 +697,7 @@ for plotindex in range(3):
 
     res_sumsnow = dict(res)
 
-    cmap = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "wxbell_snow.rgb"))
+    cmap = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "wxbell_snow.rgb"))
     res_sumsnow["cnFillPalette"] = cmap[::-1,:]       # reverse color map
     res_sumsnow["cnFillOpacityF"] = 0.75
 
@@ -726,7 +726,7 @@ for plotindex in range(3):
 
     res_500vort = dict(res)
 
-    cmap = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "WhiteYellowOrangeRed.rgb"))
+    cmap = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "WhiteYellowOrangeRed.rgb"))
     res_500vort["cnFillPalette"] = cmap
 
     res_500vort["cnLevels"] = manual_levels(0.0, 40.0, 2.0)
@@ -762,7 +762,7 @@ for plotindex in range(3):
 
     res_tmq = dict(res)
 
-    cmap = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "WhiteBlueGreenYellowRed.rgb"))
+    cmap = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "WhiteBlueGreenYellowRed.rgb"))
     res_tmq["cnFillPalette"] = cmap
 
     res_tmq["cnLevels"] = manual_levels(20.0, 66.0, 2.0)
@@ -782,7 +782,7 @@ for plotindex in range(3):
 
     res_ts = dict(res)
 
-    cmap = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "amwg256.rgb"))
+    cmap = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "amwg256.rgb"))
     res_ts["cnFillPalette"] = cmap
 
     res_ts["cnLevels"] = manual_levels(-5.0, 110.0, 2.5)
@@ -817,7 +817,7 @@ for plotindex in range(3):
 
     res_tsanom = dict(res)
 
-    cmap = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "MPL_RdBu.rgb"))
+    cmap = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "MPL_RdBu.rgb"))
     res_tsanom["cnFillPalette"] = cmap[::-1,:]
 
     res_tsanom["cnLevels"] = manual_levels(-20.0, 20.0, 2.0)
@@ -843,7 +843,7 @@ for plotindex in range(3):
 
     res_flut = dict(res)
 
-    cmap = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "MPL_gist_yarg.rgb"))
+    cmap = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "MPL_gist_yarg.rgb"))
     res_flut["cnFillPalette"] = cmap
 
     res_flut["cnLevels"] = manual_levels(120.0, 250.0, 10.)
@@ -871,7 +871,7 @@ for plotindex in range(3):
 
     res_wind = dict(res)
 
-    cmap = read_colormap_file(os.path.join(PATH_TO_NCL, "colormaps", "WhBlGrYeRe.rgb"))
+    cmap = read_colormap_file(os.path.join(PATH_TO_PLOT, "colormaps", "WhBlGrYeRe.rgb"))
     res_wind["cnFillPalette"] = cmap
 
     res_wind["cnLevels"] = manual_levels(4.0, 46.0, 2.0)

@@ -74,7 +74,7 @@ BAK/
 ## HTML/viz code
 index.html
 index.HOLD
-postprocess/upload_ncl.sh.*
+postprocess/upload_plot.*
 ncl.output
 postprocess/html_for_upload/20*
 *.png
