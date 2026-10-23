@@ -1,6 +1,6 @@
 import numpy as np
 from netCDF4 import Dataset
-from sklearn.neighbors import BallTree
+from scipy.spatial import cKDTree
 import argparse
 import time
 import sys, os
@@ -59,11 +59,28 @@ yes_missing_inds = np.where(PS_rgm[0, :].mask)
 not_missing_points = np.stack((lat[not_missing_inds], lon[not_missing_inds]), axis=-1)
 yes_missing_points = np.stack((lat[yes_missing_inds], lon[yes_missing_inds]), axis=-1)
 
-# Build the tree (using haversine metric)
-tree = BallTree(np.radians(yes_missing_points), metric='haversine')
+# cKDTree uses straight-line (Euclidean) distance, which is wrong for lat/lon
+# (e.g., 359E and 1E are close, and degrees of lon shrink toward the poles).
+# So we first convert each (lat, lon) point to (x, y, z) on a unit sphere, where
+# straight-line distance behaves sensibly.
+def latlon_to_xyz(latlon_deg):
+    lat = np.radians(latlon_deg[:, 0])
+    lon = np.radians(latlon_deg[:, 1])
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
+    return np.column_stack((x, y, z))
 
-# Query the tree for nearest neighbor
-dist, _ = tree.query(np.radians(not_missing_points), k=1)  # dist is in radians
+tree = cKDTree(latlon_to_xyz(yes_missing_points))
+
+# For each valid point, find the straight-line distance (a "chord" cutting through
+# the sphere) to the nearest missing point
+chord, _ = tree.query(latlon_to_xyz(not_missing_points), k=1)
+
+# Convert chord length to distance along the sphere's surface, in radians.
+# On a unit sphere: chord = 2*sin(angle/2), so angle = 2*arcsin(chord/2).
+# (clip guards against tiny round-off pushing chord/2 slightly above 1)
+dist = 2 * np.arcsin(np.clip(chord / 2, 0, 1))  # dist is in radians
 
 # Convert distance from radians to km
 dist_kms = dist * Re_km
