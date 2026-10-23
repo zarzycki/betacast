@@ -300,11 +300,6 @@ if [ "$save_nudging_files" = true ] && [ "$modelSystem" -eq 2 ] ; then
   exit 1
 fi
 
-# ncl is only needed for sendplots (weatherplot.ncl) and dotracking (model-to-atcf.ncl, plot_ATCF.ncl) right now
-if [ "$sendplots" = true ] || [ "$dotracking" = true ]; then
-  check_bash_dependency ncl "sendplots or dotracking"
-fi
-
 # Check if ncks exists for compression
 ncks_exists=true
 if ! type ncks &> /dev/null ; then
@@ -1260,7 +1255,7 @@ fi
 if [ "$sendplots" = true ]; then
   echo "BETACAST_USER: Sending plots to remote server!"
   upload_ncl_script="${BETACAST}/postprocess/upload_ncl.sh"
-  temp_upload_script="${upload_ncl_script}.${uniqtime}.ncl"
+  temp_upload_script="${upload_ncl_script%.sh}.${uniqtime}.sh"
   cp "${upload_ncl_script}" "${temp_upload_script}"
   sed -i -e "s?.*yearstr=.*?yearstr='${yearstr}'?" \
          -e "s?.*monthstr=.*?monthstr='${monthstr}'?" \

@@ -841,6 +841,84 @@ def linmsg_n(x, opt, dim, fill_all_nans=None):
     return x
 
 
+@jit(nopython=True)
+def _poisxy2(A, SP, IS_CYCLIC, NSCAN, EPSX):
+    """
+    Gauss-Seidel relaxation of Laplace's equation over the points where SP != 0.
+    A and SP are (NJ, NI), e.g. (nlat, nlon), I (lon) is the cyclic dim.
+    Non-cyclic edges reflect (use the interior neighbor on both sides).
+    """
+    NJ, NI = A.shape
+
+    for N in range(NSCAN):
+        RESMAX = 0.0
+        for J in range(NJ):
+            JM1 = J - 1 if J > 0 else 1
+            JP1 = J + 1 if J < NJ - 1 else NJ - 2
+            for I in range(NI):
+                if SP[J, I] == 0.0:
+                    continue
+                if IS_CYCLIC:
+                    IM1 = I - 1 if I > 0 else NI - 1
+                    IP1 = I + 1 if I < NI - 1 else 0
+                else:
+                    IM1 = I - 1 if I > 0 else 1
+                    IP1 = I + 1 if I < NI - 1 else NI - 2
+                RES = (A[J, IM1] + A[J, IP1] + A[JM1, I] + A[JP1, I]) * 0.25 - A[J, I]
+                RES = RES * SP[J, I]
+                A[J, I] = A[J, I] + RES
+                if abs(RES) > RESMAX:
+                    RESMAX = abs(RES)
+        if RESMAX <= EPSX:
+            break
+
+    return A, N + 1, RESMAX
+
+
+def poisson_grid_fill(var, is_cyclic, guess, nscan, eps, relc, opt=0):
+    """
+    Replace missing (NaN) values in a grid via Poisson relaxation, matching NCL's poisson_grid_fill.
+
+    Parameters:
+    - var: 2D or ND numpy array, rightmost two dims are (lat, lon). Filled in place and returned.
+    - is_cyclic: If True, treat the rightmost dimension (lon) as cyclic
+    - guess: 0 = initial guess of zero, 1 = zonal (row) mean of valid points
+    - nscan: Maximum number of relaxation scans
+    - eps: Stop when the max residual falls below this value (variable dependent)
+    - relc: Relaxation coefficient (NCL suggests 0.45 - 0.6)
+    - opt: Not used (kept to match NCL signature)
+
+    Returns:
+    - var: Filled array
+    """
+    shape = var.shape
+    var2d = var.reshape(-1, shape[-2], shape[-1])
+
+    for k in range(var2d.shape[0]):
+        A = var2d[k].astype(np.float64)
+        msg = np.isnan(A)
+        if not np.any(msg):
+            continue
+        if np.all(msg):
+            logging.warning("POISSON_GRID_FILL: all values missing, nothing to fill")
+            continue
+
+        # Initial guess at missing points
+        if guess == 1:
+            nvalid = np.sum(~msg, axis=-1)
+            zmean = np.where(nvalid > 0, np.nansum(A, axis=-1) / np.maximum(nvalid, 1), 0.0)
+            A = np.where(msg, zmean[:, np.newaxis], A)
+        else:
+            A = np.where(msg, 0.0, A)
+
+        SP = np.where(msg, relc, 0.0)
+        A, nscanned, resmax = _poisxy2(A, SP, is_cyclic, nscan, eps)
+        logging.debug(f"POISSON_GRID_FILL: {nscanned} scans, resmax {resmax}")
+        var2d[k] = A
+
+    return var2d.reshape(shape)
+
+
 def print_and_return_varsize(ps_fv, u_fv, v_fv, t_fv, q_fv):
     """
     Function to print and return the maximum size of xarray DataArray variables in bytes.

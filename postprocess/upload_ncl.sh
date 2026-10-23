@@ -10,7 +10,7 @@ cyclestrsec=00000
 nclweightfile=$1
 runDir=$2
 betacastPath=$3
-path_to_ncl=${betacastPath}/plotting_ncl/
+path_to_ncl=${betacastPath}/plotting/
 htmlFolder=${betacastPath}/html_for_upload/
 
 echo "UPLOAD_NCL: SSHings..."
@@ -71,21 +71,21 @@ cd ${htmlFolder}
 newfiles=`ls ${runDir}/_*h0*-00000.nc ${runDir}/_*h0*-21600.nc ${runDir}/_*h0*-43200.nc ${runDir}/_*h0*-64800.nc`
 for f in $newfiles; do
   echo "UPLOAD_NCL: Processing $f"
-  (set -x; env PATH_TO_NCL=$path_to_ncl ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec \
-    iniday=$daystr \
-    inimon=$monthstr \
-    iniyear=$yearstr \
-    'filename="'${f}'"' \
-    'wgt_file="'${nclweightfile}'"' > ncl.output 2>&1 )
-  if grep -q "FileReadVar" ncl.output; then
+  (set -x; env PATH_TO_NCL=$path_to_ncl python ${path_to_ncl}/weatherplot.py --inisec $cyclestrsec \
+    --iniday $daystr \
+    --inimon $monthstr \
+    --iniyear $yearstr \
+    --filename ${f} \
+    --wgt_file ${nclweightfile} > ncl.output 2>&1 )
+  if [ $? -ne 0 ]; then
     sleep 5
     echo "UPLOAD_NCL: Found an error, try again"
-    (set -x; env PATH_TO_NCL=$path_to_ncl ncl ${path_to_ncl}/weatherplot.ncl inisec=$cyclestrsec \
-      iniday=$daystr \
-      inimon=$monthstr \
-      iniyear=$yearstr \
-      'filename="'${f}'"' \
-      'wgt_file="'${nclweightfile}'"' )
+    (set -x; env PATH_TO_NCL=$path_to_ncl python ${path_to_ncl}/weatherplot.py --inisec $cyclestrsec \
+      --iniday $daystr \
+      --inimon $monthstr \
+      --iniyear $yearstr \
+      --filename ${f} \
+      --wgt_file ${nclweightfile} )
   fi
   #rm ncl.output
 done
