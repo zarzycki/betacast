@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --qos=regular
-#SBATCH --time=12:00:00
+#SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=128
 #SBATCH --constraint=cpu
@@ -10,7 +10,7 @@ module load conda && conda activate betacast
 export BETACAST=/global/homes/c/czarzyck/betacast
 export OUTDIR=/pscratch/sd/c/czarzyck/ndg
 export RDADIR=/global/cfs/projectdirs/m3522/cmip6/ERA5
-export NUMCORES=24
+export NUMCORES=64
 
 SCRIPTDIR="${BETACAST}/atm_to_cam/nudging"
 

@@ -177,28 +177,35 @@ function read_bash_nl() {
   # Sanitize namelist files (add carriage return to end)
   sanitize_file "${FILETOREAD}"
 
-  # Note, ___ will be converted to a space. Namelists cannot have whitespace due to
-  # parsing on whitespaces...
+  # One VAR=VALUE per line, split on the first '='. Values may contain spaces or '='
+  # if wrapped in double quotes (e.g., NCO_OPT="ncks -O -4 --qnt dfl=4 -L 1").
+  # Lines starting with # are comments. Note, ___ is stripped from values (legacy).
   echo "Reading namelist ${FILETOREAD}..."
-  local inputstream
-  inputstream=$(grep -v "^#" "${FILETOREAD}")
-  inputstream="${inputstream//=/ = }"
-  #echo $inputstream
-  set -- $inputstream
-  while [ $# -ge 3 ]; do
-    local var="$1"
-    local eq="$2"
-    local val="${3//___/}"
+  local line var val
+  while IFS= read -r line || [ -n "$line" ]; do
+    # Strip CR and leading/trailing whitespace, skip blank and comment lines
+    line="${line%$'\r'}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    if [ -z "$line" ] || [[ "$line" == \#* ]]; then continue; fi
 
-    if [ "$eq" != "=" ]; then
-      echo "NAMELIST ERR: Uh oh, in $FILETOREAD bad format: $1 $2 $3"
+    if [[ "$line" != *=* ]]; then
+      echo "NAMELIST ERR: Uh oh, in $FILETOREAD bad format: $line"
       exit 1
     fi
+
+    var="${line%%=*}"
+    var="${var%"${var##*[![:space:]]}"}"
+    val="${line#*=}"
+    val="${val#"${val%%[![:space:]]*}"}"
+    # Strip one pair of surrounding double quotes
+    if [ ${#val} -ge 2 ] && [[ "$val" == \"*\" ]]; then val="${val:1:${#val}-2}"; fi
+    val="${val//___/}"
 
     if [[ "$var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
       # Expand references (e.g., $INDEX) in value
       # Note, $INDEX must be defined higher in the namelist
-      val=$(eval echo "\"$val\"")
+      val=$(eval "printf '%s' \"$val\"")
       # Expand leading ~ to $HOME (this isn't done by eval since val is quoted so "~" is literal)
       if [[ "$val" == "~" || "$val" == "~/"* ]]; then val="${HOME}${val:1}"; fi
       echo "NAMELIST: setting ${var} to ${val}"
@@ -207,9 +214,7 @@ function read_bash_nl() {
       echo "NAMELIST ERR: In $FILETOREAD, invalid variable name: $var"
       exit 1
     fi
-
-    shift 3
-  done
+  done < "${FILETOREAD}"
 }
 
 ### -----------------------------------------------------------------------------------

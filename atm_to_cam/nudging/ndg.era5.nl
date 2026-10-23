@@ -1,105 +1,16 @@
-### Special settings that can be added!
-# SOURCE=CAM        # interpolate from existing CAM simulation (default: ERA5)
-# SOURCE=CR20V3     # use 20th Century Reanalysis v3
-# dryrun=true
-# add_scream=true
-
-STYR=1999
-ENYR=1999
+STYR=1979
+ENYR=1980
 HR_RES=6
 STMON="jan"
 STDAY=1
-ENMON="jan"
-ENDAY=20
+ENMON="dec"
+ENDAY=31
 
-####### MODEL CONFIGS
+DYCORE="se"
+GRIDSTR=alcc_30x4_pg2
+BNDTOPO=/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/topo/USGS-gtopo30_ne0np4alcc.ne30x4np4pg2_x6t.nc
+WGTNAME=/global/homes/c/czarzyck/betacast/tools/map_era5_0.25x0.25_TO_ne0np4alcc.ne30x4_pg2_scrip_patc.nc
+NUMLEVS=80
+add_scream=false
 
-# DYCORE="se"
-# GRIDSTR=ne30pg3
-# BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30pg3_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171014.nc
-# WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_ne30pg3_patc.nc
-# NUMLEVS=58
-
-# DYCORE="se"
-# GRIDSTR=ne30pg3
-# BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/se/ne30pg3_nc3000_Co060_Fi001_PF_nullRR_Nsw042_20171014.nc
-# WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_era5_0.25x0.25_TO_ne30pg3_patc.nc
-# NUMLEVS=58
-
-# DYCORE="fv"
-# GRIDSTR=f09
-# BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/topo/fv_0.9x1.25_nc3000_Nsw042_Nrs008_Co060_Fi001_ZR_sgh30_24km_GRNL_c170103.nc
-# WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5_0.25_TO_fv0.9x1.25_patc.nc
-# NUMLEVS=32
-
-# DYCORE="mpas"
-# GRIDSTR=mp120a
-# BNDTOPO=/glade/p/cesmdata/cseg/inputdata/atm/cam/inic/mpas/mpasa120.CFSR.L32.nc
-# WGTNAME=/glade/u/home/zarzycki/betacast/remapping/map_gfs_0.25x0.25_TO_mpasa120_patc.nc
-# NUMLEVS=32
-
-# qsub -v NLFILE="ndg.era5.nl",input_dates_file="dates.index.001.txt",INDEX="001" gen-nudge.sh
-# DYCORE="mpas"
-# GRIDSTR=tclf${INDEX}-mp3a
-# BNDTOPO=/glade/u/home/zarzycki/work/CESM_files/ncdata/mpasa3-60-tclf${INDEX}_init_L32.nc
-# WGTNAME=/glade/work/zarzycki/sewx/mapping/map_era5_0.25x0.25_TO_mpasa3-60-tclf${INDEX}_scrip_patc.nc
-# NUMLEVS=32
-
-# qsub -v NLFILE="ndg.era5.nl",input_dates_file="dates.index.ALL.txt" gen-nudge.sh
-DYCORE="mpas"
-GRIDSTR=mpasa25-92-watl
-BNDTOPO=/glade/u/home/zarzycki/work/CESM_files/ncdata/mpasa25-92-watl_init_L32.nc
-WGTNAME=/glade/work/zarzycki/sewx/mapping/map_era5_0.25x0.25_TO_mpasa25-92-watl_scrip_patc.nc
-NUMLEVS=32
-# NDAYS_PER_DATE=5
-
-# DYCORE="se"
-# GRIDSTR=ne0np4natlanticref.ne30x4
-# #BNDTOPO=/glade/u/home/zarzycki/work/unigridFiles/ne0np4natlanticref.ne30x4/topo/topo_ne0np4natlanticref.ne30x4_smooth.nc
-# BNDTOPO=/glade/work/zarzycki/CESM_files/topo/ne0np4natlanticref.ne30x4_np4_gmted2010_modis_bedmachine_nc3000_Laplace0100_noleak_20250515.nc
-# WGTNAME=/glade/u/home/zarzycki/work/maps/gfsmaps/map_era5-0.25_TO_ne0np4natlanticref.ne30x4_patc.nc
-# NUMLEVS=32
-
-# DYCORE="se"
-# GRIDSTR=conus_30_x8
-# BNDTOPO=/global/homes/c/czarzyck/m2637/betacast/cesmfiles/topo/topo_conus_30_x8_smooth.nc
-# WGTNAME=/global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era0.25_TO_conus_30_x8_patc.nc
-# NUMLEVS=72
-
-# DYCORE="se"
-# GRIDSTR=ne30np4
-# BNDTOPO=/global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4_16xdel2-PFC-consistentSGH.nc
-# WGTNAME=/global/homes/c/czarzyck/m2637/betacast/sewx/maps/map_era0.25_TO_ne30np4_patc.nc
-# NUMLEVS=72
-
-# # sbatch gen-nudge.sh ndg.era5.nl /global/homes/c/czarzyck/scratch/e3sm_scratch/pm-cpu/ERA5-ELMinic-ne128pg2_v2_20020101_000_01/run/restart_times.txt
-# DYCORE="se"
-# GRIDSTR=ne0np4natlanticref.ne30x4_pg2
-# BNDTOPO=/global/homes/c/czarzyck/m2637/E3SM_SCREAM_files/topo/USGS-gtopo30_ne0np4natlanticref.ne30x4np4pg2_x6t.nc
-# WGTNAME=/global/cfs/cdirs/m2637/betacast/sewx/mapping/map_era5_0.25x0.25_TO_ne0np4natlanticref.ne30x4_pg2_patc.nc
-# NUMLEVS=80
-# NDAYS_PER_DATE=5
-
-# SCREAM?
-# ncremap -a patch -s anl_scrip/era5_0.25x0.25_scrip.nc -g model_scrip/ne30pg2_e3sm_scrip.nc -m map_era0.25_TO_ne30pg2_patc.nc
-# DYCORE="se"
-# GRIDSTR=ne30pg2
-# BNDTOPO=/global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne30np4pg2_x6t-SGH.c20210614.nc
-# WGTNAME=/global/homes/c/czarzyck/betacast/grids/map_era0.25_TO_ne30pg2_patc.nc
-# NUMLEVS=128
-
-# DYCORE="se"
-# GRIDSTR=ne16np4
-# BNDTOPO=/global/cfs/cdirs/e3sm/inputdata/atm/cam/topo/USGS-gtopo30_ne16np4_16xconsistentSGH.c20160612.nc
-# WGTNAME=/global/homes/c/czarzyck/betacast/grids/map_era0.25_TO_ne16np4_patc.nc
-# NUMLEVS=128
-# add_scream=true
-
-# qsub -v NLFILE="ndg.era5.nl",input_dates_file="dates.index.001.txt",INDEX="001" gen-nudge.sh
-# DYCORE="se"
-# GRIDSTR=TClandfall-${INDEX}_ne192x8_pg2
-# BNDTOPO=/glade/work/zarzycki/CESM_files/topo/USGS-gtopo30_TClandfall-${INDEX}_ne192x8np4pg2_x6t.nc
-# WGTNAME=/glade/derecho/scratch/zarzycki/map_era5_0.25x0.25_TO_TClandfall-${INDEX}_ne192x8_pg2_patc.20251221.nc
-# NUMLEVS=128
-# NDAYS_PER_DATE=5
-# add_scream=true
+NCO_OPT="ncks -O -4 --qnt dfl=4 -L 1"

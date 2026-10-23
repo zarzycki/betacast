@@ -80,6 +80,16 @@ if [ -z "${add_scream+x}" ]; then add_scream="false"; fi
 if [ -z "${SOURCE+x}" ]; then SOURCE="ERA5"; fi
 if [ -z "${dryrun+x}" ]; then dryrun="false"; fi
 
+# If NCO_OPT is set and non-empty, it is run on each output file as "${NCO_OPT} file file.ncotmp"
+# Error if the NCO executable isn't available since the user explicitly asked for it
+if [ -n "${NCO_OPT}" ]; then
+  NCO_EXE=${NCO_OPT%% *}
+  if ! command -v "${NCO_EXE}" > /dev/null 2>&1; then
+    echo "ERROR: NCO_OPT is set to '${NCO_OPT}' but '${NCO_EXE}' is not in PATH. Load NCO or remove NCO_OPT."; exit 1
+  fi
+  echo "Will post-process each nudging file with: ${NCO_OPT} \${f}"
+fi
+
 # Backward compat: CAM_TO_CAM=true -> SOURCE=CAM
 if [ -n "${CAM_TO_CAM+x}" ] && [ "$CAM_TO_CAM" = "true" ]; then
   echo "WARNING: CAM_TO_CAM is deprecated, use SOURCE=CAM instead"
@@ -285,6 +295,14 @@ for f in "${DATES_ARRAY[@]}"; do
     SCREAM_CMDS=""
   fi
 
+  # Optional NCO post-processing (e.g., compression), done on TMP file before finalizing
+  if [ -n "${NCO_OPT}" ]; then
+    # In case the user doesn't specify "-O" let's send to ANOTHER TMP file first.
+    NCO_CMDS="rm -f ${OUTFILETMP}.ncotmp ; ${NCO_OPT} ${OUTFILETMP} ${OUTFILETMP}.ncotmp ; mv ${OUTFILETMP}.ncotmp ${OUTFILETMP} ;"
+  else
+    NCO_CMDS=""
+  fi
+
   #4/4/22 After CESM2.2, nudging.F90 moved to PIO which doesn't support compression (I don't think...) ... supports floats, which are 25GB uncompressed vs 18GB compressed
   if [ "$SOURCE" = "CAM" ]; then
     echo "Running CAM->CAM options"
@@ -307,6 +325,7 @@ for f in "${DATES_ARRAY[@]}"; do
           --se_inic ${OUTFILETMP} \
           --verbose ;
           ${SCREAM_CMDS}
+          ${NCO_CMDS}
           mv -v ${OUTFILETMP} ${OUTFILE} "
 
       # If file doesn't exist, we want to create, but if it does let's skip
@@ -333,6 +352,7 @@ for f in "${DATES_ARRAY[@]}"; do
         --se_inic ${OUTFILETMP} \
         --verbose ;
         ${SCREAM_CMDS}
+        ${NCO_CMDS}
         mv -v ${OUTFILETMP} ${OUTFILE} "
 
     # If file doesn't exist, we want to create, but if it does let's skip
@@ -358,6 +378,7 @@ for f in "${DATES_ARRAY[@]}"; do
         --se_inic ${OUTFILETMP} \
         --verbose ;
         ${SCREAM_CMDS}
+        ${NCO_CMDS}
         mv -v ${OUTFILETMP} ${OUTFILE} "
 
     # If file doesn't exist, we want to create, but if it does let's skip

@@ -129,6 +129,7 @@ NOTE: All dates are inclusive.
 | `dryrun` | If `true`, generate parallel command file without execution |
 | `SOURCE` | Data source: `ERA5` (default), `CR20V3`, or `CAM` |
 | `add_scream` | If `true`, perform SCREAM-specific post-processing |
+| `NCO_OPT` | If set and non-empty, run `${NCO_OPT} file file` on each nudging file before finalizing (e.g., `NCO_OPT="ncks -O -4 --qnt dfl=4 -L 1"` to compress). Errors if the NCO command is not in `PATH` |
 
 ## Other stuff...
 
