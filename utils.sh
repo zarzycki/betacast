@@ -466,7 +466,11 @@ run_CIME () {
   echo "run_CIME: numlogfiles: $numlogfiles"
 
   echo "SUBMITTING FORECAST RUN"
-  set +e ; ./case.submit $2 --batch-args "${3}" ; set -e
+  ./case.submit $2 --batch-args "${3}" && submit_status=0 || submit_status=$?
+  if [ $submit_status -ne 0 ]; then
+    echo "run_CIME: case.submit failed with status $submit_status; exiting betacast"
+    exit 1
+  fi
 
   ## Set up NUKEing
   if [ -f "${1}/NUKE" ] ; then rm -v $1/NUKE ; sleep 5 ; fi
@@ -504,7 +508,14 @@ run_CIME2 () {
   local case_status=1
 
   echo "RUN_CIME2: SUBMITTING FORECAST RUN"
-  ./case.submit "$substr" --batch-args "$batchargs"
+  # Callers disable set -e around this function, so check explicitly. A submit
+  # failure is a setup/account problem that retries won't fix, so exit entirely.
+  local submit_status=0
+  ./case.submit "$substr" --batch-args "$batchargs" || submit_status=$?
+  if [ $submit_status -ne 0 ]; then
+    echo "RUN_CIME2: case.submit failed with status $submit_status; exiting betacast"
+    exit 1
+  fi
 
   # Reset NUKE file if it exists
   if [ -f "$run_dir/NUKE" ]; then rm -v "$run_dir/NUKE"; sleep 5; fi
