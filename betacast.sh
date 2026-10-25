@@ -78,6 +78,21 @@ else
   GNUPAR_AVAIL=false
 fi
 
+# Under sbatch/qsub the script is copied to a spool dir, so SCRIPTPATH falls back to the
+# submit dir above. If $0 still points at a real Betacast checkout (interactive, nohup,
+# salloc, qsub -I), trust that instead. Otherwise, try a user-exported BETACAST.
+REALSCRIPTDIR=$(dirname "$(realpath "$0")")
+if [[ -f "${REALSCRIPTDIR}/utils.sh" ]]; then
+  SCRIPTPATH=${REALSCRIPTDIR}
+elif [[ -n "${BETACAST:-}" && -f "${BETACAST}/utils.sh" ]]; then
+  SCRIPTPATH=${BETACAST}
+fi
+if [[ ! -f "${SCRIPTPATH}/utils.sh" ]]; then
+  echo "ERROR: Can't find Betacast at ${SCRIPTPATH}."
+  echo "ERROR: Either submit from the Betacast directory or export BETACAST=/path/to/betacast"
+  exit 1
+fi
+
 echo "Our script path is $SCRIPTPATH"
 export BETACAST=${SCRIPTPATH}
 echo "BETACAST exported as $BETACAST"
@@ -1047,7 +1062,8 @@ if [ "$modelSystem" -eq 0 ] || [ "$modelSystem" -eq 1 ]; then
     echo "inithist='NONE'" >> user_nl_${atmName}
   fi
   # Concatenate output streams to end of user_nl_${atmName}
-  cat ${OUTPUTSTREAMS} >> user_nl_${atmName}
+  # If OUTPUTSTREAMS doesn't have newline, tack one on.
+  sed -e '$a\' ${OUTPUTSTREAMS} >> user_nl_${atmName}
 elif [ "$modelSystem" -eq 2 ]; then
   # Clear any existing output datastream YAML links
   xmlchange_verbose --atmchange "output_yaml_files" ""
