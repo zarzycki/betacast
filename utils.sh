@@ -349,7 +349,7 @@ get_top_line_from_dates() {
 
   if [ -z "$top_line" ]; then
     echo "ERROR: get_top_line_from_dates: ${datesfile} is empty (or the top line is empty)." >&2
-    exit 1
+    exit 91  # distinct code so wrappers can tell "no more dates" from other failures
   fi
 
   # If not empty, echo back to the main program to be stored in variable
@@ -1268,7 +1268,7 @@ process_model_times() {
     echo "Using dates file: $datesfile"
 
     # Parse the top line from dates file
-    longdate=$(get_top_line_from_dates "$datesfile")
+    longdate=$(get_top_line_from_dates "$datesfile") || exit $?
     echo "Getting parsed time from $longdate"
     parse_YYYYMMDDHH "$longdate"
     echo "From datesfile, read in: $yearstr $monthstr $daystr ${cyclestr}Z"
