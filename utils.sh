@@ -178,7 +178,7 @@ function read_bash_nl() {
   sanitize_file "${FILETOREAD}"
 
   # One VAR=VALUE per line, split on the first '='. Values may contain spaces or '='
-  # if wrapped in double quotes (e.g., NCO_OPT="ncks -O -4 --qnt dfl=4 -L 1").
+  # if wrapped in double or single quotes (e.g., NCO_OPT="ncks -O -4 --qnt dfl=4 -L 1").
   # Lines starting with # are comments. Note, ___ is stripped from values (legacy).
   echo "Reading namelist ${FILETOREAD}..."
   local line var val
@@ -198,8 +198,8 @@ function read_bash_nl() {
     var="${var%"${var##*[![:space:]]}"}"
     val="${line#*=}"
     val="${val#"${val%%[![:space:]]*}"}"
-    # Strip one pair of surrounding double quotes
-    if [ ${#val} -ge 2 ] && [[ "$val" == \"*\" ]]; then val="${val:1:${#val}-2}"; fi
+    # Strip one pair of surrounding double or single quotes ($ references still expand below)
+    if [ ${#val} -ge 2 ] && { [[ "$val" == \"*\" ]] || [[ "$val" == \'*\' ]]; }; then val="${val:1:${#val}-2}"; fi
     val="${val//___/}"
 
     if [[ "$var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
