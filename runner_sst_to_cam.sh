@@ -14,6 +14,11 @@ source "${BETACAST}/datahelpers.sh"
 echo "SST runner host: $(hostname)"
 echo "SST runner start time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
 
+# cd to the sst_to_cam folder to be 100% sure we are in there
+if [ -z "${sst_to_cam_path+x}" ]; then sst_to_cam_path="${BETACAST}/sst_to_cam"; fi
+echo "cd'ing to interpolation directory: $sst_to_cam_path"
+cdv "$sst_to_cam_path"
+
 ############################### SST TO CAM ###############################
 
 # Switch bash bool to int for Python input
