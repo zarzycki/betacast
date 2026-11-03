@@ -14,7 +14,15 @@ import netCDF4
 import cftime
 import argparse
 from datetime import datetime
-from scipy.interpolate import interp1d, RegularGridInterpolator
+from scipy.interpolate import RegularGridInterpolator
+import os
+import sys
+
+# Import provided modules
+module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..', 'py_functions'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
+import horizremap
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="Add LENS anomalies to DATM forcing files")
@@ -106,7 +114,7 @@ print("Time interpolation")
 # interp LENS to time deltas in DATM
 interp = {}
 for var in delta_vars:
-    interp[var] = interp1d(time_deltas_doy, deltas[var].values, axis=0, bounds_error=False)(datm_deltas_doy)
+    interp[var] = horizremap.linint1_n(time_deltas_doy, deltas[var].values, False, datm_deltas_doy, 0, 0)
 interp["PRECT"] = 1.0 + (0.03 * interp["T"])
 
 print("Spatial interpolation output")
