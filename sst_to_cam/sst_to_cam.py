@@ -2,6 +2,7 @@ import numpy as np
 import xarray as xr
 import logging
 from datetime import datetime
+import calendar
 import sys
 import os
 
@@ -103,11 +104,30 @@ sst_fv_dbl = sst_fv.astype(np.float64)
 sst_fv_dbl_time = np.empty((12, fvlat.shape[0], fvlon.shape[0]), dtype=np.float64)
 
 if do_anom:
-    in_climo = xr.open_dataset("sst_1x1.nc")
-    climo_SST = in_climo['SST_cpl'].values
+    # Climatology only exists on the 1x1 grid, so only 180x360 is supported for now
+    if inputres != "180x360":
+        logging.error(f"do_anom only permits inputres = 180x360, you specified: {inputres}")
+        sys.exit(4)
 
+    climoFile = os.path.join(BETACAST, 'grids/sst_docn/sst_1x1.nc')
+    logging.info(f"Creating observationally-consistent seasonal cycle from: {climoFile}")
+    in_climo = xr.open_dataset(climoFile, decode_times=False)
+    climo_time = in_climo['time'].values
+
+    # get DoY for the forecast day on a noleap calendar (climo is 365_day)
     doy = (datetime(yyyy, mm, dd) - datetime(yyyy, 1, 1)).days + 1
-    sst_anom = sst_fv_dbl - climo_SST[doy-1]
+    if calendar.isleap(yyyy) and mm > 2:
+        doy -= 1
+    doyint = doy - 1
+    logging.info(f"doy: {doy}, interpolating monthly climo to daily time: {doyint}")
+
+    # read monthly climo SST and interp to that day's SST (daily time is 0-364).
+    # NCL interpolated to all 365 days then picked doyint, this only does the day we need
+    climo_SST = in_climo['SST_cpl'].values
+    climo_SST_daily = horizremap.linint1_n(climo_time, climo_SST, True, [doyint], 0, 0)
+
+    # calculate sst_anom as observed SST - that day's climo
+    sst_anom = sst_fv_dbl - climo_SST_daily[0]
 
     for i in range(12):
         sst_fv_dbl_time[i] = climo_SST[i] + sst_anom
@@ -124,7 +144,8 @@ ice_fv_dbl_time = np.empty_like(sst_fv_dbl_time)
 
 if do_anom:
     climo_ice = in_climo['ice_cov'].values
-    ice_anom = ice_fv_dbl - climo_ice[doy-1]
+    climo_ice_daily = horizremap.linint1_n(climo_time, climo_ice, True, [doyint], 0, 0)
+    ice_anom = ice_fv_dbl - climo_ice_daily[0]
 
     for i in range(12):
         ice_fv_dbl_time[i] = climo_ice[i] + ice_anom

@@ -342,6 +342,56 @@ def _linint1(xi, fi, xo):
     return fo
 
 
+def linint1_n(xi, fi, fiCyclicX, xo, Opt, dim):
+    """
+    1D linear interpolation across dimension dim of fi (NCL linint1_n equivalent).
+
+    Same argument order as NCL, with NCL's missing value handling (see _linint1). If
+    fiCyclicX, xi is padded with one point at each end using the spacing of the first/last
+    interval (NCL's DLINCYC), so it works for non-uniform cyclic axes (e.g., monthly
+    mid-points in a year).
+
+    Parameters:
+    - xi: 1D strictly monotonic input coordinate, same length as fi's dim-th dimension.
+    - fi: input array with NaN for missing values.
+    - fiCyclicX: Boolean indicating if xi is cyclic (no cyclic point in xi).
+    - xo: 1D output coordinates.
+    - Opt: only 0 is supported (NCL's Opt=1, which skips missing values, is not ported).
+    - dim: dimension of fi to interpolate across.
+
+    Returns:
+    - float64 array shaped like fi with the dim-th dimension replaced by len(xo), NaN
+      where missing or out of range.
+    """
+    if Opt != 0:
+        raise ValueError(f"linint1_n: only Opt=0 is supported, you specified: {Opt}")
+
+    xi = np.asarray(xi, dtype=np.float64)
+    xo = np.asarray(xo, dtype=np.float64)
+    fi = np.moveaxis(np.asarray(fi, dtype=np.float64), dim, -1)
+
+    if xi.size < 2:
+        raise ValueError("linint1_n: xi must have at least 2 elements")
+    if xi.size != fi.shape[-1]:
+        raise ValueError("linint1_n: The dim-th dimension of fi must be the same length as xi")
+
+    # Check before any flipping so the error shows xi as passed in
+    dxi = np.diff(xi)
+    if not (np.all(dxi > 0) or np.all(dxi < 0)):
+        raise ValueError(f"linint1_n: xi must be strictly monotonic, got: {xi}")
+
+    # Accept monotonically decreasing input coordinates by flipping to increasing
+    if xi[0] > xi[-1]:
+        xi = xi[::-1]
+        fi = fi[..., ::-1]
+
+    if fiCyclicX:
+        xi = np.concatenate(([xi[0] - (xi[1] - xi[0])], xi, [xi[-1] + (xi[-1] - xi[-2])]))
+        fi = np.concatenate((fi[..., -1:], fi, fi[..., :1]), axis=-1)
+
+    return np.moveaxis(_linint1(xi, fi, xo), -1, dim)
+
+
 def linint2(xi, yi, fi, fiCyclicX, xo, yo):
     """
     Bilinear interpolation from one rectilinear grid to another (NCL linint2 equivalent).
