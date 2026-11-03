@@ -924,9 +924,9 @@ SEINIC=${sePreFilterIC}
 if [ "$doFilter" = true ] ; then
 
   # Can we run filtering?
-  if [ "$modelSystem" -ne 2 ]; then
+  if [ "$modelSystem" -eq 2 ]; then
     echo "SCREAM and digital filter not supported"
-    exit
+    exit 1
   fi
 
   # If filtering, need to change these options
@@ -1012,7 +1012,7 @@ if [ "$doFilter" = true ] ; then
   mkdir -p $path_to_nc_files/filtered
   mv -v $path_to_nc_files/*.nc $path_to_nc_files/filtered
   ## Delete filter files that aren't h0 since those are the only ones we care about.
-  find $path_to_nc_files/filtered/ -type f -not -name '*.${atmName}.h0.*.nc' | xargs rm
+  find $path_to_nc_files/filtered/ -type f -not -name "*.${atmName}.h0.*.nc" | xargs rm
 
   ## For now, I'm going to go back and delete all the h0 files in filtered
   rm -v $path_to_nc_files/filtered/*.${atmName}.h0.*.nc
