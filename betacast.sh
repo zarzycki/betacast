@@ -997,7 +997,20 @@ if [ "$doFilter" = true ] ; then
     ## Run filter
     echo "Running filter, currently in $PWD"
     cp -v ${sePreFilterIC} ${sePostFilterIC}
+    # CAM7+ splits into h0i (instantaneous) and h0a (averaged) files.
+    # Look for h0 first (E3SM, older CAM), then h0i (new).
+    # Note choose to make h0a not valid since the timestep level output should be :I
+    # based on above, although technically timestep level output doesn't matter
     filtfile_name=${casename}.${atmName}.h0.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
+    if [ ! -f "${path_to_rundir}/${filtfile_name}" ]; then
+      echo "Filter file ${filtfile_name} not found, trying h0i naming..."
+      filtfile_name=${casename}.${atmName}.h0i.$yearstr-$monthstr-$daystr-$cyclestrsec.nc
+    fi
+    if [ ! -f "${path_to_rundir}/${filtfile_name}" ]; then
+      echo "ERROR: Cannot find filter file as h0 or h0i in ${path_to_rundir}, exiting"
+      exit 1
+    fi
+    echo "Using filter file: ${path_to_rundir}/${filtfile_name}"
 
     (set -x; python $filter_path/lowmemfilter.py \
         --endhour ${filterHourLength} \
@@ -1011,11 +1024,11 @@ if [ "$doFilter" = true ] ; then
   echo "done with filter, removing filter files"
   mkdir -p $path_to_nc_files/filtered
   mv -v $path_to_nc_files/*.nc $path_to_nc_files/filtered
-  ## Delete filter files that aren't h0 since those are the only ones we care about.
-  find $path_to_nc_files/filtered/ -type f -not -name "*.${atmName}.h0.*.nc" | xargs rm
+  ## Delete filter files that aren't h0 (or h0i/h0a) since those are the only ones we care about.
+  find $path_to_nc_files/filtered/ -type f -not -name "*.${atmName}.h0*.nc" | xargs rm
 
-  ## For now, I'm going to go back and delete all the h0 files in filtered
-  rm -v $path_to_nc_files/filtered/*.${atmName}.h0.*.nc
+  ## For now, I'm going to go back and delete all the h0 (or h0i/h0a) files in filtered
+  rm -v $path_to_nc_files/filtered/*.${atmName}.h0*.nc
 
   ### Output filter files only, can be used for ensemble or other initialization after the fact
   if [ "$filterOnly" = true ] ; then
