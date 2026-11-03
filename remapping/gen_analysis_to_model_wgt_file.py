@@ -125,10 +125,10 @@ wgtFileDir = args.WGTFILEDIR
 flip_model_and_analysis = args.FLIP_MODEL_AND_ANALYSIS
 
 # Validate anlgrid
-valid_anlgrids = ["era5_0.25x0.25", "era5_0.3gaus", "era5_2deg", "gfs_0.25x0.25", "gfs_0.50x0.50", "rap_13km", "hrrr_3km", "hwrf_storm"]
+valid_anlgrids = ["era5_0.25x0.25", "era5_0.3gaus", "era5_2deg", "gfs_0.25x0.25", "gfs_0.50x0.50", "cr20v3_0.70x0.70", "rap_13km", "hrrr_3km", "hwrf_storm"]
 if anlgrid not in valid_anlgrids:
     logging.error(f"Unsupported analysis grid: {anlgrid}")
-    exit()
+    sys.exit(1)
 
 srcGridFile = os.path.join(anlgridpath, f"{anlgrid}_scrip.nc")
 
@@ -143,14 +143,15 @@ elif "grid_center_lat" in f.variables and "grid_corner_lat" in f.variables:
     dstType = "scrip"
 elif "eb_prop1" in f.variables:
     logging.error("Exodus files are not supported. Generate the physics grid and pass that in.")
-    exit()
+    sys.exit(1)
 else:
     dstType = "model"
 logging.info(f"Determined input grid type to be: {dstType}")
 
 # Handle "model" type
 if dstType == "model":
-    exit()
+    logging.error(f"{dstGridFile} is not a SCRIP (grid_center_lat/grid_corner_lat) or ESMF mesh (nodeCoords/elementConn) file, can't generate weights.")
+    sys.exit(1)
 
 InterpMethod = "patch"
 shortInterpName = "patc" if InterpMethod == "patch" else InterpMethod
