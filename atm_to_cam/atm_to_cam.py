@@ -36,7 +36,7 @@ nc.default_fillvals['f4'] = NC_FLOAT_FILL
 nc.default_fillvals['f8'] = float(NC_FLOAT_FILL)
 
 # Define regional data sources
-regional_datasources = {'HRRR', 'HRRRml', 'HWRF'}
+regional_datasources = {'HRRR', 'HRRRml', 'HWRF', 'RAP'}
 
 args = pyfuncs.parse_args()
 
@@ -185,8 +185,10 @@ def main():
     # IMPORTANT! data_vars should be organized top-to-bottom when loaddata returns
     # (i.e., lowest pressure/highest z at 0 index of lev)
     # I attempt to account for this elsewhere in the code with flips, but make no promises
-    if datasource in ('GFS', 'CFSR', 'HWRF', 'HRRR'):   # NCEP pressure level data
-        data_vars = loaddata.load_CFSR_data(data_filename, dycore, get_chemistry=add_chemistry)
+    if datasource in ('GFS', 'CFSR', 'HWRF', 'HRRR', 'RAP'):   # NCEP pressure level data
+        data_vars = loaddata.load_CFSR_data(data_filename, dycore, get_chemistry=add_chemistry,
+                                            ignore_clwmr=(datasource == 'RAP')   # RAP doesn't have cloud vars
+                                           )
     elif datasource == 'HRRRml':   # HRRR model level data
         data_vars = loaddata.load_HRRRml_data(data_filename, dycore)
     elif datasource == 'SAMPLE':

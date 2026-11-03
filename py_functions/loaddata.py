@@ -384,7 +384,7 @@ def load_and_extract_CFSR_variable(grb_file_name, level_type, variable):
     grb_file.close()
     return data
 
-def load_CFSR_data(grb_file_name, dycore, get_chemistry=False):
+def load_CFSR_data(grb_file_name, dycore, get_chemistry=False, ignore_clwmr=False):
 
     # Inspect the file
     #inspect_GRIB_file(grb_file_name)
@@ -397,9 +397,15 @@ def load_CFSR_data(grb_file_name, dycore, get_chemistry=False):
     data_vars['lon'] = get_CFSR_coords_for_var(grb_file_name,'t','longitude')
     data_vars['lev'] = get_CFSR_levels_for_var(grb_file_name, 't')
 
-    data_vars['cldlev'] = get_CFSR_levels_for_var(grb_file_name, 'clwmr')
     data_vars['rhlev'] = get_CFSR_levels_for_var(grb_file_name, 'r')
     data_vars['windlev'] = get_CFSR_levels_for_var(grb_file_name, 'u')
+    # Some regional products (e.g., RAP) have no clwmr; zero clouds
+    if ignore_clwmr:
+        # Cheat and copy lev
+        logging.info("ignore_clwmr is True, setting cldlev to lev")
+        data_vars['cldlev'] = data_vars['lev']
+    else:
+        data_vars['cldlev'] = get_CFSR_levels_for_var(grb_file_name, 'clwmr')
 
     data_vars['ps'] = load_and_extract_CFSR_variable(grb_file_name, 'surface', 'sp')
     data_vars['t'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 't')
@@ -425,7 +431,11 @@ def load_CFSR_data(grb_file_name, dycore, get_chemistry=False):
 
     # Load and interpolate additional variables
     data_vars['rh_native'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'r')
-    data_vars['cldmix_native'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'clwmr')
+    if ignore_clwmr:
+        logging.info("ignore_clwmr is True, setting cloud liquid and ice to zero")
+        data_vars['cldmix_native'] = np.zeros_like(data_vars['t'])
+    else:
+        data_vars['cldmix_native'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'clwmr')
 
     # Interpolate
     data_vars['rh'] = vertremap.int2p_n(data_vars['rhlev'],data_vars['rh_native'], data_vars['lev'], linlog=2, dim=0)
