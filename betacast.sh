@@ -54,11 +54,17 @@ if [[ -n "$SLURM_SUBMIT_DIR" ]]; then
 elif [[ -n "$PBS_O_WORKDIR" ]]; then
   # Running under PBS/Torque
   SCRIPTPATH="$PBS_O_WORKDIR"
+  # PBS batch jobs (annoyingly) start in $HOME. So go to the submit dir for ./dates, relative paths, etc.
+  # Interactive (qsub -I) is left alone since the user has already cd'ed where they want to be.
+  if [[ "${PBS_ENVIRONMENT:-}" == "PBS_BATCH" ]]; then
+    echo "Ah! PBS batch job! cd'ing to submit dir: $PBS_O_WORKDIR"
+    cd "$PBS_O_WORKDIR"
+  fi
   USING_BATCH=true
   BATCH_PREFIX="qsub"
   AVAIL_CPUS=${PBS_NUM_PPN:-$(nproc)}
   AVAIL_MEM_MB=$(free -m | awk '/^Mem:/ {print $2}')
-  SUBMIT_EPOCH=$(qstat -f $PBS_JOBID | grep 'qtime = ' | sed 's/.*= //')
+  SUBMIT_EPOCH=$(qstat -f $PBS_JOBID | grep 'qtime = ' | sed 's/.*= //' | xargs -I {} date -d {} +%s)
   QUEUE_MINUTES=$(( ($(date +%s) - SUBMIT_EPOCH) / 60 ))
   echo "Job $PBS_JOBID currently running, was queued for $QUEUE_MINUTES minutes"
 else
@@ -99,10 +105,10 @@ echo "BETACAST exported as $BETACAST"
 source ${BETACAST}/utils.sh
 source ${BETACAST}/datahelpers.sh
 
-# Set files
-MACHINEFILE=${1}
-NAMELISTFILE=${2}
-OUTPUTSTREAMS=${3}
+# Set files (if you don't have/can't set positional args, allow fall back to keyed env vars)
+MACHINEFILE=${1:-${BETACAST_MACHINEFILE:-}}
+NAMELISTFILE=${2:-${BETACAST_NAMELISTFILE:-}}
+OUTPUTSTREAMS=${3:-${BETACAST_OUTPUTSTREAMS:-}}
 # If relative path, convert to absolute path
 if [[ "$MACHINEFILE" != /* ]] && [[ "$MACHINEFILE" != ~* ]]; then MACHINEFILE=${PWD}/${MACHINEFILE}; fi
 if [[ "$NAMELISTFILE" != /* ]] && [[ "$NAMELISTFILE" != ~* ]]; then NAMELISTFILE=${PWD}/${NAMELISTFILE}; fi
@@ -1354,8 +1360,8 @@ if [ "$islive" = false ] ; then
         exec sbatch "$0" "$MACHINEFILE" "$NAMELISTFILE" "$OUTPUTSTREAMS"
         ;;
       qsub)
-        echo "(Re)submitting: qsub -v MACHINEFILE=$MACHINEFILE,NAMELISTFILE=$NAMELISTFILE,OUTPUTSTREAMS=$OUTPUTSTREAMS $0"
-        exec qsub -v MACHINEFILE="$MACHINEFILE",NAMELISTFILE="$NAMELISTFILE",OUTPUTSTREAMS="$OUTPUTSTREAMS" "$0"
+        echo "(Re)submitting: qsub -v BETACAST_MACHINEFILE=$MACHINEFILE,BETACAST_NAMELISTFILE=$NAMELISTFILE,BETACAST_OUTPUTSTREAMS=$OUTPUTSTREAMS $0"
+        exec qsub -v BETACAST_MACHINEFILE="$MACHINEFILE",BETACAST_NAMELISTFILE="$NAMELISTFILE",BETACAST_OUTPUTSTREAMS="$OUTPUTSTREAMS" "$0"
         ;;
       *)
         echo "(Re)submitting directly: $0 $MACHINEFILE $NAMELISTFILE $OUTPUTSTREAMS"
