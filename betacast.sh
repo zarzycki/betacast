@@ -1302,7 +1302,7 @@ if [ "$dotracking" = true ] ; then
         "${track_ATCFTECH}" \
         "${TE_SERIAL_DIR}" \
         "${ARCHIVEDIR}/${ARCHIVESUBDIR}"
-    ) || { echo "Tracking code failed"; popd > /dev/null; }
+    ) || { echo "Tracking code failed"; }
     safe_cp_files "trajs.trajectories.txt.${casename}.png" "./fin-figs/trajs.trajectories.txt.${casename}.${yearstr}${monthstr}${daystr}${cyclestr}.png"
   else
     echo "No TCvitals file exists and/or no storms on said TCvitals file, no reason to run the tracking code"
