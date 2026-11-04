@@ -1007,7 +1007,7 @@ safe_cp2() {
       echo "Warning: No files found matching pattern: $pattern"
     else
       # Sort the files
-      IFS=$'\n' sorted_files=($(printf "%s\n" "${files[@]}" | sort))
+      mapfile -t sorted_files < <(printf "%s\n" "${files[@]}" | sort)
       cp -v -- "${sorted_files[@]}" "$dest"
     fi
   done

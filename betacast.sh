@@ -36,6 +36,12 @@ echo "User      : $(whoami)"
 echo "Start time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
 echo "Shell     : $SHELL"
 
+# Betacast needs bash 4+ (associative arrays, ${var,,}, mapfile). Note macOS /bin/bash is 3.2.
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+  echo "ERROR: Betacast requires bash >= 4, but this is bash ${BASH_VERSION:-unknown}, exiting..."
+  exit 1
+fi
+
 script_start=$(date +%s)
 set -e
 trap 'status=$?; echo "ERROR: Command \"${BASH_COMMAND}\" exited with status $status at line $LINENO"; exit $status' ERR
