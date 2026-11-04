@@ -767,7 +767,8 @@ def load_cam_data(grb_file_name, YYYYMMDDHH, mod_in_topo, mod_remap_file, dycore
     hybm = grb_file["hybm"].values
     hyai = grb_file["hyai"].values
     hybi = grb_file["hybi"].values
-    cam_lat_descending = grb_file["lat"][0] > grb_file["lat"][1]
+    # Check if the remapped latitude is ascending or descending (to be used by omega_ccm_driver)
+    cam_lat_descending = data_vars['lat'][0] > data_vars['lat'][1]
     grb_file.close()
 
     pyfuncs.print_min_max_dict(data_vars)

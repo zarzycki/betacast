@@ -154,11 +154,6 @@ def calculate_gradients(psfc, lat, lon):
     dpsl[0, :] = 0.0
     dpsl[-1, :] = 0.0
 
-    # Check if lat is descending
-    if lat[0] > lat[-1]:
-        logging.info("Flipping dpsm because lats are descending")
-        dpsm = -dpsm
-
     return dpsl, dpsm
 
 
@@ -251,13 +246,6 @@ def omega_ccm_driver(p0, psfc, u, v, lat, lon, hyam, hybm, hyai, hybi):
     else:
         ntim, klev, nlat, mlon = u.shape
 
-    # Check if lat is descending
-    if lat[0] > lat[-1]:
-        logging.info("Flipping lats in omega_ccm")
-        flip_lats=True
-    else:
-        flip_lats=False
-
     # Initialize omega array
     omega = np.zeros_like(u)
 
@@ -268,12 +256,9 @@ def omega_ccm_driver(p0, psfc, u, v, lat, lon, hyam, hybm, hyai, hybi):
     nprlev = np.argmax(hybi != 0) if np.any(hybi != 0) else 0
 
     # Calculate layer pressure thicknesses (pdel) and mid-level pressures (pmid)
-    if flip_lats:
-        pdel = dpres_hybrid_ccm(psfc[::-1,:], p0, hyai, hybi)
-        pmid = pres_hybrid_ccm(psfc[::-1,:], p0, hyam, hybm)
-    else:
-        pdel = dpres_hybrid_ccm(psfc, p0, hyai, hybi)
-        pmid = pres_hybrid_ccm(psfc, p0, hyam, hybm)
+    # These are pointwise in psfc, so no lat flipping (would misalign them with u/v)
+    pdel = dpres_hybrid_ccm(psfc, p0, hyai, hybi)
+    pmid = pres_hybrid_ccm(psfc, p0, hyam, hybm)
 
     # Calculate gradients of log(psfc)
     dpsl, dpsm = calculate_gradients(psfc, lat, lon)
