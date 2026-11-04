@@ -859,7 +859,8 @@ local compress_sw
 
   # Copy ROF initial conditions
   if [ $do_runoff = true ]; then
-    ARCFILE=$(grep ^finidat_rtm $2/user_nl_$6 | cut -d "=" -f2)
+    # CESM MOSART uses finidat (late 2023+), E3SM/SCREAM and older CESM use finidat_rtm
+    ARCFILE=$(grep -E "^finidat(_rtm)?[[:space:]]*=" $2/user_nl_$6 | cut -d "=" -f2)
     if [[ -n "$ARCFILE" ]]; then
       strip_quotes ARCFILE
       echo "Found rof initial file: $ARCFILE"
