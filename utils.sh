@@ -161,7 +161,7 @@ check_bool() {
   else
     if [ "$var_totest" != "false" ] && [ "$var_totest" != "true" ] ; then
       echo "ERROR: $var_string is set to $var_totest and not a valid true/false or 0/1, exiting."
-      exit
+      exit 1
     fi
     # Set cbnew to our lowercased var from earlier since we didn't have to fix.
     cbnew=$var_totest
@@ -479,7 +479,7 @@ run_CIME () {
   ## Hold script while log files from filter run haven't been archived yet
   while [ $(ls ${1}/*.gz | wc -l) == $numlogfiles ]
   do
-    if [ -f "${1}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit ; fi
+    if [ -f "${1}/NUKE" ] ; then echo "Nuke sequence initiated, exiting betacast" ; exit 1 ; fi
     sleep 10 ; echo "Sleeping... $(date '+%Y%m%d %H:%M:%S')"
   done
   echo "Run over done sleeping ($(date '+%Y%m%d %H:%M:%S')) will hold for 10 more sec to make sure files moved"
@@ -690,7 +690,7 @@ try_uncompress() {
 #Fallback tools (xz, zstd, pigz) are already parallelized, so run serially
 compress_history() {
   echo "Compressing model history files..."
-  cd "$1" || exit
+  cd "$1" || exit 1
   local do_parallel=${2:-false}
 
   # Check to see if we have any nc files to begin with...

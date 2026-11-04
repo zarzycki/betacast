@@ -70,7 +70,7 @@ wget_repeat() {
 get_gfs_atm() {
   echo "Getting GFS conditions"
   mkdir -p "$gfs_files_path"
-  cd "$gfs_files_path" || exit
+  cd "$gfs_files_path" || exit 1
   LOCALGFSFILE="gfs_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
 
   if [ ! -f "$LOCALGFSFILE" ]; then
@@ -100,7 +100,7 @@ get_era_interim_atm() {
   echo "Using ERA-Interim forecast ICs"
   echo "Changing to ERA-Interim interpolation directory"
   mkdir -p "$era_files_path"
-  cd "$era_files_path" || exit
+  cd "$era_files_path" || exit 1
   LOCALGFSFILE="ERA-Int_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
 
   if [ ! -f "$LOCALGFSFILE" ]; then
@@ -115,7 +115,7 @@ get_cfsr_atm() {
   echo "Using CFSR ICs"
   echo "Changing to GFS interpolation directory since they are practically the same thing"
   mkdir -p "$gfs_files_path"
-  cd "$gfs_files_path" || exit
+  cd "$gfs_files_path" || exit 1
 
   LOCALCFSRFILE="cfsr_atm_${yearstr}${monthstr}${daystr}${cyclestr}.grib2"
   if [ ! -f "$LOCALCFSRFILE" ]; then
@@ -154,7 +154,7 @@ get_era5_atm() {
   echo "Using ERA5 forecast ICs"
   echo "Changing to ERA5 interpolation directory"
   mkdir -p "$era_files_path"
-  cd "$era_files_path" || exit
+  cd "$era_files_path" || exit 1
   LOCALGFSFILE="ERA5_${yearstr}${monthstr}${daystr}${cyclestr}.nc"
 
   if [ ! -f "$LOCALGFSFILE" ]; then
@@ -228,7 +228,7 @@ get_gdas_sst() {
   SSTTYPE=GDAS
   echo "Getting SST data"
   mkdir -p "${sst_files_path}"
-  cd "${sst_files_path}" || exit
+  cd "${sst_files_path}" || exit 1
 
   if [ "$islive" = true ]; then
     sstFTPPath="https://noaa-gfs-bdp-pds.s3.amazonaws.com/nsst.${yestyearstr}${yestmonthstr}${yestdaystr}/"
@@ -262,7 +262,7 @@ get_noaaoi_sst() {
   SSTTYPE=NOAAOI
   echo "Using NOAAOI SSTs"
   mkdir -p "${sst_files_path}"
-  cd "${sst_files_path}" || exit
+  cd "${sst_files_path}" || exit 1
 
   sstFile="sst.day.mean.${yearstr}.nc"
   if [ ! -f "${sst_files_path}/${sstFile}" ] || \

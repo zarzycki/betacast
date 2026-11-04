@@ -8,8 +8,8 @@ SCRIPTPATH=`echo $SCRIPTPATH | rev | cut -d'/' -f3- | rev`
 echo "Our script path is $SCRIPTPATH"
 source ${SCRIPTPATH}/utils.sh   # Source external bash functions
 
-if [[ $# -eq 0 ]] ; then echo "no namelist, exiting..." ; exit ; fi
-if [ ! -s $1 ]; then echo "File is empty, exiting..." ; exit ; fi
+if [[ $# -eq 0 ]] ; then echo "no namelist, exiting..." ; exit 1 ; fi
+if [ ! -s $1 ]; then echo "File is empty, exiting..." ; exit 1 ; fi
 
 CLEAN_MODE=false
 if [[ $# -eq 2 && "${2,,}" == "clean" ]]; then
@@ -56,7 +56,7 @@ set -u
 if [ -f .${KILLSTR} ]; then
   echo "Exiting because of done..."
   echo "If this is a surprise to you, you need to rm .SEED_DONE in the driver folder"
-  exit
+  exit 0
 else
   echo "If you want to kill this process, run..."
   echo "touch .$KILLSTR"
@@ -229,7 +229,7 @@ fi
 if [[ ${YYYYMMDD} -ge ${MAXTIME} ]] ; then
   echo "Model time ${YYYYMMDD} has exceeded MAXTIME: ${MAXTIME}"
   echo "... EXITING!"
-  exit
+  exit 0
 else
   echo "Model time ${YYYYMMDD} is before MAXTIME: ${MAXTIME}"
 fi

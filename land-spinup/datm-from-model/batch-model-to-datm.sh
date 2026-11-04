@@ -32,7 +32,7 @@ elif [[ $SERVER_NAME == *"casper"* ]] || [[ $SERVER_NAME == *"crhtc"* ]]; then
   NUMCORES=36
 else
   echo "Unrecognized server. exiting"
-  exit
+  exit 1
 fi
 
 if ! type ncks &> /dev/null ; then
@@ -59,7 +59,7 @@ if [ $dryrun = false ] ; then
   elif [[ $SERVER_NAME == *"casper"* ]] || [[ $SERVER_NAME == *"crhtc"* ]]; then
     peak_memusage.exe parallel --jobs ${NUMCORES} --workdir $PWD < ${COMMANDFILE}
   else
-    echo "unknown" ; exit
+    echo "unknown" ; exit 1
   fi
 
   # Cleanup

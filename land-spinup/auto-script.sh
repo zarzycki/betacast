@@ -21,8 +21,8 @@ BETACAST_INVOKE_CMD="$0 $*"
 # Model
 #./auto-script.sh 1 2 19840101 0 1 -1 -1 NAMELIST.MACHINE
 
-if [[ $# -ne 8 ]] ; then echo "Need 8 inputs, got $#, exiting..." ; exit ; fi
-if [ ! -s $8 ]; then echo "Namelist is empty, exiting..." ; exit ; fi
+if [[ $# -ne 8 ]] ; then echo "Need 8 inputs, got $#, exiting..." ; exit 1 ; fi
+if [ ! -s $8 ]; then echo "Namelist is empty, exiting..." ; exit 1 ; fi
 
 ### User settings
 modelSystem=${1}         # 0 = CESM/E3SMv1, 1 = E3SMv2

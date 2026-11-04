@@ -971,7 +971,7 @@ if [ "$doFilter" = true ] ; then
       if [ "$VALIDSTABVAL" = false ]; then
         echo "Betacast cannot handle when $VALIDSTABVAL is false and use_nsplit is false"
         echo "You need to set USERSTAB -> desired se_tstep in the namelist. Exiting..."
-        exit
+        exit 1
       else
         # Add se_tstep directly from stability
         echo "SE_TSTEP --> STABILITY: $STABILITY   "
@@ -1052,7 +1052,7 @@ if [ "$doFilter" = true ] ; then
     mv -v ${path_to_nc_files}/*.gz ${FILTONLYDIR}/config_files
     mv -v ${path_to_nc_files}/*.nml ${FILTONLYDIR}/config_files
     mv -v ${path_to_nc_files}/*_in ${FILTONLYDIR}/config_files
-    exit
+    exit 0
   fi
 
   # Special things we have to do to "reset" model after filtering
@@ -1120,7 +1120,7 @@ if [[ "$DYCORE" == "se" ]]; then
     if [ "$VALIDSTABVAL" = false ]; then
       echo "Betacast cannot handle when $VALIDSTABVAL is false and use_nsplit is false"
       echo "You need to set USERSTAB -> desired se_tstep in the namelist. Exiting..."
-      exit
+      exit 1
     else
       # Add se_tstep directly from stability
       echo "SE_TSTEP --> STABILITY: $STABILITY   "
@@ -1136,7 +1136,7 @@ elif [[ "$DYCORE" == "scream" ]]; then
     if [ "$VALIDSTABVAL" = false ]; then
       echo "Betacast cannot handle when $VALIDSTABVAL is false and use_nsplit is false"
       echo "You need to set USERSTAB -> desired se_tstep in the namelist. Exiting..."
-      exit
+      exit 1
     else
       # Add se_tstep directly from stability
       echo "SE_TSTEP --> STABILITY: $STABILITY   "
@@ -1165,7 +1165,7 @@ elif [ "$modelSystem" -eq 2 ]; then
   xmlchange_verbose --atmchange "filename" "${SEINIC}"
 else
   echo "Cannot inject initial conditions file!"
-  exit
+  exit 1
 fi
 
 if [ "$debug" = false ] ; then
