@@ -123,13 +123,13 @@ echo "Parsed future date (int): $yearstr-$monthstr-$daystr"
 restart_days=$(days_since_epoch "$restart_year" "$restart_month" "$restart_day")
 echo "Restart days since epoch: $restart_days"
 
-restart_hours=$(( restart_days * 24 + restart_secs / 3600 ))
+restart_hours=$(( restart_days * 24 + 10#$restart_secs / 3600 ))
 echo "Restart total hours: $restart_hours"
 
 future_days=$(days_since_epoch "$yearstr" "$monthstr" "$daystr")
 echo "Future days since epoch: $future_days"
 
-future_hours=$(( future_days * 24 + cyclestr ))
+future_hours=$(( future_days * 24 + 10#$cyclestr ))
 echo "Future total hours: $future_hours"
 
 # Final difference how many hours to go from restart -> target

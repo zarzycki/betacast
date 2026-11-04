@@ -380,7 +380,7 @@ parse_YYYYMMDDHH () {
 
   # Do some error trapping on returned time values
   if (( yearstr > 3000 || yearstr < 1 )); then { echo "Year set to $yearstr, this sounds wrong, exiting..." ; exit 94; } ; fi
-  if (( cyclestr > 23 )); then { echo "Cycle string set to $cyclestr Z, this sounds wrong, exiting..." ; exit 95; } ; fi
+  if (( 10#$cyclestr > 23 )); then { echo "Cycle string set to $cyclestr Z, this sounds wrong, exiting..." ; exit 95; } ; fi
 }
 
 
@@ -389,7 +389,7 @@ parse_YYYYMMDDHH () {
 get_cyclestrsec () {
   local hrstr=$1
   ## Figure out the seconds which correspond to the cycle and zero pad if neces
-  cyclestrsec=$(($hrstr*3600))
+  cyclestrsec=$((10#$hrstr*3600))
   while [ ${#cyclestrsec} -lt 5 ];
   do
     cyclestrsec="0"$cyclestrsec
