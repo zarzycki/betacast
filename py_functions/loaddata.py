@@ -384,7 +384,56 @@ def load_and_extract_CFSR_variable(grb_file_name, level_type, variable):
     grb_file.close()
     return data
 
-def load_CFSR_data(grb_file_name, dycore, get_chemistry=False, ignore_clwmr=False):
+def rotate_grid_relative_winds(grb_file_name, data_vars, level_type='isobaricInhPa'):
+    """
+    Rotate u/v from grid-relative to earth-relative on Lambert conformal grids (e.g., WRF, RAP, HRRR).
+
+    Only acts if the GRIB *explicitly says!* winds are grid-relative and the grid is Lambert
+
+    Must be called on the native grid, before horizontal remapping!
+    """
+
+    # Grab u wind attributes/metadata
+    grb_file = load_CFSR_file(grb_file_name, level_type, 'u')
+    attrs = grb_file['u'].attrs
+    grb_file.close()
+
+    if attrs.get('GRIB_gridType') != 'lambert' or attrs.get('GRIB_uvRelativeToGrid', 0) != 1:
+        logging.info(f"Regional model doesn't report that grid wind rotation is needed")
+        return data_vars
+
+    # Cone constant: controls how much grid north turns away from true north as lon changes
+    lat1 = np.radians(attrs['GRIB_Latin1InDegrees'])
+    lat2 = np.radians(attrs['GRIB_Latin2InDegrees'])
+    # isclose defaults: atol = 1e-8 absolute tolerance, rtol = 1e-5 relative tolerance
+    if np.isclose(lat1, lat2):
+        # if lat1 and lat2 are effectively the same, use tangent cone formula
+        cone = np.sin(lat1)
+    else:
+        # if they are not, use secant cone formula
+        cone = (np.log(np.cos(lat1) / np.cos(lat2)) /
+                np.log(np.tan(np.pi/4 + lat2/2) / np.tan(np.pi/4 + lat1/2)))
+
+    # lon difference from the central meridian, wrapped to [-180, 180)
+    dlon = (data_vars['lon'] - attrs['GRIB_LoVInDegrees'] + 180.) % 360. - 180.
+
+    # Calculate the rotation angle and associated sin/cos
+    alpha = cone * np.radians(dlon)
+    cosa = np.cos(alpha)
+    sina = np.sin(alpha)
+
+    logging.info(f"Rotating grid-relative winds to earth-relative, cone={cone:.4f}, "
+                 f"max angle={np.degrees(np.max(np.abs(alpha))):.1f} deg")
+
+    # rotate grid-relative winds to Earth-relative
+    u_grid = data_vars['u']
+    v_grid = data_vars['v']
+    data_vars['u'] = cosa * u_grid + sina * v_grid
+    data_vars['v'] = cosa * v_grid - sina * u_grid
+
+    return data_vars
+
+def load_CFSR_data(grb_file_name, dycore, get_chemistry=False, ignore_clwmr=False, rotate_winds=False):
 
     # Inspect the file
     #inspect_GRIB_file(grb_file_name)
@@ -428,6 +477,10 @@ def load_CFSR_data(grb_file_name, dycore, get_chemistry=False, ignore_clwmr=Fals
         logging.info(f"Interpolating u + v wind from {data_vars['windlev'].shape} to {data_vars['lev'].shape} levels")
         data_vars['u'] = vertremap.int2p_n(data_vars['windlev'], data_vars['u'], data_vars['lev'], linlog=2, dim=0)
         data_vars['v'] = vertremap.int2p_n(data_vars['windlev'], data_vars['v'], data_vars['lev'], linlog=2, dim=0)
+
+    # Regional NCEP grids (RAP, HRRR) store grid-relative winds
+    if rotate_winds:
+        data_vars = rotate_grid_relative_winds(grb_file_name, data_vars)
 
     # Load and interpolate additional variables
     data_vars['rh_native'] = load_and_extract_CFSR_variable(grb_file_name, 'isobaricInhPa', 'r')
@@ -576,6 +629,9 @@ def load_HRRRml_data(grb_file_name, dycore):
         linlog=1, dim=level_dim, flip_p=True,
         extrapolate=True, variable='other', ps=data_vars['ps'], phi_sfc=data_vars['phis']
     )
+
+    # HRRR stores grid-relative winds
+    data_vars = rotate_grid_relative_winds(grb_file_name, data_vars, level_type='hybrid')
 
     data_vars['q'] = vertremap.int2p_n_extrap(
         pin=pres_3d_hybrid, xin=q_hybrid, pout=data_vars['lev'],

@@ -187,7 +187,8 @@ def main():
     # I attempt to account for this elsewhere in the code with flips, but make no promises
     if datasource in ('GFS', 'CFSR', 'HWRF', 'HRRR', 'RAP'):   # NCEP pressure level data
         data_vars = loaddata.load_CFSR_data(data_filename, dycore, get_chemistry=add_chemistry,
-                                            ignore_clwmr=(datasource == 'RAP')   # RAP doesn't have cloud vars
+                                            ignore_clwmr=(datasource == 'RAP'),   # RAP doesn't have cloud vars
+                                            rotate_winds=(datasource in regional_datasources)   # If regional, we need to check wind rotation possibility
                                            )
     elif datasource == 'HRRRml':   # HRRR model level data
         data_vars = loaddata.load_HRRRml_data(data_filename, dycore)
