@@ -135,8 +135,8 @@ get_cfsr_atm() {
       echo "Last day of month ($monthstr) is ${ENCUTARR[0]}"
     fi
 
-    echo "Getting file: ${CFSRFILENAME}"
     CFSRFILENAME="pgbhnl.gdas.${yearstr}${monthstr}${STCUTARR[$index]}-${yearstr}${monthstr}${ENCUTARR[$index]}.tar"
+    echo "Getting file: ${CFSRFILENAME}"
     if [[ $(hostname -s) = derecho* ]]; then
       cp "/glade/collections/rda/data/ds093.0/${yearstr}/${CFSRFILENAME}" .
     else
