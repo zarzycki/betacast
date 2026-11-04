@@ -316,7 +316,7 @@ if [ -n "$vortex_namelist" ] && [ "$vortex_namelist" != "NULL" ] && [ ! -f "$vor
 fi
 
 # Check for deprecated namelist options
-if [ -z "${anl2mdlWeights+x}" ] && [ -n "${gfs2seWeights+x}" ] ; then
+if [ -z "${anl2mdlWeights:-}" ] && [ -f "${gfs2seWeights:-}" ] ; then
   echo "WARNING: Setting anl2mdlWeights to ${gfs2seWeights}"
   echo "WARNING: This is deprecated and will be removed in the future! To fix, change 'gfs2seWeights' to 'anl2mdlWeights' in ${NAMELISTFILE}"
   anl2mdlWeights="$gfs2seWeights"
