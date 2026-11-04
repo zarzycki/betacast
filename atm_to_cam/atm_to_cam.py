@@ -145,6 +145,11 @@ def main():
         logging.info(f"Dycore is {dycore} and add_chemistry is {add_chemistry}. Toggling to true!")
         add_chemistry = True
 
+    # Number concentrations are only written for SCREAM (nc/ni/nr), other dycores would get fill-only vars
+    if add_numconc_vars and dycore != "scream":
+        logging.warning(f"Dycore is {dycore} and add_numconc_vars is {add_numconc_vars}, but number concentrations are only supported for SCREAM. Setting to False.")
+        add_numconc_vars = False
+
     # Turn off non-state vars if using regional, these come from the global background
     if (add_cloud_vars or add_numconc_vars or add_chemistry) and datasource in regional_datasources:
         logging.info(
