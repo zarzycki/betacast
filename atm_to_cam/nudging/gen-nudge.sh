@@ -79,6 +79,20 @@ if [ -n "${_ENV_NUMCORES_SET}" ]; then NUMCORES="${_ENV_NUMCORES}"; fi
 if [ -z "${add_scream+x}" ]; then add_scream="false"; fi
 if [ -z "${SOURCE+x}" ]; then SOURCE="ERA5"; fi
 if [ -z "${dryrun+x}" ]; then dryrun="false"; fi
+if [ -z "${verbose_logging+x}" ]; then verbose_logging="false"; fi
+
+# Logging: by default atm_to_cam.py out is discarded (errors kept) to avoid huge logs.
+# Set verbose_logging=true in the namelist to get everything.
+if [ "$verbose_logging" = true ]; then
+  PY_VERBOSE="--verbose"   # "--verbose" triggers atm_to_cam.py verbose, "" is "default"
+  PY_REDIRECT=""
+  MV_OPT="-v"
+else
+  PY_VERBOSE=""
+  PY_REDIRECT="> /dev/null"
+  MV_OPT=""
+fi
+echo "verbose_logging: ${verbose_logging}"
 
 # If NCO_OPT is set and non-empty, it is run on each output file as "${NCO_OPT} file file.ncotmp"
 # Error if the NCO executable isn't available since the user explicitly asked for it
@@ -254,7 +268,7 @@ else
     do
       start=`date +%s`
       YYYYMMDDHH=`date -u --date @${t} +'%Y%m%d%H'`
-      echo $YYYYMMDDHH
+      if [ "$verbose_logging" = true ]; then echo $YYYYMMDDHH; fi
       ## Append the current YYYYMMDDHH to the array
       DATES_ARRAY+=("$YYYYMMDDHH")
     done
@@ -262,18 +276,19 @@ else
   done
 fi
 
+if [ ${#DATES_ARRAY[@]} -gt 0 ]; then
+  echo "Final DATES_ARRAY contains ${#DATES_ARRAY[@]} dates (first: ${DATES_ARRAY[0]}, last: ${DATES_ARRAY[-1]})"
+else
+  echo "Final DATES_ARRAY contains 0 dates"
+fi
+
 #------------------------------------------------------
 
-echo "DATES_ARRAY contains ${#DATES_ARRAY[@]} dates"
-for date in "${DATES_ARRAY[@]}"; do
-  echo "  $date"
-done
-
-#------------------------------------------------------
+echo "Building commands file..."
 
 for f in "${DATES_ARRAY[@]}"; do
 
-  echo $f
+  if [ "$verbose_logging" = true ]; then echo $f; fi
   YYYY=${f:0:4}
   MM=${f:4:2}
   DD=${f:6:2}
@@ -305,9 +320,9 @@ for f in "${DATES_ARRAY[@]}"; do
 
   #4/4/22 After CESM2.2, nudging.F90 moved to PIO which doesn't support compression (I don't think...) ... supports floats, which are 25GB uncompressed vs 18GB compressed
   if [ "$SOURCE" = "CAM" ]; then
-    echo "Running CAM->CAM options"
+    if [ "$verbose_logging" = true ]; then echo "Running CAM->CAM options"; fi
     for INFILE in $BINLIST; do
-      echo $INFILE
+      if [ "$verbose_logging" = true ]; then echo $INFILE; fi
 
       TXTCOMMAND="python ${BETACAST}/atm_to_cam/atm_to_cam.py
           --datasource CAM \
@@ -323,10 +338,10 @@ for f in "${DATES_ARRAY[@]}"; do
           --mod_remap_file ${MODREMAPFILE} \
           --mod_in_topo ${MODINTOPO} \
           --se_inic ${OUTFILETMP} \
-          --verbose ;
+          ${PY_VERBOSE} ${PY_REDIRECT} ;
           ${SCREAM_CMDS}
           ${NCO_CMDS}
-          mv -v ${OUTFILETMP} ${OUTFILE} "
+          mv ${MV_OPT} ${OUTFILETMP} ${OUTFILE} "
 
       # If file doesn't exist, we want to create, but if it does let's skip
       if [ ! -f ${OUTFILE} ]; then
@@ -334,7 +349,7 @@ for f in "${DATES_ARRAY[@]}"; do
       fi
     done
   elif [ "$SOURCE" = "ERA5" ]; then
-    echo "Running ERA5 -> CAM options"
+    if [ "$verbose_logging" = true ]; then echo "Running ERA5 -> CAM options"; fi
     INFILE=${RDADIR}/e5.oper.invariant/197901/e5.oper.invariant.128_129_z.ll025sc.1979010100_1979010100.nc
 
     TXTCOMMAND="python ${BETACAST}/atm_to_cam/atm_to_cam.py
@@ -350,17 +365,17 @@ for f in "${DATES_ARRAY[@]}"; do
         --adjust_config \"\" \
         --model_topo_file ${BNDTOPO} \
         --se_inic ${OUTFILETMP} \
-        --verbose ;
+        ${PY_VERBOSE} ${PY_REDIRECT} ;
         ${SCREAM_CMDS}
         ${NCO_CMDS}
-        mv -v ${OUTFILETMP} ${OUTFILE} "
+        mv ${MV_OPT} ${OUTFILETMP} ${OUTFILE} "
 
     # If file doesn't exist, we want to create, but if it does let's skip
     if [ ! -f ${OUTFILE} ]; then
       echo ${TXTCOMMAND} >> ${COMMANDFILE}
     fi
   elif [ "$SOURCE" = "CR20V3" ]; then
-    echo "Running CR20V3 -> CAM options"
+    if [ "$verbose_logging" = true ]; then echo "Running CR20V3 -> CAM options"; fi
     INFILE="NULL"  # not used by CR20V3 loader; RDADIR provides all paths
 
     TXTCOMMAND="python ${BETACAST}/atm_to_cam/atm_to_cam.py
@@ -376,10 +391,10 @@ for f in "${DATES_ARRAY[@]}"; do
         --adjust_config \"\" \
         --model_topo_file ${BNDTOPO} \
         --se_inic ${OUTFILETMP} \
-        --verbose ;
+        ${PY_VERBOSE} ${PY_REDIRECT} ;
         ${SCREAM_CMDS}
         ${NCO_CMDS}
-        mv -v ${OUTFILETMP} ${OUTFILE} "
+        mv ${MV_OPT} ${OUTFILETMP} ${OUTFILE} "
 
     # If file doesn't exist, we want to create, but if it does let's skip
     if [ ! -f ${OUTFILE} ]; then
@@ -391,11 +406,13 @@ done
 
 #------------------------------------------------------
 
-if [ $dryrun = false ] ; then
+if [ ! -s ${COMMANDFILE} ]; then
+  echo "No commands to run (all output files already exist?)"
+elif [ $dryrun = false ] ; then
   echo "Launching GNU parallel with ${NUMCORES} cores"
   # --halt now,fail=1: kill all jobs immediately if any single job fails
   parallel --jobs ${NUMCORES} --workdir "$PWD" --halt now,fail=1 < ${COMMANDFILE}
-  rm ${COMMANDFILE}
+  rm -v ${COMMANDFILE}
 fi
 
 endtime=$(date -u +"%s")
