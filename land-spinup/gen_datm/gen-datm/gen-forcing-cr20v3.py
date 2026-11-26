@@ -71,8 +71,11 @@ parser.add_argument("--time_stride",    default=24, type=int,
                          "Must be a multiple of 3 (source resolution). Default: 24")
 parser.add_argument("--greg_to_noleap", action="store_true",
                     help="Convert proleptic_gregorian calendar to noleap (drop Feb 29)")
-parser.add_argument("--convert_nc3",    action="store_true",
+nc_group = parser.add_mutually_exclusive_group()
+nc_group.add_argument("--convert_nc3",    action="store_true",
                     help="Convert output files to NetCDF3 classic via ncks")
+nc_group.add_argument("--lossy_compress", action="store_true",
+                    help="Quantize + deflate output via ncks (netCDF4, 1 time step per chunk)")
 
 args           = parser.parse_args()
 YYYY           = args.year
@@ -82,6 +85,7 @@ datafilename   = args.datafilename
 time_stride    = args.time_stride
 greg_to_noleap = args.greg_to_noleap
 convert_nc3    = args.convert_nc3
+lossy_compress = args.lossy_compress
 
 if time_stride % 3 != 0 or not (3 <= time_stride <= 24):
     logger.error(f"--time_stride must be 3, 6, 12, or 24 (got {time_stride})")
@@ -99,6 +103,7 @@ logger.info(f"  datafilename  : {datafilename}")
 logger.info(f"  time_stride   : {time_stride}h")
 logger.info(f"  greg_to_noleap: {greg_to_noleap}")
 logger.info(f"  convert_nc3   : {convert_nc3}")
+logger.info(f"  lossy_compress: {lossy_compress}")
 logger.info("=" * 70)
 
 # ---------------------------------------------------------------------------
@@ -192,7 +197,7 @@ FILL_FLOAT = np.float32(9.96921e+36)
 FILL_OTHER = np.int32(-9999)
 
 # ---------------------------------------------------------------------------
-# Helper: write dataset to netCDF, log file size, optionally convert to NC3
+# Helper: write dataset to netCDF, log file size, optionally convert to NC3 or lossy compress
 # ---------------------------------------------------------------------------
 def write_nc(ds, filepath):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -218,6 +223,24 @@ def write_nc(ds, filepath):
                 logger.warning(f"    ncks conversion failed: {result.stderr}")
         else:
             logger.warning("    ncks not found; skipping NC3 conversion")
+    # Lossy compression: quantize (VAR=.n -> nearest 10^-n, VAR=n -> n sig. digits), then DEFLATE level 1.
+    # Chunk as (1 time, full lat, full lon) since DATM reads one time slice at a time.
+    if lossy_compress:
+        if shutil.which('ncks'):
+            t0 = time_mod.time()
+            qnt_settings = {'TBOT': '.2', 'PSRF': '.0', 'QBOT': '4', 'WIND': '.2', 'FLDS': '.1', 'FSDS': '.1', 'PRECTmms': '3'}
+            qnt = '#'.join(f"{v}={p}" for v, p in qnt_settings.items() if v in ds.data_vars)
+            command = ['ncks', '-O', '-4', '-L', '1', '--cnk_plc=g2d', '--cnk_map=rd1']
+            if qnt:
+                command += ['--qnt', qnt]
+            result = subprocess.run(command + [filepath, filepath], capture_output=True, text=True)
+            if result.returncode == 0:
+                fsize_mb = os.path.getsize(filepath) / 1e6
+                logger.info(f"    Lossy compress OK ({qnt}; {fsize_mb:.1f} MB, {time_mod.time()-t0:.1f}s)")
+            else:
+                logger.warning(f"    ncks lossy compression failed: {result.stderr}")
+        else:
+            logger.warning("    ncks not found; skipping lossy compression")
 
 
 # ---------------------------------------------------------------------------

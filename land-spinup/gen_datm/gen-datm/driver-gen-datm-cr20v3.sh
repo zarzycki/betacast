@@ -34,7 +34,7 @@ for DATA_YEAR in $(seq $STYR $ENYR)
 do
     THISFILE=${RAWDATADIR}/anl_mean_${DATA_YEAR}_TMP_2m.nc
     if [ -f "$THISFILE" ]; then
-        LINECOMMAND="python gen-forcing-cr20v3.py --year=${DATA_YEAR} --rawdatadir=\"${RAWDATADIR}\" --outdirbase=\"${OUTDIRBASE}\" --greg_to_noleap --time_stride 6 --convert_nc3"
+        LINECOMMAND="python gen-forcing-cr20v3.py --year=${DATA_YEAR} --rawdatadir=\"${RAWDATADIR}\" --outdirbase=\"${OUTDIRBASE}\" --greg_to_noleap --time_stride 6 --lossy_compress"
         echo ${LINECOMMAND} >> ${COMMANDFILE}
     else
         echo "$THISFILE does not exist!"

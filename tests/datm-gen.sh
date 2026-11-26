@@ -13,7 +13,7 @@ run_python_test() {
         --do_q \
         --do_flds \
         --greg_to_noleap \
-        --convert_nc3
+        --lossy_compress
 
     return 0
 }

@@ -13,6 +13,7 @@ dryrun=false
 MODEL_DATASTREAM_DIR=/pscratch/sd/c/czarzyck/hyperion/CORI.VR28.NATL.WAT.CAM5.4CLM5.0.dtime900.003/h5/
 MAPFILE=~/m2637/betacast/regrid_maps/map_ne0np4natlanticwat.ne30x4_TO_era5_0.25x0.25_patc.nc
 OUTDIRBASE="/global/homes/c/czarzyck/m2637/DATM_FORCING/"
+LOSSY_COMPRESS=true   # true: quantize + deflate to nc4 (1 time step per chunk); false: nc3 (64-bit offset)
 
 SCRIPTDIR=$PWD
 
@@ -47,7 +48,7 @@ COMMANDFILE=commands.${TIMESTAMP}.txt
 FILES=`find ${MODEL_DATASTREAM_DIR} -type f -name "*.nc"`
 
 for f in $FILES; do
-  COMMAND="bash $SCRIPTDIR/single-file-to-datm.sh $f $OUTDIRBASE $MAPFILE"
+  COMMAND="bash $SCRIPTDIR/single-file-to-datm.sh $f $OUTDIRBASE $MAPFILE $LOSSY_COMPRESS"
   echo ${COMMAND} >> ${COMMANDFILE}
 done
 

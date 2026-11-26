@@ -37,7 +37,7 @@ do
   do
     THISFILE=${PATHTORAWERA5}/out.${DATA_YEAR}.${DATA_MONTH}.nc
     if [ -f "$THISFILE" ]; then
-      LINECOMMAND="python gen-forcing.py --year=$DATA_YEAR --month=$DATA_MONTH --era5_file=\"$THISFILE\" --outdirbase=\"$OUTDIRBASE\" --do_q --do_flds --greg_to_noleap --convert_nc3"
+      LINECOMMAND="python gen-forcing.py --year=$DATA_YEAR --month=$DATA_MONTH --era5_file=\"$THISFILE\" --outdirbase=\"$OUTDIRBASE\" --do_q --do_flds --greg_to_noleap --lossy_compress"
       echo ${LINECOMMAND} >> ${COMMANDFILE}
     else
       echo "$THISFILE does not exist!"

@@ -47,7 +47,9 @@ parser.add_argument("--do_flds", action="store_true", help="Include longwave dow
 parser.add_argument("--outdirbase", required=True, help="Base output directory")
 parser.add_argument("--datafilename", default="CMZERA5.v0.c2021.0.5d", help="Base name for output files")
 parser.add_argument("--greg_to_noleap", action="store_true", help="Convert from Gregorian to no-leap calendar")
-parser.add_argument("--convert_nc3", action="store_true", help="Use ncks to convert to nc3 classic")
+nc_group = parser.add_mutually_exclusive_group()
+nc_group.add_argument("--convert_nc3", action="store_true", help="Use ncks to convert to nc3 classic")
+nc_group.add_argument("--lossy_compress", action="store_true", help="Use ncks to quantize + deflate (netCDF4, 1 time step per chunk)")
 
 args = parser.parse_args()
 
@@ -63,6 +65,7 @@ outdirbase = args.outdirbase
 datafilename = args.datafilename
 greg_to_noleap = args.greg_to_noleap
 convert_nc3 = args.convert_nc3
+lossy_compress = args.lossy_compress
 
 # Open the domain file
 domain_file_name = domain_file if domain_file else f"{DOMAINSPATH}/era5-domain.nc"
@@ -640,5 +643,27 @@ for ii in range(len(filenames)):
                 logger.info(f"Error message: {result.stderr}")
         else:
             logger.info("ncks is not available on this system. Skipping conversion.")
+
+    # Lossy compression: quantize (VAR=.n -> nearest 10^-n, VAR=n -> n sig. digits), then DEFLATE level 1.
+    # Chunk as (1 time, full lat, full lon) since DATM reads one time slice at a time.
+    # PRECTmms left lossless for ERA5 (already low precision, quantizing gains ~2%).
+    if lossy_compress:
+        if shutil.which("ncks"):
+            qnt_settings = {"TBOT": ".2", "PSRF": ".0", "QBOT": "4", "WIND": ".2", "FLDS": ".1", "FSDS": ".1"}
+            qnt = "#".join(f"{v}={p}" for v, p in qnt_settings.items() if v in ds.data_vars)
+            command = ['ncks', '-O', '-4', '-L', '1', '--cnk_plc=g2d', '--cnk_map=rd1']
+            if qnt:
+                command += ['--qnt', qnt]
+            command += [fullfilename, fullfilename]
+            logger.info(f"Lossy compressing {fullfilename}: {' '.join(command)}")
+            result = subprocess.run(command, capture_output=True, text=True)
+
+            if result.returncode == 0:
+                logger.info("Command executed successfully.")
+            else:
+                logger.info(f"Command failed with return code {result.returncode}.")
+                logger.info(f"Error message: {result.stderr}")
+        else:
+            logger.info("ncks is not available on this system. Skipping compression.")
 
 logger.info("Processing completed successfully!")

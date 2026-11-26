@@ -200,6 +200,34 @@ Then invoke `auto-script.sh` with `DATAFORCING=2` and set `BETACAST_DATM_FORCING
 ./auto-script.sh 1 2 19860101 12 1 -1 -1 nl.landspinup.pm-cpu
 ```
 
+### File format and compression
+
+By default the generators now write lossy-compressed netCDF4 (`--lossy_compress` in `gen-forcing.py`/`gen-forcing-cr20v3.py`, `LOSSY_COMPRESS=true` in `batch-model-to-datm.sh` and `driver-perturb-datm.sh`). Each field is quantized to a sensible precision, then DEFLATE'd at level 1. This makes the files ~4x smaller than the old netCDF3 files (e.g., ERA5 1950-2024 went from 6.8 TB to 1.7 TB) with errors well below anything that matters for a land spinup.
+
+| Stream | Variable(s) | Kept precision |
+|---|---|---|
+| TPQW | TBOT, PSRF, QBOT, WIND, FLDS | 0.01 K, 1 Pa, 4 significant digits, 0.01 m/s, 0.1 W/m2 |
+| Solar | FSDS | 0.1 W/m2 |
+| Precip | PRECTmms | 3 significant digits (model output, CR20v3); lossless for ERA5 (already low precision) |
+
+E3SM reads these files fine. Older CESM versions may only support netCDF3; if so use `--convert_nc3` (or `LOSSY_COMPRESS=false`) to get the old format back.
+
+> **Note:** Chunking matters more than the compression itself. DATM reads one time slice at a time, so each chunk needs to be one time step and the full grid, i.e., `(1, nlat, nlon)`. If you convert old netCDF3 DATM files yourself with a plain `ncks -4 -L 1`, NCO/netCDF picks a chunk like `(15, 184, 367)` and every read has to decompress 15 time steps to get one. In an ELM test this made DATM ~12x slower than uncompressed netCDF3. Always add `--cnk_plc=g2d --cnk_map=rd1`, and check with `ncdump -hs file.nc | grep _ChunkSizes`.
+
+To compress existing netCDF3 DATM files the same way the generators do:
+
+```bash
+ncks -O -4 -L 1 --cnk_plc=g2d --cnk_map=rd1 --qnt 'TBOT=.2#PSRF=.0#QBOT=4#WIND=.2#FLDS=.1' in_TPQW.nc out_TPQW.nc
+ncks -O -4 -L 1 --cnk_plc=g2d --cnk_map=rd1 --qnt FSDS=.1 in_Solar.nc out_Solar.nc
+ncks -O -4 -L 1 --cnk_plc=g2d --cnk_map=rd1 --qnt PRECTmms=3 in_Precip.nc out_Precip.nc
+```
+
+Some things learned the hard way:
+- Only list variables that exist in the file with `--qnt` or `ncks` will error out (e.g., ERA5 TPQW without FLDS).
+- Quantization alone saves nothing; the zeroed bits only shrink once DEFLATE squeezes them out.
+- Even with good chunking, decompression isn't free. DATM uses a single serial reader, so in a 12-month ELM test DATM took ~2x longer with compressed files (about 20-25% of total run time). If speed matters more than disk, stage uncompressed files on scratch.
+- Reading from scratch (`$PSCRATCH`) is much faster than CFS in general, compressed or not.
+
 ## Deltas/Anomalies
 
 Anomaly files representing a climate change signal can be overlaid on ERA5 DATM. Four files are required in `BETACAST_DATM_ANOMALY_BASE`:

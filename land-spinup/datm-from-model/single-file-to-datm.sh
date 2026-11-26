@@ -9,6 +9,9 @@ SOURCE=$1
 #OUTDIRBASE="/pscratch/sd/c/czarzyck/hyperion/DATM/"
 OUTDIRBASE=$2
 
+# true: quantize + deflate to netCDF4 (1 time step per chunk); false: convert to nc3 (64-bit offset)
+LOSSY_COMPRESS=${4:-true}
+
 SOURCEDIR="${SOURCE%/*}/"
 SOURCEFILE="${SOURCE##*/}"
 SOURCEDATE="${SOURCEFILE##*.h?.}"
@@ -72,10 +75,19 @@ ncks -O -C -x -v area,gw ${TMPsolar} ${TMPsolar}
 ncks -O -C -x -v UBOT,VBOT,area,gw ${TMPstate} ${TMPstate}
 ncks -O -C -x -v area,gw ${TMPprecip} ${TMPprecip}
 
-echo "Converting to nc3"
-nccopy -k nc6 ${TMPsolar} ${FINALsolar}
-nccopy -k nc6 ${TMPprecip} ${FINALprecip}
-nccopy -k nc6 ${TMPstate} ${FINALstate}
+if [ "$LOSSY_COMPRESS" = true ]; then
+  # Quantize (VAR=.n -> nearest 10^-n, VAR=n -> n sig. digits), then DEFLATE level 1.
+  # Chunk as (1 time, full lat, full lon) since DATM reads one time slice at a time.
+  echo "Lossy compressing to nc4"
+  ncks -O -4 -L 1 --cnk_plc=g2d --cnk_map=rd1 --qnt FSDS=.1 ${TMPsolar} ${FINALsolar}
+  ncks -O -4 -L 1 --cnk_plc=g2d --cnk_map=rd1 --qnt PRECTmms=3 ${TMPprecip} ${FINALprecip}
+  ncks -O -4 -L 1 --cnk_plc=g2d --cnk_map=rd1 --qnt 'TBOT=.2#PSRF=.0#QBOT=4#WIND=.2#FLDS=.1' ${TMPstate} ${FINALstate}
+else
+  echo "Converting to nc3"
+  nccopy -k nc6 ${TMPsolar} ${FINALsolar}
+  nccopy -k nc6 ${TMPprecip} ${FINALprecip}
+  nccopy -k nc6 ${TMPstate} ${FINALstate}
+fi
 
 echo "Deleting bad files"
 rm -v ${TMPstate} ${TMPsolar} ${TMPprecip}
