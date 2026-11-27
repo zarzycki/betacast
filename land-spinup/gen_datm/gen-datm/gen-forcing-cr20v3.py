@@ -142,6 +142,15 @@ for key, (fname, vname) in VAR_FILES.items():
     shape = datasets[key][vname].shape
     logger.info(f"  {key:6s}: {fname}  ({fsize_mb:.0f} MB)  shape={shape}")
 
+# All inputs must share the TMP_2m time axis since timesteps are selected from it
+# (e.g., RDA 1856 DLWRF/DSWRF/PRATE only have 03/09/15/21Z)
+ntime_ref = datasets['tbot'].sizes['time']
+for key, ds in datasets.items():
+    if ds.sizes['time'] != ntime_ref or not np.array_equal(ds['time'].values, datasets['tbot']['time'].values):
+        logger.error(f"{VAR_FILES[key][0]} has {ds.sizes['time']} timesteps, does not match "
+                     f"{VAR_FILES['tbot'][0]} ({ntime_ref}). Input file is incomplete!")
+        sys.exit(1)
+
 # ---------------------------------------------------------------------------
 # Grid info (identical for all files)
 # ---------------------------------------------------------------------------
@@ -238,9 +247,14 @@ def write_nc(ds, filepath):
                 fsize_mb = os.path.getsize(filepath) / 1e6
                 logger.info(f"    Lossy compress OK ({qnt}; {fsize_mb:.1f} MB, {time_mod.time()-t0:.1f}s)")
             else:
-                logger.warning(f"    ncks lossy compression failed: {result.stderr}")
+                # Don't leave an uncompressed file with default chunking behind!!!! (DATM reads are ~12x slower)
+                logger.error(f"    ncks lossy compression failed: {result.stderr}")
+                os.remove(filepath)
+                sys.exit(1)
         else:
-            logger.warning("    ncks not found; skipping lossy compression")
+            logger.error("    ncks not found but --lossy_compress was requested")
+            os.remove(filepath)
+            sys.exit(1)
 
 
 # ---------------------------------------------------------------------------

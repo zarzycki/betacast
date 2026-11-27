@@ -661,9 +661,14 @@ for ii in range(len(filenames)):
             if result.returncode == 0:
                 logger.info("Command executed successfully.")
             else:
-                logger.info(f"Command failed with return code {result.returncode}.")
-                logger.info(f"Error message: {result.stderr}")
+                # Don't leave an uncompressed file with default chunking behind (DATM reads are ~12x slower)
+                logger.error(f"Command failed with return code {result.returncode}.")
+                logger.error(f"Error message: {result.stderr}")
+                os.remove(fullfilename)
+                sys.exit(1)
         else:
-            logger.info("ncks is not available on this system. Skipping compression.")
+            logger.error("ncks is not available on this system but --lossy_compress was requested.")
+            os.remove(fullfilename)
+            sys.exit(1)
 
 logger.info("Processing completed successfully!")

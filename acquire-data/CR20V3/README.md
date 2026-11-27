@@ -63,3 +63,5 @@ qsub create-mean-casper.sh
 Computes the ensemble mean of all members for each variable/time using `ncea`. Output files are named `*_mem999.nc` (mem999 = ensemble mean).
 
 This is just for debugging if you want to evaluate whether Betacast using the ensemble mean of the individual members matches the ensemble mean provided by NOAA (or in RDA). You should *not* use this mean in a true workflow as the primary benefit of applying the 20CRV3 mean is to have more data at higher altitudes.
+
+NOTE: Also found this useful for "patching" DATM inputs where GDEX/RDA's ensemble mean is incomplete (e.g., in 11/2026, the 1856 surface fluxes). The members for those are in `DLWRFsfc/`, `DSWRFsfc/` and `PRATE/` under the same `SOURCE_DIRECTORY`; they aren't in `_filter_globus.sh`, so either edit or grab those by hand. But that way is slower/more annoying that using RDA.

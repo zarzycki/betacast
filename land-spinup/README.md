@@ -224,6 +224,10 @@ ncks -O -4 -L 1 --cnk_plc=g2d --cnk_map=rd1 --qnt PRECTmms=3 in_Precip.nc out_Pr
 
 Some things learned the hard way:
 - Only list variables that exist in the file with `--qnt` or `ncks` will error out (e.g., ERA5 TPQW without FLDS).
+- Don't use `--qnt default=...`. `LATIXY`/`LONGXY` aren't CF coordinates, so they get lossy compressed, too.
+- Stick with DEFLATE (`-L 1`). Zstd (`--cmp='shf|zst'`) writes ~2x faster for the same size, but then the DATM model's netCDF has to find the HDF5 Zstd plugin at run time.
+- Linear packing (`ncpdq`, shorts + `scale_factor`/`add_offset`) does *not* work. E3SM's DATM reader (`shr_dmodel_mod.F90`) never applies `scale_factor`/`add_offset`, so fields arrive as raw integers. In other words, garbage forcing if you try and pack.
+- People (and Claude) will tell you quantization can't be undone, so keep the raw source data around. In a 12-month ELM test, compressed vs. uncompressed forcing changed the land state by an RMS of ~1e-3 of its std, with no bias. Eh, you can always regen.
 - Quantization alone saves nothing; the zeroed bits only shrink once DEFLATE squeezes them out.
 - Even with good chunking, decompression isn't free. DATM uses a single serial reader, so in a 12-month ELM test DATM took ~2x longer with compressed files (about 20-25% of total run time). If speed matters more than disk, stage uncompressed files on scratch.
 - Reading from scratch (`$PSCRATCH`) is much faster than CFS in general, compressed or not.
